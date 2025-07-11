@@ -96,6 +96,7 @@ export function SavingsSummary({
   currency,
   totalComparisons,
 }: SavingsSummaryProps) {
+  const { formatPrice } = useCurrency();
   const savings = originalPrice - lowestPrice;
   const savingsPercentage = ((savings / originalPrice) * 100).toFixed(0);
 
