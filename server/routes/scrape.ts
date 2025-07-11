@@ -23,22 +23,23 @@ function extractPrice(text: string): { price: number; currency: string } {
 
   // Clean the text first
   const cleanText = text.replace(/\s+/g, " ").trim();
+  console.log("Extracting price from text:", cleanText);
 
-  // More comprehensive price patterns
+  // More comprehensive price patterns - improved for European formats
   const patterns = [
-    // Standard currency symbols with prices
-    /[\$£€¥₹₽](\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/,
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)[\s]*[\$£€¥₹₽]/,
+    // Standard currency symbols with prices (improved for larger numbers)
+    /[\$£€¥₹₽]\s*(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)/,
+    /(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)\s*[\$£€¥₹₽]/,
     // Price with currency words
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP|CAD|AUD)/i,
-    /(?:USD|EUR|GBP|CAD|AUD)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
-    // Decimal prices without currency
-    /(\d{1,3}(?:,\d{3})*\.\d{2})/,
-    // Whole number prices
-    /(\d{1,4})/,
+    /(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP|CAD|AUD|€)/i,
+    /(?:USD|EUR|GBP|CAD|AUD|€)\s*(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)/i,
+    // Decimal prices without currency (larger numbers)
+    /(\d{1,4}(?:[\s,.]\d{3})*\.\d{2})/,
+    // Whole number prices (larger range)
+    /(\d{2,5})/,
   ];
 
-  // Try to find currency symbol first
+  // Detect currency from text context and symbols
   const currencySymbols: { [key: string]: string } = {
     $: "$",
     "£": "£",
@@ -49,10 +50,21 @@ function extractPrice(text: string): { price: number; currency: string } {
   };
 
   let detectedCurrency = "$"; // Default
-  for (const [symbol, curr] of Object.entries(currencySymbols)) {
-    if (cleanText.includes(symbol)) {
-      detectedCurrency = curr;
-      break;
+
+  // Check for Euro patterns first (common in EU sites)
+  if (
+    cleanText.includes("€") ||
+    cleanText.toLowerCase().includes("eur") ||
+    /\d+\s*€/.test(cleanText)
+  ) {
+    detectedCurrency = "€";
+  } else {
+    // Check other currency symbols
+    for (const [symbol, curr] of Object.entries(currencySymbols)) {
+      if (cleanText.includes(symbol)) {
+        detectedCurrency = curr;
+        break;
+      }
     }
   }
 
@@ -60,8 +72,19 @@ function extractPrice(text: string): { price: number; currency: string } {
   for (const pattern of patterns) {
     const match = cleanText.match(pattern);
     if (match && match[1]) {
-      const priceStr = match[1].replace(/,/g, "");
+      // Handle European number formats (spaces and commas as thousand separators)
+      let priceStr = match[1]
+        .replace(/[\s,]/g, "") // Remove spaces and commas (thousand separators)
+        .replace(/\.(\d{2})$/, ".$1"); // Keep decimal point for cents
+
       const price = parseFloat(priceStr);
+      console.log("Parsed price:", {
+        original: match[1],
+        cleaned: priceStr,
+        parsed: price,
+        currency: detectedCurrency,
+      });
+
       if (!isNaN(price) && price > 0) {
         return { price, currency: detectedCurrency };
       }
@@ -218,10 +241,16 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
       /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
+      // European price patterns
+      /(\d{1,4}(?:[.\s,]\d{3})*(?:,\d{2})?)\s*€/i,
+      /€\s*(\d{1,4}(?:[.\s,]\d{3})*(?:,\d{2})?)/i,
+      /(\d{1,4}(?:[.\s,]\d{3})*(?:\.\d{2})?)\s*EUR/i,
+      /EUR\s*(\d{1,4}(?:[.\s,]\d{3})*(?:\.\d{2})?)/i,
+
       // Global price patterns (fallback)
       /From\s*\$(\d+(?:,\d{3})*)/i,
       /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
-      /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
+      /[\$£€¥₹]\s*\d+(?:[.\s,]\d{3})*(?:\.\d{2})?/g,
     ];
 
     for (const pattern of pricePatterns) {
@@ -240,18 +269,85 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       }
     }
 
-    // Extract image
+    // Extract image with comprehensive patterns
     let image = "";
     const imagePatterns = [
+      // Standard meta tags
       /<meta property="og:image" content="([^"]+)"/i,
       /<meta name="twitter:image" content="([^"]+)"/i,
+      /<meta itemprop="image" content="([^"]+)"/i,
+
+      // Product specific image patterns
+      /"productImage"\s*:\s*"([^"]+)"/i,
+      /"image"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/i,
+      /"src"\s*:\s*"([^"]*product[^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/i,
+
+      // Common e-commerce patterns
+      /<img[^>]*class="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*data-testid="[^"]*image[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*alt="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*id="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+
+      // SKIMS specific patterns
+      /<img[^>]*class="[^"]*hero[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*class="[^"]*main[^"]*"[^>]*src="([^"]+)"/i,
+      /<picture[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i,
+
+      // Generic high-resolution image patterns
+      /src="([^"]*\/(?:product|hero|main|primary)[^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/i,
+      /srcset="([^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)\s+\d+w/i,
+
+      // JSON-LD structured data
+      /"@type"\s*:\s*"Product"[^}]*"image"[^}]*"url"\s*:\s*"([^"]+)"/i,
+      /"@type"\s*:\s*"Product"[^}]*"image"\s*:\s*"([^"]+)"/i,
+
+      // Fallback: any large image that might be product-related
+      /<img[^>]*src="([^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/gi,
     ];
 
     for (const pattern of imagePatterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        image = match[1].trim();
-        break;
+      if (pattern.global) {
+        const matches = html.match(pattern);
+        if (matches) {
+          // For global patterns, find the best match (largest or most product-like)
+          for (const match of matches) {
+            const imgMatch = match.match(/src="([^"]+)"/i);
+            if (imgMatch && imgMatch[1]) {
+              const imgUrl = imgMatch[1].trim();
+              // Prefer images that look like product images
+              if (
+                imgUrl.includes("product") ||
+                imgUrl.includes("hero") ||
+                imgUrl.includes("main") ||
+                imgUrl.includes("primary") ||
+                imgUrl.match(/\d{3,4}x\d{3,4}/) ||
+                imgUrl.includes("_large")
+              ) {
+                image = imgUrl;
+                break;
+              } else if (!image) {
+                image = imgUrl; // Fallback to first found image
+              }
+            }
+          }
+          if (image) break;
+        }
+      } else {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          image = match[1].trim();
+          break;
+        }
+      }
+    }
+
+    // Clean up relative URLs
+    if (image && !image.startsWith("http")) {
+      try {
+        const baseUrl = new URL(url);
+        image = new URL(image, baseUrl.origin).href;
+      } catch (e) {
+        // If URL construction fails, keep original
       }
     }
 
@@ -492,42 +588,8 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     }
   }
 
-  // AI-powered extraction fallback: if normal extraction failed, try Gemini
-  if (
-    !extracted.title ||
-    extracted.title === "Product Title Not Found" ||
-    price === 0
-  ) {
-    console.log("Normal extraction failed - trying Gemini AI...");
-    const aiExtracted = await extractWithGemini(html, url);
-
-    if (
-      aiExtracted &&
-      aiExtracted.title &&
-      aiExtracted.title !== "Product Title Not Found"
-    ) {
-      console.log("Gemini AI successfully extracted data:", aiExtracted);
-
-      const aiPrice = extractPrice(aiExtracted.price);
-      return {
-        title: aiExtracted.title,
-        price: aiPrice.price,
-        currency: aiPrice.currency,
-        image: aiExtracted.image || "/placeholder.svg",
-        url,
-        store: domain,
-      };
-    }
-
-    // Final fallback: if AI also fails, try to infer from URL
-    const urlBasedFallback = inferProductFromUrl(url, domain);
-    if (urlBasedFallback.title !== "Product Title Not Found") {
-      console.log("Using URL-based fallback:", urlBasedFallback);
-      return urlBasedFallback;
-    }
-  }
-
-  return {
+  // AI validation and enhancement: Always run Gemini to validate and improve extraction
+  let finalProduct = {
     title: extracted.title || "Product Title Not Found",
     price,
     currency,
@@ -535,6 +597,63 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     url,
     store: domain,
   };
+
+  // Try AI extraction/validation
+  console.log("Running AI validation and enhancement...");
+  const aiExtracted = await extractWithGemini(html, url);
+
+  if (aiExtracted && aiExtracted.confidence) {
+    console.log("AI extracted data:", aiExtracted);
+
+    // Use AI data if it's high confidence, or if our extraction failed
+    const shouldUseAI =
+      aiExtracted.confidence === "high" ||
+      !extracted.title ||
+      extracted.title === "Product Title Not Found" ||
+      price === 0;
+
+    if (shouldUseAI) {
+      const aiPrice = extractPrice(aiExtracted.price);
+
+      // Use AI data but keep the best of both
+      finalProduct = {
+        title: aiExtracted.title || finalProduct.title,
+        price: aiPrice.price > 0 ? aiPrice.price : finalProduct.price,
+        currency: aiPrice.price > 0 ? aiPrice.currency : finalProduct.currency,
+        image: aiExtracted.image || finalProduct.image,
+        url,
+        store: domain,
+      };
+
+      console.log("Using AI-enhanced data:", finalProduct);
+    } else {
+      // Enhance existing data with AI insights
+      if (
+        aiExtracted.image &&
+        !finalProduct.image.includes("/placeholder.svg")
+      ) {
+        finalProduct.image = aiExtracted.image;
+      }
+      if (
+        aiExtracted.title &&
+        aiExtracted.title.length > finalProduct.title.length
+      ) {
+        finalProduct.title = aiExtracted.title;
+      }
+      console.log("Enhanced with AI insights:", finalProduct);
+    }
+  }
+
+  // Final fallback: if everything fails, try to infer from URL
+  if (finalProduct.title === "Product Title Not Found") {
+    const urlBasedFallback = inferProductFromUrl(url, domain);
+    if (urlBasedFallback.title !== "Product Title Not Found") {
+      console.log("Using URL-based fallback:", urlBasedFallback);
+      return urlBasedFallback;
+    }
+  }
+
+  return finalProduct;
 }
 
 // Intelligent fallback based on URL patterns for known sites
@@ -649,27 +768,33 @@ async function extractWithGemini(
       .substring(0, 50000); // Limit to ~50k characters
 
     const prompt = `
-Extract product information from this e-commerce page HTML. Return ONLY a valid JSON object with these exact fields:
+You are an expert e-commerce data extractor. Analyze this HTML and extract the main product information. Return ONLY a valid JSON object.
 
+CRITICAL REQUIREMENTS:
+1. TITLE: Extract the main product name, remove site names, categories, and promotional text
+2. PRICE: Find the main selling price with currency symbol (e.g., '$82.00', '€149.99')
+3. IMAGE: Find the highest quality main product image (look for og:image, twitter:image, product images, hero images)
+
+Expected JSON format:
 {
-  "title": "Product name (clean, without site name or extra text)",
-  "price": "Price as string with currency symbol (e.g., '$299.99')",
-  "image": "Main product image URL (absolute URL)"
+  "title": "Clean product name without site branding",
+  "price": "Price with currency symbol or '0' if not found",
+  "image": "Full URL to main product image or '' if not found",
+  "confidence": "high|medium|low based on data quality"
 }
 
-Rules:
-- If no clear price is found, use "0"
-- If no image is found, use ""
-- Focus on the main product being sold
-- Clean up title to remove site name and category text
-- Price should include currency symbol
+EXTRACTION PRIORITIES:
+- For IMAGES: Prefer og:image, twitter:image, then main product images, avoid thumbnails
+- For PRICES: Look for main price, sale price, or current price - ignore crossed-out prices
+- For TITLES: Remove site names, categories, SKUs, and promotional text
 
-URL: ${url}
+URL being analyzed: ${url}
+Domain context: This appears to be a ${extractDomain(url)} product page
 
-HTML:
+HTML Content:
 ${cleanHtml}
 
-JSON:`;
+Return JSON:`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -682,7 +807,36 @@ JSON:`;
     if (jsonMatch) {
       const extractedData = JSON.parse(jsonMatch[0]);
       console.log("Gemini extracted data:", extractedData);
-      return extractedData;
+
+      // Validate and clean up the extracted data
+      if (extractedData) {
+        // Clean up image URL if it's relative
+        if (
+          extractedData.image &&
+          !extractedData.image.startsWith("http") &&
+          extractedData.image !== ""
+        ) {
+          try {
+            const baseUrl = new URL(url);
+            extractedData.image = new URL(
+              extractedData.image,
+              baseUrl.origin,
+            ).href;
+          } catch (e) {
+            console.log(
+              "Failed to resolve relative image URL:",
+              extractedData.image,
+            );
+          }
+        }
+
+        // Validate confidence level
+        if (!extractedData.confidence) {
+          extractedData.confidence = "medium";
+        }
+
+        return extractedData;
+      }
     }
 
     return null;

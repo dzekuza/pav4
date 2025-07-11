@@ -4,6 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleScrape } from "./routes/scrape";
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
+import { trackClick, trackPurchase, getAnalytics } from "./routes/analytics";
 
 // Load environment variables
 dotenv.config();
@@ -25,6 +26,11 @@ export function createServer() {
   app.post("/api/scrape", handleScrape);
   app.post("/api/search-history", saveSearchHistory);
   app.get("/api/search-history", getSearchHistory);
+
+  // Analytics endpoints
+  app.post("/api/track-click", trackClick);
+  app.post("/api/track-purchase", trackPurchase);
+  app.get("/api/analytics", getAnalytics);
 
   return app;
 }

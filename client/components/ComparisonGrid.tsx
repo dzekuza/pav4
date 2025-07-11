@@ -1,4 +1,5 @@
 import { ProductCard } from "./ProductCard";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Product {
   title: string;
@@ -18,13 +19,17 @@ interface ComparisonGridProps {
   products: Product[];
   originalPrice?: number;
   className?: string;
+  requestId?: string;
 }
 
 export function ComparisonGrid({
   products,
   originalPrice,
   className = "",
+  requestId,
 }: ComparisonGridProps) {
+  const { convertPrice } = useCurrency();
+
   if (products.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
@@ -43,8 +48,10 @@ export function ComparisonGrid({
     );
   }
 
-  // Find the lowest price to highlight the best deal
-  const lowestPrice = Math.min(...products.map((p) => p.price));
+  // Find the lowest price to highlight the best deal (in converted currency)
+  const lowestPrice = Math.min(
+    ...products.map((p) => convertPrice(p.price, p.currency)),
+  );
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -71,6 +78,7 @@ export function ComparisonGrid({
             condition={product.condition}
             isBestPrice={isBestPrice}
             savings={savings}
+            requestId={requestId}
           />
         );
       })}
@@ -91,6 +99,7 @@ export function SavingsSummary({
   currency,
   totalComparisons,
 }: SavingsSummaryProps) {
+  const { formatPrice } = useCurrency();
   const savings = originalPrice - lowestPrice;
   const savingsPercentage = ((savings / originalPrice) * 100).toFixed(0);
 
@@ -111,8 +120,7 @@ export function SavingsSummary({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-success font-semibold text-lg">
-            💰 You can save up to {currency}
-            {savings.toFixed(2)}!
+            💰 You can save up to {formatPrice(savings)}!
           </p>
           <p className="text-success/80 text-sm">
             That's {savingsPercentage}% off the original price

@@ -1,15 +1,33 @@
 [build]
-  command = "npm run build:client"
+  command = "npm run build"
   functions = "netlify/functions"
   publish = "dist/spa"
 
 
 [functions]
-  external_node_modules = ["express"]
+  external_node_modules = ["express", "puppeteer", "@google/generative-ai"]
   node_bundler = "esbuild"
+  included_files = ["server/**", "shared/**"]
   
 [[redirects]]
   force = true
   from = "/api/*"
   status = 200
   to = "/.netlify/functions/api/:splat"
+
+# Handle direct product URLs
+[[redirects]]
+  from = "/https://*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/http://*"
+  to = "/index.html"
+  status = 200
+
+# Handle domain-prefixed URLs (catch-all for any pattern)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

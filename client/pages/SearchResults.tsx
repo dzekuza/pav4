@@ -8,6 +8,7 @@ import { SearchHeader } from "@/components/SearchHeader";
 import { ComparisonGrid, SavingsSummary } from "@/components/ComparisonGrid";
 import { SearchLoadingState } from "@/components/LoadingSkeleton";
 import { ProductData, PriceComparison, ScrapeResponse } from "@shared/api";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export default function SearchResults() {
   const { requestId, slug } = useParams<{
@@ -20,6 +21,7 @@ export default function SearchResults() {
   const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { formatPrice, convertPrice } = useCurrency();
 
   useEffect(() => {
     if (!requestId) return;
@@ -92,8 +94,10 @@ export default function SearchResults() {
   }
 
   const lowestPrice = Math.min(
-    originalProduct?.price || Infinity,
-    ...comparisons.map((c) => c.price),
+    originalProduct
+      ? convertPrice(originalProduct.price, originalProduct.currency)
+      : Infinity,
+    ...comparisons.map((c) => convertPrice(c.price, c.currency)),
   );
 
   return (
@@ -111,8 +115,10 @@ export default function SearchResults() {
                 </h1>
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-2xl font-bold">
-                    {originalProduct.currency}
-                    {originalProduct.price.toFixed(2)}
+                    {formatPrice(
+                      originalProduct.price,
+                      originalProduct.currency,
+                    )}
                   </span>
                   <Badge variant="outline">Original Price</Badge>
                 </div>
@@ -141,9 +147,12 @@ export default function SearchResults() {
         {/* Savings Summary */}
         {originalProduct && (
           <SavingsSummary
-            originalPrice={originalProduct.price}
+            originalPrice={convertPrice(
+              originalProduct.price,
+              originalProduct.currency,
+            )}
             lowestPrice={lowestPrice}
-            currency={originalProduct.currency}
+            currency=""
             totalComparisons={comparisons.length}
           />
         )}
@@ -154,6 +163,7 @@ export default function SearchResults() {
           <ComparisonGrid
             products={comparisons}
             originalPrice={originalProduct?.price}
+            requestId={requestId}
           />
         </div>
       </div>
