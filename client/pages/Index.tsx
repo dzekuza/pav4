@@ -4,6 +4,7 @@ import { TrendingUp, Shield, Zap, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/SearchInput";
+import { CurrencySelector } from "@/components/CurrencySelector";
 
 // Generate a simple UUID v4
 function generateRequestId(): string {
