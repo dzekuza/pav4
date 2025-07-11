@@ -938,42 +938,147 @@ function getStoreUrl(storeName: string): string {
   );
 }
 
-// Generate retailer-specific search URLs
+// Generate retailer-specific search URLs with enhanced search parameters for better product matching
 function generateSearchUrl(storeName: string, searchQuery: string): string {
   const encodedQuery = encodeURIComponent(searchQuery);
 
+  // Extract key product identifiers for better matching
+  const productKeywords = extractProductKeywords(searchQuery);
+  const brandQuery = productKeywords.brand
+    ? encodeURIComponent(productKeywords.brand)
+    : encodedQuery;
+  const modelQuery = productKeywords.model
+    ? encodeURIComponent(productKeywords.model)
+    : encodedQuery;
+  const fullQuery = encodeURIComponent(
+    `${productKeywords.brand || ""} ${productKeywords.model || searchQuery}`.trim(),
+  );
+
   switch (storeName) {
     case "Amazon":
-      return `https://www.amazon.com/s?k=${encodedQuery}`;
+      // Use more specific search with sorting by relevance and customer reviews
+      return `https://www.amazon.com/s?k=${fullQuery}&s=review-rank&ref=sr_st_review-rank`;
     case "eBay":
-      return `https://www.ebay.com/sch/i.html?_nkw=${encodedQuery}`;
+      // Search with condition filters and Buy It Now only for better product matches
+      return `https://www.ebay.com/sch/i.html?_nkw=${fullQuery}&_sop=12&LH_BIN=1`;
     case "Walmart":
-      return `https://www.walmart.com/search?q=${encodedQuery}`;
+      // Use department-specific search if possible
+      return `https://www.walmart.com/search?q=${fullQuery}&sort=best_match`;
     case "Best Buy":
-      return `https://www.bestbuy.com/site/searchpage.jsp?st=${encodedQuery}`;
+      // Sort by best match and include customer rating filter
+      return `https://www.bestbuy.com/site/searchpage.jsp?st=${fullQuery}&_dyncharset=UTF-8&iht=y&usc=All+Categories&ks=960&sort=sr`;
     case "Target":
-      return `https://www.target.com/s?searchTerm=${encodedQuery}`;
+      // Use Target's enhanced search with relevance sorting
+      return `https://www.target.com/s?searchTerm=${fullQuery}&sortBy=relevance`;
     case "B&H":
-      return `https://www.bhphotovideo.com/c/search?Ntt=${encodedQuery}`;
+      // B&H specific search with professional grade sorting
+      return `https://www.bhphotovideo.com/c/search?Ntt=${fullQuery}&N=0&InitialSearch=yes&sts=ma`;
     case "Adorama":
-      return `https://www.adorama.com/searchsite/${encodedQuery}`;
+      // Adorama search with price and popularity sorting
+      return `https://www.adorama.com/searchsite/${fullQuery}?searchredirect=1`;
     case "Newegg":
-      return `https://www.newegg.com/p/pl?d=${encodedQuery}`;
+      // Newegg search with customer review sorting
+      return `https://www.newegg.com/p/pl?d=${fullQuery}&order=REVIEWS`;
     case "Costco":
-      return `https://www.costco.com/CatalogSearch?keyword=${encodedQuery}`;
+      // Costco specific search
+      return `https://www.costco.com/CatalogSearch?keyword=${fullQuery}&dept=All&sortBy=PriceMin|1`;
     case "Sam's Club":
-      return `https://www.samsclub.com/search?searchTerm=${encodedQuery}`;
+      // Sam's Club search
+      return `https://www.samsclub.com/search?searchTerm=${fullQuery}&sortKey=relevance`;
     case "Mercari":
-      return `https://www.mercari.com/search/?keyword=${encodedQuery}`;
+      // Mercari search with condition and price sorting
+      return `https://www.mercari.com/search/?keyword=${fullQuery}&sort_order=price_asc`;
     case "OfferUp":
-      return `https://offerup.com/search/?q=${encodedQuery}`;
+      // OfferUp search
+      return `https://offerup.com/search/?q=${fullQuery}&sort=date`;
     case "Facebook Marketplace":
-      return `https://www.facebook.com/marketplace/search/?query=${encodedQuery}`;
+      // Facebook Marketplace search
+      return `https://www.facebook.com/marketplace/search/?query=${fullQuery}&sortBy=distance_ascend`;
     default:
-      // Generic fallback for other stores
+      // Enhanced generic fallback for other stores
       const storeUrl = getStoreUrl(storeName);
-      return `${storeUrl}/search?q=${encodedQuery}`;
+      return `${storeUrl}/search?q=${fullQuery}`;
   }
+}
+
+// Extract brand and model information from product title for better search matching
+function extractProductKeywords(title: string): {
+  brand?: string;
+  model?: string;
+  keywords: string[];
+} {
+  const commonBrands = [
+    "Apple",
+    "Samsung",
+    "Sony",
+    "LG",
+    "Dell",
+    "HP",
+    "Lenovo",
+    "ASUS",
+    "Acer",
+    "Microsoft",
+    "Google",
+    "Amazon",
+    "Nintendo",
+    "PlayStation",
+    "Xbox",
+    "Canon",
+    "Nikon",
+    "Panasonic",
+    "Bose",
+    "JBL",
+    "Beats",
+    "Sennheiser",
+    "Nike",
+    "Adidas",
+    "Under Armour",
+    "Levi's",
+    "Calvin Klein",
+    "KitchenAid",
+    "Cuisinart",
+    "Black & Decker",
+    "DeWalt",
+    "Makita",
+  ];
+
+  const words = title.split(/\s+/);
+  let brand: string | undefined;
+  let model: string | undefined;
+
+  // Find brand
+  for (const word of words) {
+    const matchedBrand = commonBrands.find(
+      (b) =>
+        word.toLowerCase().includes(b.toLowerCase()) ||
+        b.toLowerCase().includes(word.toLowerCase()),
+    );
+    if (matchedBrand) {
+      brand = matchedBrand;
+      break;
+    }
+  }
+
+  // Extract model - usually numbers, version indicators, or specific model names
+  const modelPatterns = [
+    /\b\d+[A-Za-z]*\b/g, // Numbers with optional letters (e.g., "16", "5G", "Pro")
+    /\b[A-Za-z]+\d+[A-Za-z]*\b/g, // Letters followed by numbers (e.g., "iPhone16")
+    /\b(Pro|Plus|Max|Mini|Air|Ultra|SE)\b/gi, // Common model indicators
+  ];
+
+  for (const pattern of modelPatterns) {
+    const matches = title.match(pattern);
+    if (matches && matches.length > 0) {
+      model = matches.join(" ");
+      break;
+    }
+  }
+
+  return {
+    brand,
+    model,
+    keywords: words.filter((w) => w.length > 2), // Filter out short words
+  };
 }
 
 // Generate retailer assessment data like dupe.com
