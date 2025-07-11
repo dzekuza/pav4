@@ -115,8 +115,10 @@ export default function SearchResults() {
                 </h1>
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-2xl font-bold">
-                    {originalProduct.currency}
-                    {originalProduct.price.toFixed(2)}
+                    {formatPrice(
+                      originalProduct.price,
+                      originalProduct.currency,
+                    )}
                   </span>
                   <Badge variant="outline">Original Price</Badge>
                 </div>
