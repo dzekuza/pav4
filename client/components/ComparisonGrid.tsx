@@ -19,6 +19,7 @@ interface ComparisonGridProps {
   products: Product[];
   originalPrice?: number;
   className?: string;
+  requestId?: string;
 }
 
 export function ComparisonGrid({
