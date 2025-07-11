@@ -235,8 +235,16 @@ export default function SearchResults() {
         )}
 
         {/* Price Comparison */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">Price Comparison</h2>
+        <div id="price-comparison" className="mb-12">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              Price Comparison
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              We've found {comparisons.length} alternative sources for this
+              product. Compare prices and find the best deal for you.
+            </p>
+          </div>
           <ComparisonGrid
             products={comparisons}
             originalPrice={originalProduct?.price}
