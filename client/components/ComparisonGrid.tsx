@@ -117,8 +117,7 @@ export function SavingsSummary({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-success font-semibold text-lg">
-            💰 You can save up to {currency}
-            {savings.toFixed(2)}!
+            💰 You can save up to {formatPrice(savings)}!
           </p>
           <p className="text-success/80 text-sm">
             That's {savingsPercentage}% off the original price
