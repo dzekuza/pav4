@@ -37,6 +37,7 @@ export function ProductCard({
   savings = 0,
   className = "",
 }: ProductCardProps) {
+  const { formatPrice } = useCurrency();
   return (
     <Card
       className={`transition-all hover:shadow-md ${
