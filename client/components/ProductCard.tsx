@@ -134,17 +134,17 @@ export function ProductCard({
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Button asChild>
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Buy Now
-              </a>
+            <Button onClick={() => handleProductClick("buy")}>
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Buy Now
             </Button>
-            <Button variant="outline" size="sm" asChild>
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-3 w-3" />
-                View
-              </a>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleProductClick("view")}
+            >
+              <ExternalLink className="mr-2 h-3 w-3" />
+              View
             </Button>
           </div>
         </div>
