@@ -6,6 +6,7 @@ import {
   ScrapeResponse,
   PriceComparison,
 } from "@shared/api";
+import { users } from "./auth";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
@@ -1182,7 +1183,23 @@ export const handleScrape: RequestHandler = async (req, res) => {
     // Get price comparisons
     const comparisons = await getPriceComparisons(originalProduct);
 
-    // TODO: Save to database with requestId
+    // Save to user's search history if authenticated
+    if (req.user) {
+      const user = users.get(req.user.id);
+      if (user) {
+        user.searchHistory.unshift({
+          url,
+          title: originalProduct.title,
+          requestId,
+          timestamp: new Date(),
+        });
+
+        // Keep only last 50 searches
+        if (user.searchHistory.length > 50) {
+          user.searchHistory = user.searchHistory.slice(0, 50);
+        }
+      }
+    }
 
     const response: ScrapeResponse = {
       originalProduct,
