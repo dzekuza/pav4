@@ -653,14 +653,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     }
   }
 
-  return {
-    title: extracted.title || "Product Title Not Found",
-    price,
-    currency,
-    image: extracted.image || "/placeholder.svg",
-    url,
-    store: domain,
-  };
+  return finalProduct;
 }
 
 // Intelligent fallback based on URL patterns for known sites
