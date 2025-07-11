@@ -23,22 +23,23 @@ function extractPrice(text: string): { price: number; currency: string } {
 
   // Clean the text first
   const cleanText = text.replace(/\s+/g, " ").trim();
+  console.log("Extracting price from text:", cleanText);
 
-  // More comprehensive price patterns
+  // More comprehensive price patterns - improved for European formats
   const patterns = [
-    // Standard currency symbols with prices
-    /[\$£€¥₹₽](\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/,
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)[\s]*[\$£€¥₹₽]/,
+    // Standard currency symbols with prices (improved for larger numbers)
+    /[\$£€¥₹₽]\s*(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)/,
+    /(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)\s*[\$£€¥₹₽]/,
     // Price with currency words
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP|CAD|AUD)/i,
-    /(?:USD|EUR|GBP|CAD|AUD)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
-    // Decimal prices without currency
-    /(\d{1,3}(?:,\d{3})*\.\d{2})/,
-    // Whole number prices
-    /(\d{1,4})/,
+    /(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP|CAD|AUD|€)/i,
+    /(?:USD|EUR|GBP|CAD|AUD|€)\s*(\d{1,4}(?:[\s,.]\d{3})*(?:\.\d{2})?)/i,
+    // Decimal prices without currency (larger numbers)
+    /(\d{1,4}(?:[\s,.]\d{3})*\.\d{2})/,
+    // Whole number prices (larger range)
+    /(\d{2,5})/,
   ];
 
-  // Try to find currency symbol first
+  // Detect currency from text context and symbols
   const currencySymbols: { [key: string]: string } = {
     $: "$",
     "£": "£",
@@ -49,10 +50,21 @@ function extractPrice(text: string): { price: number; currency: string } {
   };
 
   let detectedCurrency = "$"; // Default
-  for (const [symbol, curr] of Object.entries(currencySymbols)) {
-    if (cleanText.includes(symbol)) {
-      detectedCurrency = curr;
-      break;
+
+  // Check for Euro patterns first (common in EU sites)
+  if (
+    cleanText.includes("€") ||
+    cleanText.toLowerCase().includes("eur") ||
+    /\d+\s*€/.test(cleanText)
+  ) {
+    detectedCurrency = "€";
+  } else {
+    // Check other currency symbols
+    for (const [symbol, curr] of Object.entries(currencySymbols)) {
+      if (cleanText.includes(symbol)) {
+        detectedCurrency = curr;
+        break;
+      }
     }
   }
 
@@ -60,8 +72,19 @@ function extractPrice(text: string): { price: number; currency: string } {
   for (const pattern of patterns) {
     const match = cleanText.match(pattern);
     if (match && match[1]) {
-      const priceStr = match[1].replace(/,/g, "");
+      // Handle European number formats (spaces and commas as thousand separators)
+      let priceStr = match[1]
+        .replace(/[\s,]/g, "") // Remove spaces and commas (thousand separators)
+        .replace(/\.(\d{2})$/, ".$1"); // Keep decimal point for cents
+
       const price = parseFloat(priceStr);
+      console.log("Parsed price:", {
+        original: match[1],
+        cleaned: priceStr,
+        parsed: price,
+        currency: detectedCurrency,
+      });
+
       if (!isNaN(price) && price > 0) {
         return { price, currency: detectedCurrency };
       }
