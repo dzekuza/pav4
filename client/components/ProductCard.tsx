@@ -55,8 +55,7 @@ export function ProductCard({
             <h3 className="font-semibold mb-1 line-clamp-2">{title}</h3>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg font-bold text-primary">
-                {currency}
-                {price.toFixed(2)}
+                {formatPrice(price, currency)}
               </span>
               {isBestPrice && (
                 <Badge className="bg-success text-success-foreground">
@@ -65,8 +64,7 @@ export function ProductCard({
               )}
               {savings > 0 && (
                 <Badge variant="outline" className="text-success">
-                  Save {currency}
-                  {savings.toFixed(2)}
+                  Save {formatPrice(savings, currency)}
                 </Badge>
               )}
             </div>
