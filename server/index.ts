@@ -4,6 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleScrape } from "./routes/scrape";
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
+import { trackClick, trackPurchase, getAnalytics } from "./routes/analytics";
 
 // Load environment variables
 dotenv.config();
