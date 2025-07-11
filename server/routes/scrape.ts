@@ -216,7 +216,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
       // HTML price patterns
       /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-      /data-price[^>]*>([^<]*[\$£���¥₹][^<]*)</i,
+      /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
       // Global price patterns (fallback)
       /From\s*\$(\d+(?:,\d{3})*)/i,
@@ -880,7 +880,7 @@ async function getPriceComparisons(
         price: altPrice,
         currency: originalProduct.currency,
         image: originalProduct.image,
-        url: `${storeUrl}/search?q=${encodeURIComponent(searchQuery)}`,
+        url: generateSearchUrl(retailer.name, searchQuery),
         store: retailer.name,
         availability: `${stockStatus}${!inStock ? "" : ` - ${retailer.condition}`}`,
         rating: rating,
