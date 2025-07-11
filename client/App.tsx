@@ -12,6 +12,7 @@ import History from "./pages/History";
 import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 const queryClient = new QueryClient();
 
