@@ -37,6 +37,7 @@ const App = () => (
             />
             <Route path="/history" element={<History />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
