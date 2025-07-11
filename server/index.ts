@@ -27,5 +27,10 @@ export function createServer() {
   app.post("/api/search-history", saveSearchHistory);
   app.get("/api/search-history", getSearchHistory);
 
+  // Analytics endpoints
+  app.post("/api/track-click", trackClick);
+  app.post("/api/track-purchase", trackPurchase);
+  app.get("/api/analytics", getAnalytics);
+
   return app;
 }
