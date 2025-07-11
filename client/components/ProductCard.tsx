@@ -83,41 +83,66 @@ export function ProductCard({
         isBestPrice ? "ring-2 ring-success border-success/50 bg-success/5" : ""
       } ${className}`}
     >
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <img
-            src={image}
-            alt={title}
-            className="w-16 h-16 object-cover rounded-lg"
-          />
-          <div className="flex-1">
-            <h3 className="font-semibold mb-1 line-clamp-2">{title}</h3>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg font-bold text-primary">
-                {formatPrice(price, currency)}
-              </span>
-              {isBestPrice && (
-                <Badge className="bg-success text-success-foreground">
-                  Best Price
-                </Badge>
-              )}
-              {savings > 0 && (
-                <Badge variant="outline" className="text-success">
-                  Save {formatPrice(savings, currency)}
-                </Badge>
-              )}
+      <CardContent className="p-4 sm:p-6">
+        {/* Mobile Layout */}
+        <div className="block sm:hidden">
+          <div className="space-y-3">
+            {/* Product Info Row */}
+            <div className="flex gap-3">
+              <img
+                src={image}
+                alt={title}
+                className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-1">
+                  {title}
+                </h3>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  📍 <span className="font-medium">{store}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1">
-                📍 <span className="font-medium">{store}</span>
-              </span>
+
+            {/* Price and Badges Row */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-primary">
+                  {formatPrice(price, currency)}
+                </span>
+                {savings > 0 && (
+                  <span className="text-xs text-success font-medium">
+                    Save {formatPrice(savings, currency)}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                {isBestPrice && (
+                  <Badge className="bg-success text-success-foreground text-xs px-2 py-0">
+                    Best Price
+                  </Badge>
+                )}
+                {condition && condition !== "New" && (
+                  <Badge variant="outline" className="text-xs px-2 py-0">
+                    {condition}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Rating and Stock Status */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               {rating && (
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-current text-yellow-400" />
+                  <Star className="h-3 w-3 fill-current text-yellow-400" />
                   <span>{rating}</span>
                   {reviews && (
-                    <span className="text-xs">
-                      ({reviews.toLocaleString()})
+                    <span>
+                      (
+                      {reviews > 1000
+                        ? `${Math.round(reviews / 1000)}k`
+                        : reviews}
+                      )
                     </span>
                   )}
                 </div>
@@ -127,26 +152,94 @@ export function ProductCard({
               >
                 {inStock ? "✅" : "❌"} {availability}
               </span>
-              {condition && condition !== "New" && (
-                <Badge variant="outline" className="text-xs">
-                  {condition}
-                </Badge>
-              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleProductClick("buy")}
+                className="flex-1 h-9 text-sm"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Buy Now
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleProductClick("view")}
+                className="px-4 h-9 text-sm"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <Button onClick={() => handleProductClick("buy")}>
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Buy Now
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleProductClick("view")}
-            >
-              <ExternalLink className="mr-2 h-3 w-3" />
-              View
-            </Button>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden sm:block">
+          <div className="flex items-center gap-4">
+            <img
+              src={image}
+              alt={title}
+              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold mb-1 line-clamp-2">{title}</h3>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="text-lg font-bold text-primary">
+                  {formatPrice(price, currency)}
+                </span>
+                {isBestPrice && (
+                  <Badge className="bg-success text-success-foreground">
+                    Best Price
+                  </Badge>
+                )}
+                {savings > 0 && (
+                  <Badge variant="outline" className="text-success">
+                    Save {formatPrice(savings, currency)}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1">
+                  📍 <span className="font-medium">{store}</span>
+                </span>
+                {rating && (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-current text-yellow-400" />
+                    <span>{rating}</span>
+                    {reviews && (
+                      <span className="text-xs">
+                        ({reviews.toLocaleString()})
+                      </span>
+                    )}
+                  </div>
+                )}
+                <span
+                  className={`flex items-center gap-1 ${!inStock ? "text-destructive" : "text-success"}`}
+                >
+                  {inStock ? "✅" : "❌"} {availability}
+                </span>
+                {condition && condition !== "New" && (
+                  <Badge variant="outline" className="text-xs">
+                    {condition}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <Button onClick={() => handleProductClick("buy")}>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Buy Now
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleProductClick("view")}
+              >
+                <ExternalLink className="mr-2 h-3 w-3" />
+                View
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
