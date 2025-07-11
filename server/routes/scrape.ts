@@ -216,7 +216,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
       // HTML price patterns
       /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-      /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
+      /data-price[^>]*>([^<]*[\$£���¥₹][^<]*)</i,
 
       // Global price patterns (fallback)
       /From\s*\$(\d+(?:,\d{3})*)/i,
@@ -936,6 +936,44 @@ function getStoreUrl(storeName: string): string {
     storeUrls[storeName] ||
     `https://${storeName.toLowerCase().replace(/\s+/g, "")}.com`
   );
+}
+
+// Generate retailer-specific search URLs
+function generateSearchUrl(storeName: string, searchQuery: string): string {
+  const encodedQuery = encodeURIComponent(searchQuery);
+
+  switch (storeName) {
+    case "Amazon":
+      return `https://www.amazon.com/s?k=${encodedQuery}`;
+    case "eBay":
+      return `https://www.ebay.com/sch/i.html?_nkw=${encodedQuery}`;
+    case "Walmart":
+      return `https://www.walmart.com/search?q=${encodedQuery}`;
+    case "Best Buy":
+      return `https://www.bestbuy.com/site/searchpage.jsp?st=${encodedQuery}`;
+    case "Target":
+      return `https://www.target.com/s?searchTerm=${encodedQuery}`;
+    case "B&H":
+      return `https://www.bhphotovideo.com/c/search?Ntt=${encodedQuery}`;
+    case "Adorama":
+      return `https://www.adorama.com/searchsite/${encodedQuery}`;
+    case "Newegg":
+      return `https://www.newegg.com/p/pl?d=${encodedQuery}`;
+    case "Costco":
+      return `https://www.costco.com/CatalogSearch?keyword=${encodedQuery}`;
+    case "Sam's Club":
+      return `https://www.samsclub.com/search?searchTerm=${encodedQuery}`;
+    case "Mercari":
+      return `https://www.mercari.com/search/?keyword=${encodedQuery}`;
+    case "OfferUp":
+      return `https://offerup.com/search/?q=${encodedQuery}`;
+    case "Facebook Marketplace":
+      return `https://www.facebook.com/marketplace/search/?query=${encodedQuery}`;
+    default:
+      // Generic fallback for other stores
+      const storeUrl = getStoreUrl(storeName);
+      return `${storeUrl}/search?q=${encodedQuery}`;
+  }
 }
 
 // Generate retailer assessment data like dupe.com
