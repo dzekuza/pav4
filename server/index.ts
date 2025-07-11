@@ -15,6 +15,8 @@ import {
   getAllUsers,
 } from "./routes/auth";
 import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
+import { healthCheckHandler } from "./routes/health";
+import { gracefulShutdown } from "./services/database";
 
 // Load environment variables
 dotenv.config();
@@ -60,6 +62,22 @@ export function createServer() {
 
   // Admin routes
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
+
+  // Health check route
+  app.get("/api/health", healthCheckHandler);
+
+  // Graceful shutdown handler
+  process.on("SIGTERM", async () => {
+    console.log("SIGTERM received, shutting down gracefully");
+    await gracefulShutdown();
+    process.exit(0);
+  });
+
+  process.on("SIGINT", async () => {
+    console.log("SIGINT received, shutting down gracefully");
+    await gracefulShutdown();
+    process.exit(0);
+  });
 
   return app;
 }
