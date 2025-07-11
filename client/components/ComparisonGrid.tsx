@@ -78,6 +78,7 @@ export function ComparisonGrid({
             condition={product.condition}
             isBestPrice={isBestPrice}
             savings={savings}
+            requestId={requestId}
           />
         );
       })}
