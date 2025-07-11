@@ -11,6 +11,7 @@ import SearchResults from "./pages/SearchResults";
 import History from "./pages/History";
 import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { initializeUserTracking } from "@/lib/userTracking";
