@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PriceHunt - Price Comparison</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: white;
+        color: #1f2937;
+        font-size: 14px;
+        line-height: 1.4;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .container {
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+        color: white;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 16px;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+      }
+
+      .close-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .content {
+        padding: 20px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px 20px;
+      }
+
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #7c3aed;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .product-info {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .product-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      .product-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: #059669;
+      }
+
+      .alternatives {
+        margin-bottom: 20px;
+      }
+
+      .alternatives-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .savings-badge {
+        background: #fef2f2;
+        color: #dc2626;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .alternative-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .alternative-item:hover {
+        border-color: #7c3aed;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .alternative-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .store-logo {
+        width: 24px;
+        height: 24px;
+        background: #f3f4f6;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+
+      .alternative-info {
+        flex: 1;
+      }
+
+      .store-name {
+        font-weight: 500;
+        color: #374151;
+        font-size: 13px;
+      }
+
+      .alternative-price {
+        font-weight: 600;
+        color: #059669;
+        font-size: 14px;
+      }
+
+      .savings {
+        color: #dc2626;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+      }
+
+      .btn-secondary {
+        background: #f9fafb;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+      }
+
+      .btn-secondary:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+      }
+
+      .no-alternatives {
+        text-align: center;
+        padding: 20px;
+        color: #6b7280;
+      }
+
+      .no-alternatives-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .error {
+        text-align: center;
+        padding: 20px;
+        color: #dc2626;
+      }
+
+      .error-icon {
+        font-size: 32px;
+        margin-bottom: 12px;
+      }
+
+      .retry-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-top: 12px;
+      }
+
+      .retry-btn:hover {
+        background: #b91c1c;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 480px) {
+        .container {
+          max-width: calc(100vw - 40px);
+        }
+      }
+
+      /* Dark mode support */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1f2937;
+          color: #f9fafb;
+        }
+
+        .product-info {
+          border-bottom-color: #374151;
+        }
+
+        .product-title {
+          color: #f9fafb;
+        }
+
+        .alternatives-title {
+          color: #f9fafb;
+        }
+
+        .alternative-item {
+          border-color: #374151;
+          background: #111827;
+        }
+
+        .alternative-item:hover {
+          border-color: #7c3aed;
+          background: #1f2937;
+        }
+
+        .store-logo {
+          background: #374151;
+        }
+
+        .store-name {
+          color: #d1d5db;
+        }
+
+        .btn-secondary {
+          background: #374151;
+          color: #d1d5db;
+          border-color: #4b5563;
+        }
+
+        .btn-secondary:hover {
+          background: #4b5563;
+          border-color: #6b7280;
+        }
+
+        .no-alternatives,
+        .error {
+          color: #d1d5db;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">💰 PriceHunt</div>
+        <button
+          class="close-btn"
+          onclick="window.parent.postMessage({action: 'close'}, '*')"
+        >
+          ×
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+          <div class="loading-spinner"></div>
+          <div>Finding better prices...</div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="product-info" id="productInfo" style="display: none">
+          <div class="product-title" id="productTitle"></div>
+          <div class="product-price" id="productPrice"></div>
+        </div>
+
+        <!-- Alternatives -->
+        <div class="alternatives" id="alternatives" style="display: none">
+          <div class="alternatives-title">
+            Better prices found
+            <span class="savings-badge" id="savingsBadge"></span>
+          </div>
+          <div id="alternativesList"></div>
+        </div>
+
+        <!-- No Alternatives -->
+        <div class="no-alternatives" id="noAlternatives" style="display: none">
+          <div class="no-alternatives-icon">🔍</div>
+          <div>
+            <strong>No better prices found</strong>
+            <p>This appears to be the best available price!</p>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div class="error" id="error" style="display: none">
+          <div class="error-icon">⚠️</div>
+          <div>
+            <strong>Something went wrong</strong>
+            <p id="errorMessage">Unable to compare prices right now.</p>
+            <button class="retry-btn" onclick="window.location.reload()">
+              Try Again
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions" id="actions" style="display: none">
+          <button
+            class="btn btn-secondary"
+            onclick="window.parent.postMessage({action: 'close'}, '*')"
+          >
+            Close
+          </button>
+          <button class="btn btn-primary" onclick="openPriceHunt()">
+            View All Results
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Overlay functionality
+      class PriceHuntOverlay {
+        constructor() {
+          this.productData = null;
+          this.alternatives = [];
+          this.init();
+        }
+
+        init() {
+          // Listen for messages from parent window
+          window.addEventListener("message", (event) => {
+            this.handleMessage(event);
+          });
+
+          // Get URL parameters if any
+          const urlParams = new URLSearchParams(window.location.search);
+          const productUrl = urlParams.get("url");
+
+          if (productUrl) {
+            this.searchPrices(productUrl);
+          } else {
+            this.showError("No product URL provided");
+          }
+        }
+
+        handleMessage(event) {
+          const { action, data } = event.data;
+
+          switch (action) {
+            case "searchPrices":
+              this.searchPrices(data.url, data.product);
+              break;
+            case "showResults":
+              this.showResults(data.product, data.alternatives);
+              break;
+            case "showError":
+              this.showError(data.message);
+              break;
+          }
+        }
+
+        async searchPrices(url, productInfo = null) {
+          this.showLoading();
+
+          try {
+            const response = await fetch("http://localhost:8080/api/scrape", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                url: url,
+                fromExtension: true,
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              this.showResults(
+                productInfo || data.product,
+                data.alternatives || [],
+              );
+            } else {
+              throw new Error("Failed to fetch price comparison");
+            }
+          } catch (error) {
+            console.error("Error searching prices:", error);
+            this.showError("Unable to compare prices. Please try again.");
+          }
+        }
+
+        showResults(product, alternatives) {
+          this.hideLoading();
+
+          if (product) {
+            this.showProductInfo(product);
+          }
+
+          if (alternatives && alternatives.length > 0) {
+            this.showAlternatives(alternatives);
+          } else {
+            this.showNoAlternatives();
+          }
+
+          this.showActions();
+        }
+
+        showProductInfo(product) {
+          const productInfo = document.getElementById("productInfo");
+          const productTitle = document.getElementById("productTitle");
+          const productPrice = document.getElementById("productPrice");
+
+          productTitle.textContent = product.title || "Product";
+          productPrice.textContent = product.price || "";
+
+          productInfo.style.display = "block";
+        }
+
+        showAlternatives(alternatives) {
+          const alternativesSection = document.getElementById("alternatives");
+          const alternativesList = document.getElementById("alternativesList");
+          const savingsBadge = document.getElementById("savingsBadge");
+
+          // Calculate total savings
+          const maxSavings = alternatives.reduce((max, alt) => {
+            const savings = parseFloat(
+              alt.savings?.replace(/[^0-9.]/g, "") || 0,
+            );
+            return Math.max(max, savings);
+          }, 0);
+
+          if (maxSavings > 0) {
+            savingsBadge.textContent = `Save up to $${maxSavings}`;
+          } else {
+            savingsBadge.style.display = "none";
+          }
+
+          // Clear previous alternatives
+          alternativesList.innerHTML = "";
+
+          // Add alternatives (limit to top 3)
+          alternatives.slice(0, 3).forEach((alternative) => {
+            const item = this.createAlternativeItem(alternative);
+            alternativesList.appendChild(item);
+          });
+
+          alternativesSection.style.display = "block";
+        }
+
+        createAlternativeItem(alternative) {
+          const item = document.createElement("div");
+          item.className = "alternative-item";
+          item.onclick = () => window.open(alternative.url, "_blank");
+
+          const storeName = this.extractStoreName(alternative.url);
+          const storeEmoji = this.getStoreEmoji(storeName);
+
+          item.innerHTML = `
+                    <div class="store-logo">${storeEmoji}</div>
+                    <div class="alternative-info">
+                        <div class="store-name">${storeName}</div>
+                        <div class="alternative-price">${alternative.price}</div>
+                        ${alternative.savings ? `<div class="savings">Save ${alternative.savings}</div>` : ""}
+                    </div>
+                `;
+
+          return item;
+        }
+
+        extractStoreName(url) {
+          try {
+            const hostname = new URL(url).hostname.toLowerCase();
+            if (hostname.includes("amazon")) return "Amazon";
+            if (hostname.includes("ebay")) return "eBay";
+            if (hostname.includes("walmart")) return "Walmart";
+            if (hostname.includes("target")) return "Target";
+            if (hostname.includes("bestbuy")) return "Best Buy";
+            if (hostname.includes("apple")) return "Apple";
+            if (hostname.includes("playstation")) return "PlayStation";
+            if (hostname.includes("newegg")) return "Newegg";
+            if (hostname.includes("costco")) return "Costco";
+            return hostname.replace("www.", "").split(".")[0];
+          } catch {
+            return "Store";
+          }
+        }
+
+        getStoreEmoji(storeName) {
+          const emojis = {
+            Amazon: "🛒",
+            eBay: "🛍️",
+            Walmart: "🏪",
+            Target: "🎯",
+            "Best Buy": "⚡",
+            Apple: "🍎",
+            PlayStation: "🎮",
+            Newegg: "💻",
+            Costco: "📦",
+          };
+          return emojis[storeName] || "🏪";
+        }
+
+        showNoAlternatives() {
+          document.getElementById("noAlternatives").style.display = "block";
+        }
+
+        showLoading() {
+          document.getElementById("loading").style.display = "block";
+          this.hideOtherSections();
+        }
+
+        hideLoading() {
+          document.getElementById("loading").style.display = "none";
+        }
+
+        showActions() {
+          document.getElementById("actions").style.display = "flex";
+        }
+
+        showError(message) {
+          this.hideLoading();
+          this.hideOtherSections();
+
+          const errorSection = document.getElementById("error");
+          const errorMessage = document.getElementById("errorMessage");
+
+          errorMessage.textContent = message;
+          errorSection.style.display = "block";
+          this.showActions();
+        }
+
+        hideOtherSections() {
+          document.getElementById("productInfo").style.display = "none";
+          document.getElementById("alternatives").style.display = "none";
+          document.getElementById("noAlternatives").style.display = "none";
+          document.getElementById("error").style.display = "none";
+          document.getElementById("actions").style.display = "none";
+        }
+      }
+
+      // Global functions
+      function openPriceHunt() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const productUrl = urlParams.get("url");
+
+        if (productUrl) {
+          window.open(
+            `http://localhost:8080/${encodeURIComponent(productUrl)}`,
+            "_blank",
+          );
+        } else {
+          window.open("http://localhost:8080", "_blank");
+        }
+      }
+
+      // Initialize overlay
+      new PriceHuntOverlay();
+    </script>
+  </body>
+</html>
