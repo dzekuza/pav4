@@ -299,8 +299,34 @@ export default function AdminDashboard() {
                         axisLine={true}
                         tickLine={true}
                         tick={true}
+                        type="category"
+                        allowDecimals={true}
+                        allowDuplicatedCategory={true}
+                        angle={0}
+                        domain={["auto", "auto"]}
+                        includeHidden={false}
+                        reversed={false}
+                        scale="auto"
+                        tickCount={5}
+                        minTickGap={5}
+                        interval="preserveStartEnd"
                       />
-                      <YAxis axisLine={true} tickLine={true} tick={true} />
+                      <YAxis
+                        axisLine={true}
+                        tickLine={true}
+                        tick={true}
+                        type="number"
+                        allowDecimals={true}
+                        allowDuplicatedCategory={true}
+                        angle={0}
+                        domain={["auto", "auto"]}
+                        includeHidden={false}
+                        reversed={false}
+                        scale="auto"
+                        tickCount={5}
+                        minTickGap={5}
+                        interval="preserveStartEnd"
+                      />
                       <Tooltip />
                       <Line
                         type="monotone"
