@@ -269,18 +269,85 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       }
     }
 
-    // Extract image
+    // Extract image with comprehensive patterns
     let image = "";
     const imagePatterns = [
+      // Standard meta tags
       /<meta property="og:image" content="([^"]+)"/i,
       /<meta name="twitter:image" content="([^"]+)"/i,
+      /<meta itemprop="image" content="([^"]+)"/i,
+
+      // Product specific image patterns
+      /"productImage"\s*:\s*"([^"]+)"/i,
+      /"image"\s*:\s*"([^"]+\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/i,
+      /"src"\s*:\s*"([^"]*product[^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/i,
+
+      // Common e-commerce patterns
+      /<img[^>]*class="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*data-testid="[^"]*image[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*alt="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*id="[^"]*product[^"]*"[^>]*src="([^"]+)"/i,
+
+      // SKIMS specific patterns
+      /<img[^>]*class="[^"]*hero[^"]*"[^>]*src="([^"]+)"/i,
+      /<img[^>]*class="[^"]*main[^"]*"[^>]*src="([^"]+)"/i,
+      /<picture[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i,
+
+      // Generic high-resolution image patterns
+      /src="([^"]*\/(?:product|hero|main|primary)[^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/i,
+      /srcset="([^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)\s+\d+w/i,
+
+      // JSON-LD structured data
+      /"@type"\s*:\s*"Product"[^}]*"image"[^}]*"url"\s*:\s*"([^"]+)"/i,
+      /"@type"\s*:\s*"Product"[^}]*"image"\s*:\s*"([^"]+)"/i,
+
+      // Fallback: any large image that might be product-related
+      /<img[^>]*src="([^"]*\.(?:jpg|jpeg|png|webp|avif)[^"]*?)"/gi,
     ];
 
     for (const pattern of imagePatterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        image = match[1].trim();
-        break;
+      if (pattern.global) {
+        const matches = html.match(pattern);
+        if (matches) {
+          // For global patterns, find the best match (largest or most product-like)
+          for (const match of matches) {
+            const imgMatch = match.match(/src="([^"]+)"/i);
+            if (imgMatch && imgMatch[1]) {
+              const imgUrl = imgMatch[1].trim();
+              // Prefer images that look like product images
+              if (
+                imgUrl.includes("product") ||
+                imgUrl.includes("hero") ||
+                imgUrl.includes("main") ||
+                imgUrl.includes("primary") ||
+                imgUrl.match(/\d{3,4}x\d{3,4}/) ||
+                imgUrl.includes("_large")
+              ) {
+                image = imgUrl;
+                break;
+              } else if (!image) {
+                image = imgUrl; // Fallback to first found image
+              }
+            }
+          }
+          if (image) break;
+        }
+      } else {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          image = match[1].trim();
+          break;
+        }
+      }
+    }
+
+    // Clean up relative URLs
+    if (image && !image.startsWith("http")) {
+      try {
+        const baseUrl = new URL(extractedUrl);
+        image = new URL(image, baseUrl.origin).href;
+      } catch (e) {
+        // If URL construction fails, keep original
       }
     }
 
