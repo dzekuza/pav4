@@ -6,13 +6,14 @@ class PriceHuntBackground {
 
   init() {
     this.setupEventListeners();
-    this.setupContextMenus();
   }
 
   setupEventListeners() {
     // Extension installation
     chrome.runtime.onInstalled.addListener((details) => {
       this.handleInstallation(details);
+      // Set up context menus after installation
+      this.setupContextMenus();
     });
 
     // Tab updates to detect product pages
@@ -32,9 +33,11 @@ class PriceHuntBackground {
     });
 
     // Context menu clicks
-    chrome.contextMenus.onClicked.addListener((info, tab) => {
-      this.handleContextMenuClick(info, tab);
-    });
+    if (chrome.contextMenus && chrome.contextMenus.onClicked) {
+      chrome.contextMenus.onClicked.addListener((info, tab) => {
+        this.handleContextMenuClick(info, tab);
+      });
+    }
   }
 
   setupContextMenus() {
