@@ -152,7 +152,7 @@ export default function SearchResults() {
               originalProduct.currency,
             )}
             lowestPrice={lowestPrice}
-            currency={formatPrice(0).charAt(0)} // Get currency symbol
+            currency=""
             totalComparisons={comparisons.length}
           />
         )}
