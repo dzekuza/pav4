@@ -130,22 +130,25 @@ export default function Index() {
                 PriceHunt
               </span>
             </div>
-            <nav className="hidden md:flex items-center space-x-6">
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                How it works
-              </a>
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Popular stores
-              </a>
-              <Button variant="outline" size="sm">
-                Sign in
-              </Button>
+            <nav className="flex items-center space-x-4">
+              <CurrencySelector />
+              <div className="hidden md:flex items-center space-x-6">
+                <a
+                  href="#"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  How it works
+                </a>
+                <a
+                  href="#"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Popular stores
+                </a>
+                <Button variant="outline" size="sm">
+                  Sign in
+                </Button>
+              </div>
             </nav>
           </div>
         </div>
