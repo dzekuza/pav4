@@ -14,3 +14,20 @@
   from = "/api/*"
   status = 200
   to = "/.netlify/functions/api/:splat"
+
+# Handle direct product URLs
+[[redirects]]
+  from = "/https://*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/http://*"
+  to = "/index.html"
+  status = 200
+
+# Handle domain-prefixed URLs (catch-all for any pattern)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
