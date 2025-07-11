@@ -15,11 +15,11 @@ export default function Index() {
 
     try {
       // Validate URL first
-      new URL(url.trim());
+      const validUrl = url.trim();
+      new URL(validUrl);
 
-      // Use proper navigation instead of window.location.href
-      // This will trigger the UrlRedirectHandler properly
-      window.location.href = `/${encodeURIComponent(url.trim())}`;
+      // Navigate directly without encoding since the path will be properly handled
+      window.location.href = `/${validUrl}`;
     } catch (error) {
       console.error("Invalid URL:", error);
       setIsLoading(false);
