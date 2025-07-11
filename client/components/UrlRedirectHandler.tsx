@@ -1,40 +1,11 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-// Generate a simple UUID v4
-function generateRequestId(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-// Extract slug from URL
-function extractSlug(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname.replace(/^www\./, "");
-    const pathParts = urlObj.pathname
-      .split("/")
-      .filter((part) => part.length > 0);
-
-    // Get the last meaningful part of the path or use domain + first part
-    const productPart =
-      pathParts[pathParts.length - 1] || pathParts[0] || "product";
-
-    // Clean up the slug
-    const slug = `${domain}-${productPart}`
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-
-    return slug || "unknown-product";
-  } catch {
-    return "unknown-product";
-  }
-}
+import {
+  extractProductUrlFromPath,
+  isValidProductUrl,
+  generateRequestId,
+  extractSlugFromUrl,
+} from "@/lib/urlUtils";
 
 export function UrlRedirectHandler() {
   const location = useLocation();
