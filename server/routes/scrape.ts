@@ -692,7 +692,7 @@ JSON:`;
   }
 }
 
-// Extract search keywords from product title
+// Extract search keywords from product title with brand and model preservation
 function extractSearchKeywords(title: string): string {
   // Remove common e-commerce words and clean up title
   const cleanTitle = title
@@ -702,9 +702,9 @@ function extractSearchKeywords(title: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  // Take first 4-5 meaningful words
-  const words = cleanTitle.split(" ").slice(0, 5);
-  return words.join(" ");
+  // Preserve full title for better matching, especially for branded products
+  // This ensures exact product matching instead of generic searches
+  return cleanTitle;
 }
 
 // Generate comprehensive price alternatives like dupe.com
@@ -876,7 +876,7 @@ async function getPriceComparisons(
       const assessment = generateAssessment(retailer.name, retailer.condition);
 
       alternatives.push({
-        title: `${searchQuery} - ${retailer.condition}`,
+        title: `${originalProduct.title} - ${retailer.condition}`,
         price: altPrice,
         currency: originalProduct.currency,
         image: originalProduct.image,
