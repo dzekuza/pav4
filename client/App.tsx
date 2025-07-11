@@ -21,6 +21,23 @@ const queryClient = new QueryClient();
 // Initialize user tracking
 initializeUserTracking();
 
+// Suppress Recharts defaultProps warnings since they're from the library itself
+const originalConsoleWarn = console.warn;
+console.warn = (...args) => {
+  // Filter out Recharts defaultProps warnings
+  const message = args[0];
+  if (
+    typeof message === "string" &&
+    message.includes(
+      "Support for defaultProps will be removed from function components",
+    ) &&
+    (message.includes("XAxis") || message.includes("YAxis"))
+  ) {
+    return; // Suppress this warning
+  }
+  originalConsoleWarn.apply(console, args);
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <CurrencyProvider>
