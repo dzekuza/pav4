@@ -13,8 +13,18 @@ export default function Index() {
 
     setIsLoading(true);
 
-    // Redirect to the URL-based flow
-    window.location.href = `/${url.trim()}`;
+    try {
+      // Validate URL first
+      new URL(url.trim());
+
+      // Use proper navigation instead of window.location.href
+      // This will trigger the UrlRedirectHandler properly
+      window.location.href = `/${encodeURIComponent(url.trim())}`;
+    } catch (error) {
+      console.error("Invalid URL:", error);
+      setIsLoading(false);
+      alert("Please enter a valid URL");
+    }
   };
 
   const popularStores = [
