@@ -1,7 +1,5 @@
 import { RequestHandler } from "express";
-
-// Simple in-memory storage for search history (in production, use Redis or database)
-const searchHistory = new Map<string, string[]>();
+import { legacySearchHistoryService } from "../services/database";
 
 interface SearchHistoryRequest {
   url: string;
@@ -16,20 +14,8 @@ export const saveSearchHistory: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Missing url or userKey" });
     }
 
-    // Get existing history for this user
-    const existing = searchHistory.get(userKey) || [];
-
-    // Add new URL if not already in recent history
-    if (!existing.includes(url)) {
-      existing.unshift(url); // Add to beginning
-
-      // Keep only last 10 searches
-      if (existing.length > 10) {
-        existing.pop();
-      }
-
-      searchHistory.set(userKey, existing);
-    }
+    // Add to legacy search history
+    await legacySearchHistoryService.addSearch(userKey, url);
 
     res.json({ success: true });
   } catch (error) {
@@ -46,7 +32,10 @@ export const getSearchHistory: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Missing userKey" });
     }
 
-    const history = searchHistory.get(userKey) || [];
+    const historyRecords =
+      await legacySearchHistoryService.getUserSearchHistory(userKey, 10);
+    const history = historyRecords.map((record) => record.url);
+
     res.json({ history });
   } catch (error) {
     console.error("Error getting search history:", error);

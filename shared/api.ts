@@ -60,3 +60,48 @@ export interface SearchHistoryRequest {
 export interface SearchHistoryResponse {
   history: string[];
 }
+
+/**
+ * Authentication types
+ */
+export interface AuthRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  user?: {
+    id: string;
+    email: string;
+    isAdmin: boolean;
+  };
+  error?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+export interface UserSearchHistory {
+  url: string;
+  title: string;
+  requestId: string;
+  timestamp: Date;
+}
+
+export interface UserSearchHistoryResponse {
+  history: UserSearchHistory[];
+}
+
+export interface AdminUsersResponse {
+  users: Array<{
+    id: string;
+    email: string;
+    isAdmin: boolean;
+    createdAt: Date;
+    searchCount: number;
+  }>;
+}
