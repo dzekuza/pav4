@@ -1,4 +1,5 @@
 import { ProductCard } from "./ProductCard";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Product {
   title: string;
