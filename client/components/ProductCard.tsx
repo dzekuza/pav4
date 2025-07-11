@@ -19,6 +19,7 @@ interface ProductCardProps {
   isBestPrice?: boolean;
   savings?: number;
   className?: string;
+  requestId?: string; // For tracking
 }
 
 export function ProductCard({
