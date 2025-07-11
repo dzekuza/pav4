@@ -94,8 +94,10 @@ export default function SearchResults() {
   }
 
   const lowestPrice = Math.min(
-    originalProduct?.price || Infinity,
-    ...comparisons.map((c) => c.price),
+    originalProduct
+      ? convertPrice(originalProduct.price, originalProduct.currency)
+      : Infinity,
+    ...comparisons.map((c) => convertPrice(c.price, c.currency)),
   );
 
   return (
