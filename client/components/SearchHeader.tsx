@@ -1,6 +1,7 @@
 import { ArrowLeft, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { CurrencySelector } from "@/components/CurrencySelector";
 
 interface SearchHeaderProps {
   showBackButton?: boolean;
