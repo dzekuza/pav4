@@ -241,10 +241,16 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
       /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
+      // European price patterns
+      /(\d{1,4}(?:[.\s,]\d{3})*(?:,\d{2})?)\s*€/i,
+      /€\s*(\d{1,4}(?:[.\s,]\d{3})*(?:,\d{2})?)/i,
+      /(\d{1,4}(?:[.\s,]\d{3})*(?:\.\d{2})?)\s*EUR/i,
+      /EUR\s*(\d{1,4}(?:[.\s,]\d{3})*(?:\.\d{2})?)/i,
+
       // Global price patterns (fallback)
       /From\s*\$(\d+(?:,\d{3})*)/i,
       /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
-      /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
+      /[\$£€¥₹]\s*\d+(?:[.\s,]\d{3})*(?:\.\d{2})?/g,
     ];
 
     for (const pattern of pricePatterns) {
