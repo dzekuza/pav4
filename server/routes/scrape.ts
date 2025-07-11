@@ -6,7 +6,7 @@ import {
   ScrapeResponse,
   PriceComparison,
 } from "@shared/api";
-import { users } from "./auth";
+import { searchHistoryService } from "./auth";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
@@ -1185,19 +1185,15 @@ export const handleScrape: RequestHandler = async (req, res) => {
 
     // Save to user's search history if authenticated
     if (req.user) {
-      const user = users.get(req.user.id);
-      if (user) {
-        user.searchHistory.unshift({
+      try {
+        await searchHistoryService.addSearch(req.user.id, {
           url,
           title: originalProduct.title,
           requestId,
-          timestamp: new Date(),
         });
-
-        // Keep only last 50 searches
-        if (user.searchHistory.length > 50) {
-          user.searchHistory = user.searchHistory.slice(0, 50);
-        }
+      } catch (error) {
+        console.error("Error saving search history:", error);
+        // Don't fail the entire request if search history fails
       }
     }
 
