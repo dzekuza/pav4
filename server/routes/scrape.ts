@@ -784,7 +784,36 @@ Return JSON:`;
     if (jsonMatch) {
       const extractedData = JSON.parse(jsonMatch[0]);
       console.log("Gemini extracted data:", extractedData);
-      return extractedData;
+
+      // Validate and clean up the extracted data
+      if (extractedData) {
+        // Clean up image URL if it's relative
+        if (
+          extractedData.image &&
+          !extractedData.image.startsWith("http") &&
+          extractedData.image !== ""
+        ) {
+          try {
+            const baseUrl = new URL(url);
+            extractedData.image = new URL(
+              extractedData.image,
+              baseUrl.origin,
+            ).href;
+          } catch (e) {
+            console.log(
+              "Failed to resolve relative image URL:",
+              extractedData.image,
+            );
+          }
+        }
+
+        // Validate confidence level
+        if (!extractedData.confidence) {
+          extractedData.confidence = "medium";
+        }
+
+        return extractedData;
+      }
     }
 
     return null;
