@@ -37,8 +37,45 @@ export function ProductCard({
   isBestPrice = false,
   savings = 0,
   className = "",
+  requestId,
 }: ProductCardProps) {
   const { formatPrice } = useCurrency();
+
+  const handleProductClick = async (actionType: "view" | "buy") => {
+    try {
+      // Track the click
+      const response = await fetch("/api/track-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: requestId || "unknown",
+          productUrl: url,
+          store,
+          price,
+          currency,
+          userId: localStorage.getItem("ph_user_id") || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const { trackingUrl } = await response.json();
+
+        // Open the tracking URL
+        if (actionType === "buy") {
+          window.open(trackingUrl, "_blank");
+        } else {
+          window.open(trackingUrl, "_blank");
+        }
+      } else {
+        // Fallback to original URL if tracking fails
+        window.open(url, "_blank");
+      }
+    } catch (error) {
+      console.error("Click tracking failed:", error);
+      // Fallback to original URL
+      window.open(url, "_blank");
+    }
+  };
   return (
     <Card
       className={`transition-all hover:shadow-md ${
