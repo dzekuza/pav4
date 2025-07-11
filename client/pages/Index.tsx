@@ -43,6 +43,7 @@ function extractSlug(url: string): string {
 export default function Index() {
   const [searchUrl, setSearchUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSearch = async (url: string) => {
     if (!url.trim()) return;
@@ -54,8 +55,21 @@ export default function Index() {
       const validUrl = url.trim();
       new URL(validUrl);
 
-      // Navigate directly without encoding since the path will be properly handled
-      window.location.href = `/${validUrl}`;
+      // Generate request ID and slug
+      const requestId = generateRequestId();
+      const slug = extractSlug(validUrl);
+
+      // Save the original URL to sessionStorage for the API call
+      sessionStorage.setItem(
+        `product_request_${requestId}`,
+        JSON.stringify({
+          url: validUrl,
+          timestamp: Date.now(),
+        }),
+      );
+
+      // Navigate to search results page using React Router
+      navigate(`/search/${requestId}/${slug}`);
     } catch (error) {
       console.error("Invalid URL:", error);
       setIsLoading(false);
