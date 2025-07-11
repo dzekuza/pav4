@@ -13,8 +13,12 @@ import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { initializeUserTracking } from "@/lib/userTracking";
 
 const queryClient = new QueryClient();
+
+// Initialize user tracking
+initializeUserTracking();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
