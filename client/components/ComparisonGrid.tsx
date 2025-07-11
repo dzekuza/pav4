@@ -26,6 +26,8 @@ export function ComparisonGrid({
   originalPrice,
   className = "",
 }: ComparisonGridProps) {
+  const { convertPrice } = useCurrency();
+
   if (products.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
@@ -44,8 +46,10 @@ export function ComparisonGrid({
     );
   }
 
-  // Find the lowest price to highlight the best deal
-  const lowestPrice = Math.min(...products.map((p) => p.price));
+  // Find the lowest price to highlight the best deal (in converted currency)
+  const lowestPrice = Math.min(
+    ...products.map((p) => convertPrice(p.price, p.currency)),
+  );
 
   return (
     <div className={`space-y-4 ${className}`}>
