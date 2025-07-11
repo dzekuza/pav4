@@ -344,7 +344,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     // Clean up relative URLs
     if (image && !image.startsWith("http")) {
       try {
-        const baseUrl = new URL(extractedUrl);
+        const baseUrl = new URL(url);
         image = new URL(image, baseUrl.origin).href;
       } catch (e) {
         // If URL construction fails, keep original
