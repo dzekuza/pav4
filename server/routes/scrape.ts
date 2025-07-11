@@ -745,27 +745,33 @@ async function extractWithGemini(
       .substring(0, 50000); // Limit to ~50k characters
 
     const prompt = `
-Extract product information from this e-commerce page HTML. Return ONLY a valid JSON object with these exact fields:
+You are an expert e-commerce data extractor. Analyze this HTML and extract the main product information. Return ONLY a valid JSON object.
 
+CRITICAL REQUIREMENTS:
+1. TITLE: Extract the main product name, remove site names, categories, and promotional text
+2. PRICE: Find the main selling price with currency symbol (e.g., '$82.00', '€149.99')
+3. IMAGE: Find the highest quality main product image (look for og:image, twitter:image, product images, hero images)
+
+Expected JSON format:
 {
-  "title": "Product name (clean, without site name or extra text)",
-  "price": "Price as string with currency symbol (e.g., '$299.99')",
-  "image": "Main product image URL (absolute URL)"
+  "title": "Clean product name without site branding",
+  "price": "Price with currency symbol or '0' if not found",
+  "image": "Full URL to main product image or '' if not found",
+  "confidence": "high|medium|low based on data quality"
 }
 
-Rules:
-- If no clear price is found, use "0"
-- If no image is found, use ""
-- Focus on the main product being sold
-- Clean up title to remove site name and category text
-- Price should include currency symbol
+EXTRACTION PRIORITIES:
+- For IMAGES: Prefer og:image, twitter:image, then main product images, avoid thumbnails
+- For PRICES: Look for main price, sale price, or current price - ignore crossed-out prices
+- For TITLES: Remove site names, categories, SKUs, and promotional text
 
-URL: ${url}
+URL being analyzed: ${url}
+Domain context: This appears to be a ${extractDomain(url)} product page
 
-HTML:
+HTML Content:
 ${cleanHtml}
 
-JSON:`;
+Return JSON:`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
