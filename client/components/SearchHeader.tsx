@@ -34,16 +34,19 @@ export function SearchHeader({
               </Button>
             )}
           </div>
-          <nav className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/history">History</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/favorites">Favorites</Link>
-            </Button>
-            <Button variant="outline" size="sm">
-              Sign in
-            </Button>
+          <nav className="flex items-center space-x-4">
+            <CurrencySelector />
+            <div className="hidden md:flex items-center space-x-4">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/history">History</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/favorites">Favorites</Link>
+              </Button>
+              <Button variant="outline" size="sm">
+                Sign in
+              </Button>
+            </div>
           </nav>
         </div>
       </div>
