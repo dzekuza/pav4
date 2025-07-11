@@ -5,6 +5,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/SearchInput";
 
+// Generate a simple UUID v4
+function generateRequestId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+// Extract slug from URL
+function extractSlug(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname.replace(/^www\./, "");
+    const pathParts = urlObj.pathname
+      .split("/")
+      .filter((part) => part.length > 0);
+
+    // Get the last meaningful part of the path or use domain + first part
+    const productPart =
+      pathParts[pathParts.length - 1] || pathParts[0] || "product";
+
+    // Clean up the slug
+    const slug = `${domain}-${productPart}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    return slug || "unknown-product";
+  } catch {
+    return "unknown-product";
+  }
+}
+
 export default function Index() {
   const [searchUrl, setSearchUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
