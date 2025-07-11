@@ -163,6 +163,7 @@ export default function SearchResults() {
           <ComparisonGrid
             products={comparisons}
             originalPrice={originalProduct?.price}
+            requestId={requestId}
           />
         </div>
       </div>
