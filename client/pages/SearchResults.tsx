@@ -147,9 +147,12 @@ export default function SearchResults() {
         {/* Savings Summary */}
         {originalProduct && (
           <SavingsSummary
-            originalPrice={originalProduct.price}
+            originalPrice={convertPrice(
+              originalProduct.price,
+              originalProduct.currency,
+            )}
             lowestPrice={lowestPrice}
-            currency={originalProduct.currency}
+            currency={formatPrice(0).charAt(0)} // Get currency symbol
             totalComparisons={comparisons.length}
           />
         )}
