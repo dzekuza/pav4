@@ -588,34 +588,64 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     }
   }
 
-  // AI-powered extraction fallback: if normal extraction failed, try Gemini
-  if (
-    !extracted.title ||
-    extracted.title === "Product Title Not Found" ||
-    price === 0
-  ) {
-    console.log("Normal extraction failed - trying Gemini AI...");
-    const aiExtracted = await extractWithGemini(html, url);
+  // AI validation and enhancement: Always run Gemini to validate and improve extraction
+  let finalProduct = {
+    title: extracted.title || "Product Title Not Found",
+    price,
+    currency,
+    image: extracted.image || "/placeholder.svg",
+    url,
+    store: domain,
+  };
 
-    if (
-      aiExtracted &&
-      aiExtracted.title &&
-      aiExtracted.title !== "Product Title Not Found"
-    ) {
-      console.log("Gemini AI successfully extracted data:", aiExtracted);
+  // Try AI extraction/validation
+  console.log("Running AI validation and enhancement...");
+  const aiExtracted = await extractWithGemini(html, url);
 
+  if (aiExtracted && aiExtracted.confidence) {
+    console.log("AI extracted data:", aiExtracted);
+
+    // Use AI data if it's high confidence, or if our extraction failed
+    const shouldUseAI =
+      aiExtracted.confidence === "high" ||
+      !extracted.title ||
+      extracted.title === "Product Title Not Found" ||
+      price === 0;
+
+    if (shouldUseAI) {
       const aiPrice = extractPrice(aiExtracted.price);
-      return {
-        title: aiExtracted.title,
-        price: aiPrice.price,
-        currency: aiPrice.currency,
-        image: aiExtracted.image || "/placeholder.svg",
+
+      // Use AI data but keep the best of both
+      finalProduct = {
+        title: aiExtracted.title || finalProduct.title,
+        price: aiPrice.price > 0 ? aiPrice.price : finalProduct.price,
+        currency: aiPrice.price > 0 ? aiPrice.currency : finalProduct.currency,
+        image: aiExtracted.image || finalProduct.image,
         url,
         store: domain,
       };
-    }
 
-    // Final fallback: if AI also fails, try to infer from URL
+      console.log("Using AI-enhanced data:", finalProduct);
+    } else {
+      // Enhance existing data with AI insights
+      if (
+        aiExtracted.image &&
+        !finalProduct.image.includes("/placeholder.svg")
+      ) {
+        finalProduct.image = aiExtracted.image;
+      }
+      if (
+        aiExtracted.title &&
+        aiExtracted.title.length > finalProduct.title.length
+      ) {
+        finalProduct.title = aiExtracted.title;
+      }
+      console.log("Enhanced with AI insights:", finalProduct);
+    }
+  }
+
+  // Final fallback: if everything fails, try to infer from URL
+  if (finalProduct.title === "Product Title Not Found") {
     const urlBasedFallback = inferProductFromUrl(url, domain);
     if (urlBasedFallback.title !== "Product Title Not Found") {
       console.log("Using URL-based fallback:", urlBasedFallback);
