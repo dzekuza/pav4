@@ -26,6 +26,7 @@ export function ComparisonGrid({
   products,
   originalPrice,
   className = "",
+  requestId,
 }: ComparisonGridProps) {
   const { convertPrice } = useCurrency();
 
