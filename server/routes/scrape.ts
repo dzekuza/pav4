@@ -614,7 +614,7 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
   return {
     title: "Product Title Not Found",
     price: 0,
-    currency: "$",
+    currency: "€",
     image: "/placeholder.svg",
     url,
     store: domain,
