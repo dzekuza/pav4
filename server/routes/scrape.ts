@@ -773,18 +773,23 @@ Extract product information from this e-commerce page HTML. Return ONLY a valid 
 
 {
   "title": "Product name (clean, without site name or extra text)",
-  "price": "Price as string with currency symbol (e.g., '$299.99')",
+  "price": "Price as string with currency symbol (e.g., '€299.99', '$199.00')",
   "image": "Main product image URL (absolute URL)"
 }
 
-Rules:
+CRITICAL RULES:
+- Look for prices in multiple formats: €123.45, 123,45 €, €123, EUR 123.45, 123.45 EUR
+- If you find ANY price (even without currency), include it with € symbol as default
+- Look for Lithuanian "Kaina" (price), German "Preis", French "Prix", Spanish "Precio"
+- Check JSON-LD structured data, meta tags, data attributes
+- Look for price in: spans, divs, data-price, itemprop="price", class containing "price"
 - If no clear price is found, use "0"
-- If no image is found, use ""
-- Focus on the main product being sold
-- Clean up title to remove site name and category text
-- Price should include currency symbol
+- Clean up title to remove site name, navigation, and category text
+- Focus on the MAIN product being sold (not related items)
+- Image should be the main product photo, not thumbnails
 
 URL: ${url}
+Domain: ${new URL(url).hostname}
 
 HTML:
 ${cleanHtml}
