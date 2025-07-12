@@ -582,8 +582,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
       if (url.includes("digital")) {
         return {
           title: "PlayStation 5 Digital Edition",
-          price: 399.99,
-          currency: "$",
+          price: 449.99,
+          currency: "€",
           image: "/placeholder.svg",
           url,
           store: domain,
@@ -591,8 +591,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
       } else if (url.includes("pro")) {
         return {
           title: "PlayStation 5 Pro",
-          price: 699.99,
-          currency: "$",
+          price: 799.99,
+          currency: "€",
           image: "/placeholder.svg",
           url,
           store: domain,
@@ -600,8 +600,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
       } else {
         return {
           title: "PlayStation 5",
-          price: 499.99,
-          currency: "$",
+          price: 549.99,
+          currency: "€",
           image: "/placeholder.svg",
           url,
           store: domain,
