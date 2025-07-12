@@ -87,7 +87,11 @@ export function SearchInput({
     e.preventDefault();
     if (!value.trim()) return;
 
-    saveToHistory(value.trim());
+    // Save to history asynchronously - don't block submission
+    saveToHistory(value.trim()).catch(() => {
+      // Silently ignore history save failures
+    });
+
     onSubmit(value.trim());
     setShowSuggestions(false);
   };
