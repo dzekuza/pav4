@@ -418,6 +418,57 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       }
     }
 
+    // Ideal.lt specific patterns (Lithuanian retailer)
+    else if (domain.includes("ideal.lt")) {
+      console.log("Detected Ideal.lt site - using specific patterns");
+
+      // Ideal.lt product title patterns
+      if (!extracted.title) {
+        const idealProductPatterns = [
+          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*>([^<]+)<\/h1>/i,
+          /"name"\s*:\s*"([^"]+)"/i,
+          /property="og:title"\s+content="([^"]+)"/i,
+          /<title[^>]*>([^<]+?)\s*-\s*IDEAL\.LT/i,
+        ];
+
+        for (const pattern of idealProductPatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.title = match[1]
+              .trim()
+              .replace(/\s*-\s*IDEAL\.LT.*$/i, "")
+              .replace(/&nbsp;/g, " ");
+            console.log("Found Ideal.lt title:", extracted.title);
+            break;
+          }
+        }
+      }
+
+      // Ideal.lt price patterns (EUR)
+      if (price === 0) {
+        const idealPricePatterns = [
+          /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /data-price="([^"]+)"/i,
+          /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+          /€\s*([0-9,]+(?:\.[0-9]{2})?)/i,
+          /([0-9,]+(?:\.[0-9]{2})?)\s*€/i,
+          /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+        ];
+
+        for (const pattern of idealPricePatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.priceText = match[1].includes("€")
+              ? match[1]
+              : `€${match[1].replace(/,/g, "")}`;
+            console.log("Found Ideal.lt price:", extracted.priceText);
+            break;
+          }
+        }
+      }
+    }
+
     // Generic fallback for any failed extraction
     if (!extracted.title) {
       console.log(
