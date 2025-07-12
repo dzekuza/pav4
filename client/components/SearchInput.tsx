@@ -138,13 +138,18 @@ export function SearchInput({
     e.preventDefault();
     if (!value.trim()) return;
 
-    // Save to history asynchronously - don't block submission
-    saveToHistory(value.trim()).catch(() => {
-      // Silently ignore history save failures
-    });
-
-    onSubmit(value.trim());
+    // Process the main submission first
+    const trimmedValue = value.trim();
+    onSubmit(trimmedValue);
     setShowSuggestions(false);
+
+    // Save to history completely asynchronously in a separate task
+    // Use setTimeout to ensure it doesn't interfere with form submission
+    setTimeout(() => {
+      saveToHistory(trimmedValue).catch(() => {
+        // Completely silent
+      });
+    }, 0);
   };
 
   // Handle suggestion selection
