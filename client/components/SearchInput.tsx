@@ -31,29 +31,54 @@ export function SearchInput({
     return `user_${navigator.userAgent.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "")}`;
   };
 
-  // Load search history
+  // Load search history with robust error handling
   const loadSearchHistory = async () => {
     try {
-      // Try authenticated route first
-      let response = await fetch("/api/search-history");
-
-      // If auth route fails, try legacy route
-      if (!response.ok && response.status === 401) {
-        const userKey = getUserKey();
-        response = await fetch(
-          `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
-        );
+      // Check if fetch is available
+      if (typeof fetch === "undefined") {
+        return;
       }
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.history) {
-          setSuggestions(data.history);
+      // Try authenticated route first with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      try {
+        let response = await fetch("/api/search-history", {
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // If auth route fails, try legacy route
+        if (!response.ok && response.status === 401) {
+          const userKey = getUserKey();
+          const legacyController = new AbortController();
+          const legacyTimeoutId = setTimeout(
+            () => legacyController.abort(),
+            5000,
+          );
+
+          response = await fetch(
+            `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
+            { signal: legacyController.signal },
+          );
+
+          clearTimeout(legacyTimeoutId);
         }
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.history && Array.isArray(data.history)) {
+            setSuggestions(data.history);
+          }
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        // Don't log fetch errors as they're not critical
       }
     } catch (error) {
-      console.error("Failed to load search history:", error);
-      // Silently fail - search history is not critical functionality
+      // Completely silent - search history is not critical functionality
     }
   };
 
