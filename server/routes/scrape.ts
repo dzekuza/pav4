@@ -557,8 +557,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
     if (url.includes("iphone-16")) {
       return {
         title: "iPhone 16",
-        price: 799,
-        currency: "$",
+        price: 949,
+        currency: "€",
         image: "/placeholder.svg",
         url,
         store: domain,
@@ -567,8 +567,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
     if (url.includes("ipad")) {
       return {
         title: "iPad",
-        price: 329,
-        currency: "$",
+        price: 379,
+        currency: "€",
         image: "/placeholder.svg",
         url,
         store: domain,
