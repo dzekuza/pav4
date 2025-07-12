@@ -20,7 +20,7 @@ function extractDomain(url: string): string {
 
 // Extract price from text with improved pattern matching
 function extractPrice(text: string): { price: number; currency: string } {
-  if (!text) return { price: 0, currency: "$" };
+  if (!text) return { price: 0, currency: "€" };
 
   // Clean the text first
   const cleanText = text.replace(/\s+/g, " ").trim();
