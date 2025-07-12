@@ -57,28 +57,54 @@ export function SearchInput({
     }
   };
 
-  // Save to search history
+  // Save to search history with robust error handling
   const saveToHistory = async (url: string) => {
+    // Wrap everything in a try-catch to prevent any errors from bubbling up
     try {
-      // Try authenticated route first
-      let response = await fetch("/api/search-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
+      // Check if fetch is available and we have a valid URL
+      if (typeof fetch === "undefined" || !url) {
+        return;
+      }
 
-      // If auth route fails, try legacy route
-      if (!response.ok && response.status === 401) {
-        const userKey = getUserKey();
-        response = await fetch("/api/legacy/search-history", {
+      // Try authenticated route first with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      try {
+        let response = await fetch("/api/search-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, userKey }),
+          body: JSON.stringify({ url }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
+
+        // If auth route fails, try legacy route
+        if (!response.ok && response.status === 401) {
+          const userKey = getUserKey();
+          const legacyController = new AbortController();
+          const legacyTimeoutId = setTimeout(
+            () => legacyController.abort(),
+            5000,
+          );
+
+          response = await fetch("/api/legacy/search-history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, userKey }),
+            signal: legacyController.signal,
+          });
+
+          clearTimeout(legacyTimeoutId);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        // Don't log fetch errors as they're not critical
       }
     } catch (error) {
-      console.error("Failed to save search history:", error);
-      // Silently fail - search history is not critical functionality
+      // Completely silent - search history is not critical functionality
+      // Don't even log to avoid console spam
     }
   };
 
