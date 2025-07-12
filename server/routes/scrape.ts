@@ -547,8 +547,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
     if (url.includes("iphone-16-pro")) {
       return {
         title: "iPhone 16 Pro",
-        price: 999,
-        currency: "$",
+        price: 1229,
+        currency: "€",
         image: "/placeholder.svg",
         url,
         store: domain,
