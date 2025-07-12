@@ -813,6 +813,16 @@ JSON:`;
     return null;
   } catch (error) {
     console.error("Gemini AI extraction error:", error);
+
+    // Log more details for debugging
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.split("\n").slice(0, 3).join("\n"), // First 3 lines of stack
+      });
+    }
+
     return null;
   }
 }
