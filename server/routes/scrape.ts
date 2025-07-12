@@ -469,15 +469,38 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         }
       }
 
-      // Ideal.lt price patterns (EUR)
+      // Ideal.lt price patterns (EUR) - more aggressive patterns
       if (price === 0) {
         const idealPricePatterns = [
+          // JavaScript/JSON price patterns
           /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+
+          // HTML attribute patterns
           /data-price="([^"]+)"/i,
+          /data-value="([^"]+)"/i,
+          /value="([0-9,]+\.?\d*)"/i,
+
+          // CSS class patterns
           /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+          /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)</i,
+          /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)</i,
+
+          // Currency patterns
           /€\s*([0-9,]+(?:\.[0-9]{2})?)/i,
           /([0-9,]+(?:\.[0-9]{2})?)\s*€/i,
+          /([0-9,]+(?:\.[0-9]{2})?)\s*EUR/i,
+
+          // Generic span/div patterns
           /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+          /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
+
+          // Lithuanian specific patterns
+          /Kaina[^0-9]*([0-9,]+(?:\.[0-9]{2})?)/i,
+
+          // Aggressive fallback - any number that looks like a price
+          /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
         ];
 
         for (const pattern of idealPricePatterns) {
