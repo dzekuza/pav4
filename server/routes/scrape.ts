@@ -49,7 +49,7 @@ function extractPrice(text: string): { price: number; currency: string } {
     "₽": "₽",
   };
 
-  let detectedCurrency = "$"; // Default
+  let detectedCurrency = "€"; // Default to EUR
   for (const [symbol, curr] of Object.entries(currencySymbols)) {
     if (cleanText.includes(symbol)) {
       detectedCurrency = curr;
