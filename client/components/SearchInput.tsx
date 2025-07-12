@@ -34,31 +34,51 @@ export function SearchInput({
   // Load search history
   const loadSearchHistory = async () => {
     try {
-      const userKey = getUserKey();
-      const response = await fetch(
-        `/api/search-history?userKey=${encodeURIComponent(userKey)}`,
-      );
-      const data = await response.json();
+      // Try authenticated route first
+      let response = await fetch("/api/search-history");
 
-      if (data.history) {
-        setSuggestions(data.history);
+      // If auth route fails, try legacy route
+      if (!response.ok && response.status === 401) {
+        const userKey = getUserKey();
+        response = await fetch(
+          `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
+        );
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.history) {
+          setSuggestions(data.history);
+        }
       }
     } catch (error) {
       console.error("Failed to load search history:", error);
+      // Silently fail - search history is not critical functionality
     }
   };
 
   // Save to search history
   const saveToHistory = async (url: string) => {
     try {
-      const userKey = getUserKey();
-      await fetch("/api/search-history", {
+      // Try authenticated route first
+      let response = await fetch("/api/search-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, userKey }),
+        body: JSON.stringify({ url }),
       });
+
+      // If auth route fails, try legacy route
+      if (!response.ok && response.status === 401) {
+        const userKey = getUserKey();
+        response = await fetch("/api/legacy/search-history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, userKey }),
+        });
+      }
     } catch (error) {
       console.error("Failed to save search history:", error);
+      // Silently fail - search history is not critical functionality
     }
   };
 
