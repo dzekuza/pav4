@@ -591,31 +591,52 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     }
   }
 
-  // AI-powered extraction fallback: if normal extraction failed, try Gemini
-  if (
+  // AI-powered extraction fallback: enhanced conditions for triggering Gemini
+  const shouldUseGemini =
     !extracted.title ||
     extracted.title === "Product Title Not Found" ||
-    price === 0
-  ) {
+    extracted.title.length < 5 ||
+    price === 0 ||
+    !extracted.priceText ||
+    extracted.priceText.length === 0;
+
+  if (shouldUseGemini) {
     console.log("Normal extraction failed - trying Gemini AI...");
+    console.log("Trigger conditions:", {
+      noTitle: !extracted.title,
+      titleNotFound: extracted.title === "Product Title Not Found",
+      titleTooShort: extracted.title && extracted.title.length < 5,
+      priceZero: price === 0,
+      noPriceText: !extracted.priceText,
+      emptyPriceText: extracted.priceText && extracted.priceText.length === 0,
+    });
+
     const aiExtracted = await extractWithGemini(html, url);
 
     if (
       aiExtracted &&
       aiExtracted.title &&
-      aiExtracted.title !== "Product Title Not Found"
+      aiExtracted.title !== "Product Title Not Found" &&
+      aiExtracted.title.length > 3
     ) {
       console.log("Gemini AI successfully extracted data:", aiExtracted);
 
       const aiPrice = extractPrice(aiExtracted.price);
-      return {
-        title: aiExtracted.title,
-        price: aiPrice.price,
-        currency: aiPrice.currency,
-        image: aiExtracted.image || "/placeholder.svg",
-        url,
-        store: domain,
-      };
+
+      // Only use AI result if it provides better data than what we have
+      const hasValidPrice = aiPrice.price > 0;
+      const hasValidTitle = aiExtracted.title.length > 3;
+
+      if (hasValidPrice || hasValidTitle) {
+        return {
+          title: aiExtracted.title,
+          price: aiPrice.price,
+          currency: aiPrice.currency,
+          image: aiExtracted.image || "/placeholder.svg",
+          url,
+          store: domain,
+        };
+      }
     }
 
     // Final fallback: if AI also fails, try to infer from URL
