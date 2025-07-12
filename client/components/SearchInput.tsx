@@ -31,34 +31,105 @@ export function SearchInput({
     return `user_${navigator.userAgent.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "")}`;
   };
 
-  // Load search history
+  // Load search history with robust error handling
   const loadSearchHistory = async () => {
     try {
-      const userKey = getUserKey();
-      const response = await fetch(
-        `/api/search-history?userKey=${encodeURIComponent(userKey)}`,
-      );
-      const data = await response.json();
+      // Check if fetch is available
+      if (typeof fetch === "undefined") {
+        return;
+      }
 
-      if (data.history) {
-        setSuggestions(data.history);
+      // Try authenticated route first with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      try {
+        let response = await fetch("/api/search-history", {
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // If auth route fails, try legacy route
+        if (!response.ok && response.status === 401) {
+          const userKey = getUserKey();
+          const legacyController = new AbortController();
+          const legacyTimeoutId = setTimeout(
+            () => legacyController.abort(),
+            5000,
+          );
+
+          response = await fetch(
+            `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
+            { signal: legacyController.signal },
+          );
+
+          clearTimeout(legacyTimeoutId);
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.history && Array.isArray(data.history)) {
+            setSuggestions(data.history);
+          }
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        // Don't log fetch errors as they're not critical
       }
     } catch (error) {
-      console.error("Failed to load search history:", error);
+      // Completely silent - search history is not critical functionality
     }
   };
 
-  // Save to search history
+  // Save to search history with robust error handling
   const saveToHistory = async (url: string) => {
+    // Wrap everything in a try-catch to prevent any errors from bubbling up
     try {
-      const userKey = getUserKey();
-      await fetch("/api/search-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, userKey }),
-      });
+      // Check if fetch is available and we have a valid URL
+      if (typeof fetch === "undefined" || !url) {
+        return;
+      }
+
+      // Try authenticated route first with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      try {
+        let response = await fetch("/api/search-history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // If auth route fails, try legacy route
+        if (!response.ok && response.status === 401) {
+          const userKey = getUserKey();
+          const legacyController = new AbortController();
+          const legacyTimeoutId = setTimeout(
+            () => legacyController.abort(),
+            5000,
+          );
+
+          response = await fetch("/api/legacy/search-history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, userKey }),
+            signal: legacyController.signal,
+          });
+
+          clearTimeout(legacyTimeoutId);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        // Don't log fetch errors as they're not critical
+      }
     } catch (error) {
-      console.error("Failed to save search history:", error);
+      // Completely silent - search history is not critical functionality
+      // Don't even log to avoid console spam
     }
   };
 
@@ -67,9 +138,18 @@ export function SearchInput({
     e.preventDefault();
     if (!value.trim()) return;
 
-    saveToHistory(value.trim());
-    onSubmit(value.trim());
+    // Process the main submission first
+    const trimmedValue = value.trim();
+    onSubmit(trimmedValue);
     setShowSuggestions(false);
+
+    // Save to history completely asynchronously in a separate task
+    // Use setTimeout to ensure it doesn't interfere with form submission
+    setTimeout(() => {
+      saveToHistory(trimmedValue).catch(() => {
+        // Completely silent
+      });
+    }, 0);
   };
 
   // Handle suggestion selection

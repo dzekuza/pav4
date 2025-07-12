@@ -20,22 +20,33 @@ function extractDomain(url: string): string {
 
 // Extract price from text with improved pattern matching
 function extractPrice(text: string): { price: number; currency: string } {
-  if (!text) return { price: 0, currency: "$" };
+  if (!text) return { price: 0, currency: "€" };
 
   // Clean the text first
   const cleanText = text.replace(/\s+/g, " ").trim();
 
-  // More comprehensive price patterns
+  // More comprehensive price patterns with EUR focus
   const patterns = [
+    // EUR specific patterns (European format with various spacing)
+    /€\s*(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)/,
+    /(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)\s*€/,
+    /(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)\s*EUR/i,
+    /EUR\s*(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)/i,
+
     // Standard currency symbols with prices
-    /[\$£€¥₹₽](\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/,
+    /[\$£€¥₹₽]\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/,
     /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)[\s]*[\$£€¥₹₽]/,
+
     // Price with currency words
     /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP|CAD|AUD)/i,
     /(?:USD|EUR|GBP|CAD|AUD)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
-    // Decimal prices without currency
+
+    // European number formats (space or comma as thousands separator)
+    /(\d{1,3}(?:\s\d{3})*[,.]\d{2})/,
     /(\d{1,3}(?:,\d{3})*\.\d{2})/,
-    // Whole number prices
+
+    // Simple price patterns for fallback
+    /(\d{2,4}[,.]\d{2})/,
     /(\d{1,4})/,
   ];
 
@@ -43,13 +54,13 @@ function extractPrice(text: string): { price: number; currency: string } {
   const currencySymbols: { [key: string]: string } = {
     $: "$",
     "£": "£",
-    "€": "€",
+    "���": "€",
     "¥": "¥",
     "₹": "₹",
     "₽": "₽",
   };
 
-  let detectedCurrency = "$"; // Default
+  let detectedCurrency = "€"; // Default to EUR
   for (const [symbol, curr] of Object.entries(currencySymbols)) {
     if (cleanText.includes(symbol)) {
       detectedCurrency = curr;
@@ -197,6 +208,13 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     // Extract price with comprehensive patterns
     let priceText = "";
     const pricePatterns = [
+      // EUR-specific patterns first (prioritize European sites)
+      /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+      /data-price="([^"]*€[^"]*)"/i,
+      /"price"\s*:\s*"([^"]*€[^"]*)"/i,
+      /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
+      /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
+
       // Standard meta tags
       /<meta property="product:price:amount" content="([^"]+)"/i,
       /<meta itemprop="price" content="([^"]+)"/i,
@@ -208,7 +226,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /"dimensionPrice"\s*:\s*"([^"]+)"/i,
       /"fromPrice"\s*:\s*"([^"]+)"/i,
       /"currentPrice"\s*:\s*"([^"]+)"/i,
-      /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*\$[^<]*)</i,
+      /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
 
       // JSON price patterns
       /"price"\s*:\s*"?([^",}]+)"?/i,
@@ -218,6 +236,12 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       // HTML price patterns
       /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
       /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
+
+      // European price patterns (fallback)
+      /From\s*€(\d+(?:,\d{3})*)/i,
+      /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
+      /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
+      /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
 
       // Global price patterns (fallback)
       /From\s*\$(\d+(?:,\d{3})*)/i,
@@ -418,6 +442,80 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       }
     }
 
+    // Ideal.lt specific patterns (Lithuanian retailer)
+    else if (domain.includes("ideal.lt")) {
+      console.log("Detected Ideal.lt site - using specific patterns");
+
+      // Ideal.lt product title patterns
+      if (!extracted.title) {
+        const idealProductPatterns = [
+          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*>([^<]+)<\/h1>/i,
+          /"name"\s*:\s*"([^"]+)"/i,
+          /property="og:title"\s+content="([^"]+)"/i,
+          /<title[^>]*>([^<]+?)\s*-\s*IDEAL\.LT/i,
+        ];
+
+        for (const pattern of idealProductPatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.title = match[1]
+              .trim()
+              .replace(/\s*-\s*IDEAL\.LT.*$/i, "")
+              .replace(/&nbsp;/g, " ");
+            console.log("Found Ideal.lt title:", extracted.title);
+            break;
+          }
+        }
+      }
+
+      // Ideal.lt price patterns (EUR) - more aggressive patterns
+      if (price === 0) {
+        const idealPricePatterns = [
+          // JavaScript/JSON price patterns
+          /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+
+          // HTML attribute patterns
+          /data-price="([^"]+)"/i,
+          /data-value="([^"]+)"/i,
+          /value="([0-9,]+\.?\d*)"/i,
+
+          // CSS class patterns
+          /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+          /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)</i,
+          /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)</i,
+
+          // Currency patterns
+          /€\s*([0-9,]+(?:\.[0-9]{2})?)/i,
+          /([0-9,]+(?:\.[0-9]{2})?)\s*€/i,
+          /([0-9,]+(?:\.[0-9]{2})?)\s*EUR/i,
+
+          // Generic span/div patterns
+          /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+          /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
+
+          // Lithuanian specific patterns
+          /Kaina[^0-9]*([0-9,]+(?:\.[0-9]{2})?)/i,
+
+          // Aggressive fallback - any number that looks like a price
+          /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
+        ];
+
+        for (const pattern of idealPricePatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.priceText = match[1].includes("€")
+              ? match[1]
+              : `€${match[1].replace(/,/g, "")}`;
+            console.log("Found Ideal.lt price:", extracted.priceText);
+            break;
+          }
+        }
+      }
+    }
+
     // Generic fallback for any failed extraction
     if (!extracted.title) {
       console.log(
@@ -493,31 +591,68 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     }
   }
 
-  // AI-powered extraction fallback: if normal extraction failed, try Gemini
-  if (
+  // Check if this is a European retailer that might need Gemini
+  const europeanDomains = [
+    "ideal.lt",
+    "amazon.de",
+    "amazon.fr",
+    "amazon.es",
+    "amazon.it",
+    "fnac.com",
+    "mediamarkt.",
+    "saturn.de",
+    "elkjop.no",
+    "power.fi",
+  ];
+  const isEuropeanRetailer = europeanDomains.some((d) => domain.includes(d));
+
+  // AI-powered extraction fallback: enhanced conditions for triggering Gemini
+  const shouldUseGemini =
     !extracted.title ||
     extracted.title === "Product Title Not Found" ||
-    price === 0
-  ) {
+    extracted.title.length < 5 ||
+    price === 0 ||
+    !extracted.priceText ||
+    extracted.priceText.length === 0 ||
+    (isEuropeanRetailer && price < 10); // For European retailers, be more aggressive
+
+  if (shouldUseGemini) {
     console.log("Normal extraction failed - trying Gemini AI...");
+    console.log("Trigger conditions:", {
+      noTitle: !extracted.title,
+      titleNotFound: extracted.title === "Product Title Not Found",
+      titleTooShort: extracted.title && extracted.title.length < 5,
+      priceZero: price === 0,
+      noPriceText: !extracted.priceText,
+      emptyPriceText: extracted.priceText && extracted.priceText.length === 0,
+    });
+
     const aiExtracted = await extractWithGemini(html, url);
 
     if (
       aiExtracted &&
       aiExtracted.title &&
-      aiExtracted.title !== "Product Title Not Found"
+      aiExtracted.title !== "Product Title Not Found" &&
+      aiExtracted.title.length > 3
     ) {
       console.log("Gemini AI successfully extracted data:", aiExtracted);
 
       const aiPrice = extractPrice(aiExtracted.price);
-      return {
-        title: aiExtracted.title,
-        price: aiPrice.price,
-        currency: aiPrice.currency,
-        image: aiExtracted.image || "/placeholder.svg",
-        url,
-        store: domain,
-      };
+
+      // Only use AI result if it provides better data than what we have
+      const hasValidPrice = aiPrice.price > 0;
+      const hasValidTitle = aiExtracted.title.length > 3;
+
+      if (hasValidPrice || hasValidTitle) {
+        return {
+          title: aiExtracted.title,
+          price: aiPrice.price,
+          currency: aiPrice.currency,
+          image: aiExtracted.image || "/placeholder.svg",
+          url,
+          store: domain,
+        };
+      }
     }
 
     // Final fallback: if AI also fails, try to infer from URL
@@ -547,8 +682,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
     if (url.includes("iphone-16-pro")) {
       return {
         title: "iPhone 16 Pro",
-        price: 999,
-        currency: "$",
+        price: 1229,
+        currency: "€",
         image: "/placeholder.svg",
         url,
         store: domain,
@@ -557,8 +692,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
     if (url.includes("iphone-16")) {
       return {
         title: "iPhone 16",
-        price: 799,
-        currency: "$",
+        price: 949,
+        currency: "€",
         image: "/placeholder.svg",
         url,
         store: domain,
@@ -567,8 +702,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
     if (url.includes("ipad")) {
       return {
         title: "iPad",
-        price: 329,
-        currency: "$",
+        price: 379,
+        currency: "€",
         image: "/placeholder.svg",
         url,
         store: domain,
@@ -582,8 +717,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
       if (url.includes("digital")) {
         return {
           title: "PlayStation 5 Digital Edition",
-          price: 399.99,
-          currency: "$",
+          price: 449.99,
+          currency: "€",
           image: "/placeholder.svg",
           url,
           store: domain,
@@ -591,8 +726,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
       } else if (url.includes("pro")) {
         return {
           title: "PlayStation 5 Pro",
-          price: 699.99,
-          currency: "$",
+          price: 799.99,
+          currency: "€",
           image: "/placeholder.svg",
           url,
           store: domain,
@@ -600,8 +735,8 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
       } else {
         return {
           title: "PlayStation 5",
-          price: 499.99,
-          currency: "$",
+          price: 549.99,
+          currency: "€",
           image: "/placeholder.svg",
           url,
           store: domain,
@@ -614,7 +749,7 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
   return {
     title: "Product Title Not Found",
     price: 0,
-    currency: "$",
+    currency: "€",
     image: "/placeholder.svg",
     url,
     store: domain,
@@ -654,18 +789,23 @@ Extract product information from this e-commerce page HTML. Return ONLY a valid 
 
 {
   "title": "Product name (clean, without site name or extra text)",
-  "price": "Price as string with currency symbol (e.g., '$299.99')",
+  "price": "Price as string with currency symbol (e.g., '€299.99', '$199.00')",
   "image": "Main product image URL (absolute URL)"
 }
 
-Rules:
+CRITICAL RULES:
+- Look for prices in multiple formats: €123.45, 123,45 €, €123, EUR 123.45, 123.45 EUR
+- If you find ANY price (even without currency), include it with € symbol as default
+- Look for Lithuanian "Kaina" (price), German "Preis", French "Prix", Spanish "Precio"
+- Check JSON-LD structured data, meta tags, data attributes
+- Look for price in: spans, divs, data-price, itemprop="price", class containing "price"
 - If no clear price is found, use "0"
-- If no image is found, use ""
-- Focus on the main product being sold
-- Clean up title to remove site name and category text
-- Price should include currency symbol
+- Clean up title to remove site name, navigation, and category text
+- Focus on the MAIN product being sold (not related items)
+- Image should be the main product photo, not thumbnails
 
 URL: ${url}
+Domain: ${new URL(url).hostname}
 
 HTML:
 ${cleanHtml}
@@ -689,6 +829,16 @@ JSON:`;
     return null;
   } catch (error) {
     console.error("Gemini AI extraction error:", error);
+
+    // Log more details for debugging
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.split("\n").slice(0, 3).join("\n"), // First 3 lines of stack
+      });
+    }
+
     return null;
   }
 }
