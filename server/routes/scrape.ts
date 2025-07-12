@@ -208,6 +208,13 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     // Extract price with comprehensive patterns
     let priceText = "";
     const pricePatterns = [
+      // EUR-specific patterns first (prioritize European sites)
+      /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+      /data-price="([^"]*€[^"]*)"/i,
+      /"price"\s*:\s*"([^"]*€[^"]*)"/i,
+      /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
+      /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
+
       // Standard meta tags
       /<meta property="product:price:amount" content="([^"]+)"/i,
       /<meta itemprop="price" content="([^"]+)"/i,
@@ -219,7 +226,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /"dimensionPrice"\s*:\s*"([^"]+)"/i,
       /"fromPrice"\s*:\s*"([^"]+)"/i,
       /"currentPrice"\s*:\s*"([^"]+)"/i,
-      /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*\$[^<]*)</i,
+      /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
 
       // JSON price patterns
       /"price"\s*:\s*"?([^",}]+)"?/i,
