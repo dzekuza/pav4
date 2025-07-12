@@ -54,7 +54,7 @@ function extractPrice(text: string): { price: number; currency: string } {
   const currencySymbols: { [key: string]: string } = {
     $: "$",
     "£": "£",
-    "€": "€",
+    "���": "€",
     "¥": "¥",
     "₹": "₹",
     "₽": "₽",
@@ -591,6 +591,21 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     }
   }
 
+  // Check if this is a European retailer that might need Gemini
+  const europeanDomains = [
+    "ideal.lt",
+    "amazon.de",
+    "amazon.fr",
+    "amazon.es",
+    "amazon.it",
+    "fnac.com",
+    "mediamarkt.",
+    "saturn.de",
+    "elkjop.no",
+    "power.fi",
+  ];
+  const isEuropeanRetailer = europeanDomains.some((d) => domain.includes(d));
+
   // AI-powered extraction fallback: enhanced conditions for triggering Gemini
   const shouldUseGemini =
     !extracted.title ||
@@ -598,7 +613,8 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     extracted.title.length < 5 ||
     price === 0 ||
     !extracted.priceText ||
-    extracted.priceText.length === 0;
+    extracted.priceText.length === 0 ||
+    (isEuropeanRetailer && price < 10); // For European retailers, be more aggressive
 
   if (shouldUseGemini) {
     console.log("Normal extraction failed - trying Gemini AI...");
