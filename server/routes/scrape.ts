@@ -237,6 +237,12 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
       /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
+      // European price patterns (fallback)
+      /From\s*€(\d+(?:,\d{3})*)/i,
+      /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
+      /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
+      /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
+
       // Global price patterns (fallback)
       /From\s*\$(\d+(?:,\d{3})*)/i,
       /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
