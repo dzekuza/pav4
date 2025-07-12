@@ -25,17 +25,28 @@ function extractPrice(text: string): { price: number; currency: string } {
   // Clean the text first
   const cleanText = text.replace(/\s+/g, " ").trim();
 
-  // More comprehensive price patterns
+  // More comprehensive price patterns with EUR focus
   const patterns = [
+    // EUR specific patterns (European format with various spacing)
+    /€\s*(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)/,
+    /(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)\s*€/,
+    /(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)\s*EUR/i,
+    /EUR\s*(\d{1,3}(?:[,\s]\d{3})*(?:[,.]\d{2})?)/i,
+
     // Standard currency symbols with prices
-    /[\$£€¥₹₽](\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/,
+    /[\$£€¥₹₽]\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/,
     /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)[\s]*[\$£€¥₹₽]/,
+
     // Price with currency words
     /(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:USD|EUR|GBP|CAD|AUD)/i,
     /(?:USD|EUR|GBP|CAD|AUD)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
-    // Decimal prices without currency
+
+    // European number formats (space or comma as thousands separator)
+    /(\d{1,3}(?:\s\d{3})*[,.]\d{2})/,
     /(\d{1,3}(?:,\d{3})*\.\d{2})/,
-    // Whole number prices
+
+    // Simple price patterns for fallback
+    /(\d{2,4}[,.]\d{2})/,
     /(\d{1,4})/,
   ];
 
