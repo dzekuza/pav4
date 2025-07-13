@@ -8,6 +8,7 @@ import { SearchHeader } from "@/components/SearchHeader";
 import { ComparisonGrid, SavingsSummary } from "@/components/ComparisonGrid";
 import { SearchLoadingState } from "@/components/LoadingSkeleton";
 import { ProductData, PriceComparison, ScrapeResponse } from "@shared/api";
+import { useLocation } from "@/hooks/use-location";
 
 export default function SearchResults() {
   const { requestId, slug } = useParams<{
