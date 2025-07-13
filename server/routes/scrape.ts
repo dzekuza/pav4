@@ -234,7 +234,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
 
       // HTML price patterns
-      /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
+      /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£��¥₹][^<]*)</i,
       /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
       // European price patterns (fallback)
@@ -354,10 +354,16 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
           /\$(\d{3,4}(?:\.\d{2})?)/g, // Only match substantial prices (3-4 digits)
         ];
 
+        // Debug: log all potential prices found
+        console.log("Debugging Amazon price extraction...");
+        const allPriceMatches = html.match(/\$\d{2,4}(?:\.\d{2})?/g);
+        console.log("All $ prices found on page:", allPriceMatches);
+
         for (const pattern of amazonPricePatterns) {
           if (pattern.global) {
             const matches = html.match(pattern);
             if (matches && matches[0]) {
+              console.log("Global pattern matches:", matches);
               // For global matches, find the highest reasonable price (likely the main product)
               const prices = matches
                 .map((match) => {
@@ -365,6 +371,8 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
                   return priceMatch ? parseFloat(priceMatch[0]) : 0;
                 })
                 .filter((p) => p > 50); // Filter out very low prices
+
+              console.log("Filtered prices:", prices);
 
               if (prices.length > 0) {
                 const mainPrice = Math.max(...prices); // Take highest price as main product
@@ -379,6 +387,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
           } else {
             const match = html.match(pattern);
             if (match && match[1]) {
+              console.log("Pattern matched:", pattern.source, "->", match[1]);
               let priceText = match[1];
 
               // Handle fractional prices (e.g., "619" + "99")
@@ -387,6 +396,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
               }
 
               const priceValue = parseFloat(priceText.replace(/,/g, ""));
+              console.log("Parsed price value:", priceValue);
 
               // Only accept reasonable prices (not accessories or small items)
               if (priceValue > 50) {
