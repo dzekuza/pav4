@@ -170,11 +170,16 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     headers = {
       ...headers,
       "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
       "Accept-Language": "lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7",
-      Referer: "https://www.google.com/",
+      Referer: "https://www.google.lt/",
+      Origin: domain.includes("pigu.lt") ? "https://pigu.lt" : undefined,
+      "X-Requested-With": "XMLHttpRequest",
+      "Sec-Ch-Ua":
+        '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
       DNT: "1",
-      "Sec-GPC": "1",
     };
   }
 
@@ -191,10 +196,65 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
   // Add delay for Lithuanian websites to avoid rate limiting
   if (domain.endsWith(".lt")) {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
-  const response = await fetch(url, { headers });
+  let response;
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  // Retry logic for Lithuanian websites that might block initial requests
+  while (retryCount < maxRetries) {
+    try {
+      response = await fetch(url, {
+        headers,
+        redirect: "follow",
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+
+      if (response.ok) {
+        break;
+      } else if (
+        response.status === 403 &&
+        domain.endsWith(".lt") &&
+        retryCount < maxRetries - 1
+      ) {
+        console.log(
+          `Attempt ${retryCount + 1} failed with 403, retrying with different headers...`,
+        );
+
+        // Try different user agent on retry
+        const userAgents = [
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        ];
+
+        headers["User-Agent"] = userAgents[retryCount];
+        delete headers["X-Requested-With"];
+        delete headers["Origin"];
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 3000 * (retryCount + 1)),
+        );
+        retryCount++;
+        continue;
+      }
+    } catch (error) {
+      if (retryCount === maxRetries - 1) {
+        throw error;
+      }
+    }
+
+    retryCount++;
+    if (retryCount < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+    }
+  }
+
+  if (!response) {
+    response = await fetch(url, { headers });
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
