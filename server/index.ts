@@ -16,6 +16,7 @@ import {
 } from "./routes/auth";
 import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
 import { healthCheckHandler } from "./routes/health";
+import { getLocationHandler } from "./services/location";
 import { gracefulShutdown } from "./services/database";
 
 // Load environment variables
