@@ -145,18 +145,56 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     return apiResult;
   }
 
-  const response = await fetch(url, {
-    headers: {
+  const domain = extractDomain(url);
+
+  // Customize headers based on the website
+  let headers: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    Connection: "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+  };
+
+  // Specific headers for Lithuanian websites
+  if (domain.includes("pigu.lt") || domain.endsWith(".lt")) {
+    console.log("Detected Lithuanian website, using specific headers");
+    headers = {
+      ...headers,
       "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "Accept-Encoding": "gzip, deflate, br",
-      Connection: "keep-alive",
-      "Upgrade-Insecure-Requests": "1",
-    },
-  });
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept-Language": "lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7",
+      Referer: "https://www.google.com/",
+      DNT: "1",
+      "Sec-GPC": "1",
+    };
+  }
+
+  // Specific headers for Amazon
+  else if (domain.includes("amazon")) {
+    headers = {
+      ...headers,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+      Referer: "https://www.amazon.com/",
+    };
+  }
+
+  // Add delay for Lithuanian websites to avoid rate limiting
+  if (domain.endsWith(".lt")) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -234,7 +272,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
 
       // HTML price patterns
-      /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£��¥₹][^<]*)</i,
+      /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
       /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
       // European price patterns (fallback)
