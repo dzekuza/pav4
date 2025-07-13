@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import puppeteer, { Browser, Page } from "puppeteer";
 import {
   ScrapeRequest,
   ProductData,
@@ -141,792 +142,972 @@ async function tryApiEndpoint(url: string): Promise<ProductData | null> {
   return null;
 }
 
-// Simple HTTP-based scraping
-async function scrapeWithHttp(url: string): Promise<ProductData> {
-  console.log(`Scraping with HTTP: ${url}`);
+// Extract data from HTML using pattern matching
+function extractFromHtml(html: string): {
+  title: string;
+  priceText: string;
+  image: string;
+} {
+  // Extract title with more comprehensive patterns
+  let title = "";
+  const titlePatterns = [
+    // Standard meta tags
+    /<meta property="og:title" content="([^"]+)"/i,
+    /<meta name="twitter:title" content="([^"]+)"/i,
+    /<meta name="title" content="([^"]+)"/i,
+    /<title[^>]*>([^<]+)<\/title>/i,
 
-  // First try API endpoints if available
-  const apiResult = await tryApiEndpoint(url);
-  if (apiResult) {
-    console.log("Successfully used API endpoint");
-    return apiResult;
-  }
+    // Apple-specific patterns
+    /"productTitle"\s*:\s*"([^"]+)"/i,
+    /"displayName"\s*:\s*"([^"]+)"/i,
+    /"familyName"\s*:\s*"([^"]+)"/i,
+    /data-analytics-title="([^"]+)"/i,
+    /<h1[^>]*class="[^"]*hero[^"]*"[^>]*>([^<]+)<\/h1>/i,
 
-  const siteDomain = extractDomain(url);
+    // Product page patterns
+    /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+    /<h1[^>]*>([^<]+)<\/h1>/i,
+    /"productName"\s*:\s*"([^"]+)"/i,
+    /"name"\s*:\s*"([^"]+)"/i,
+    /data-product-name="([^"]+)"/i,
 
-  // Customize headers based on the website
-  let headers: Record<string, string> = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    Accept:
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    Connection: "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-User": "?1",
-    "Cache-Control": "max-age=0",
-  };
+    // JSON-LD structured data
+    /"@type"\s*:\s*"Product"[^}]*"name"\s*:\s*"([^"]+)"/i,
+  ];
 
-  // Specific headers for Lithuanian websites
-  if (siteDomain.includes("pigu.lt") || siteDomain.endsWith(".lt")) {
-    console.log("Detected Lithuanian website, using specific headers");
-    headers = {
-      ...headers,
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
-      "Accept-Language": "lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7",
-      Referer: "https://www.google.lt/",
-      Origin: siteDomain.includes("pigu.lt") ? "https://pigu.lt" : undefined,
-      "X-Requested-With": "XMLHttpRequest",
-      "Sec-Ch-Ua":
-        '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-      "Sec-Ch-Ua-Mobile": "?0",
-      "Sec-Ch-Ua-Platform": '"Windows"',
-      DNT: "1",
-    };
-  }
-
-  // Specific headers for Amazon
-  else if (siteDomain.includes("amazon")) {
-    headers = {
-      ...headers,
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept-Language": "en-US,en;q=0.9",
-      Referer: "https://www.amazon.com/",
-    };
-  }
-
-  // Add delay for Lithuanian websites to avoid rate limiting
-  if (siteDomain.endsWith(".lt")) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-
-  let response;
-  let retryCount = 0;
-  const maxRetries = 3;
-
-  // Retry logic for Lithuanian websites that might block initial requests
-  while (retryCount < maxRetries) {
-    try {
-      response = await fetch(url, {
-        headers,
-        redirect: "follow",
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
-
-      if (response.ok) {
-        break;
-      } else if (
-        response.status === 403 &&
-        siteDomain.endsWith(".lt") &&
-        retryCount < maxRetries - 1
-      ) {
-        console.log(
-          `Attempt ${retryCount + 1} failed with 403, retrying with different headers...`,
-        );
-
-        // Try different user agent on retry
-        const userAgents = [
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-        ];
-
-        headers["User-Agent"] = userAgents[retryCount];
-        delete headers["X-Requested-With"];
-        delete headers["Origin"];
-
-        await new Promise((resolve) =>
-          setTimeout(resolve, 3000 * (retryCount + 1)),
-        );
-        retryCount++;
-        continue;
-      }
-    } catch (error) {
-      if (retryCount === maxRetries - 1) {
-        throw error;
-      }
-    }
-
-    retryCount++;
-    if (retryCount < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+  for (const pattern of titlePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      title = match[1]
+        .trim()
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">");
+      break;
     }
   }
 
-  if (!response) {
-    response = await fetch(url, { headers });
-  }
+  // Extract price with comprehensive patterns
+  let priceText = "";
+  const pricePatterns = [
+    // EUR-specific patterns first (prioritize European sites)
+    /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+    /data-price="([^"]*€[^"]*)"/i,
+    /"price"\s*:\s*"([^"]*€[^"]*)"/i,
+    /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
+    /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
+    // Standard meta tags
+    /<meta property="product:price:amount" content="([^"]+)"/i,
+    /<meta itemprop="price" content="([^"]+)"/i,
+    /<meta name="price" content="([^"]+)"/i,
+    /data-price="([^"]+)"/i,
 
-  const html = await response.text();
+    // Apple-specific price patterns
+    /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
+    /"dimensionPrice"\s*:\s*"([^"]+)"/i,
+    /"fromPrice"\s*:\s*"([^"]+)"/i,
+    /"currentPrice"\s*:\s*"([^"]+)"/i,
+    /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
 
-  // Extract data from HTML
-  const extractFromHtml = (html: string) => {
-    // Extract title with more comprehensive patterns
-    let title = "";
-    const titlePatterns = [
-      // Standard meta tags
-      /<meta property="og:title" content="([^"]+)"/i,
-      /<meta name="twitter:title" content="([^"]+)"/i,
-      /<meta name="title" content="([^"]+)"/i,
-      /<title[^>]*>([^<]+)<\/title>/i,
+    // JSON price patterns
+    /"price"\s*:\s*"?([^",}]+)"?/i,
+    /"amount"\s*:\s*([^,}]+)/i,
+    /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
 
-      // Apple-specific patterns
-      /"productTitle"\s*:\s*"([^"]+)"/i,
-      /"displayName"\s*:\s*"([^"]+)"/i,
-      /"familyName"\s*:\s*"([^"]+)"/i,
-      /data-analytics-title="([^"]+)"/i,
-      /<h1[^>]*class="[^"]*hero[^"]*"[^>]*>([^<]+)<\/h1>/i,
+    // HTML price patterns
+    /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
+    /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
 
-      // Product page patterns
-      /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
-      /<h1[^>]*>([^<]+)<\/h1>/i,
-      /"productName"\s*:\s*"([^"]+)"/i,
-      /"name"\s*:\s*"([^"]+)"/i,
-      /data-product-name="([^"]+)"/i,
+    // European price patterns (fallback)
+    /From\s*€(\d+(?:,\d{3})*)/i,
+    /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
+    /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
+    /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
 
-      // JSON-LD structured data
-      /"@type"\s*:\s*"Product"[^}]*"name"\s*:\s*"([^"]+)"/i,
-    ];
+    // Global price patterns (fallback)
+    /From\s*\$(\d+(?:,\d{3})*)/i,
+    /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
+    /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
+  ];
 
-    for (const pattern of titlePatterns) {
-      const match = html.match(pattern);
-      if (match && match[1] && match[1].trim().length > 3) {
-        title = match[1]
-          .trim()
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">");
+  for (const pattern of pricePatterns) {
+    if (pattern.global) {
+      const matches = html.match(pattern);
+      if (matches && matches[0]) {
+        priceText = matches[0];
         break;
       }
-    }
-
-    // Extract price with comprehensive patterns
-    let priceText = "";
-    const pricePatterns = [
-      // EUR-specific patterns first (prioritize European sites)
-      /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
-      /data-price="([^"]*€[^"]*)"/i,
-      /"price"\s*:\s*"([^"]*€[^"]*)"/i,
-      /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
-      /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
-
-      // Standard meta tags
-      /<meta property="product:price:amount" content="([^"]+)"/i,
-      /<meta itemprop="price" content="([^"]+)"/i,
-      /<meta name="price" content="([^"]+)"/i,
-      /data-price="([^"]+)"/i,
-
-      // Apple-specific price patterns
-      /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
-      /"dimensionPrice"\s*:\s*"([^"]+)"/i,
-      /"fromPrice"\s*:\s*"([^"]+)"/i,
-      /"currentPrice"\s*:\s*"([^"]+)"/i,
-      /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
-
-      // JSON price patterns
-      /"price"\s*:\s*"?([^",}]+)"?/i,
-      /"amount"\s*:\s*([^,}]+)/i,
-      /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
-
-      // HTML price patterns
-      /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-      /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-
-      // European price patterns (fallback)
-      /From\s*€(\d+(?:,\d{3})*)/i,
-      /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
-      /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
-      /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
-
-      // Global price patterns (fallback)
-      /From\s*\$(\d+(?:,\d{3})*)/i,
-      /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
-      /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
-    ];
-
-    for (const pattern of pricePatterns) {
-      if (pattern.global) {
-        const matches = html.match(pattern);
-        if (matches && matches[0]) {
-          priceText = matches[0];
-          break;
-        }
-      } else {
-        const match = html.match(pattern);
-        if (match && match[1]) {
-          priceText = match[1].trim();
-          break;
-        }
-      }
-    }
-
-    // Extract image
-    let image = "";
-    const imagePatterns = [
-      /<meta property="og:image" content="([^"]+)"/i,
-      /<meta name="twitter:image" content="([^"]+)"/i,
-    ];
-
-    for (const pattern of imagePatterns) {
+    } else {
       const match = html.match(pattern);
       if (match && match[1]) {
-        image = match[1].trim();
+        priceText = match[1].trim();
         break;
       }
     }
+  }
 
-    return { title, priceText, image };
-  };
+  // Extract image
+  let image = "";
+  const imagePatterns = [
+    /<meta property="og:image" content="([^"]+)"/i,
+    /<meta name="twitter:image" content="([^"]+)"/i,
+  ];
 
-  const extracted = extractFromHtml(html);
-  const { price, currency } = extractPrice(extracted.priceText);
-  const domain = extractDomain(url);
+  for (const pattern of imagePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      image = match[1].trim();
+      break;
+    }
+  }
 
-  console.log("Extraction result:", {
-    title: extracted.title,
-    priceText: extracted.priceText,
-    price,
-    currency,
-    domain,
-  });
+  return { title, priceText, image };
+}
 
-  // If extraction failed, try domain-specific fallbacks
-  if (!extracted.title || price === 0) {
-    console.log("Extraction failed - trying domain-specific patterns");
-    console.log("Domain:", domain);
+// Puppeteer-based scraping for better JavaScript support
+async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
+  console.log(`Scraping with Puppeteer: ${url}`);
 
-    // Amazon specific patterns
-    if (domain.includes("amazon")) {
-      console.log("Detected Amazon site - using specific patterns");
+  let browser: Browser | null = null;
+  let page: Page | null = null;
 
-      // Amazon product title patterns
-      if (!extracted.title) {
-        const amazonProductPatterns = [
-          /<span[^>]*id="productTitle"[^>]*>([^<]+)<\/span>/i,
-          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
-          /"title"\s*:\s*"([^"]{10,})"/i,
-          /Amazon\.com:\s*([^|{}<>]+)/i,
-          /<title[^>]*>Amazon\.com:\s*([^|<]+)/i,
-        ];
+  try {
+    // First try API endpoints if available
+    const apiResult = await tryApiEndpoint(url);
+    if (apiResult) {
+      console.log("Successfully used API endpoint");
+      return apiResult;
+    }
 
-        for (const pattern of amazonProductPatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.title = match[1]
-              .trim()
-              .replace(/Amazon\.com:\s*/i, "")
-              .replace(/\s*:\s*[^:]*$/i, "");
-            console.log("Found Amazon title:", extracted.title);
+    const siteDomain = extractDomain(url);
+
+    // Launch Puppeteer browser
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process", // For cloud environments
+        "--disable-gpu",
+      ],
+    });
+
+    page = await browser.newPage();
+
+    // Set viewport and user agent
+    await page.setViewport({ width: 1366, height: 768 });
+
+    // Customize user agent based on the website
+    let userAgent =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+    // Set additional headers for specific sites
+    const extraHeaders: Record<string, string> = {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Cache-Control": "max-age=0",
+    };
+
+    // Specific headers for Lithuanian websites
+    if (siteDomain.includes("pigu.lt") || siteDomain.endsWith(".lt")) {
+      console.log("Detected Lithuanian website, using specific headers");
+      userAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0";
+      extraHeaders["Accept-Language"] = "lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7";
+      extraHeaders["Referer"] = "https://www.google.lt/";
+      if (siteDomain.includes("pigu.lt")) {
+        extraHeaders["Origin"] = "https://pigu.lt";
+      }
+      extraHeaders["X-Requested-With"] = "XMLHttpRequest";
+      extraHeaders["Sec-Ch-Ua"] =
+        '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"';
+      extraHeaders["Sec-Ch-Ua-Mobile"] = "?0";
+      extraHeaders["Sec-Ch-Ua-Platform"] = '"Windows"';
+      extraHeaders["DNT"] = "1";
+    }
+    // Specific headers for Amazon
+    else if (siteDomain.includes("amazon")) {
+      extraHeaders["Accept-Language"] = "en-US,en;q=0.9";
+      extraHeaders["Referer"] = "https://www.amazon.com/";
+    }
+
+    await page.setUserAgent(userAgent);
+    await page.setExtraHTTPHeaders(extraHeaders);
+
+    // Block images and other resources to speed up page loading
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const resourceType = req.resourceType();
+      if (
+        resourceType === "image" ||
+        resourceType === "font" ||
+        resourceType === "media"
+      ) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // Set timeout
+    page.setDefaultTimeout(30000);
+
+    // Add delay for Lithuanian websites to avoid rate limiting
+    if (siteDomain.endsWith(".lt")) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    // Navigate to the page with retry logic
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`Attempt ${retryCount + 1} to load: ${url}`);
+
+        const response = await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+
+        if (response && response.ok()) {
+          break;
+        } else if (
+          response &&
+          response.status() === 403 &&
+          siteDomain.endsWith(".lt") &&
+          retryCount < maxRetries - 1
+        ) {
+          console.log(
+            `Attempt ${retryCount + 1} failed with 403, retrying with different user agent...`,
+          );
+
+          // Try different user agent on retry
+          const userAgents = [
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+          ];
+
+          await page.setUserAgent(userAgents[retryCount]);
+          await new Promise((resolve) =>
+            setTimeout(resolve, 3000 * (retryCount + 1)),
+          );
+          retryCount++;
+          continue;
+        }
+      } catch (error) {
+        console.log(`Navigation attempt ${retryCount + 1} failed:`, error);
+        if (retryCount === maxRetries - 1) {
+          throw error;
+        }
+      }
+
+      retryCount++;
+      if (retryCount < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+      }
+    }
+
+    // Wait for content to load (especially for dynamic content)
+    try {
+      await page.waitForSelector("body", { timeout: 5000 });
+
+      // Try to wait for common price/product selectors to appear
+      const commonSelectors = [
+        "[data-price]",
+        ".price",
+        '[class*="price"]',
+        '[class*="product"]',
+        "h1",
+        "[data-product-name]",
+      ];
+
+      for (const selector of commonSelectors) {
+        try {
+          await page.waitForSelector(selector, { timeout: 2000 });
+          console.log(`Found selector: ${selector}`);
+          break;
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
+      // Additional wait for JavaScript to execute
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Scroll to trigger lazy loading if needed
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight / 2);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.log(
+        "Warning: Timeout waiting for content selectors, continuing anyway",
+      );
+    }
+
+    // Try to execute JavaScript to extract data directly from the page if possible
+    let jsExtractedData: any = null;
+    try {
+      jsExtractedData = await page.evaluate(() => {
+        // Try to find structured data in the page
+        const jsonLdScripts = document.querySelectorAll(
+          'script[type="application/ld+json"]',
+        );
+        for (const script of jsonLdScripts) {
+          try {
+            const data = JSON.parse(script.textContent || "");
+            if (data["@type"] === "Product" || data.name) {
+              return {
+                title: data.name,
+                price: data.offers?.price || data.offers?.[0]?.price,
+                currency:
+                  data.offers?.priceCurrency || data.offers?.[0]?.priceCurrency,
+                image: data.image?.[0] || data.image,
+              };
+            }
+          } catch (e) {
+            // Continue
+          }
+        }
+
+        // Try to find price and title from common meta tags
+        const ogTitle = document
+          .querySelector('meta[property="og:title"]')
+          ?.getAttribute("content");
+        const ogImage = document
+          .querySelector('meta[property="og:image"]')
+          ?.getAttribute("content");
+        const priceElements = document.querySelectorAll(
+          '[data-price], .price, [class*="price"], [itemprop="price"]',
+        );
+
+        let price = "";
+        for (const el of priceElements) {
+          const text =
+            el.textContent ||
+            el.getAttribute("content") ||
+            el.getAttribute("data-price") ||
+            "";
+          if (text && (/[€$£¥]/.test(text) || /\d+[.,]\d+/.test(text))) {
+            price = text;
             break;
           }
         }
+
+        return {
+          title: ogTitle,
+          price: price,
+          image: ogImage,
+        };
+      });
+
+      console.log("JavaScript extracted data:", jsExtractedData);
+    } catch (error) {
+      console.log("JavaScript extraction failed:", error);
+    }
+
+    // Get the page content
+    const html = await page.content();
+
+    // Extract data from HTML
+
+    const extracted = extractFromHtml(html);
+
+    // Merge JavaScript extracted data with HTML extraction
+    if (jsExtractedData) {
+      if (
+        jsExtractedData.title &&
+        (!extracted.title ||
+          extracted.title.length < jsExtractedData.title.length)
+      ) {
+        extracted.title = jsExtractedData.title;
       }
+      if (
+        jsExtractedData.price &&
+        (!extracted.priceText ||
+          extracted.priceText.length < jsExtractedData.price.length)
+      ) {
+        extracted.priceText = jsExtractedData.price;
+      }
+      if (jsExtractedData.image && !extracted.image) {
+        extracted.image = jsExtractedData.image;
+      }
+    }
 
-      // Amazon price patterns - prioritize main product price
-      if (price === 0) {
-        const amazonPricePatterns = [
-          // Primary price patterns (main product price)
-          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*data-a-size="xl"[^>]*>([^<]+)<\/span>/i, // Large price display
-          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>.*?<span[^>]*class="[^"]*a-price-fraction[^"]*"[^>]*>([^<]+)<\/span>/is, // Full price with fraction
-          /<span[^>]*class="[^"]*a-price-symbol[^"]*"[^>]*>\$<\/span><span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/i, // Symbol + whole price
-          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/gi, // Any price-whole element
+    const { price, currency } = extractPrice(extracted.priceText);
+    const domain = extractDomain(url);
 
-          // Backup patterns for different Amazon layouts
-          /<span[^>]*id="priceblock_dealprice"[^>]*>\$([^<]+)<\/span>/i,
-          /<span[^>]*id="priceblock_ourprice"[^>]*>\$([^<]+)<\/span>/i,
-          /<span[^>]*class="[^"]*a-price-range[^"]*"[^>]*>.*?\$(\d{2,4}(?:\.\d{2})?)/is,
+    console.log("Extraction result:", {
+      title: extracted.title,
+      priceText: extracted.priceText,
+      price,
+      currency,
+      domain,
+    });
 
-          // JSON-based prices
-          /"priceAmount"\s*:\s*"([^"]+)"/i,
-          /"price"\s*:\s*"(\$[^"]+)"/i,
-          /"displayPrice"\s*:\s*"([^"]+)"/i,
+    // If extraction failed, try domain-specific fallbacks
+    if (!extracted.title || price === 0) {
+      console.log("Extraction failed - trying domain-specific patterns");
+      console.log("Domain:", domain);
 
-          // Meta property prices
-          /<meta property="product:price:amount" content="([^"]+)"/i,
-          /<meta property="og:price:amount" content="([^"]+)"/i,
+      // Amazon specific patterns
+      if (domain.includes("amazon")) {
+        console.log("Detected Amazon site - using specific patterns");
 
-          // Fallback pattern
-          /\$(\d{3,4}(?:\.\d{2})?)/g, // Only match substantial prices (3-4 digits)
-        ];
+        // Amazon product title patterns
+        if (!extracted.title) {
+          const amazonProductPatterns = [
+            /<span[^>]*id="productTitle"[^>]*>([^<]+)<\/span>/i,
+            /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+            /"title"\s*:\s*"([^"]{10,})"/i,
+            /Amazon\.com:\s*([^|{}<>]+)/i,
+            /<title[^>]*>Amazon\.com:\s*([^|<]+)/i,
+          ];
 
-        // Debug: log all potential prices found
-        console.log("Debugging Amazon price extraction...");
-        const allPriceMatches = html.match(/\$\d{2,4}(?:\.\d{2})?/g);
-        console.log("All $ prices found on page:", allPriceMatches);
-
-        for (const pattern of amazonPricePatterns) {
-          if (pattern.global) {
-            const matches = html.match(pattern);
-            if (matches && matches[0]) {
-              console.log("Global pattern matches:", matches);
-              // For global matches, find the highest reasonable price (likely the main product)
-              const prices = matches
-                .map((match) => {
-                  const priceMatch = match.match(/\d+(?:\.\d{2})?/);
-                  return priceMatch ? parseFloat(priceMatch[0]) : 0;
-                })
-                .filter((p) => p > 50); // Filter out very low prices
-
-              console.log("Filtered prices:", prices);
-
-              if (prices.length > 0) {
-                const mainPrice = Math.max(...prices); // Take highest price as main product
-                extracted.priceText = `$${mainPrice}`;
-                console.log(
-                  "Found Amazon price (highest):",
-                  extracted.priceText,
-                );
-                break;
-              }
-            }
-          } else {
+          for (const pattern of amazonProductPatterns) {
             const match = html.match(pattern);
             if (match && match[1]) {
-              console.log("Pattern matched:", pattern.source, "->", match[1]);
-              let priceText = match[1];
+              extracted.title = match[1]
+                .trim()
+                .replace(/Amazon\.com:\s*/i, "")
+                .replace(/\s*:\s*[^:]*$/i, "");
+              console.log("Found Amazon title:", extracted.title);
+              break;
+            }
+          }
+        }
 
-              // Handle fractional prices (e.g., "619" + "99")
-              if (match[2]) {
-                priceText = `${match[1]}.${match[2]}`;
+        // Amazon price patterns - prioritize main product price
+        if (price === 0) {
+          const amazonPricePatterns = [
+            // Primary price patterns (main product price)
+            /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*data-a-size="xl"[^>]*>([^<]+)<\/span>/i, // Large price display
+            /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>.*?<span[^>]*class="[^"]*a-price-fraction[^"]*"[^>]*>([^<]+)<\/span>/is, // Full price with fraction
+            /<span[^>]*class="[^"]*a-price-symbol[^"]*"[^>]*>\$<\/span><span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/i, // Symbol + whole price
+            /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/gi, // Any price-whole element
+
+            // Backup patterns for different Amazon layouts
+            /<span[^>]*id="priceblock_dealprice"[^>]*>\$([^<]+)<\/span>/i,
+            /<span[^>]*id="priceblock_ourprice"[^>]*>\$([^<]+)<\/span>/i,
+            /<span[^>]*class="[^"]*a-price-range[^"]*"[^>]*>.*?\$(\d{2,4}(?:\.\d{2})?)/is,
+
+            // JSON-based prices
+            /"priceAmount"\s*:\s*"([^"]+)"/i,
+            /"price"\s*:\s*"(\$[^"]+)"/i,
+            /"displayPrice"\s*:\s*"([^"]+)"/i,
+
+            // Meta property prices
+            /<meta property="product:price:amount" content="([^"]+)"/i,
+            /<meta property="og:price:amount" content="([^"]+)"/i,
+
+            // Fallback pattern
+            /\$(\d{3,4}(?:\.\d{2})?)/g, // Only match substantial prices (3-4 digits)
+          ];
+
+          // Debug: log all potential prices found
+          console.log("Debugging Amazon price extraction...");
+          const allPriceMatches = html.match(/\$\d{2,4}(?:\.\d{2})?/g);
+          console.log("All $ prices found on page:", allPriceMatches);
+
+          for (const pattern of amazonPricePatterns) {
+            if (pattern.global) {
+              const matches = html.match(pattern);
+              if (matches && matches[0]) {
+                console.log("Global pattern matches:", matches);
+                // For global matches, find the highest reasonable price (likely the main product)
+                const prices = matches
+                  .map((match) => {
+                    const priceMatch = match.match(/\d+(?:\.\d{2})?/);
+                    return priceMatch ? parseFloat(priceMatch[0]) : 0;
+                  })
+                  .filter((p) => p > 50); // Filter out very low prices
+
+                console.log("Filtered prices:", prices);
+
+                if (prices.length > 0) {
+                  const mainPrice = Math.max(...prices); // Take highest price as main product
+                  extracted.priceText = `$${mainPrice}`;
+                  console.log(
+                    "Found Amazon price (highest):",
+                    extracted.priceText,
+                  );
+                  break;
+                }
               }
+            } else {
+              const match = html.match(pattern);
+              if (match && match[1]) {
+                console.log("Pattern matched:", pattern.source, "->", match[1]);
+                let priceText = match[1];
 
-              const priceValue = parseFloat(priceText.replace(/,/g, ""));
-              console.log("Parsed price value:", priceValue);
+                // Handle fractional prices (e.g., "619" + "99")
+                if (match[2]) {
+                  priceText = `${match[1]}.${match[2]}`;
+                }
 
-              // Only accept reasonable prices (not accessories or small items)
-              if (priceValue > 50) {
-                extracted.priceText = priceText.includes("$")
-                  ? priceText
-                  : `$${priceText}`;
-                console.log("Found Amazon price:", extracted.priceText);
-                break;
+                const priceValue = parseFloat(priceText.replace(/,/g, ""));
+                console.log("Parsed price value:", priceValue);
+
+                // Only accept reasonable prices (not accessories or small items)
+                if (priceValue > 50) {
+                  extracted.priceText = priceText.includes("$")
+                    ? priceText
+                    : `$${priceText}`;
+                  console.log("Found Amazon price:", extracted.priceText);
+                  break;
+                }
               }
             }
           }
         }
       }
-    }
 
-    // Apple specific patterns
-    else if (domain.includes("apple")) {
-      console.log("Detected Apple site - using specific patterns");
+      // Apple specific patterns
+      else if (domain.includes("apple")) {
+        console.log("Detected Apple site - using specific patterns");
 
-      // Apple product title patterns
-      if (!extracted.title) {
-        const appleProductPatterns = [
-          /Buy\s+(iPhone\s+\d+[^<>\n"]*)/i,
-          /Buy\s+(iPad[^<>\n"]*)/i,
-          /Buy\s+(Mac[^<>\n"]*)/i,
-          /Buy\s+(Apple\s+[^<>\n"]*)/i,
-          /"productTitle"\s*:\s*"([^"]+)"/i,
-          /"familyName"\s*:\s*"([^"]+)"/i,
-          /iPhone\s+\d+[^<>\n"]{0,50}/i,
-          /iPad[^<>\n"]{0,50}/i,
+        // Apple product title patterns
+        if (!extracted.title) {
+          const appleProductPatterns = [
+            /Buy\s+(iPhone\s+\d+[^<>\n"]*)/i,
+            /Buy\s+(iPad[^<>\n"]*)/i,
+            /Buy\s+(Mac[^<>\n"]*)/i,
+            /Buy\s+(Apple\s+[^<>\n"]*)/i,
+            /"productTitle"\s*:\s*"([^"]+)"/i,
+            /"familyName"\s*:\s*"([^"]+)"/i,
+            /iPhone\s+\d+[^<>\n"]{0,50}/i,
+            /iPad[^<>\n"]{0,50}/i,
+          ];
+
+          for (const pattern of appleProductPatterns) {
+            const match = html.match(pattern);
+            if (match) {
+              extracted.title = match[1] || match[0];
+              console.log("Found Apple title:", extracted.title);
+              break;
+            }
+          }
+        }
+
+        // Apple price patterns
+        if (price === 0) {
+          const applePricePatterns = [
+            /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
+            /"fromPrice"\s*:\s*"([^"]+)"/i,
+            /From\s*\$(\d{3,4})/i,
+            /"price"\s*:\s*"(\$\d+)"/i,
+          ];
+
+          for (const pattern of applePricePatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              extracted.priceText = match[1].replace(/[^\d$.,]/g, "");
+              console.log("Found Apple price:", extracted.priceText);
+              break;
+            }
+          }
+        }
+      }
+
+      // PlayStation Direct specific patterns
+      else if (domain.includes("playstation") || domain.includes("sony")) {
+        console.log("Detected PlayStation/Sony site - using specific patterns");
+
+        // Look for PlayStation product patterns in the full HTML
+        const psSpecificPatterns = [
+          /"productName"\s*:\s*"([^"]+)"/i,
+          /"displayName"\s*:\s*"([^"]+)"/i,
+          /PlayStation[\s\u00A0]*5[\s\u00A0]*Pro/i,
+          /PS5[\s\u00A0]*Pro/i,
+          /PlayStation[\s\u00A0]*\d+[^<>\n"]{0,30}/i,
         ];
 
-        for (const pattern of appleProductPatterns) {
+        for (const pattern of psSpecificPatterns) {
           const match = html.match(pattern);
           if (match) {
             extracted.title = match[1] || match[0];
-            console.log("Found Apple title:", extracted.title);
+            console.log("Found PlayStation title:", extracted.title);
             break;
           }
         }
-      }
 
-      // Apple price patterns
-      if (price === 0) {
-        const applePricePatterns = [
-          /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
-          /"fromPrice"\s*:\s*"([^"]+)"/i,
-          /From\s*\$(\d{3,4})/i,
-          /"price"\s*:\s*"(\$\d+)"/i,
-        ];
+        // PlayStation price patterns
+        if (price === 0) {
+          const psPricePatterns = [
+            /"price"\s*:\s*(\d+)/i,
+            /"amount"\s*:\s*"(\d+)"/i,
+            /\$(\d{3,4})/g, // PlayStation prices are typically $400-700
+          ];
 
-        for (const pattern of applePricePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.priceText = match[1].replace(/[^\d$.,]/g, "");
-            console.log("Found Apple price:", extracted.priceText);
-            break;
-          }
-        }
-      }
-    }
-
-    // PlayStation Direct specific patterns
-    else if (domain.includes("playstation") || domain.includes("sony")) {
-      console.log("Detected PlayStation/Sony site - using specific patterns");
-
-      // Look for PlayStation product patterns in the full HTML
-      const psSpecificPatterns = [
-        /"productName"\s*:\s*"([^"]+)"/i,
-        /"displayName"\s*:\s*"([^"]+)"/i,
-        /PlayStation[\s\u00A0]*5[\s\u00A0]*Pro/i,
-        /PS5[\s\u00A0]*Pro/i,
-        /PlayStation[\s\u00A0]*\d+[^<>\n"]{0,30}/i,
-      ];
-
-      for (const pattern of psSpecificPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          extracted.title = match[1] || match[0];
-          console.log("Found PlayStation title:", extracted.title);
-          break;
-        }
-      }
-
-      // PlayStation price patterns
-      if (price === 0) {
-        const psPricePatterns = [
-          /"price"\s*:\s*(\d+)/i,
-          /"amount"\s*:\s*"(\d+)"/i,
-          /\$(\d{3,4})/g, // PlayStation prices are typically $400-700
-        ];
-
-        for (const pattern of psPricePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            const foundPrice = parseFloat(match[1]);
-            if (foundPrice > 100) {
-              // Reasonable price check
-              extracted.priceText = `$${foundPrice}`;
-              console.log("Found PlayStation price:", extracted.priceText);
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    // pigu.lt specific patterns (Lithuanian retailer)
-    else if (domain.includes("pigu.lt")) {
-      console.log("Detected pigu.lt site - using specific patterns");
-
-      // pigu.lt product title patterns
-      if (!extracted.title) {
-        const piguProductPatterns = [
-          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
-          /<h1[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h1>/i,
-          /<h1[^>]*>([^<]+)<\/h1>/i,
-          /"name"\s*:\s*"([^"]+)"/i,
-          /property="og:title"\s+content="([^"]+)"/i,
-          /<title[^>]*>([^<]+?)\s*\|\s*pigu\.lt/i,
-          /<title[^>]*>([^<]+?)\s*-\s*pigu\.lt/i,
-          /data-product-name="([^"]+)"/i,
-          /<span[^>]*class="[^"]*product-name[^"]*"[^>]*>([^<]+)<\/span>/i,
-        ];
-
-        for (const pattern of piguProductPatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.title = match[1]
-              .trim()
-              .replace(/\s*[\|\-]\s*pigu\.lt.*$/i, "")
-              .replace(/&nbsp;/g, " ")
-              .replace(/&amp;/g, "&");
-            console.log("Found pigu.lt title:", extracted.title);
-            break;
-          }
-        }
-      }
-
-      // pigu.lt price patterns (EUR) - comprehensive patterns
-      if (price === 0) {
-        const piguPricePatterns = [
-          // JavaScript/JSON price patterns
-          /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-          /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-          /"priceAmount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-          /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-          /"value"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-
-          // HTML attribute patterns
-          /data-price="([^"]+)"/i,
-          /data-value="([^"]+)"/i,
-          /data-amount="([^"]+)"/i,
-          /value="([0-9,]+\.?\d*)"/i,
-
-          // CSS class patterns specific to pigu.lt
-          /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)/i,
-          /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)/i,
-          /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)/i,
-          /class="[^"]*current[^"]*"[^>]*>([^<]*€[^<]*)/i,
-
-          // Currency patterns - Lithuanian format
-          /€\s*([0-9,]+(?:[\.,][0-9]{2})?)/i,
-          /([0-9,]+(?:[\.,][0-9]{2})?)\s*€/i,
-          /([0-9,]+(?:[\.,][0-9]{2})?)\s*EUR/i,
-
-          // Generic span/div patterns
-          /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
-          /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
-          /<span[^>]*class="[^"]*current[^"]*"[^>]*>([^<]+)<\/span>/i,
-
-          // Lithuanian specific patterns
-          /Kaina[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
-          /Suma[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
-
-          // Meta property patterns
-          /<meta property="product:price:amount" content="([^"]+)"/i,
-          /<meta itemprop="price" content="([^"]+)"/i,
-
-          // Aggressive fallback - any number that looks like a reasonable price
-          /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
-        ];
-
-        for (const pattern of piguPricePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.priceText = match[1].includes("€")
-              ? match[1]
-              : `€${match[1].replace(/,/g, "")}`;
-            console.log("Found pigu.lt price:", extracted.priceText);
-            break;
-          }
-        }
-      }
-    }
-
-    // Ideal.lt specific patterns (Lithuanian retailer)
-    else if (domain.includes("ideal.lt")) {
-      console.log("Detected Ideal.lt site - using specific patterns");
-
-      // Ideal.lt product title patterns
-      if (!extracted.title) {
-        const idealProductPatterns = [
-          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
-          /<h1[^>]*>([^<]+)<\/h1>/i,
-          /"name"\s*:\s*"([^"]+)"/i,
-          /property="og:title"\s+content="([^"]+)"/i,
-          /<title[^>]*>([^<]+?)\s*-\s*IDEAL\.LT/i,
-        ];
-
-        for (const pattern of idealProductPatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.title = match[1]
-              .trim()
-              .replace(/\s*-\s*IDEAL\.LT.*$/i, "")
-              .replace(/&nbsp;/g, " ");
-            console.log("Found Ideal.lt title:", extracted.title);
-            break;
-          }
-        }
-      }
-
-      // Ideal.lt price patterns (EUR) - more aggressive patterns
-      if (price === 0) {
-        const idealPricePatterns = [
-          // JavaScript/JSON price patterns
-          /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-          /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-          /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
-
-          // HTML attribute patterns
-          /data-price="([^"]+)"/i,
-          /data-value="([^"]+)"/i,
-          /value="([0-9,]+\.?\d*)"/i,
-
-          // CSS class patterns
-          /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
-          /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)</i,
-          /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)</i,
-
-          // Currency patterns
-          /€\s*([0-9,]+(?:\.[0-9]{2})?)/i,
-          /([0-9,]+(?:\.[0-9]{2})?)\s*€/i,
-          /([0-9,]+(?:\.[0-9]{2})?)\s*EUR/i,
-
-          // Generic span/div patterns
-          /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
-          /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
-
-          // Lithuanian specific patterns
-          /Kaina[^0-9]*([0-9,]+(?:\.[0-9]{2})?)/i,
-
-          // Aggressive fallback - any number that looks like a price
-          /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
-        ];
-
-        for (const pattern of idealPricePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.priceText = match[1].includes("€")
-              ? match[1]
-              : `€${match[1].replace(/,/g, "")}`;
-            console.log("Found Ideal.lt price:", extracted.priceText);
-            break;
-          }
-        }
-      }
-    }
-
-    // Generic fallback for any failed extraction
-    if (!extracted.title) {
-      console.log(
-        "HTML preview for debugging (first 1500 chars):",
-        html.substring(0, 1500),
-      );
-
-      // Look for any product mentions in the HTML
-      const productKeywords = [
-        "iPhone",
-        "iPad",
-        "Mac",
-        "PlayStation",
-        "PS5",
-        "Xbox",
-      ];
-      for (const keyword of productKeywords) {
-        if (html.toLowerCase().includes(keyword.toLowerCase())) {
-          console.log(`Found ${keyword} in HTML - may be product page`);
-          break;
-        }
-      }
-
-      // Try to extract from JSON-LD or other structured data
-      const jsonMatches = html.match(
-        /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/gi,
-      );
-      if (jsonMatches) {
-        console.log("Found JSON-LD data, attempting to parse...");
-        for (const jsonMatch of jsonMatches) {
-          try {
-            const jsonContent = jsonMatch
-              .replace(/<script[^>]*>/, "")
-              .replace(/<\/script>/, "");
-            const data = JSON.parse(jsonContent);
-
-            if (data["@type"] === "Product" || data.name) {
-              extracted.title = data.name || data.title;
-              if (data.offers && data.offers.price) {
-                extracted.priceText = `$${data.offers.price}`;
+          for (const pattern of psPricePatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              const foundPrice = parseFloat(match[1]);
+              if (foundPrice > 100) {
+                // Reasonable price check
+                extracted.priceText = `$${foundPrice}`;
+                console.log("Found PlayStation price:", extracted.priceText);
+                break;
               }
-              console.log("Extracted from JSON-LD:", {
-                title: extracted.title,
-                price: extracted.priceText,
-              });
-              break;
             }
-          } catch (e) {
-            // Continue to next JSON block
           }
         }
       }
 
-      // Try to find any product-like text as final fallback
-      if (!extracted.title) {
-        const genericPatterns = [
-          /"name"\s*:\s*"([^"]{10,})"/i,
-          /"title"\s*:\s*"([^"]{10,})"/i,
-          /data-product-name="([^"]+)"/i,
-          // Extract from page title as last resort
-          /<title[^>]*>([^<]+)<\/title>/i,
-        ];
+      // pigu.lt specific patterns (Lithuanian retailer)
+      else if (domain.includes("pigu.lt")) {
+        console.log("Detected pigu.lt site - using specific patterns");
 
-        for (const pattern of genericPatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.title = match[1].trim();
-            console.log("Found title with generic fallback:", extracted.title);
+        // pigu.lt product title patterns
+        if (!extracted.title) {
+          const piguProductPatterns = [
+            /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+            /<h1[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h1>/i,
+            /<h1[^>]*>([^<]+)<\/h1>/i,
+            /"name"\s*:\s*"([^"]+)"/i,
+            /property="og:title"\s+content="([^"]+)"/i,
+            /<title[^>]*>([^<]+?)\s*\|\s*pigu\.lt/i,
+            /<title[^>]*>([^<]+?)\s*-\s*pigu\.lt/i,
+            /data-product-name="([^"]+)"/i,
+            /<span[^>]*class="[^"]*product-name[^"]*"[^>]*>([^<]+)<\/span>/i,
+          ];
+
+          for (const pattern of piguProductPatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              extracted.title = match[1]
+                .trim()
+                .replace(/\s*[\|\-]\s*pigu\.lt.*$/i, "")
+                .replace(/&nbsp;/g, " ")
+                .replace(/&amp;/g, "&");
+              console.log("Found pigu.lt title:", extracted.title);
+              break;
+            }
+          }
+        }
+
+        // pigu.lt price patterns (EUR) - comprehensive patterns
+        if (price === 0) {
+          const piguPricePatterns = [
+            // JavaScript/JSON price patterns
+            /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+            /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+            /"priceAmount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+            /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+            /"value"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+
+            // HTML attribute patterns
+            /data-price="([^"]+)"/i,
+            /data-value="([^"]+)"/i,
+            /data-amount="([^"]+)"/i,
+            /value="([0-9,]+\.?\d*)"/i,
+
+            // CSS class patterns specific to pigu.lt
+            /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)/i,
+            /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)/i,
+            /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)/i,
+            /class="[^"]*current[^"]*"[^>]*>([^<]*€[^<]*)/i,
+
+            // Currency patterns - Lithuanian format
+            /€\s*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+            /([0-9,]+(?:[\.,][0-9]{2})?)\s*€/i,
+            /([0-9,]+(?:[\.,][0-9]{2})?)\s*EUR/i,
+
+            // Generic span/div patterns
+            /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+            /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
+            /<span[^>]*class="[^"]*current[^"]*"[^>]*>([^<]+)<\/span>/i,
+
+            // Lithuanian specific patterns
+            /Kaina[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+            /Suma[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+
+            // Meta property patterns
+            /<meta property="product:price:amount" content="([^"]+)"/i,
+            /<meta itemprop="price" content="([^"]+)"/i,
+
+            // Aggressive fallback - any number that looks like a reasonable price
+            /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
+          ];
+
+          for (const pattern of piguPricePatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              extracted.priceText = match[1].includes("€")
+                ? match[1]
+                : `€${match[1].replace(/,/g, "")}`;
+              console.log("Found pigu.lt price:", extracted.priceText);
+              break;
+            }
+          }
+        }
+      }
+
+      // Ideal.lt specific patterns (Lithuanian retailer)
+      else if (domain.includes("ideal.lt")) {
+        console.log("Detected Ideal.lt site - using specific patterns");
+
+        // Ideal.lt product title patterns
+        if (!extracted.title) {
+          const idealProductPatterns = [
+            /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+            /<h1[^>]*>([^<]+)<\/h1>/i,
+            /"name"\s*:\s*"([^"]+)"/i,
+            /property="og:title"\s+content="([^"]+)"/i,
+            /<title[^>]*>([^<]+?)\s*-\s*IDEAL\.LT/i,
+          ];
+
+          for (const pattern of idealProductPatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              extracted.title = match[1]
+                .trim()
+                .replace(/\s*-\s*IDEAL\.LT.*$/i, "")
+                .replace(/&nbsp;/g, " ");
+              console.log("Found Ideal.lt title:", extracted.title);
+              break;
+            }
+          }
+        }
+
+        // Ideal.lt price patterns (EUR) - more aggressive patterns
+        if (price === 0) {
+          const idealPricePatterns = [
+            // JavaScript/JSON price patterns
+            /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+            /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+            /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+
+            // HTML attribute patterns
+            /data-price="([^"]+)"/i,
+            /data-value="([^"]+)"/i,
+            /value="([0-9,]+\.?\d*)"/i,
+
+            // CSS class patterns
+            /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+            /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)</i,
+            /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)</i,
+
+            // Currency patterns
+            /€\s*([0-9,]+(?:\.[0-9]{2})?)/i,
+            /([0-9,]+(?:\.[0-9]{2})?)\s*€/i,
+            /([0-9,]+(?:\.[0-9]{2})?)\s*EUR/i,
+
+            // Generic span/div patterns
+            /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+            /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
+
+            // Lithuanian specific patterns
+            /Kaina[^0-9]*([0-9,]+(?:\.[0-9]{2})?)/i,
+
+            // Aggressive fallback - any number that looks like a price
+            /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
+          ];
+
+          for (const pattern of idealPricePatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              extracted.priceText = match[1].includes("€")
+                ? match[1]
+                : `€${match[1].replace(/,/g, "")}`;
+              console.log("Found Ideal.lt price:", extracted.priceText);
+              break;
+            }
+          }
+        }
+      }
+
+      // Generic fallback for any failed extraction
+      if (!extracted.title) {
+        console.log(
+          "HTML preview for debugging (first 1500 chars):",
+          html.substring(0, 1500),
+        );
+
+        // Look for any product mentions in the HTML
+        const productKeywords = [
+          "iPhone",
+          "iPad",
+          "Mac",
+          "PlayStation",
+          "PS5",
+          "Xbox",
+        ];
+        for (const keyword of productKeywords) {
+          if (html.toLowerCase().includes(keyword.toLowerCase())) {
+            console.log(`Found ${keyword} in HTML - may be product page`);
             break;
           }
         }
-      }
-    }
-  }
 
-  // Check if this is a European retailer that might need Gemini
-  const europeanDomains = [
-    "ideal.lt",
-    "amazon.de",
-    "amazon.fr",
-    "amazon.es",
-    "amazon.it",
-    "fnac.com",
-    "mediamarkt.",
-    "saturn.de",
-    "elkjop.no",
-    "power.fi",
-  ];
-  const isEuropeanRetailer = europeanDomains.some((d) => domain.includes(d));
+        // Try to extract from JSON-LD or other structured data
+        const jsonMatches = html.match(
+          /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/gi,
+        );
+        if (jsonMatches) {
+          console.log("Found JSON-LD data, attempting to parse...");
+          for (const jsonMatch of jsonMatches) {
+            try {
+              const jsonContent = jsonMatch
+                .replace(/<script[^>]*>/, "")
+                .replace(/<\/script>/, "");
+              const data = JSON.parse(jsonContent);
 
-  // AI-powered extraction fallback: enhanced conditions for triggering Gemini
-  const shouldUseGemini =
-    !extracted.title ||
-    extracted.title === "Product Title Not Found" ||
-    extracted.title.length < 5 ||
-    price === 0 ||
-    !extracted.priceText ||
-    extracted.priceText.length === 0 ||
-    (isEuropeanRetailer && price < 10); // For European retailers, be more aggressive
+              if (data["@type"] === "Product" || data.name) {
+                extracted.title = data.name || data.title;
+                if (data.offers && data.offers.price) {
+                  extracted.priceText = `$${data.offers.price}`;
+                }
+                console.log("Extracted from JSON-LD:", {
+                  title: extracted.title,
+                  price: extracted.priceText,
+                });
+                break;
+              }
+            } catch (e) {
+              // Continue to next JSON block
+            }
+          }
+        }
 
-  if (shouldUseGemini) {
-    console.log("Normal extraction failed - trying Gemini AI...");
-    console.log("Trigger conditions:", {
-      noTitle: !extracted.title,
-      titleNotFound: extracted.title === "Product Title Not Found",
-      titleTooShort: extracted.title && extracted.title.length < 5,
-      priceZero: price === 0,
-      noPriceText: !extracted.priceText,
-      emptyPriceText: extracted.priceText && extracted.priceText.length === 0,
-    });
+        // Try to find any product-like text as final fallback
+        if (!extracted.title) {
+          const genericPatterns = [
+            /"name"\s*:\s*"([^"]{10,})"/i,
+            /"title"\s*:\s*"([^"]{10,})"/i,
+            /data-product-name="([^"]+)"/i,
+            // Extract from page title as last resort
+            /<title[^>]*>([^<]+)<\/title>/i,
+          ];
 
-    const aiExtracted = await extractWithGemini(html, url);
-
-    if (
-      aiExtracted &&
-      aiExtracted.title &&
-      aiExtracted.title !== "Product Title Not Found" &&
-      aiExtracted.title.length > 3
-    ) {
-      console.log("Gemini AI successfully extracted data:", aiExtracted);
-
-      const aiPrice = extractPrice(aiExtracted.price);
-
-      // Only use AI result if it provides better data than what we have
-      const hasValidPrice = aiPrice.price > 0;
-      const hasValidTitle = aiExtracted.title.length > 3;
-
-      if (hasValidPrice || hasValidTitle) {
-        return {
-          title: aiExtracted.title,
-          price: aiPrice.price,
-          currency: aiPrice.currency,
-          image: aiExtracted.image || "/placeholder.svg",
-          url,
-          store: domain,
-        };
+          for (const pattern of genericPatterns) {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              extracted.title = match[1].trim();
+              console.log(
+                "Found title with generic fallback:",
+                extracted.title,
+              );
+              break;
+            }
+          }
+        }
       }
     }
 
-    // Final fallback: if AI also fails, try to infer from URL
-    const urlBasedFallback = inferProductFromUrl(url, domain);
-    if (urlBasedFallback.title !== "Product Title Not Found") {
-      console.log("Using URL-based fallback:", urlBasedFallback);
-      return urlBasedFallback;
+    // Check if this is a European retailer that might need Gemini
+    const europeanDomains = [
+      "ideal.lt",
+      "amazon.de",
+      "amazon.fr",
+      "amazon.es",
+      "amazon.it",
+      "fnac.com",
+      "mediamarkt.",
+      "saturn.de",
+      "elkjop.no",
+      "power.fi",
+    ];
+    const isEuropeanRetailer = europeanDomains.some((d) => domain.includes(d));
+
+    // AI-powered extraction fallback: enhanced conditions for triggering Gemini
+    const shouldUseGemini =
+      !extracted.title ||
+      extracted.title === "Product Title Not Found" ||
+      extracted.title.length < 5 ||
+      price === 0 ||
+      !extracted.priceText ||
+      extracted.priceText.length === 0 ||
+      (isEuropeanRetailer && price < 10); // For European retailers, be more aggressive
+
+    if (shouldUseGemini) {
+      console.log("Normal extraction failed - trying Gemini AI...");
+      console.log("Trigger conditions:", {
+        noTitle: !extracted.title,
+        titleNotFound: extracted.title === "Product Title Not Found",
+        titleTooShort: extracted.title && extracted.title.length < 5,
+        priceZero: price === 0,
+        noPriceText: !extracted.priceText,
+        emptyPriceText: extracted.priceText && extracted.priceText.length === 0,
+      });
+
+      const aiExtracted = await extractWithGemini(html, url);
+
+      if (
+        aiExtracted &&
+        aiExtracted.title &&
+        aiExtracted.title !== "Product Title Not Found" &&
+        aiExtracted.title.length > 3
+      ) {
+        console.log("Gemini AI successfully extracted data:", aiExtracted);
+
+        const aiPrice = extractPrice(aiExtracted.price);
+
+        // Only use AI result if it provides better data than what we have
+        const hasValidPrice = aiPrice.price > 0;
+        const hasValidTitle = aiExtracted.title.length > 3;
+
+        if (hasValidPrice || hasValidTitle) {
+          return {
+            title: aiExtracted.title,
+            price: aiPrice.price,
+            currency: aiPrice.currency,
+            image: aiExtracted.image || "/placeholder.svg",
+            url,
+            store: domain,
+          };
+        }
+      }
+
+      // Final fallback: if AI also fails, try to infer from URL
+      const urlBasedFallback = inferProductFromUrl(url, domain);
+      if (urlBasedFallback.title !== "Product Title Not Found") {
+        console.log("Using URL-based fallback:", urlBasedFallback);
+        return urlBasedFallback;
+      }
+    }
+
+    return {
+      title: extracted.title || "Product Title Not Found",
+      price,
+      currency,
+      image: extracted.image || "/placeholder.svg",
+      url,
+      store: domain,
+    };
+  } catch (error) {
+    console.error("Puppeteer scraping error:", error);
+    throw error;
+  } finally {
+    // Clean up resources
+    if (page) {
+      try {
+        await page.close();
+      } catch (e) {
+        console.log("Error closing page:", e);
+      }
+    }
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (e) {
+        console.log("Error closing browser:", e);
+      }
     }
   }
-
-  return {
-    title: extracted.title || "Product Title Not Found",
-    price,
-    currency,
-    image: extracted.image || "/placeholder.svg",
-    url,
-    store: domain,
-  };
 }
 
 // Intelligent fallback based on URL patterns for known sites
@@ -1012,9 +1193,76 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
   };
 }
 
-// Scrape product data from URL
+// Simple HTTP-based scraping fallback
+async function scrapeWithHttp(url: string): Promise<ProductData> {
+  console.log(`Fallback: Scraping with HTTP: ${url}`);
+
+  // First try API endpoints if available
+  const apiResult = await tryApiEndpoint(url);
+  if (apiResult) {
+    console.log("Successfully used API endpoint");
+    return apiResult;
+  }
+
+  const siteDomain = extractDomain(url);
+
+  const headers: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    Connection: "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+  };
+
+  const response = await fetch(url, {
+    headers,
+    redirect: "follow",
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const html = await response.text();
+  const extracted = extractFromHtml(html);
+  const { price, currency } = extractPrice(extracted.priceText);
+  const domain = extractDomain(url);
+
+  return {
+    title: extracted.title || "Product Title Not Found",
+    price,
+    currency,
+    image: extracted.image || "/placeholder.svg",
+    url,
+    store: domain,
+  };
+}
+
+// Scrape product data from URL using Puppeteer with HTTP fallback
 async function scrapeProductData(url: string): Promise<ProductData> {
-  return await scrapeWithHttp(url);
+  try {
+    console.log("Attempting Puppeteer scraping...");
+    return await scrapeWithPuppeteer(url);
+  } catch (error) {
+    console.log("Puppeteer scraping failed, falling back to HTTP:", error);
+    try {
+      return await scrapeWithHttp(url);
+    } catch (fallbackError) {
+      console.log("HTTP fallback also failed:", fallbackError);
+      throw new Error(
+        `Both Puppeteer and HTTP scraping failed. Puppeteer: ${error}. HTTP: ${fallbackError}`,
+      );
+    }
+  }
 }
 
 // AI-powered product extraction using Gemini
