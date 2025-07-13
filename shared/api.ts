@@ -17,6 +17,31 @@ export interface DemoResponse {
 export interface ScrapeRequest {
   url: string;
   requestId: string;
+  userLocation?: LocationInfo; // Optional user location for local dealers
+}
+
+export interface LocationInfo {
+  country: string;
+  countryCode: string;
+  region: string;
+  city?: string;
+  currency: string;
+  timeZone: string;
+}
+
+export interface LocalDealer {
+  name: string;
+  url: string;
+  country: string;
+  region: string;
+  searchUrlPattern: string;
+  currency: string;
+  priority: number;
+}
+
+export interface LocationResponse {
+  location: LocationInfo;
+  localDealers: LocalDealer[];
 }
 
 export interface ProductData {
@@ -36,6 +61,8 @@ export interface PriceComparison extends ProductData {
   condition?: string;
   verified?: boolean;
   position?: number;
+  isLocal?: boolean; // Whether this is a local dealer
+  distance?: string; // Distance from user (for local dealers)
   assessment?: {
     cost?: number;
     value?: number;
