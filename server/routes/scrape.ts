@@ -5,8 +5,15 @@ import {
   ProductData,
   ScrapeResponse,
   PriceComparison,
+  LocationInfo,
 } from "@shared/api";
 import { searchHistoryService } from "./auth";
+import {
+  localDealers,
+  getLocalDealers,
+  detectLocationFromHeaders,
+  detectLocationFromIP,
+} from "../services/location";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
