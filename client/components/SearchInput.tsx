@@ -91,38 +91,21 @@ export function SearchInput({
         return;
       }
 
-      // Try authenticated route first with timeout
+      // Only try legacy route since users are not authenticated by default
+      // The legacy route is simpler and more reliable
+      const userKey = getUserKey();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
       try {
-        let response = await fetch("/api/search-history", {
+        await fetch("/api/legacy/search-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ url, userKey }),
           signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
-
-        // If auth route fails, try legacy route
-        if (!response.ok && response.status === 401) {
-          const userKey = getUserKey();
-          const legacyController = new AbortController();
-          const legacyTimeoutId = setTimeout(
-            () => legacyController.abort(),
-            5000,
-          );
-
-          response = await fetch("/api/legacy/search-history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url, userKey }),
-            signal: legacyController.signal,
-          });
-
-          clearTimeout(legacyTimeoutId);
-        }
       } catch (fetchError) {
         clearTimeout(timeoutId);
         // Don't log fetch errors as they're not critical
