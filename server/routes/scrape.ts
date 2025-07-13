@@ -1117,9 +1117,11 @@ function extractSearchKeywords(title: string): string {
 // Generate comprehensive price alternatives like dupe.com
 async function getPriceComparisons(
   originalProduct: ProductData,
+  userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
   console.log("Generating comprehensive price alternatives for:", searchQuery);
+  console.log("User location:", userLocation);
 
   const basePrice = originalProduct.price;
   const alternatives: PriceComparison[] = [];
