@@ -16,6 +16,7 @@ import {
 } from "./routes/auth";
 import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
 import { healthCheckHandler } from "./routes/health";
+import { getLocationHandler } from "./services/location";
 import { gracefulShutdown } from "./services/database";
 
 // Load environment variables
@@ -45,6 +46,7 @@ export function createServer() {
 
   app.get("/api/demo", handleDemo);
   app.post("/api/scrape", optionalAuth, handleScrape);
+  app.get("/api/location", getLocationHandler);
 
   // Authentication routes
   app.post("/api/auth/register", register);

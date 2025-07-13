@@ -8,6 +8,7 @@ import { SearchHeader } from "@/components/SearchHeader";
 import { ComparisonGrid, SavingsSummary } from "@/components/ComparisonGrid";
 import { SearchLoadingState } from "@/components/LoadingSkeleton";
 import { ProductData, PriceComparison, ScrapeResponse } from "@shared/api";
+import { useLocation } from "@/hooks/use-location";
 
 export default function SearchResults() {
   const { requestId, slug } = useParams<{
@@ -20,6 +21,7 @@ export default function SearchResults() {
   const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { location, localDealers } = useLocation();
 
   useEffect(() => {
     if (!requestId) return;
@@ -47,6 +49,7 @@ export default function SearchResults() {
           body: JSON.stringify({
             url,
             requestId,
+            userLocation: location, // Pass user location for local dealers
           }),
         });
 

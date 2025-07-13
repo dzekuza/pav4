@@ -5,8 +5,15 @@ import {
   ProductData,
   ScrapeResponse,
   PriceComparison,
+  LocationInfo,
 } from "@shared/api";
 import { searchHistoryService } from "./auth";
+import {
+  localDealers,
+  getLocalDealers,
+  detectLocationFromHeaders,
+  detectLocationFromIP,
+} from "../services/location";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
@@ -145,18 +152,116 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     return apiResult;
   }
 
-  const response = await fetch(url, {
-    headers: {
+  const siteDomain = extractDomain(url);
+
+  // Customize headers based on the website
+  let headers: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    Connection: "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+  };
+
+  // Specific headers for Lithuanian websites
+  if (siteDomain.includes("pigu.lt") || siteDomain.endsWith(".lt")) {
+    console.log("Detected Lithuanian website, using specific headers");
+    headers = {
+      ...headers,
       "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "Accept-Encoding": "gzip, deflate, br",
-      Connection: "keep-alive",
-      "Upgrade-Insecure-Requests": "1",
-    },
-  });
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+      "Accept-Language": "lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7",
+      Referer: "https://www.google.lt/",
+      Origin: siteDomain.includes("pigu.lt") ? "https://pigu.lt" : undefined,
+      "X-Requested-With": "XMLHttpRequest",
+      "Sec-Ch-Ua":
+        '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
+      DNT: "1",
+    };
+  }
+
+  // Specific headers for Amazon
+  else if (siteDomain.includes("amazon")) {
+    headers = {
+      ...headers,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+      Referer: "https://www.amazon.com/",
+    };
+  }
+
+  // Add delay for Lithuanian websites to avoid rate limiting
+  if (siteDomain.endsWith(".lt")) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  let response;
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  // Retry logic for Lithuanian websites that might block initial requests
+  while (retryCount < maxRetries) {
+    try {
+      response = await fetch(url, {
+        headers,
+        redirect: "follow",
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+
+      if (response.ok) {
+        break;
+      } else if (
+        response.status === 403 &&
+        siteDomain.endsWith(".lt") &&
+        retryCount < maxRetries - 1
+      ) {
+        console.log(
+          `Attempt ${retryCount + 1} failed with 403, retrying with different headers...`,
+        );
+
+        // Try different user agent on retry
+        const userAgents = [
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        ];
+
+        headers["User-Agent"] = userAgents[retryCount];
+        delete headers["X-Requested-With"];
+        delete headers["Origin"];
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, 3000 * (retryCount + 1)),
+        );
+        retryCount++;
+        continue;
+      }
+    } catch (error) {
+      if (retryCount === maxRetries - 1) {
+        throw error;
+      }
+    }
+
+    retryCount++;
+    if (retryCount < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 2000 * retryCount));
+    }
+  }
+
+  if (!response) {
+    response = await fetch(url, { headers });
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -327,24 +432,86 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         }
       }
 
-      // Amazon price patterns
+      // Amazon price patterns - prioritize main product price
       if (price === 0) {
         const amazonPricePatterns = [
-          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/i,
-          /<span[^>]*class="[^"]*price[^"]*"[^>]*>\$([^<]+)<\/span>/i,
+          // Primary price patterns (main product price)
+          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*data-a-size="xl"[^>]*>([^<]+)<\/span>/i, // Large price display
+          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>.*?<span[^>]*class="[^"]*a-price-fraction[^"]*"[^>]*>([^<]+)<\/span>/is, // Full price with fraction
+          /<span[^>]*class="[^"]*a-price-symbol[^"]*"[^>]*>\$<\/span><span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/i, // Symbol + whole price
+          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/gi, // Any price-whole element
+
+          // Backup patterns for different Amazon layouts
+          /<span[^>]*id="priceblock_dealprice"[^>]*>\$([^<]+)<\/span>/i,
+          /<span[^>]*id="priceblock_ourprice"[^>]*>\$([^<]+)<\/span>/i,
+          /<span[^>]*class="[^"]*a-price-range[^"]*"[^>]*>.*?\$(\d{2,4}(?:\.\d{2})?)/is,
+
+          // JSON-based prices
           /"priceAmount"\s*:\s*"([^"]+)"/i,
           /"price"\s*:\s*"(\$[^"]+)"/i,
-          /\$(\d{2,4}(?:\.\d{2})?)/g,
+          /"displayPrice"\s*:\s*"([^"]+)"/i,
+
+          // Meta property prices
+          /<meta property="product:price:amount" content="([^"]+)"/i,
+          /<meta property="og:price:amount" content="([^"]+)"/i,
+
+          // Fallback pattern
+          /\$(\d{3,4}(?:\.\d{2})?)/g, // Only match substantial prices (3-4 digits)
         ];
 
+        // Debug: log all potential prices found
+        console.log("Debugging Amazon price extraction...");
+        const allPriceMatches = html.match(/\$\d{2,4}(?:\.\d{2})?/g);
+        console.log("All $ prices found on page:", allPriceMatches);
+
         for (const pattern of amazonPricePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.priceText = match[1].includes("$")
-              ? match[1]
-              : `$${match[1]}`;
-            console.log("Found Amazon price:", extracted.priceText);
-            break;
+          if (pattern.global) {
+            const matches = html.match(pattern);
+            if (matches && matches[0]) {
+              console.log("Global pattern matches:", matches);
+              // For global matches, find the highest reasonable price (likely the main product)
+              const prices = matches
+                .map((match) => {
+                  const priceMatch = match.match(/\d+(?:\.\d{2})?/);
+                  return priceMatch ? parseFloat(priceMatch[0]) : 0;
+                })
+                .filter((p) => p > 50); // Filter out very low prices
+
+              console.log("Filtered prices:", prices);
+
+              if (prices.length > 0) {
+                const mainPrice = Math.max(...prices); // Take highest price as main product
+                extracted.priceText = `$${mainPrice}`;
+                console.log(
+                  "Found Amazon price (highest):",
+                  extracted.priceText,
+                );
+                break;
+              }
+            }
+          } else {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              console.log("Pattern matched:", pattern.source, "->", match[1]);
+              let priceText = match[1];
+
+              // Handle fractional prices (e.g., "619" + "99")
+              if (match[2]) {
+                priceText = `${match[1]}.${match[2]}`;
+              }
+
+              const priceValue = parseFloat(priceText.replace(/,/g, ""));
+              console.log("Parsed price value:", priceValue);
+
+              // Only accept reasonable prices (not accessories or small items)
+              if (priceValue > 50) {
+                extracted.priceText = priceText.includes("$")
+                  ? priceText
+                  : `$${priceText}`;
+                console.log("Found Amazon price:", extracted.priceText);
+                break;
+              }
+            }
           }
         }
       }
@@ -437,6 +604,95 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
               console.log("Found PlayStation price:", extracted.priceText);
               break;
             }
+          }
+        }
+      }
+    }
+
+    // pigu.lt specific patterns (Lithuanian retailer)
+    else if (domain.includes("pigu.lt")) {
+      console.log("Detected pigu.lt site - using specific patterns");
+
+      // pigu.lt product title patterns
+      if (!extracted.title) {
+        const piguProductPatterns = [
+          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*>([^<]+)<\/h1>/i,
+          /"name"\s*:\s*"([^"]+)"/i,
+          /property="og:title"\s+content="([^"]+)"/i,
+          /<title[^>]*>([^<]+?)\s*\|\s*pigu\.lt/i,
+          /<title[^>]*>([^<]+?)\s*-\s*pigu\.lt/i,
+          /data-product-name="([^"]+)"/i,
+          /<span[^>]*class="[^"]*product-name[^"]*"[^>]*>([^<]+)<\/span>/i,
+        ];
+
+        for (const pattern of piguProductPatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.title = match[1]
+              .trim()
+              .replace(/\s*[\|\-]\s*pigu\.lt.*$/i, "")
+              .replace(/&nbsp;/g, " ")
+              .replace(/&amp;/g, "&");
+            console.log("Found pigu.lt title:", extracted.title);
+            break;
+          }
+        }
+      }
+
+      // pigu.lt price patterns (EUR) - comprehensive patterns
+      if (price === 0) {
+        const piguPricePatterns = [
+          // JavaScript/JSON price patterns
+          /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"priceAmount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"value"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+
+          // HTML attribute patterns
+          /data-price="([^"]+)"/i,
+          /data-value="([^"]+)"/i,
+          /data-amount="([^"]+)"/i,
+          /value="([0-9,]+\.?\d*)"/i,
+
+          // CSS class patterns specific to pigu.lt
+          /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)/i,
+          /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)/i,
+          /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)/i,
+          /class="[^"]*current[^"]*"[^>]*>([^<]*€[^<]*)/i,
+
+          // Currency patterns - Lithuanian format
+          /€\s*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+          /([0-9,]+(?:[\.,][0-9]{2})?)\s*€/i,
+          /([0-9,]+(?:[\.,][0-9]{2})?)\s*EUR/i,
+
+          // Generic span/div patterns
+          /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+          /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
+          /<span[^>]*class="[^"]*current[^"]*"[^>]*>([^<]+)<\/span>/i,
+
+          // Lithuanian specific patterns
+          /Kaina[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+          /Suma[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+
+          // Meta property patterns
+          /<meta property="product:price:amount" content="([^"]+)"/i,
+          /<meta itemprop="price" content="([^"]+)"/i,
+
+          // Aggressive fallback - any number that looks like a reasonable price
+          /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
+        ];
+
+        for (const pattern of piguPricePatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.priceText = match[1].includes("€")
+              ? match[1]
+              : `€${match[1].replace(/,/g, "")}`;
+            console.log("Found pigu.lt price:", extracted.priceText);
+            break;
           }
         }
       }
@@ -861,15 +1117,59 @@ function extractSearchKeywords(title: string): string {
 // Generate comprehensive price alternatives like dupe.com
 async function getPriceComparisons(
   originalProduct: ProductData,
+  userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
   console.log("Generating comprehensive price alternatives for:", searchQuery);
+  console.log("User location:", userLocation);
 
   const basePrice = originalProduct.price;
   const alternatives: PriceComparison[] = [];
 
-  // Comprehensive retailer list with realistic pricing patterns
-  const retailers = [
+  // Get local dealers first, then add global retailers
+  let retailers: Array<{
+    name: string;
+    discount: number;
+    condition: string;
+    reviews: number;
+    isLocal?: boolean;
+    currency?: string;
+  }> = [];
+
+  // Add local dealers if user location is available
+  if (userLocation) {
+    const localDealersList = getLocalDealers(userLocation);
+    console.log(
+      `Found ${localDealersList.length} local dealers for ${userLocation.country}`,
+    );
+
+    // Add local dealers with priority pricing
+    localDealersList.forEach((dealer) => {
+      retailers.push({
+        name: dealer.name,
+        discount: 0.9 + Math.random() * 0.1, // Local dealers tend to be competitive
+        condition: "New",
+        reviews: 500 + Math.floor(Math.random() * 1500),
+        isLocal: true,
+        currency: dealer.currency,
+      });
+
+      // Also add used/refurbished options for local dealers
+      if (Math.random() > 0.5) {
+        retailers.push({
+          name: dealer.name,
+          discount: 0.7 + Math.random() * 0.1,
+          condition: "Used - Very Good",
+          reviews: 200 + Math.floor(Math.random() * 800),
+          isLocal: true,
+          currency: dealer.currency,
+        });
+      }
+    });
+  }
+
+  // Add global retailers as fallback
+  const globalRetailers = [
     // Major retailers
     {
       name: "Amazon",
@@ -981,6 +1281,9 @@ async function getPriceComparisons(
     },
   ];
 
+  // Add global retailers, but prioritize local ones
+  retailers = [...retailers, ...globalRetailers];
+
   // Skip retailers that match the original store
   const availableRetailers = retailers.filter(
     (r) => !originalProduct.store.toLowerCase().includes(r.name.toLowerCase()),
@@ -1029,7 +1332,7 @@ async function getPriceComparisons(
       alternatives.push({
         title: `${originalProduct.title} - ${retailer.condition}`,
         price: altPrice,
-        currency: originalProduct.currency,
+        currency: retailer.currency || originalProduct.currency,
         image: originalProduct.image,
         url: generateSearchUrl(retailer.name, searchQuery),
         store: retailer.name,
@@ -1040,19 +1343,33 @@ async function getPriceComparisons(
         condition: retailer.condition,
         verified: true,
         position: i + 1,
+        isLocal: retailer.isLocal || false,
+        distance: retailer.isLocal ? "Local dealer" : undefined,
         assessment: assessment,
       });
     }
   }
 
-  // Sort by price (best deals first) but keep some variety
-  alternatives.sort((a, b) => a.price - b.price);
+  // Sort by local first, then by price
+  alternatives.sort((a, b) => {
+    // Local dealers first
+    if (a.isLocal && !b.isLocal) return -1;
+    if (!a.isLocal && b.isLocal) return 1;
 
-  // Add some randomization to avoid too perfect sorting
-  for (let i = alternatives.length - 1; i > 0; i--) {
+    // Then sort by price
+    return a.price - b.price;
+  });
+
+  // Add some variety to non-local dealers but keep local ones at top
+  const localCount = alternatives.filter((a) => a.isLocal).length;
+  for (
+    let i = Math.max(localCount, alternatives.length - 1);
+    i > localCount;
+    i--
+  ) {
     if (Math.random() < 0.3) {
-      // 30% chance to slightly shuffle
-      const j = Math.max(0, i - 2);
+      // 30% chance to slightly shuffle non-local dealers
+      const j = Math.max(localCount, i - 2);
       [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]];
     }
   }
@@ -1308,7 +1625,7 @@ function generateAssessment(
 
 export const handleScrape: RequestHandler = async (req, res) => {
   try {
-    const { url, requestId }: ScrapeRequest = req.body;
+    const { url, requestId, userLocation }: ScrapeRequest = req.body;
 
     if (!url || !requestId) {
       return res.status(400).json({
@@ -1327,11 +1644,30 @@ export const handleScrape: RequestHandler = async (req, res) => {
 
     console.log(`Scraping product data for: ${url}`);
 
+    // Detect user location if not provided
+    let detectedLocation = userLocation;
+    if (!detectedLocation) {
+      const clientIP = req.ip || req.socket.remoteAddress || "127.0.0.1";
+
+      // Try to detect from headers first
+      detectedLocation = detectLocationFromHeaders(req.headers);
+
+      // Fallback to IP detection
+      if (!detectedLocation) {
+        detectedLocation = detectLocationFromIP(clientIP);
+      }
+
+      console.log("Detected user location:", detectedLocation);
+    }
+
     // Scrape the original product
     const originalProduct = await scrapeProductData(url);
 
-    // Get price comparisons
-    const comparisons = await getPriceComparisons(originalProduct);
+    // Get price comparisons with location-based dealers
+    const comparisons = await getPriceComparisons(
+      originalProduct,
+      detectedLocation,
+    );
 
     // Save to user's search history if authenticated
     if (req.user) {

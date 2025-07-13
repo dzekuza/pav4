@@ -17,6 +17,8 @@ interface ProductCardProps {
   condition?: string;
   isBestPrice?: boolean;
   savings?: number;
+  isLocal?: boolean;
+  distance?: string;
   className?: string;
 }
 
@@ -34,6 +36,8 @@ export function ProductCard({
   condition,
   isBestPrice = false,
   savings = 0,
+  isLocal = false,
+  distance,
   className = "",
 }: ProductCardProps) {
   return (
@@ -71,7 +75,18 @@ export function ProductCard({
             <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1">
                 📍 <span className="font-medium">{store}</span>
+                {isLocal && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 text-xs bg-green-100 text-green-800 border-green-300"
+                  >
+                    🏪 Local
+                  </Badge>
+                )}
               </span>
+              {isLocal && distance && (
+                <span className="text-xs text-green-600">{distance}</span>
+              )}
               {rating && (
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-current text-yellow-400" />
