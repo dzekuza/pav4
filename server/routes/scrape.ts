@@ -152,7 +152,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     return apiResult;
   }
 
-  const domain = extractDomain(url);
+  const siteDomain = extractDomain(url);
 
   // Customize headers based on the website
   let headers: Record<string, string> = {
