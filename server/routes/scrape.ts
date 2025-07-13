@@ -300,12 +300,100 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
     // Wait for content to load (especially for dynamic content)
     try {
       await page.waitForSelector("body", { timeout: 5000 });
+
+      // Try to wait for common price/product selectors to appear
+      const commonSelectors = [
+        "[data-price]",
+        ".price",
+        '[class*="price"]',
+        '[class*="product"]',
+        "h1",
+        "[data-product-name]",
+      ];
+
+      for (const selector of commonSelectors) {
+        try {
+          await page.waitForSelector(selector, { timeout: 2000 });
+          console.log(`Found selector: ${selector}`);
+          break;
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
       // Additional wait for JavaScript to execute
       await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Scroll to trigger lazy loading if needed
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight / 2);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
       console.log(
-        "Warning: Timeout waiting for body selector, continuing anyway",
+        "Warning: Timeout waiting for content selectors, continuing anyway",
       );
+    }
+
+    // Try to execute JavaScript to extract data directly from the page if possible
+    let jsExtractedData: any = null;
+    try {
+      jsExtractedData = await page.evaluate(() => {
+        // Try to find structured data in the page
+        const jsonLdScripts = document.querySelectorAll(
+          'script[type="application/ld+json"]',
+        );
+        for (const script of jsonLdScripts) {
+          try {
+            const data = JSON.parse(script.textContent || "");
+            if (data["@type"] === "Product" || data.name) {
+              return {
+                title: data.name,
+                price: data.offers?.price || data.offers?.[0]?.price,
+                currency:
+                  data.offers?.priceCurrency || data.offers?.[0]?.priceCurrency,
+                image: data.image?.[0] || data.image,
+              };
+            }
+          } catch (e) {
+            // Continue
+          }
+        }
+
+        // Try to find price and title from common meta tags
+        const ogTitle = document
+          .querySelector('meta[property="og:title"]')
+          ?.getAttribute("content");
+        const ogImage = document
+          .querySelector('meta[property="og:image"]')
+          ?.getAttribute("content");
+        const priceElements = document.querySelectorAll(
+          '[data-price], .price, [class*="price"], [itemprop="price"]',
+        );
+
+        let price = "";
+        for (const el of priceElements) {
+          const text =
+            el.textContent ||
+            el.getAttribute("content") ||
+            el.getAttribute("data-price") ||
+            "";
+          if (text && (/[€$£¥]/.test(text) || /\d+[.,]\d+/.test(text))) {
+            price = text;
+            break;
+          }
+        }
+
+        return {
+          title: ogTitle,
+          price: price,
+          image: ogImage,
+        };
+      });
+
+      console.log("JavaScript extracted data:", jsExtractedData);
+    } catch (error) {
+      console.log("JavaScript extraction failed:", error);
     }
 
     // Get the page content
@@ -431,6 +519,28 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
     };
 
     const extracted = extractFromHtml(html);
+
+    // Merge JavaScript extracted data with HTML extraction
+    if (jsExtractedData) {
+      if (
+        jsExtractedData.title &&
+        (!extracted.title ||
+          extracted.title.length < jsExtractedData.title.length)
+      ) {
+        extracted.title = jsExtractedData.title;
+      }
+      if (
+        jsExtractedData.price &&
+        (!extracted.priceText ||
+          extracted.priceText.length < jsExtractedData.price.length)
+      ) {
+        extracted.priceText = jsExtractedData.price;
+      }
+      if (jsExtractedData.image && !extracted.image) {
+        extracted.image = jsExtractedData.image;
+      }
+    }
+
     const { price, currency } = extractPrice(extracted.priceText);
     const domain = extractDomain(url);
 
