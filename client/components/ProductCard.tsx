@@ -17,6 +17,8 @@ interface ProductCardProps {
   condition?: string;
   isBestPrice?: boolean;
   savings?: number;
+  isLocal?: boolean;
+  distance?: string;
   className?: string;
 }
 
