@@ -142,6 +142,129 @@ async function tryApiEndpoint(url: string): Promise<ProductData | null> {
   return null;
 }
 
+// Extract data from HTML using pattern matching
+function extractFromHtml(html: string): {
+  title: string;
+  priceText: string;
+  image: string;
+} {
+  // Extract title with more comprehensive patterns
+  let title = "";
+  const titlePatterns = [
+    // Standard meta tags
+    /<meta property="og:title" content="([^"]+)"/i,
+    /<meta name="twitter:title" content="([^"]+)"/i,
+    /<meta name="title" content="([^"]+)"/i,
+    /<title[^>]*>([^<]+)<\/title>/i,
+
+    // Apple-specific patterns
+    /"productTitle"\s*:\s*"([^"]+)"/i,
+    /"displayName"\s*:\s*"([^"]+)"/i,
+    /"familyName"\s*:\s*"([^"]+)"/i,
+    /data-analytics-title="([^"]+)"/i,
+    /<h1[^>]*class="[^"]*hero[^"]*"[^>]*>([^<]+)<\/h1>/i,
+
+    // Product page patterns
+    /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+    /<h1[^>]*>([^<]+)<\/h1>/i,
+    /"productName"\s*:\s*"([^"]+)"/i,
+    /"name"\s*:\s*"([^"]+)"/i,
+    /data-product-name="([^"]+)"/i,
+
+    // JSON-LD structured data
+    /"@type"\s*:\s*"Product"[^}]*"name"\s*:\s*"([^"]+)"/i,
+  ];
+
+  for (const pattern of titlePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1] && match[1].trim().length > 3) {
+      title = match[1]
+        .trim()
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">");
+      break;
+    }
+  }
+
+  // Extract price with comprehensive patterns
+  let priceText = "";
+  const pricePatterns = [
+    // EUR-specific patterns first (prioritize European sites)
+    /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
+    /data-price="([^"]*€[^"]*)"/i,
+    /"price"\s*:\s*"([^"]*€[^"]*)"/i,
+    /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
+    /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
+
+    // Standard meta tags
+    /<meta property="product:price:amount" content="([^"]+)"/i,
+    /<meta itemprop="price" content="([^"]+)"/i,
+    /<meta name="price" content="([^"]+)"/i,
+    /data-price="([^"]+)"/i,
+
+    // Apple-specific price patterns
+    /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
+    /"dimensionPrice"\s*:\s*"([^"]+)"/i,
+    /"fromPrice"\s*:\s*"([^"]+)"/i,
+    /"currentPrice"\s*:\s*"([^"]+)"/i,
+    /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
+
+    // JSON price patterns
+    /"price"\s*:\s*"?([^",}]+)"?/i,
+    /"amount"\s*:\s*([^,}]+)/i,
+    /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
+
+    // HTML price patterns
+    /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
+    /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
+
+    // European price patterns (fallback)
+    /From\s*€(\d+(?:,\d{3})*)/i,
+    /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
+    /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
+    /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
+
+    // Global price patterns (fallback)
+    /From\s*\$(\d+(?:,\d{3})*)/i,
+    /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
+    /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
+  ];
+
+  for (const pattern of pricePatterns) {
+    if (pattern.global) {
+      const matches = html.match(pattern);
+      if (matches && matches[0]) {
+        priceText = matches[0];
+        break;
+      }
+    } else {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        priceText = match[1].trim();
+        break;
+      }
+    }
+  }
+
+  // Extract image
+  let image = "";
+  const imagePatterns = [
+    /<meta property="og:image" content="([^"]+)"/i,
+    /<meta name="twitter:image" content="([^"]+)"/i,
+  ];
+
+  for (const pattern of imagePatterns) {
+    const match = html.match(pattern);
+    if (match && match[1]) {
+      image = match[1].trim();
+      break;
+    }
+  }
+
+  return { title, priceText, image };
+}
+
 // Puppeteer-based scraping for better JavaScript support
 async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
   console.log(`Scraping with Puppeteer: ${url}`);
@@ -400,123 +523,6 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
     const html = await page.content();
 
     // Extract data from HTML
-    const extractFromHtml = (html: string) => {
-      // Extract title with more comprehensive patterns
-      let title = "";
-      const titlePatterns = [
-        // Standard meta tags
-        /<meta property="og:title" content="([^"]+)"/i,
-        /<meta name="twitter:title" content="([^"]+)"/i,
-        /<meta name="title" content="([^"]+)"/i,
-        /<title[^>]*>([^<]+)<\/title>/i,
-
-        // Apple-specific patterns
-        /"productTitle"\s*:\s*"([^"]+)"/i,
-        /"displayName"\s*:\s*"([^"]+)"/i,
-        /"familyName"\s*:\s*"([^"]+)"/i,
-        /data-analytics-title="([^"]+)"/i,
-        /<h1[^>]*class="[^"]*hero[^"]*"[^>]*>([^<]+)<\/h1>/i,
-
-        // Product page patterns
-        /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
-        /<h1[^>]*>([^<]+)<\/h1>/i,
-        /"productName"\s*:\s*"([^"]+)"/i,
-        /"name"\s*:\s*"([^"]+)"/i,
-        /data-product-name="([^"]+)"/i,
-
-        // JSON-LD structured data
-        /"@type"\s*:\s*"Product"[^}]*"name"\s*:\s*"([^"]+)"/i,
-      ];
-
-      for (const pattern of titlePatterns) {
-        const match = html.match(pattern);
-        if (match && match[1] && match[1].trim().length > 3) {
-          title = match[1]
-            .trim()
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">");
-          break;
-        }
-      }
-
-      // Extract price with comprehensive patterns
-      let priceText = "";
-      const pricePatterns = [
-        // EUR-specific patterns first (prioritize European sites)
-        /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
-        /data-price="([^"]*€[^"]*)"/i,
-        /"price"\s*:\s*"([^"]*€[^"]*)"/i,
-        /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
-        /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
-
-        // Standard meta tags
-        /<meta property="product:price:amount" content="([^"]+)"/i,
-        /<meta itemprop="price" content="([^"]+)"/i,
-        /<meta name="price" content="([^"]+)"/i,
-        /data-price="([^"]+)"/i,
-
-        // Apple-specific price patterns
-        /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
-        /"dimensionPrice"\s*:\s*"([^"]+)"/i,
-        /"fromPrice"\s*:\s*"([^"]+)"/i,
-        /"currentPrice"\s*:\s*"([^"]+)"/i,
-        /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
-
-        // JSON price patterns
-        /"price"\s*:\s*"?([^",}]+)"?/i,
-        /"amount"\s*:\s*([^,}]+)/i,
-        /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
-
-        // HTML price patterns
-        /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-        /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-
-        // European price patterns (fallback)
-        /From\s*€(\d+(?:,\d{3})*)/i,
-        /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
-        /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
-        /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
-
-        // Global price patterns (fallback)
-        /From\s*\$(\d+(?:,\d{3})*)/i,
-        /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
-        /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
-      ];
-
-      for (const pattern of pricePatterns) {
-        if (pattern.global) {
-          const matches = html.match(pattern);
-          if (matches && matches[0]) {
-            priceText = matches[0];
-            break;
-          }
-        } else {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            priceText = match[1].trim();
-            break;
-          }
-        }
-      }
-
-      // Extract image
-      let image = "";
-      const imagePatterns = [
-        /<meta property="og:image" content="([^"]+)"/i,
-        /<meta name="twitter:image" content="([^"]+)"/i,
-      ];
-
-      for (const pattern of imagePatterns) {
-        const match = html.match(pattern);
-        if (match && match[1]) {
-          image = match[1].trim();
-          break;
-        }
-      }
-
-      return { title, priceText, image };
-    };
 
     const extracted = extractFromHtml(html);
 
