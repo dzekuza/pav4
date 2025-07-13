@@ -1350,14 +1350,26 @@ async function getPriceComparisons(
     }
   }
 
-  // Sort by price (best deals first) but keep some variety
-  alternatives.sort((a, b) => a.price - b.price);
+  // Sort by local first, then by price
+  alternatives.sort((a, b) => {
+    // Local dealers first
+    if (a.isLocal && !b.isLocal) return -1;
+    if (!a.isLocal && b.isLocal) return 1;
 
-  // Add some randomization to avoid too perfect sorting
-  for (let i = alternatives.length - 1; i > 0; i--) {
+    // Then sort by price
+    return a.price - b.price;
+  });
+
+  // Add some variety to non-local dealers but keep local ones at top
+  const localCount = alternatives.filter((a) => a.isLocal).length;
+  for (
+    let i = Math.max(localCount, alternatives.length - 1);
+    i > localCount;
+    i--
+  ) {
     if (Math.random() < 0.3) {
-      // 30% chance to slightly shuffle
-      const j = Math.max(0, i - 2);
+      // 30% chance to slightly shuffle non-local dealers
+      const j = Math.max(localCount, i - 2);
       [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]];
     }
   }
