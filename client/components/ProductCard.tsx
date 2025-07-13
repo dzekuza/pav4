@@ -36,6 +36,8 @@ export function ProductCard({
   condition,
   isBestPrice = false,
   savings = 0,
+  isLocal = false,
+  distance,
   className = "",
 }: ProductCardProps) {
   return (
