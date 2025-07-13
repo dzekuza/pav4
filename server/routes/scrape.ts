@@ -1187,9 +1187,76 @@ function inferProductFromUrl(url: string, domain: string): ProductData {
   };
 }
 
-// Scrape product data from URL using Puppeteer
+// Simple HTTP-based scraping fallback
+async function scrapeWithHttp(url: string): Promise<ProductData> {
+  console.log(`Fallback: Scraping with HTTP: ${url}`);
+
+  // First try API endpoints if available
+  const apiResult = await tryApiEndpoint(url);
+  if (apiResult) {
+    console.log("Successfully used API endpoint");
+    return apiResult;
+  }
+
+  const siteDomain = extractDomain(url);
+
+  const headers: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    Connection: "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+  };
+
+  const response = await fetch(url, {
+    headers,
+    redirect: "follow",
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const html = await response.text();
+  const extracted = extractFromHtml(html);
+  const { price, currency } = extractPrice(extracted.priceText);
+  const domain = extractDomain(url);
+
+  return {
+    title: extracted.title || "Product Title Not Found",
+    price,
+    currency,
+    image: extracted.image || "/placeholder.svg",
+    url,
+    store: domain,
+  };
+}
+
+// Scrape product data from URL using Puppeteer with HTTP fallback
 async function scrapeProductData(url: string): Promise<ProductData> {
-  return await scrapeWithPuppeteer(url);
+  try {
+    console.log("Attempting Puppeteer scraping...");
+    return await scrapeWithPuppeteer(url);
+  } catch (error) {
+    console.log("Puppeteer scraping failed, falling back to HTTP:", error);
+    try {
+      return await scrapeWithHttp(url);
+    } catch (fallbackError) {
+      console.log("HTTP fallback also failed:", fallbackError);
+      throw new Error(
+        `Both Puppeteer and HTTP scraping failed. Puppeteer: ${error}. HTTP: ${fallbackError}`,
+      );
+    }
+  }
 }
 
 // AI-powered product extraction using Gemini
