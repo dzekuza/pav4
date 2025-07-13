@@ -542,6 +542,95 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
       }
     }
 
+    // pigu.lt specific patterns (Lithuanian retailer)
+    else if (domain.includes("pigu.lt")) {
+      console.log("Detected pigu.lt site - using specific patterns");
+
+      // pigu.lt product title patterns
+      if (!extracted.title) {
+        const piguProductPatterns = [
+          /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h1>/i,
+          /<h1[^>]*>([^<]+)<\/h1>/i,
+          /"name"\s*:\s*"([^"]+)"/i,
+          /property="og:title"\s+content="([^"]+)"/i,
+          /<title[^>]*>([^<]+?)\s*\|\s*pigu\.lt/i,
+          /<title[^>]*>([^<]+?)\s*-\s*pigu\.lt/i,
+          /data-product-name="([^"]+)"/i,
+          /<span[^>]*class="[^"]*product-name[^"]*"[^>]*>([^<]+)<\/span>/i,
+        ];
+
+        for (const pattern of piguProductPatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.title = match[1]
+              .trim()
+              .replace(/\s*[\|\-]\s*pigu\.lt.*$/i, "")
+              .replace(/&nbsp;/g, " ")
+              .replace(/&amp;/g, "&");
+            console.log("Found pigu.lt title:", extracted.title);
+            break;
+          }
+        }
+      }
+
+      // pigu.lt price patterns (EUR) - comprehensive patterns
+      if (price === 0) {
+        const piguPricePatterns = [
+          // JavaScript/JSON price patterns
+          /"price"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"currentPrice"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"priceAmount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"amount"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+          /"value"\s*:\s*"?([0-9,]+\.?\d*)"?/i,
+
+          // HTML attribute patterns
+          /data-price="([^"]+)"/i,
+          /data-value="([^"]+)"/i,
+          /data-amount="([^"]+)"/i,
+          /value="([0-9,]+\.?\d*)"/i,
+
+          // CSS class patterns specific to pigu.lt
+          /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)/i,
+          /class="[^"]*amount[^"]*"[^>]*>([^<]*€[^<]*)/i,
+          /class="[^"]*cost[^"]*"[^>]*>([^<]*€[^<]*)/i,
+          /class="[^"]*current[^"]*"[^>]*>([^<]*€[^<]*)/i,
+
+          // Currency patterns - Lithuanian format
+          /€\s*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+          /([0-9,]+(?:[\.,][0-9]{2})?)\s*€/i,
+          /([0-9,]+(?:[\.,][0-9]{2})?)\s*EUR/i,
+
+          // Generic span/div patterns
+          /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/i,
+          /<div[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/div>/i,
+          /<span[^>]*class="[^"]*current[^"]*"[^>]*>([^<]+)<\/span>/i,
+
+          // Lithuanian specific patterns
+          /Kaina[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+          /Suma[^0-9]*([0-9,]+(?:[\.,][0-9]{2})?)/i,
+
+          // Meta property patterns
+          /<meta property="product:price:amount" content="([^"]+)"/i,
+          /<meta itemprop="price" content="([^"]+)"/i,
+
+          // Aggressive fallback - any number that looks like a reasonable price
+          /([1-9]\d{1,3}(?:[,.]?\d{2})?)/g,
+        ];
+
+        for (const pattern of piguPricePatterns) {
+          const match = html.match(pattern);
+          if (match && match[1]) {
+            extracted.priceText = match[1].includes("€")
+              ? match[1]
+              : `€${match[1].replace(/,/g, "")}`;
+            console.log("Found pigu.lt price:", extracted.priceText);
+            break;
+          }
+        }
+      }
+    }
+
     // Ideal.lt specific patterns (Lithuanian retailer)
     else if (domain.includes("ideal.lt")) {
       console.log("Detected Ideal.lt site - using specific patterns");
