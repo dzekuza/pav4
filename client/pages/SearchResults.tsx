@@ -21,6 +21,7 @@ export default function SearchResults() {
   const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { location, localDealers } = useLocation();
 
   useEffect(() => {
     if (!requestId) return;
