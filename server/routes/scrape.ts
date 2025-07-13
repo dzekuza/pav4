@@ -223,7 +223,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         break;
       } else if (
         response.status === 403 &&
-        domain.endsWith(".lt") &&
+        siteDomain.endsWith(".lt") &&
         retryCount < maxRetries - 1
       ) {
         console.log(
