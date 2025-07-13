@@ -36,6 +36,8 @@ export interface PriceComparison extends ProductData {
   condition?: string;
   verified?: boolean;
   position?: number;
+  isLocal?: boolean; // Whether this is a local dealer
+  distance?: string; // Distance from user (for local dealers)
   assessment?: {
     cost?: number;
     value?: number;
