@@ -1625,7 +1625,7 @@ function generateAssessment(
 
 export const handleScrape: RequestHandler = async (req, res) => {
   try {
-    const { url, requestId }: ScrapeRequest = req.body;
+    const { url, requestId, userLocation }: ScrapeRequest = req.body;
 
     if (!url || !requestId) {
       return res.status(400).json({
@@ -1644,11 +1644,30 @@ export const handleScrape: RequestHandler = async (req, res) => {
 
     console.log(`Scraping product data for: ${url}`);
 
+    // Detect user location if not provided
+    let detectedLocation = userLocation;
+    if (!detectedLocation) {
+      const clientIP = req.ip || req.socket.remoteAddress || "127.0.0.1";
+
+      // Try to detect from headers first
+      detectedLocation = detectLocationFromHeaders(req.headers);
+
+      // Fallback to IP detection
+      if (!detectedLocation) {
+        detectedLocation = detectLocationFromIP(clientIP);
+      }
+
+      console.log("Detected user location:", detectedLocation);
+    }
+
     // Scrape the original product
     const originalProduct = await scrapeProductData(url);
 
-    // Get price comparisons
-    const comparisons = await getPriceComparisons(originalProduct);
+    // Get price comparisons with location-based dealers
+    const comparisons = await getPriceComparisons(
+      originalProduct,
+      detectedLocation,
+    );
 
     // Save to user's search history if authenticated
     if (req.user) {
