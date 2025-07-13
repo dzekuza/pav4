@@ -46,6 +46,7 @@ export function createServer() {
 
   app.get("/api/demo", handleDemo);
   app.post("/api/scrape", optionalAuth, handleScrape);
+  app.get("/api/location", getLocationHandler);
 
   // Authentication routes
   app.post("/api/auth/register", register);
