@@ -762,7 +762,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         for (const pattern of idealPricePatterns) {
           const match = html.match(pattern);
           if (match && match[1]) {
-            extracted.priceText = match[1].includes("€")
+            extracted.priceText = match[1].includes("���")
               ? match[1]
               : `€${match[1].replace(/,/g, "")}`;
             console.log("Found Ideal.lt price:", extracted.priceText);
@@ -1126,8 +1126,50 @@ async function getPriceComparisons(
   const basePrice = originalProduct.price;
   const alternatives: PriceComparison[] = [];
 
-  // Comprehensive retailer list with realistic pricing patterns
-  const retailers = [
+  // Get local dealers first, then add global retailers
+  let retailers: Array<{
+    name: string;
+    discount: number;
+    condition: string;
+    reviews: number;
+    isLocal?: boolean;
+    currency?: string;
+  }> = [];
+
+  // Add local dealers if user location is available
+  if (userLocation) {
+    const localDealersList = getLocalDealers(userLocation);
+    console.log(
+      `Found ${localDealersList.length} local dealers for ${userLocation.country}`,
+    );
+
+    // Add local dealers with priority pricing
+    localDealersList.forEach((dealer) => {
+      retailers.push({
+        name: dealer.name,
+        discount: 0.9 + Math.random() * 0.1, // Local dealers tend to be competitive
+        condition: "New",
+        reviews: 500 + Math.floor(Math.random() * 1500),
+        isLocal: true,
+        currency: dealer.currency,
+      });
+
+      // Also add used/refurbished options for local dealers
+      if (Math.random() > 0.5) {
+        retailers.push({
+          name: dealer.name,
+          discount: 0.7 + Math.random() * 0.1,
+          condition: "Used - Very Good",
+          reviews: 200 + Math.floor(Math.random() * 800),
+          isLocal: true,
+          currency: dealer.currency,
+        });
+      }
+    });
+  }
+
+  // Add global retailers as fallback
+  const globalRetailers = [
     // Major retailers
     {
       name: "Amazon",
@@ -1238,6 +1280,9 @@ async function getPriceComparisons(
       reviews: 80 + Math.floor(Math.random() * 250),
     },
   ];
+
+  // Add global retailers, but prioritize local ones
+  retailers = [...retailers, ...globalRetailers];
 
   // Skip retailers that match the original store
   const availableRetailers = retailers.filter(
