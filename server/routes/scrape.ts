@@ -327,24 +327,76 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         }
       }
 
-      // Amazon price patterns
+      // Amazon price patterns - prioritize main product price
       if (price === 0) {
         const amazonPricePatterns = [
-          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/i,
-          /<span[^>]*class="[^"]*price[^"]*"[^>]*>\$([^<]+)<\/span>/i,
+          // Primary price patterns (main product price)
+          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*data-a-size="xl"[^>]*>([^<]+)<\/span>/i, // Large price display
+          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>.*?<span[^>]*class="[^"]*a-price-fraction[^"]*"[^>]*>([^<]+)<\/span>/is, // Full price with fraction
+          /<span[^>]*class="[^"]*a-price-symbol[^"]*"[^>]*>\$<\/span><span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/i, // Symbol + whole price
+          /<span[^>]*class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)<\/span>/gi, // Any price-whole element
+
+          // Backup patterns for different Amazon layouts
+          /<span[^>]*id="priceblock_dealprice"[^>]*>\$([^<]+)<\/span>/i,
+          /<span[^>]*id="priceblock_ourprice"[^>]*>\$([^<]+)<\/span>/i,
+          /<span[^>]*class="[^"]*a-price-range[^"]*"[^>]*>.*?\$(\d{2,4}(?:\.\d{2})?)/is,
+
+          // JSON-based prices
           /"priceAmount"\s*:\s*"([^"]+)"/i,
           /"price"\s*:\s*"(\$[^"]+)"/i,
-          /\$(\d{2,4}(?:\.\d{2})?)/g,
+          /"displayPrice"\s*:\s*"([^"]+)"/i,
+
+          // Meta property prices
+          /<meta property="product:price:amount" content="([^"]+)"/i,
+          /<meta property="og:price:amount" content="([^"]+)"/i,
+
+          // Fallback pattern
+          /\$(\d{3,4}(?:\.\d{2})?)/g, // Only match substantial prices (3-4 digits)
         ];
 
         for (const pattern of amazonPricePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1]) {
-            extracted.priceText = match[1].includes("$")
-              ? match[1]
-              : `$${match[1]}`;
-            console.log("Found Amazon price:", extracted.priceText);
-            break;
+          if (pattern.global) {
+            const matches = html.match(pattern);
+            if (matches && matches[0]) {
+              // For global matches, find the highest reasonable price (likely the main product)
+              const prices = matches
+                .map((match) => {
+                  const priceMatch = match.match(/\d+(?:\.\d{2})?/);
+                  return priceMatch ? parseFloat(priceMatch[0]) : 0;
+                })
+                .filter((p) => p > 50); // Filter out very low prices
+
+              if (prices.length > 0) {
+                const mainPrice = Math.max(...prices); // Take highest price as main product
+                extracted.priceText = `$${mainPrice}`;
+                console.log(
+                  "Found Amazon price (highest):",
+                  extracted.priceText,
+                );
+                break;
+              }
+            }
+          } else {
+            const match = html.match(pattern);
+            if (match && match[1]) {
+              let priceText = match[1];
+
+              // Handle fractional prices (e.g., "619" + "99")
+              if (match[2]) {
+                priceText = `${match[1]}.${match[2]}`;
+              }
+
+              const priceValue = parseFloat(priceText.replace(/,/g, ""));
+
+              // Only accept reasonable prices (not accessories or small items)
+              if (priceValue > 50) {
+                extracted.priceText = priceText.includes("$")
+                  ? priceText
+                  : `$${priceText}`;
+                console.log("Found Amazon price:", extracted.priceText);
+                break;
+              }
+            }
           }
         }
       }
