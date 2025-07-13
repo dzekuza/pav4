@@ -172,7 +172,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
   };
 
   // Specific headers for Lithuanian websites
-  if (domain.includes("pigu.lt") || domain.endsWith(".lt")) {
+  if (siteDomain.includes("pigu.lt") || siteDomain.endsWith(".lt")) {
     console.log("Detected Lithuanian website, using specific headers");
     headers = {
       ...headers,
@@ -180,7 +180,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
       "Accept-Language": "lt-LT,lt;q=0.9,en-US;q=0.8,en;q=0.7",
       Referer: "https://www.google.lt/",
-      Origin: domain.includes("pigu.lt") ? "https://pigu.lt" : undefined,
+      Origin: siteDomain.includes("pigu.lt") ? "https://pigu.lt" : undefined,
       "X-Requested-With": "XMLHttpRequest",
       "Sec-Ch-Ua":
         '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
@@ -191,7 +191,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
   }
 
   // Specific headers for Amazon
-  else if (domain.includes("amazon")) {
+  else if (siteDomain.includes("amazon")) {
     headers = {
       ...headers,
       "User-Agent":
@@ -202,7 +202,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
   }
 
   // Add delay for Lithuanian websites to avoid rate limiting
-  if (domain.endsWith(".lt")) {
+  if (siteDomain.endsWith(".lt")) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
