@@ -12,6 +12,8 @@ interface Product {
   reviews?: number;
   inStock?: boolean;
   condition?: string;
+  isLocal?: boolean;
+  distance?: string;
 }
 
 interface ComparisonGridProps {
