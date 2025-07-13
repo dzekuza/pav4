@@ -762,7 +762,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         for (const pattern of idealPricePatterns) {
           const match = html.match(pattern);
           if (match && match[1]) {
-            extracted.priceText = match[1].includes("���")
+            extracted.priceText = match[1].includes("€")
               ? match[1]
               : `€${match[1].replace(/,/g, "")}`;
             console.log("Found Ideal.lt price:", extracted.priceText);
@@ -1332,7 +1332,7 @@ async function getPriceComparisons(
       alternatives.push({
         title: `${originalProduct.title} - ${retailer.condition}`,
         price: altPrice,
-        currency: originalProduct.currency,
+        currency: retailer.currency || originalProduct.currency,
         image: originalProduct.image,
         url: generateSearchUrl(retailer.name, searchQuery),
         store: retailer.name,
@@ -1343,6 +1343,8 @@ async function getPriceComparisons(
         condition: retailer.condition,
         verified: true,
         position: i + 1,
+        isLocal: retailer.isLocal || false,
+        distance: retailer.isLocal ? "Local dealer" : undefined,
         assessment: assessment,
       });
     }
