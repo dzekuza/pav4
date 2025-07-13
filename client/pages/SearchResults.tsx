@@ -49,6 +49,7 @@ export default function SearchResults() {
           body: JSON.stringify({
             url,
             requestId,
+            userLocation: location, // Pass user location for local dealers
           }),
         });
 
