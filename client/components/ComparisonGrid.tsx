@@ -45,12 +45,12 @@ export function ComparisonGrid({
     );
   }
 
-    // Find the lowest price to highlight the best deal
+  // Find the lowest price to highlight the best deal
   const lowestPrice = Math.min(...products.map((p) => p.price));
 
   // Separate local and global dealers
-  const localDealers = products.filter(p => p.isLocal);
-  const globalDealers = products.filter(p => !p.isLocal);
+  const localDealers = products.filter((p) => p.isLocal);
+  const globalDealers = products.filter((p) => !p.isLocal);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -65,26 +65,34 @@ export function ComparisonGrid({
             </span>
           </div>
           <div className="grid gap-4">
-            {localDealers.map((product, index) => (
-              <ProductCard
-                key={`local-${index}`}
-                title={product.title}
-                price={product.price}
-                currency={product.currency}
-                url={product.url}
-                store={product.store}
-                image={product.image}
-                rating={product.rating}
-                availability={product.availability}
-                reviews={product.reviews}
-                inStock={product.inStock}
-                condition={product.condition}
-                isLocal={product.isLocal}
-                distance={product.distance}
-                isBestDeal={product.price === lowestPrice}
-                originalPrice={originalPrice}
-              />
-            ))}
+            {localDealers.map((product, index) => {
+              const isBestPrice = product.price === lowestPrice;
+              const savings =
+                originalPrice && originalPrice > product.price
+                  ? originalPrice - product.price
+                  : 0;
+
+              return (
+                <ProductCard
+                  key={`local-${index}`}
+                  title={product.title}
+                  price={product.price}
+                  currency={product.currency}
+                  url={product.url}
+                  store={product.store}
+                  image={product.image}
+                  rating={product.rating}
+                  availability={product.availability}
+                  reviews={product.reviews}
+                  inStock={product.inStock}
+                  condition={product.condition}
+                  isBestPrice={isBestPrice}
+                  savings={savings}
+                  isLocal={product.isLocal}
+                  distance={product.distance}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -95,39 +103,44 @@ export function ComparisonGrid({
           <div className="flex items-center gap-2 mb-4">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <h3 className="text-lg font-semibold">
-              {localDealers.length > 0 ? "Other Retailers" : "Available Retailers"}
+              {localDealers.length > 0
+                ? "Other Retailers"
+                : "Available Retailers"}
             </h3>
             <span className="text-sm text-muted-foreground">
               ({globalDealers.length} found)
             </span>
           </div>
           <div className="grid gap-4">
-      {products.map((product, index) => {
-        const isBestPrice = product.price === lowestPrice;
-        const savings =
-          originalPrice && originalPrice > product.price
-            ? originalPrice - product.price
-            : 0;
+            {globalDealers.map((product, index) => {
+              const isBestPrice = product.price === lowestPrice;
+              const savings =
+                originalPrice && originalPrice > product.price
+                  ? originalPrice - product.price
+                  : 0;
 
-        return (
-          <ProductCard
-            key={index}
-            title={product.title}
-            price={product.price}
-            currency={product.currency}
-            url={product.url}
-            store={product.store}
-            image={product.image}
-            rating={product.rating}
-            availability={product.availability}
-            reviews={product.reviews}
-            inStock={product.inStock}
-            condition={product.condition}
-            isBestPrice={isBestPrice}
-            savings={savings}
-          />
-        );
-      })}
+              return (
+                <ProductCard
+                  key={`global-${index}`}
+                  title={product.title}
+                  price={product.price}
+                  currency={product.currency}
+                  url={product.url}
+                  store={product.store}
+                  image={product.image}
+                  rating={product.rating}
+                  availability={product.availability}
+                  reviews={product.reviews}
+                  inStock={product.inStock}
+                  condition={product.condition}
+                  isBestPrice={isBestPrice}
+                  savings={savings}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
