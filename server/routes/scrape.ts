@@ -147,7 +147,10 @@ async function tryApiEndpoint(url: string): Promise<ProductData | null> {
 }
 
 // Extract data from HTML using pattern matching
-function extractFromHtml(html: string): {
+function extractFromHtml(
+  html: string,
+  domain: string = "",
+): {
   title: string;
   priceText: string;
   image: string;
