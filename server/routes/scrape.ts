@@ -1713,9 +1713,8 @@ function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
     storeName.toLowerCase().includes(dealer.name.toLowerCase())
   );
 }
-  const alternatives: PriceComparison[] = [];
 
-  // Get local dealers first, then add global retailers
+// Extract search keywords from product title with brand and model preservation
   let retailers: Array<{
     name: string;
     discount: number;
