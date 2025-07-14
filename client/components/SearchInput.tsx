@@ -57,10 +57,17 @@ export function SearchInput({
           if (data.history && Array.isArray(data.history)) {
             setSuggestions(data.history);
           }
+        } else {
+          console.warn(
+            `Search history load failed: ${response.status} ${response.statusText}`,
+          );
         }
       } catch (fetchError) {
         clearTimeout(timeoutId);
-        // Don't log fetch errors as they're not critical
+        // Don't log fetch errors as they're not critical, but catch specific errors
+        if (fetchError instanceof Error && fetchError.name !== "AbortError") {
+          console.warn("Search history load failed:", fetchError.message);
+        }
       }
     } catch (error) {
       // Completely silent - search history is not critical functionality
