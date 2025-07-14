@@ -120,10 +120,8 @@ export function SearchInput({
     // Always try localStorage first (primary method)
     saveToLocalHistory(url);
 
-    // Return immediately if remote search history is disabled or environment doesn't support it
-    if (!isRemoteSearchHistoryEnabled || typeof fetch === "undefined") {
-      return;
-    }
+    // Remote search history completely disabled - early return
+    return;
 
     // Use setTimeout to completely decouple from main thread
     setTimeout(async () => {
