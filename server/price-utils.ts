@@ -54,8 +54,10 @@ export function extractPriceImproved(text: string): {
     /content="(\d{1,4}(?:[,\.]\d{2,3})?)"/gi,
 
     // Fallback patterns for plain decimal numbers (like 189.99)
-    /(\d{2,4}\.\d{2})(?!\d)/g,
-    /(\d{1,4}(?:,\d{3})*\.\d{2})(?!\d)/g,
+    /\b(\d{2,4}\.\d{2})\b/g,
+    /\b(\d{1,4}(?:,\d{3})*\.\d{2})\b/g,
+    // Very simple fallback for any number with 2 decimal places
+    /(\d+\.\d{2})/g,
   ];
 
   const foundPrices: { price: number; pattern: string }[] = [];
