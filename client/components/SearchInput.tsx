@@ -90,32 +90,6 @@ export function SearchInput({
 
     // Remote search history completely disabled - early return
     return;
-
-    // Use setTimeout to completely decouple from main thread
-    setTimeout(async () => {
-      try {
-        const userKey = getUserKey();
-        const controller = new AbortController();
-
-        // Very short timeout to not affect UX
-        const timeoutId = setTimeout(() => controller.abort(), 1000);
-
-        try {
-          await fetch("/api/legacy/search-history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url, userKey }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-        } catch {
-          clearTimeout(timeoutId);
-          // Completely silent - never throw or log
-        }
-      } catch {
-        // Completely silent - never throw or log
-      }
-    }, 0);
   };
 
   // Handle form submission
