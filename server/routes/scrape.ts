@@ -1232,19 +1232,38 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
 // Scrape product data from URL using Puppeteer with HTTP fallback
 async function scrapeProductData(url: string): Promise<ProductData> {
-  try {
-    console.log("Attempting Puppeteer scraping...");
-    return await scrapeWithPuppeteer(url);
-  } catch (error) {
-    console.log("Puppeteer scraping failed, falling back to HTTP:", error);
+  // Check if Puppeteer should be disabled in this environment
+  const disablePuppeteer =
+    process.env.DISABLE_PUPPETEER === "true" ||
+    process.env.NODE_ENV === "production";
+
+  if (!disablePuppeteer) {
     try {
-      return await scrapeWithHttp(url);
-    } catch (fallbackError) {
-      console.log("HTTP fallback also failed:", fallbackError);
-      throw new Error(
-        `Both Puppeteer and HTTP scraping failed. Puppeteer: ${error}. HTTP: ${fallbackError}`,
-      );
+      console.log("Attempting Puppeteer scraping...");
+      return await scrapeWithPuppeteer(url);
+    } catch (error) {
+      console.log("Puppeteer scraping failed, falling back to HTTP:", error);
+      // Continue to HTTP fallback
     }
+  } else {
+    console.log("Puppeteer disabled, using HTTP scraping...");
+  }
+
+  try {
+    return await scrapeWithHttp(url);
+  } catch (fallbackError) {
+    console.log("HTTP scraping also failed:", fallbackError);
+
+    // Return a basic product data structure instead of throwing
+    const domain = extractDomain(url);
+    return {
+      title: "Product Information Unavailable",
+      price: 0,
+      currency: "€",
+      image: "/placeholder.svg",
+      url,
+      store: domain,
+    };
   }
 }
 
