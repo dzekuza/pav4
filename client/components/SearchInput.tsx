@@ -39,8 +39,8 @@ export function SearchInput({
 
   // Load search history with complete error isolation
   const loadSearchHistory = async () => {
-    // Return immediately in production or if environment doesn't support it
-    if (process.env.NODE_ENV === "production" || typeof fetch === "undefined") {
+    // Return immediately if search history is disabled or environment doesn't support it
+    if (!isSearchHistoryEnabled || typeof fetch === "undefined") {
       return;
     }
 
