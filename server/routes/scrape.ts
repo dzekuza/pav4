@@ -69,7 +69,7 @@ function extractPrice(text: string): { price: number; currency: string } {
     "���": "€",
     "¥": "¥",
     "₹": "₹",
-    "���": "₽",
+    "₽": "₽",
   };
 
   let detectedCurrency = "€"; // Default to EUR
@@ -1404,16 +1404,12 @@ async function scrapeProductData(url: string): Promise<ProductData> {
   } catch (fallbackError) {
     console.log("HTTP scraping also failed:", fallbackError);
 
-    // Return a basic product data structure instead of throwing
+    // Enhanced fallback: try to extract product info from URL structure
     const domain = extractDomain(url);
-    return {
-      title: "Product Information Unavailable",
-      price: 0,
-      currency: "€",
-      image: "/placeholder.svg",
-      url,
-      store: domain,
-    };
+    const urlBasedProduct = extractProductInfoFromUrl(url, domain);
+
+    console.log("Using URL-based product extraction:", urlBasedProduct);
+    return urlBasedProduct;
   }
 }
 
