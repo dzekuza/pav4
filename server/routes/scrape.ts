@@ -1664,45 +1664,8 @@ async function getPriceComparisons(
   userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
-  console.log("🔍 Searching for real products to compare:", searchQuery);
-  console.log("User location:", userLocation);
-
-  try {
-    // Search for real products on actual sites
-    const realProducts = await searchRealProducts(searchQuery, originalProduct.price);
-    console.log(`✅ Found ${realProducts.length} real products for comparison`);
-
-    // Convert search results to price comparisons
-    const comparisons: PriceComparison[] = realProducts.map((product, index) => ({
-      title: product.title,
-      price: product.price,
-      currency: product.currency,
-      image: product.image,
-      url: product.url,
-      store: product.store,
-      availability: product.inStock ? "In stock" : "Out of stock",
-      rating: product.rating || 4.2 + Math.random() * 0.6,
-      reviews: product.reviews || 100 + Math.floor(Math.random() * 500),
-      inStock: product.inStock !== false,
-      condition: product.condition || "New",
-      verified: true,
-      position: index + 1,
-      isLocal: userLocation ? isLocalStore(product.store, userLocation) : false,
-    }));
-
-    // Sort by price (lowest first)
-    comparisons.sort((a, b) => a.price - b.price);
-
-    console.log(`🎯 Generated ${comparisons.length} real product comparisons`);
-    return comparisons;
-
-  } catch (error) {
-    console.error("❌ Real product search failed:", error);
-
-    // Fallback: return empty array instead of fake data
-    console.log("⚠️ No real products found, returning empty comparison list");
-    return [];
-  }
+    console.log("⚠️ Real product search temporarily disabled - returning empty comparison list");
+  return [];
 }
 
 // Helper function to check if a store is local
