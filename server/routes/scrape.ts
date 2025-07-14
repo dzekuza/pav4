@@ -195,8 +195,7 @@ function extractFromHtml(
   }
 
   // Extract price using improved function
-  // We'll get the domain from the URL passed to the main function
-  priceText = extractPriceFromSiteSpecificPatterns(html, "");
+  priceText = extractPriceFromSiteSpecificPatterns(html, domain);
 
   // Fallback to basic patterns if site-specific extraction fails
   if (!priceText) {
