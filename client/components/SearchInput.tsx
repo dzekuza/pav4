@@ -79,38 +79,6 @@ export function SearchInput({
 
     // Remote search history completely disabled - early return
     return;
-
-    // Use setTimeout to completely decouple from main thread
-    setTimeout(async () => {
-      try {
-        const userKey = getUserKey();
-        const controller = new AbortController();
-
-        // Very short timeout to not affect UX
-        const timeoutId = setTimeout(() => controller.abort(), 1000);
-
-        try {
-          const response = await fetch(
-            `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
-            { signal: controller.signal },
-          );
-
-          clearTimeout(timeoutId);
-
-          if (response && response.ok) {
-            const data = await response.json();
-            if (data && data.history && Array.isArray(data.history)) {
-              setSuggestions(data.history);
-            }
-          }
-        } catch {
-          clearTimeout(timeoutId);
-          // Completely silent - never throw or log
-        }
-      } catch {
-        // Completely silent - never throw or log
-      }
-    }, 0);
   };
 
   // Save to search history with complete error isolation
