@@ -74,48 +74,42 @@ export function SearchInput({
     }
   };
 
-  // Save to search history with robust error handling
+  // Save to search history with complete error isolation
   const saveToHistory = async (url: string) => {
-    // Wrap everything in a try-catch to prevent any errors from bubbling up
-    try {
-      // Check if fetch is available and we have a valid URL
-      if (typeof fetch === "undefined" || !url) {
-        return;
-      }
-
-      // Only try legacy route since users are not authenticated by default
-      // The legacy route is simpler and more reliable
-      const userKey = getUserKey();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-      try {
-        const response = await fetch("/api/legacy/search-history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, userKey }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        // Check if response is ok, but don't throw on error
-        if (!response.ok) {
-          console.warn(
-            `Search history save failed: ${response.status} ${response.statusText}`,
-          );
-        }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        // Don't log fetch errors as they're not critical, but catch any specific errors
-        if (fetchError instanceof Error && fetchError.name !== "AbortError") {
-          console.warn("Search history save failed:", fetchError.message);
-        }
-      }
-    } catch (error) {
-      // Completely silent - search history is not critical functionality
-      // Don't even log to avoid console spam
+    // Return immediately in production or if environment doesn't support it
+    if (
+      process.env.NODE_ENV === "production" ||
+      typeof fetch === "undefined" ||
+      !url
+    ) {
+      return;
     }
+
+    // Use setTimeout to completely decouple from main thread
+    setTimeout(async () => {
+      try {
+        const userKey = getUserKey();
+        const controller = new AbortController();
+
+        // Very short timeout to not affect UX
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+        try {
+          await fetch("/api/legacy/search-history", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, userKey }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+        } catch {
+          clearTimeout(timeoutId);
+          // Completely silent - never throw or log
+        }
+      } catch {
+        // Completely silent - never throw or log
+      }
+    }, 0);
   };
 
   // Handle form submission
