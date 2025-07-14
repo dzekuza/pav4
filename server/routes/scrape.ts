@@ -1262,7 +1262,11 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     headers["Referer"] = "https://www.google.com/";
   }
 
-  // Retry mechanism for HTTP requests
+  // Add human-like delay before request
+  const initialDelay = 500 + Math.random() * 1000; // Random delay 0.5-1.5 seconds
+  await new Promise((resolve) => setTimeout(resolve, initialDelay));
+
+  // Retry mechanism for HTTP requests with enhanced evasion
   let response: Response | null = null;
   let lastError: Error | null = null;
   const maxRetries = 3;
@@ -1271,20 +1275,34 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     try {
       console.log(`HTTP scraping attempt ${attempt}/${maxRetries} for ${url}`);
 
+      // Add different User-Agent for each retry
+      if (attempt > 1) {
+        const userAgents = [
+          "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+        ];
+        headers["User-Agent"] = userAgents[attempt - 1] || userAgents[0];
+        console.log(
+          `Retry ${attempt} with User-Agent: ${headers["User-Agent"]}`,
+        );
+      }
+
       response = await fetch(url, {
         headers,
         redirect: "follow",
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(45000), // Longer timeout
       });
 
       if (response.ok) {
+        console.log(`HTTP request succeeded with status ${response.status}`);
         break; // Success, exit retry loop
       } else if (response.status === 403 || response.status === 429) {
         // Rate limiting or forbidden, wait longer between retries
         if (attempt < maxRetries) {
-          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+          const waitTime = Math.pow(2, attempt) * 2000 + Math.random() * 1000; // Longer exponential backoff with jitter
           console.log(
-            `HTTP ${response.status}, waiting ${waitTime}ms before retry...`,
+            `HTTP ${response.status}, waiting ${waitTime.toFixed(0)}ms before retry...`,
           );
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
@@ -1292,6 +1310,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
           `HTTP ${response.status}: ${response.statusText}`,
         );
       } else {
+        console.log(`HTTP error ${response.status}: ${response.statusText}`);
         lastError = new Error(
           `HTTP ${response.status}: ${response.statusText}`,
         );
@@ -1300,12 +1319,10 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     } catch (error) {
       lastError =
         error instanceof Error ? error : new Error("Unknown fetch error");
+      console.log(`Network error on attempt ${attempt}:`, lastError.message);
       if (attempt < maxRetries) {
-        const waitTime = 1000 * attempt; // Linear backoff for network errors
-        console.log(
-          `Network error, waiting ${waitTime}ms before retry:`,
-          lastError.message,
-        );
+        const waitTime = 2000 * attempt + Math.random() * 1000; // Longer linear backoff with jitter
+        console.log(`Waiting ${waitTime.toFixed(0)}ms before retry...`);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
     }
