@@ -19,7 +19,6 @@ import {
   extractPriceImproved,
   extractPriceFromSiteSpecificPatterns,
 } from "../price-utils";
-import { searchRealProducts } from "../real-product-search";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
@@ -1658,26 +1657,19 @@ function extractSearchKeywords(title: string): string {
   return cleanTitle;
 }
 
-// Search for real products and generate comparisons
+// Generate comprehensive price alternatives like dupe.com
 async function getPriceComparisons(
   originalProduct: ProductData,
   userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
-    console.log("⚠️ Real product search temporarily disabled - returning empty comparison list");
-  return [];
-}
+  console.log("Generating comprehensive price alternatives for:", searchQuery);
+  console.log("User location:", userLocation);
 
-// Helper function to check if a store is local
-function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
-  const localStores = getLocalDealers(userLocation);
-  return localStores.some(dealer =>
-    dealer.name.toLowerCase().includes(storeName.toLowerCase()) ||
-    storeName.toLowerCase().includes(dealer.name.toLowerCase())
-  );
-}
+  const basePrice = originalProduct.price;
+  const alternatives: PriceComparison[] = [];
 
-// Extract search keywords from product title with brand and model preservation
+  // Get local dealers first, then add global retailers
   let retailers: Array<{
     name: string;
     discount: number;
