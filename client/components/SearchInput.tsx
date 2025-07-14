@@ -79,12 +79,8 @@ export function SearchInput({
 
   // Save to search history with complete error isolation
   const saveToHistory = async (url: string) => {
-    // Return immediately in production or if environment doesn't support it
-    if (
-      process.env.NODE_ENV === "production" ||
-      typeof fetch === "undefined" ||
-      !url
-    ) {
+    // Return immediately if search history is disabled or environment doesn't support it
+    if (!isSearchHistoryEnabled || typeof fetch === "undefined" || !url) {
       return;
     }
 
