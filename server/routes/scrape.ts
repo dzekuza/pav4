@@ -492,8 +492,8 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
     const html = await page.content();
 
     // Extract data from HTML
-
-    const extracted = extractFromHtml(html);
+    const domain = extractDomain(url);
+    const extracted = extractFromHtml(html, domain);
 
     // Merge JavaScript extracted data with HTML extraction
     if (jsExtractedData) {
