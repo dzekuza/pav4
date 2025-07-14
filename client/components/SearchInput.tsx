@@ -24,11 +24,15 @@ export function SearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Disable search history features in production or cloud environments
-  const isSearchHistoryEnabled =
+  // Disable remote search history features in production or cloud environments
+  const isRemoteSearchHistoryEnabled =
     import.meta.env.DEV &&
     import.meta.env.MODE !== "production" &&
     typeof window !== "undefined";
+
+  // Use localStorage for basic search history (always enabled)
+  const isLocalSearchHistoryEnabled =
+    typeof window !== "undefined" && typeof localStorage !== "undefined";
 
   // Get user key for search history (IP-based simulation)
   const getUserKey = () => {
