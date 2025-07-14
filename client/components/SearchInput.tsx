@@ -120,8 +120,13 @@ export function SearchInput({
 
   // Save to search history with complete error isolation
   const saveToHistory = async (url: string) => {
-    // Return immediately if search history is disabled or environment doesn't support it
-    if (!isSearchHistoryEnabled || typeof fetch === "undefined" || !url) {
+    if (!url) return;
+
+    // Always try localStorage first (primary method)
+    saveToLocalHistory(url);
+
+    // Return immediately if remote search history is disabled or environment doesn't support it
+    if (!isRemoteSearchHistoryEnabled || typeof fetch === "undefined") {
       return;
     }
 
