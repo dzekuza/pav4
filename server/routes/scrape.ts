@@ -69,7 +69,7 @@ function extractPrice(text: string): { price: number; currency: string } {
     "���": "€",
     "¥": "¥",
     "₹": "₹",
-    "₽": "₽",
+    "���": "₽",
   };
 
   let detectedCurrency = "€"; // Default to EUR
@@ -1188,6 +1188,39 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
   }
 
   const siteDomain = extractDomain(url);
+
+  // Pre-visit homepage to establish session (for some sites)
+  if (siteDomain.includes("varle.lt") || siteDomain.includes("pigu.lt")) {
+    try {
+      const homeUrl = `https://${siteDomain}`;
+      console.log(`Pre-visiting homepage to establish session: ${homeUrl}`);
+
+      await fetch(homeUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "lt-LT,lt;q=0.9,en;q=0.8",
+          "Accept-Encoding": "gzip, deflate, br",
+          DNT: "1",
+          Connection: "keep-alive",
+          "Upgrade-Insecure-Requests": "1",
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      // Wait a bit to simulate human browsing
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 + Math.random() * 2000),
+      );
+    } catch (error) {
+      console.log(
+        "Pre-visit failed, continuing with direct request:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
 
   // Realistic User-Agent rotation to avoid detection
   const userAgents = [
