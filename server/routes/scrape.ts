@@ -1672,8 +1672,8 @@ async function getPriceComparisons(
   // DISABLED: Return empty array instead of fake comparison data
   // The old system was generating fake URLs that don't work
   // TODO: Implement real product search system
-  return [];
-  const alternatives: PriceComparison[] = [];
+    return [];
+}
 
   // Get local dealers first, then add global retailers
   let retailers: Array<{
