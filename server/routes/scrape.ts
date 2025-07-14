@@ -1189,12 +1189,31 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
   const siteDomain = extractDomain(url);
 
-  // Enhanced headers with site-specific configurations
+  // Realistic User-Agent rotation to avoid detection
+  const userAgents = [
+    // Mobile Chrome (like the one you provided)
+    "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
+
+    // Desktop browsers
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+  ];
+
+  // Select random User-Agent
+  const randomUserAgent =
+    userAgents[Math.floor(Math.random() * userAgents.length)];
+  console.log(`Using User-Agent: ${randomUserAgent}`);
+
+  // Enhanced headers with realistic browser simulation
   const headers: Record<string, string> = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": randomUserAgent,
     Accept:
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
     "Accept-Language": "en-US,en;q=0.9,de;q=0.8,lt;q=0.7",
     "Accept-Encoding": "gzip, deflate, br",
     Connection: "keep-alive",
@@ -1203,20 +1222,44 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     "Sec-Fetch-Mode": "navigate",
     "Sec-Fetch-Site": "none",
     "Sec-Fetch-User": "?1",
+    "Sec-Ch-Ua":
+      '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    "Sec-Ch-Ua-Mobile": randomUserAgent.includes("Mobile") ? "?1" : "?0",
+    "Sec-Ch-Ua-Platform": randomUserAgent.includes("Windows")
+      ? '"Windows"'
+      : randomUserAgent.includes("Mac")
+        ? '"macOS"'
+        : randomUserAgent.includes("Android")
+          ? '"Android"'
+          : '"Linux"',
     "Cache-Control": "max-age=0",
     DNT: "1",
   };
 
-  // Add site-specific headers
+  // Add site-specific headers and realistic referers
   if (siteDomain.includes("ebay.de")) {
     headers["Accept-Language"] = "de-DE,de;q=0.9,en;q=0.8";
-    headers["Referer"] = "https://www.ebay.de/";
+    headers["Referer"] = "https://www.google.de/";
+    headers["Origin"] = "https://www.ebay.de";
   } else if (siteDomain.includes("amazon.de")) {
     headers["Accept-Language"] = "de-DE,de;q=0.9,en;q=0.8";
-    headers["Referer"] = "https://www.amazon.de/";
-  } else if (siteDomain.endsWith(".lt")) {
-    headers["Accept-Language"] = "lt-LT,lt;q=0.9,en;q=0.8";
+    headers["Referer"] = "https://www.google.de/";
+  } else if (
+    siteDomain.includes("varle.lt") ||
+    siteDomain.includes("pigu.lt") ||
+    siteDomain.endsWith(".lt")
+  ) {
+    headers["Accept-Language"] = "lt-LT,lt;q=0.9,en;q=0.8,ru;q=0.7";
     headers["Referer"] = "https://www.google.lt/";
+    headers["X-Forwarded-For"] = "85.206.128.1"; // Lithuanian IP range
+    if (siteDomain.includes("varle.lt")) {
+      headers["Origin"] = "https://www.varle.lt";
+    } else if (siteDomain.includes("pigu.lt")) {
+      headers["Origin"] = "https://pigu.lt";
+    }
+  } else if (siteDomain.includes("logitechg.com")) {
+    headers["Accept-Language"] = "en-US,en;q=0.9";
+    headers["Referer"] = "https://www.google.com/";
   }
 
   // Retry mechanism for HTTP requests
