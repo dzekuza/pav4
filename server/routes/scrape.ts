@@ -19,8 +19,6 @@ import {
   extractPriceImproved,
   extractPriceFromSiteSpecificPatterns,
 } from "../price-utils";
-import { searchRealProducts } from "../real-product-search";
-import { searchRealProducts } from "../real-product-search";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
@@ -1644,73 +1642,6 @@ JSON:`;
   }
 }
 
-// Estimate price from product title when scraping fails
-function estimatePriceFromTitle(title: string): number {
-  const titleLower = title.toLowerCase();
-
-  // Gaming keyboards
-  if (
-    titleLower.includes("keyboard") &&
-    (titleLower.includes("gaming") || titleLower.includes("mechanical"))
-  ) {
-    if (titleLower.includes("logitech") && titleLower.includes("pro"))
-      return 150;
-    if (titleLower.includes("logitech")) return 100;
-    if (titleLower.includes("razer")) return 120;
-    if (titleLower.includes("corsair")) return 110;
-    return 80; // Generic gaming keyboard
-  }
-
-  // Gaming controllers
-  if (titleLower.includes("controller") || titleLower.includes("gamepad")) {
-    if (titleLower.includes("dualsense") || titleLower.includes("ps5"))
-      return 65;
-    if (titleLower.includes("xbox")) return 60;
-    return 50; // Generic controller
-  }
-
-  // Smartphones
-  if (titleLower.includes("iphone")) {
-    if (titleLower.includes("pro max")) return 1200;
-    if (titleLower.includes("pro")) return 1000;
-    return 800; // Standard iPhone
-  }
-
-  // Dishwashers
-  if (titleLower.includes("dishwasher") || titleLower.includes("indaplovė")) {
-    if (titleLower.includes("beko")) return 450;
-    return 400; // Generic dishwasher
-  }
-
-  // Headphones
-  if (titleLower.includes("headphone") || titleLower.includes("headset")) {
-    if (titleLower.includes("sony") && titleLower.includes("wh-1000"))
-      return 300;
-    if (titleLower.includes("bose")) return 250;
-    return 100; // Generic headphones
-  }
-
-  // Doorbells
-  if (titleLower.includes("doorbell") && titleLower.includes("ring")) {
-    return 100;
-  }
-
-  // Laptops
-  if (titleLower.includes("laptop") || titleLower.includes("macbook")) {
-    if (titleLower.includes("macbook pro")) return 2000;
-    if (titleLower.includes("macbook")) return 1200;
-    return 800; // Generic laptop
-  }
-
-  // Default fallback based on category hints
-  if (titleLower.includes("gaming")) return 100;
-  if (titleLower.includes("pro") || titleLower.includes("professional"))
-    return 150;
-
-  // Final fallback
-  return 50;
-}
-
 // Extract search keywords from product title with brand and model preservation
 function extractSearchKeywords(title: string): string {
   // Remove common e-commerce words and clean up title
@@ -1726,65 +1657,20 @@ function extractSearchKeywords(title: string): string {
   return cleanTitle;
 }
 
-// Search for real products and generate comparisons
+// Generate comprehensive price alternatives like dupe.com
 async function getPriceComparisons(
   originalProduct: ProductData,
   userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
-  console.log("🔍 Searching for real products to compare:", searchQuery);
+  console.log("Generating comprehensive price alternatives for:", searchQuery);
   console.log("User location:", userLocation);
 
-  try {
-    // Search for real products on actual sites
-    const realProducts = await searchRealProducts(searchQuery, originalProduct.price);
-    console.log(`✅ Found ${realProducts.length} real products for comparison`);
+  const basePrice = originalProduct.price;
+  const alternatives: PriceComparison[] = [];
 
-    // Convert search results to price comparisons
-    const comparisons: PriceComparison[] = realProducts.map((product, index) => ({
-      title: product.title,
-      price: product.price,
-      currency: product.currency,
-      image: product.image,
-      url: product.url,
-      store: product.store,
-      availability: product.inStock ? "In stock" : "Out of stock",
-      rating: product.rating || 4.2 + Math.random() * 0.6,
-      reviews: product.reviews || 100 + Math.floor(Math.random() * 500),
-      inStock: product.inStock !== false,
-      condition: product.condition || "New",
-      verified: true,
-      position: index + 1,
-      isLocal: userLocation ? isLocalStore(product.store, userLocation) : false,
-    }));
-
-    // Sort by price (lowest first)
-    comparisons.sort((a, b) => a.price - b.price);
-
-    console.log(`🎯 Generated ${comparisons.length} real product comparisons`);
-    return comparisons;
-
-  } catch (error) {
-    console.error("❌ Real product search failed:", error);
-
-    // Fallback: return empty array instead of fake data
-    console.log("⚠️ No real products found, returning empty comparison list");
-    return [];
-    }
-}
-
-// Helper function to check if a store is local
-function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
-  const localStores = getLocalDealers(userLocation);
-  return localStores.some(dealer =>
-    dealer.name.toLowerCase().includes(storeName.toLowerCase()) ||
-    storeName.toLowerCase().includes(dealer.name.toLowerCase())
-  );
-}
-
-// Helper function to get realistic store URLs
-function getStoreUrl(storeName: string): string {
-  const storeUrls: { [key: string]: string } = {
+  // Get local dealers first, then add global retailers
+  let retailers: Array<{
     name: string;
     discount: number;
     condition: string;
