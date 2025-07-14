@@ -83,7 +83,7 @@ export function SearchInput({
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
       try {
-        await fetch("/api/legacy/search-history", {
+        const response = await fetch("/api/legacy/search-history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url, userKey }),
@@ -91,9 +91,19 @@ export function SearchInput({
         });
 
         clearTimeout(timeoutId);
+
+        // Check if response is ok, but don't throw on error
+        if (!response.ok) {
+          console.warn(
+            `Search history save failed: ${response.status} ${response.statusText}`,
+          );
+        }
       } catch (fetchError) {
         clearTimeout(timeoutId);
-        // Don't log fetch errors as they're not critical
+        // Don't log fetch errors as they're not critical, but catch any specific errors
+        if (fetchError instanceof Error && fetchError.name !== "AbortError") {
+          console.warn("Search history save failed:", fetchError.message);
+        }
       }
     } catch (error) {
       // Completely silent - search history is not critical functionality
