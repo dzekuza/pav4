@@ -52,12 +52,6 @@ export function extractPriceImproved(text: string): {
     // Meta tag and JSON patterns
     /"price"\s*:\s*"?(\d{1,4}(?:[,\.]\d{2,3})?)"?/gi,
     /content="(\d{1,4}(?:[,\.]\d{2,3})?)"/gi,
-
-    // Fallback patterns for plain decimal numbers (like 189.99)
-    /\b(\d{2,4}\.\d{2})\b/g,
-    /\b(\d{1,4}(?:,\d{3})*\.\d{2})\b/g,
-    // Very simple fallback for any number with 2 decimal places
-    /(\d+\.\d{2})/g,
   ];
 
   const foundPrices: { price: number; pattern: string }[] = [];
@@ -65,9 +59,6 @@ export function extractPriceImproved(text: string): {
   // Try each pattern and collect all valid prices
   for (const pattern of pricePatterns) {
     const matches = Array.from(cleanText.matchAll(pattern));
-    console.log(
-      `Trying pattern: ${pattern.source} - Found ${matches.length} matches`,
-    );
     for (const match of matches) {
       if (match[1]) {
         const rawPrice = match[1];
@@ -124,18 +115,6 @@ export function extractPriceImproved(text: string): {
       `Selected price: ${selectedPrice.price} ${detectedCurrency} from pattern: ${selectedPrice.pattern}`,
     );
     return { price: selectedPrice.price, currency: detectedCurrency };
-  }
-
-  // Final safety net: try to parse as a simple decimal if no patterns matched
-  const simpleDecimalMatch = cleanText.match(/(\d+\.\d{2})/);
-  if (simpleDecimalMatch) {
-    const price = parseFloat(simpleDecimalMatch[1]);
-    if (price >= 1 && price <= 50000) {
-      console.log(
-        `Safety net: extracted simple decimal price: ${price} ${detectedCurrency}`,
-      );
-      return { price, currency: detectedCurrency };
-    }
   }
 
   console.log("No valid price found in text:", cleanText);
