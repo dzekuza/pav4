@@ -1471,11 +1471,15 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         break; // Success, exit retry loop
       } else if (response.status === 403 || response.status === 429) {
         // Rate limiting or forbidden, wait longer between retries
+        console.log(`HTTP ${response.status}: ${response.statusText}`);
+        console.log(
+          `Response headers:`,
+          Object.fromEntries(response.headers.entries()),
+        );
+
         if (attempt < maxRetries) {
           const waitTime = Math.pow(2, attempt) * 2000 + Math.random() * 1000; // Longer exponential backoff with jitter
-          console.log(
-            `HTTP ${response.status}, waiting ${waitTime.toFixed(0)}ms before retry...`,
-          );
+          console.log(`Waiting ${waitTime.toFixed(0)}ms before retry...`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
         lastError = new Error(
@@ -1483,6 +1487,10 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
         );
       } else {
         console.log(`HTTP error ${response.status}: ${response.statusText}`);
+        console.log(
+          `Response headers:`,
+          Object.fromEntries(response.headers.entries()),
+        );
         lastError = new Error(
           `HTTP ${response.status}: ${response.statusText}`,
         );
