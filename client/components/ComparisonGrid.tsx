@@ -34,11 +34,14 @@ export function ComparisonGrid({
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
             🔍
           </div>
-          <h3 className="text-lg font-semibold mb-2">No alternatives found</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            Real Product Search Under Development
+          </h3>
           <p className="text-muted-foreground mb-4">
-            We couldn't find any alternative prices for this product at the
-            moment. Try checking back later or searching for a different
-            product.
+            We're currently building a real product search system that will find
+            actual products from Amazon, eBay, and local dealers with working
+            links and real prices. The previous system showed fake data with
+            broken URLs - that has been disabled.
           </p>
         </div>
       </div>

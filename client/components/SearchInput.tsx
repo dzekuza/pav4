@@ -24,6 +24,13 @@ export function SearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  // Completely disable remote search history to prevent fetch errors
+  const isRemoteSearchHistoryEnabled = false; // Disabled due to CORS/network issues in production
+
+  // Use localStorage for basic search history (always enabled)
+  const isLocalSearchHistoryEnabled =
+    typeof window !== "undefined" && typeof localStorage !== "undefined";
+
   // Get user key for search history (IP-based simulation)
   const getUserKey = () => {
     // In a real app, this would be the user's IP or session ID
@@ -31,74 +38,58 @@ export function SearchInput({
     return `user_${navigator.userAgent.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "")}`;
   };
 
-  // Load search history with robust error handling
-  const loadSearchHistory = async () => {
+  // Local storage search history functions
+  const getLocalSearchHistory = (): string[] => {
+    if (!isLocalSearchHistoryEnabled) return [];
     try {
-      // Check if fetch is available
-      if (typeof fetch === "undefined") {
-        return;
-      }
-
-      // Only use legacy route since users are not authenticated by default
-      const userKey = getUserKey();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-      try {
-        const response = await fetch(
-          `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
-          { signal: controller.signal },
-        );
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.history && Array.isArray(data.history)) {
-            setSuggestions(data.history);
-          }
-        }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        // Don't log fetch errors as they're not critical
-      }
-    } catch (error) {
-      // Completely silent - search history is not critical functionality
+      const stored = localStorage.getItem("pricehunt_search_history");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
     }
   };
 
-  // Save to search history with robust error handling
-  const saveToHistory = async (url: string) => {
-    // Wrap everything in a try-catch to prevent any errors from bubbling up
+  const saveToLocalHistory = (url: string) => {
+    if (!isLocalSearchHistoryEnabled || !url) return;
     try {
-      // Check if fetch is available and we have a valid URL
-      if (typeof fetch === "undefined" || !url) {
-        return;
-      }
-
-      // Only try legacy route since users are not authenticated by default
-      // The legacy route is simpler and more reliable
-      const userKey = getUserKey();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-      try {
-        await fetch("/api/legacy/search-history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, userKey }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        // Don't log fetch errors as they're not critical
-      }
-    } catch (error) {
-      // Completely silent - search history is not critical functionality
-      // Don't even log to avoid console spam
+      const history = getLocalSearchHistory();
+      const newHistory = [url, ...history.filter((h) => h !== url)].slice(
+        0,
+        10,
+      ); // Keep last 10
+      localStorage.setItem(
+        "pricehunt_search_history",
+        JSON.stringify(newHistory),
+      );
+      setSuggestions(newHistory);
+    } catch {
+      // Silent fail
     }
+  };
+
+  // Load search history with complete error isolation
+  const loadSearchHistory = async () => {
+    // Try localStorage first (always available)
+    if (isLocalSearchHistoryEnabled) {
+      const localHistory = getLocalSearchHistory();
+      if (localHistory.length > 0) {
+        setSuggestions(localHistory);
+      }
+    }
+
+    // Remote search history completely disabled - early return
+    return;
+  };
+
+  // Save to search history with complete error isolation
+  const saveToHistory = async (url: string) => {
+    if (!url) return;
+
+    // Always try localStorage first (primary method)
+    saveToLocalHistory(url);
+
+    // Remote search history completely disabled - early return
+    return;
   };
 
   // Handle form submission
@@ -111,13 +102,12 @@ export function SearchInput({
     onSubmit(trimmedValue);
     setShowSuggestions(false);
 
-    // Save to history completely asynchronously in a separate task
-    // Use setTimeout to ensure it doesn't interfere with form submission
-    setTimeout(() => {
-      saveToHistory(trimmedValue).catch(() => {
-        // Completely silent
-      });
-    }, 0);
+    // Save to history in completely isolated way that can never affect main flow
+    try {
+      saveToHistory(trimmedValue);
+    } catch {
+      // Completely silent - should never happen but just in case
+    }
   };
 
   // Handle suggestion selection
@@ -155,10 +145,12 @@ export function SearchInput({
     }
   };
 
-  // Load history on component mount
+  // Load history on component mount (only if enabled)
   useEffect(() => {
-    loadSearchHistory();
-  }, []);
+    if (isLocalSearchHistoryEnabled) {
+      loadSearchHistory();
+    }
+  }, [isLocalSearchHistoryEnabled]);
 
   // Click outside to close suggestions
   useEffect(() => {
@@ -189,7 +181,7 @@ export function SearchInput({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onFocus={() => {
-                if (suggestions.length > 0) {
+                if (isLocalSearchHistoryEnabled && suggestions.length > 0) {
                   setShowSuggestions(true);
                 }
               }}
@@ -210,32 +202,34 @@ export function SearchInput({
       </form>
 
       {/* Suggestions Dropdown */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div
-          ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
-        >
-          <div className="p-2">
-            <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              Recent searches
+      {isLocalSearchHistoryEnabled &&
+        showSuggestions &&
+        suggestions.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+          >
+            <div className="p-2">
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                Recent searches
+              </div>
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSuggestionSelect(suggestion)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    index === focusedIndex
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                  }`}
+                >
+                  <div className="truncate">{suggestion}</div>
+                </button>
+              ))}
             </div>
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => handleSuggestionSelect(suggestion)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                  index === focusedIndex
-                    ? "bg-accent text-accent-foreground"
-                    : ""
-                }`}
-              >
-                <div className="truncate">{suggestion}</div>
-              </button>
-            ))}
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
