@@ -1373,21 +1373,26 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     "Upgrade-Insecure-Requests": "1",
     "Sec-Fetch-Dest": "document",
     "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-Site": "cross-site",
     "Sec-Fetch-User": "?1",
-    "Sec-Ch-Ua":
-      '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-    "Sec-Ch-Ua-Mobile": randomUserAgent.includes("Mobile") ? "?1" : "?0",
-    "Sec-Ch-Ua-Platform": randomUserAgent.includes("Windows")
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+  };
+
+  // Add realistic Chrome headers only for desktop Chrome user agents
+  if (
+    randomUserAgent.includes("Chrome") &&
+    !randomUserAgent.includes("Mobile")
+  ) {
+    headers["Sec-Ch-Ua"] =
+      '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
+    headers["Sec-Ch-Ua-Mobile"] = "?0";
+    headers["Sec-Ch-Ua-Platform"] = randomUserAgent.includes("Windows")
       ? '"Windows"'
       : randomUserAgent.includes("Mac")
         ? '"macOS"'
-        : randomUserAgent.includes("Android")
-          ? '"Android"'
-          : '"Linux"',
-    "Cache-Control": "max-age=0",
-    DNT: "1",
-  };
+        : '"Linux"';
+  }
 
   // Add site-specific headers and realistic referers
   if (siteDomain.includes("ebay.de")) {
