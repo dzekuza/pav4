@@ -831,7 +831,7 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
             if (match && match[1]) {
               extracted.priceText = match[1].includes("€")
                 ? match[1]
-                : `€${match[1].replace(/,/g, "")}`;
+                : `��${match[1].replace(/,/g, "")}`;
               console.log("Found pigu.lt price:", extracted.priceText);
               break;
             }
@@ -1669,14 +1669,13 @@ async function getPriceComparisons(
   console.log("Search query:", searchQuery);
   console.log("User location:", userLocation);
 
-  // DISABLED: Return empty array instead of fake comparison data
+    // DISABLED: Return empty array instead of fake comparison data
   // The old system was generating fake URLs that don't work
   // TODO: Implement real product search system
-    return [];
+  return [];
 }
 
 // Helper function to get realistic store URLs
-  let retailers: Array<{
     name: string;
     discount: number;
     condition: string;
