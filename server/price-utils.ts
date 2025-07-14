@@ -52,6 +52,10 @@ export function extractPriceImproved(text: string): {
     // Meta tag and JSON patterns
     /"price"\s*:\s*"?(\d{1,4}(?:[,\.]\d{2,3})?)"?/gi,
     /content="(\d{1,4}(?:[,\.]\d{2,3})?)"/gi,
+
+    // Fallback patterns for plain decimal numbers (like 189.99)
+    /(\d{2,4}\.\d{2})(?!\d)/g,
+    /(\d{1,4}(?:,\d{3})*\.\d{2})(?!\d)/g,
   ];
 
   const foundPrices: { price: number; pattern: string }[] = [];
