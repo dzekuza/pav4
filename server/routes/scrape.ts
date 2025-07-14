@@ -192,10 +192,8 @@ function extractFromHtml(html: string): {
   }
 
   // Extract price using improved function
-  const domain = extractDomain(
-    html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[0] || "",
-  );
-  priceText = extractPriceFromSiteSpecificPatterns(html, domain);
+  // We'll get the domain from the URL passed to the main function
+  priceText = extractPriceFromSiteSpecificPatterns(html, "");
 
   // Fallback to basic patterns if site-specific extraction fails
   if (!priceText) {
