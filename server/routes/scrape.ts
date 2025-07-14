@@ -1642,6 +1642,73 @@ JSON:`;
   }
 }
 
+// Estimate price from product title when scraping fails
+function estimatePriceFromTitle(title: string): number {
+  const titleLower = title.toLowerCase();
+
+  // Gaming keyboards
+  if (
+    titleLower.includes("keyboard") &&
+    (titleLower.includes("gaming") || titleLower.includes("mechanical"))
+  ) {
+    if (titleLower.includes("logitech") && titleLower.includes("pro"))
+      return 150;
+    if (titleLower.includes("logitech")) return 100;
+    if (titleLower.includes("razer")) return 120;
+    if (titleLower.includes("corsair")) return 110;
+    return 80; // Generic gaming keyboard
+  }
+
+  // Gaming controllers
+  if (titleLower.includes("controller") || titleLower.includes("gamepad")) {
+    if (titleLower.includes("dualsense") || titleLower.includes("ps5"))
+      return 65;
+    if (titleLower.includes("xbox")) return 60;
+    return 50; // Generic controller
+  }
+
+  // Smartphones
+  if (titleLower.includes("iphone")) {
+    if (titleLower.includes("pro max")) return 1200;
+    if (titleLower.includes("pro")) return 1000;
+    return 800; // Standard iPhone
+  }
+
+  // Dishwashers
+  if (titleLower.includes("dishwasher") || titleLower.includes("indaplovė")) {
+    if (titleLower.includes("beko")) return 450;
+    return 400; // Generic dishwasher
+  }
+
+  // Headphones
+  if (titleLower.includes("headphone") || titleLower.includes("headset")) {
+    if (titleLower.includes("sony") && titleLower.includes("wh-1000"))
+      return 300;
+    if (titleLower.includes("bose")) return 250;
+    return 100; // Generic headphones
+  }
+
+  // Doorbells
+  if (titleLower.includes("doorbell") && titleLower.includes("ring")) {
+    return 100;
+  }
+
+  // Laptops
+  if (titleLower.includes("laptop") || titleLower.includes("macbook")) {
+    if (titleLower.includes("macbook pro")) return 2000;
+    if (titleLower.includes("macbook")) return 1200;
+    return 800; // Generic laptop
+  }
+
+  // Default fallback based on category hints
+  if (titleLower.includes("gaming")) return 100;
+  if (titleLower.includes("pro") || titleLower.includes("professional"))
+    return 150;
+
+  // Final fallback
+  return 50;
+}
+
 // Extract search keywords from product title with brand and model preservation
 function extractSearchKeywords(title: string): string {
   // Remove common e-commerce words and clean up title
