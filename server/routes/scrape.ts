@@ -1782,7 +1782,8 @@ function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
 }
 
 // Helper function to get realistic store URLs
-  let retailers: Array<{
+function getStoreUrl(storeName: string): string {
+  const storeUrls: { [key: string]: string } = {
     name: string;
     discount: number;
     condition: string;
