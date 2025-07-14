@@ -1769,9 +1769,17 @@ async function getPriceComparisons(
     // Fallback: return empty array instead of fake data
     console.log("⚠️ No real products found, returning empty comparison list");
     return [];
-  }
+    }
 }
-  const alternatives: PriceComparison[] = [];
+
+// Helper function to check if a store is local
+function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
+  const localStores = getLocalDealers(userLocation);
+  return localStores.some(dealer =>
+    dealer.name.toLowerCase().includes(storeName.toLowerCase()) ||
+    storeName.toLowerCase().includes(dealer.name.toLowerCase())
+  );
+}
 
   // Get local dealers first, then add global retailers
   let retailers: Array<{
