@@ -212,10 +212,10 @@ export function SearchInput({
 
   // Load history on component mount (only if enabled)
   useEffect(() => {
-    if (isSearchHistoryEnabled) {
+    if (isLocalSearchHistoryEnabled) {
       loadSearchHistory();
     }
-  }, [isSearchHistoryEnabled]);
+  }, [isLocalSearchHistoryEnabled]);
 
   // Click outside to close suggestions
   useEffect(() => {
