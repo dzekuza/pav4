@@ -516,7 +516,7 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
       }
     }
 
-    const { price, currency } = extractPrice(extracted.priceText);
+    const { price, currency } = extractPriceImproved(extracted.priceText);
     const domain = extractDomain(url);
 
     console.log("Extraction result:", {
