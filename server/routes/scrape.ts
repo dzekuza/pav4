@@ -19,6 +19,7 @@ import {
   extractPriceImproved,
   extractPriceFromSiteSpecificPatterns,
 } from "../price-utils";
+import { searchRealProducts } from "../real-product-search";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
