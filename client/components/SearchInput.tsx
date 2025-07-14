@@ -41,6 +41,35 @@ export function SearchInput({
     return `user_${navigator.userAgent.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "")}`;
   };
 
+  // Local storage search history functions
+  const getLocalSearchHistory = (): string[] => {
+    if (!isLocalSearchHistoryEnabled) return [];
+    try {
+      const stored = localStorage.getItem("pricehunt_search_history");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveToLocalHistory = (url: string) => {
+    if (!isLocalSearchHistoryEnabled || !url) return;
+    try {
+      const history = getLocalSearchHistory();
+      const newHistory = [url, ...history.filter((h) => h !== url)].slice(
+        0,
+        10,
+      ); // Keep last 10
+      localStorage.setItem(
+        "pricehunt_search_history",
+        JSON.stringify(newHistory),
+      );
+      setSuggestions(newHistory);
+    } catch {
+      // Silent fail
+    }
+  };
+
   // Load search history with complete error isolation
   const loadSearchHistory = async () => {
     // Return immediately if search history is disabled or environment doesn't support it
