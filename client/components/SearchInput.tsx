@@ -119,13 +119,12 @@ export function SearchInput({
     onSubmit(trimmedValue);
     setShowSuggestions(false);
 
-    // Save to history completely asynchronously in a separate task
-    // Use setTimeout to ensure it doesn't interfere with form submission
-    setTimeout(() => {
-      saveToHistory(trimmedValue).catch(() => {
-        // Completely silent
-      });
-    }, 0);
+    // Save to history in completely isolated way that can never affect main flow
+    try {
+      saveToHistory(trimmedValue);
+    } catch {
+      // Completely silent - should never happen but just in case
+    }
   };
 
   // Handle suggestion selection
