@@ -126,6 +126,18 @@ export function extractPriceImproved(text: string): {
     return { price: selectedPrice.price, currency: detectedCurrency };
   }
 
+  // Final safety net: try to parse as a simple decimal if no patterns matched
+  const simpleDecimalMatch = cleanText.match(/(\d+\.\d{2})/);
+  if (simpleDecimalMatch) {
+    const price = parseFloat(simpleDecimalMatch[1]);
+    if (price >= 1 && price <= 50000) {
+      console.log(
+        `Safety net: extracted simple decimal price: ${price} ${detectedCurrency}`,
+      );
+      return { price, currency: detectedCurrency };
+    }
+  }
+
   console.log("No valid price found in text:", cleanText);
   return { price: 0, currency: detectedCurrency };
 }
