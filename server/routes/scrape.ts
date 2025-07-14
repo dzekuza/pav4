@@ -1023,7 +1023,7 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
       ) {
         console.log("Gemini AI successfully extracted data:", aiExtracted);
 
-        const aiPrice = extractPrice(aiExtracted.price);
+        const aiPrice = extractPriceImproved(aiExtracted.price);
 
         // Only use AI result if it provides better data than what we have
         const hasValidPrice = aiPrice.price > 0;
