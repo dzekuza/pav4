@@ -1189,12 +1189,13 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
   const siteDomain = extractDomain(url);
 
+  // Enhanced headers with site-specific configurations
   const headers: Record<string, string> = {
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     Accept:
       "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Language": "en-US,en;q=0.9,de;q=0.8,lt;q=0.7",
     "Accept-Encoding": "gzip, deflate, br",
     Connection: "keep-alive",
     "Upgrade-Insecure-Requests": "1",
@@ -1203,7 +1204,20 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     "Sec-Fetch-Site": "none",
     "Sec-Fetch-User": "?1",
     "Cache-Control": "max-age=0",
+    DNT: "1",
   };
+
+  // Add site-specific headers
+  if (siteDomain.includes("ebay.de")) {
+    headers["Accept-Language"] = "de-DE,de;q=0.9,en;q=0.8";
+    headers["Referer"] = "https://www.ebay.de/";
+  } else if (siteDomain.includes("amazon.de")) {
+    headers["Accept-Language"] = "de-DE,de;q=0.9,en;q=0.8";
+    headers["Referer"] = "https://www.amazon.de/";
+  } else if (siteDomain.endsWith(".lt")) {
+    headers["Accept-Language"] = "lt-LT,lt;q=0.9,en;q=0.8";
+    headers["Referer"] = "https://www.google.lt/";
+  }
 
   const response = await fetch(url, {
     headers,
