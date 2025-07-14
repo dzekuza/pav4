@@ -1626,6 +1626,40 @@ function getStoreUrl(storeName: string): string {
   );
 }
 
+// Generate direct product URLs that are more specific to the actual product
+function generateDirectProductUrl(
+  storeName: string,
+  searchQuery: string,
+  originalUrl: string,
+): string {
+  const encodedQuery = encodeURIComponent(searchQuery);
+  const domain = extractDomain(originalUrl);
+
+  // Extract product identifiers from the original URL for better targeting
+  const productInfo = extractProductInfo(searchQuery, originalUrl);
+  const targetQuery = productInfo.specificQuery || searchQuery;
+  const encodedTargetQuery = encodeURIComponent(targetQuery);
+
+  switch (storeName) {
+    case "Amazon":
+      // Use Amazon's more specific search with brand and model filtering
+      return `https://www.amazon.com/s?k=${encodedTargetQuery}&rh=p_89%3A${encodeURIComponent(productInfo.brand || "")}&s=relevanceblender&ref=sr_st_relevanceblender`;
+    case "eBay":
+      // eBay with category-specific search and Buy It Now only
+      return `https://www.ebay.com/sch/i.html?_nkw=${encodedTargetQuery}&_sacat=0&LH_BIN=1&_sop=15&rt=nc`;
+    case "Walmart":
+      return `https://www.walmart.com/search?q=${encodedTargetQuery}&typeahead=${encodeURIComponent(productInfo.brand || "")}`;
+    case "Best Buy":
+      return `https://www.bestbuy.com/site/searchpage.jsp?st=${encodedTargetQuery}&_dyncharset=UTF-8&id=pcat17071&type=page&iht=y&usc=All+Categories&ks=960`;
+    case "Target":
+      return `https://www.target.com/s?searchTerm=${encodedTargetQuery}&category=0%7CAll%7Cmatchallpartial%7Call+categories&tref=typeahead%7Cterm%7C0%7C${encodeURIComponent(productInfo.brand || "")}`;
+    default:
+      // For local dealers and other stores, provide a more targeted search
+      const storeUrl = getStoreUrl(storeName);
+      return `${storeUrl}/search?q=${encodedTargetQuery}`;
+  }
+}
+
 // Generate retailer-specific search URLs with enhanced search parameters for better product matching
 function generateSearchUrl(storeName: string, searchQuery: string): string {
   const encodedQuery = encodeURIComponent(searchQuery);
