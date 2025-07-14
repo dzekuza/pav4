@@ -267,32 +267,34 @@ export function SearchInput({
       </form>
 
       {/* Suggestions Dropdown */}
-      {isSearchHistoryEnabled && showSuggestions && suggestions.length > 0 && (
-        <div
-          ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
-        >
-          <div className="p-2">
-            <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              Recent searches
+      {isLocalSearchHistoryEnabled &&
+        showSuggestions &&
+        suggestions.length > 0 && (
+          <div
+            ref={suggestionsRef}
+            className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+          >
+            <div className="p-2">
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                Recent searches
+              </div>
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSuggestionSelect(suggestion)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    index === focusedIndex
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                  }`}
+                >
+                  <div className="truncate">{suggestion}</div>
+                </button>
+              ))}
             </div>
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => handleSuggestionSelect(suggestion)}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
-                  index === focusedIndex
-                    ? "bg-accent text-accent-foreground"
-                    : ""
-                }`}
-              >
-                <div className="truncate">{suggestion}</div>
-              </button>
-            ))}
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
