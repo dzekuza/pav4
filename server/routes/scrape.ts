@@ -1420,8 +1420,17 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     headers["Referer"] = "https://www.google.com/";
   }
 
-  // Add human-like delay before request
-  const initialDelay = 500 + Math.random() * 1000; // Random delay 0.5-1.5 seconds
+  // Add human-like delay before request with site-specific timing
+  let initialDelay = 800 + Math.random() * 1200; // Random delay 0.8-2.0 seconds
+
+  // Longer delays for known protected sites
+  if (siteDomain.includes("varle.lt") || siteDomain.includes("pigu.lt")) {
+    initialDelay = 1500 + Math.random() * 2000; // 1.5-3.5 seconds for Lithuanian sites
+  }
+
+  console.log(
+    `Waiting ${initialDelay.toFixed(0)}ms before request to appear more human...`,
+  );
   await new Promise((resolve) => setTimeout(resolve, initialDelay));
 
   // Retry mechanism for HTTP requests with enhanced evasion
