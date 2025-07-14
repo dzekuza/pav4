@@ -24,6 +24,12 @@ export function SearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  // Disable search history features in production or cloud environments
+  const isSearchHistoryEnabled =
+    import.meta.env.DEV &&
+    import.meta.env.MODE !== "production" &&
+    typeof window !== "undefined";
+
   // Get user key for search history (IP-based simulation)
   const getUserKey = () => {
     // In a real app, this would be the user's IP or session ID
