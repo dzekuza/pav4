@@ -1550,7 +1550,11 @@ async function getPriceComparisons(
         price: altPrice,
         currency: retailer.currency || originalProduct.currency,
         image: originalProduct.image,
-        url: generateSearchUrl(retailer.name, searchQuery),
+        url: generateDirectProductUrl(
+          retailer.name,
+          searchQuery,
+          originalProduct.url,
+        ),
         store: retailer.name,
         availability: `${stockStatus}${!inStock ? "" : ` - ${retailer.condition}`}`,
         rating: rating,
