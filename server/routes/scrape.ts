@@ -195,7 +195,7 @@ function extractFromHtml(
   }
 
   // Extract price using improved function
-  priceText = extractPriceFromSiteSpecificPatterns(html, domain);
+  let priceText = extractPriceFromSiteSpecificPatterns(html, domain);
 
   // Fallback to basic patterns if site-specific extraction fails
   if (!priceText) {
