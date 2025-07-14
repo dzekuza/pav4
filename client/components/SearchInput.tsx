@@ -24,11 +24,8 @@ export function SearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Disable remote search history features in production or cloud environments
-  const isRemoteSearchHistoryEnabled =
-    import.meta.env.DEV &&
-    import.meta.env.MODE !== "production" &&
-    typeof window !== "undefined";
+  // Completely disable remote search history to prevent fetch errors
+  const isRemoteSearchHistoryEnabled = false; // Disabled due to CORS/network issues in production
 
   // Use localStorage for basic search history (always enabled)
   const isLocalSearchHistoryEnabled =
