@@ -19,7 +19,6 @@ import {
   extractPriceImproved,
   extractPriceFromSiteSpecificPatterns,
 } from "../price-utils";
-import { searchRealProducts } from "../real-product-search";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
@@ -1725,65 +1724,26 @@ function extractSearchKeywords(title: string): string {
   return cleanTitle;
 }
 
-// Search for real products and generate comparisons
+// Generate comprehensive price alternatives like dupe.com
 async function getPriceComparisons(
   originalProduct: ProductData,
   userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
-  console.log("🔍 Searching for real products to compare:", searchQuery);
+  console.log("Generating comprehensive price alternatives for:", searchQuery);
   console.log("User location:", userLocation);
 
-  try {
-    // Search for real products on actual sites
-    const realProducts = await searchRealProducts(searchQuery, originalProduct.price);
-    console.log(`✅ Found ${realProducts.length} real products for comparison`);
+  // Use original price or estimate a reasonable price if extraction failed
+  let basePrice = originalProduct.price;
+  if (basePrice === 0) {
+    // Estimate price based on product category/title
+    basePrice = estimatePriceFromTitle(originalProduct.title);
+    console.log(`Original price was 0, estimated base price: €${basePrice}`);
+  }
+  const alternatives: PriceComparison[] = [];
 
-    // Convert search results to price comparisons
-    const comparisons: PriceComparison[] = realProducts.map((product, index) => ({
-      title: product.title,
-      price: product.price,
-      currency: product.currency,
-      image: product.image,
-      url: product.url,
-      store: product.store,
-      availability: product.inStock ? "In stock" : "Out of stock",
-      rating: product.rating || 4.2 + Math.random() * 0.6,
-      reviews: product.reviews || 100 + Math.floor(Math.random() * 500),
-      inStock: product.inStock !== false,
-      condition: product.condition || "New",
-      verified: true,
-      position: index + 1,
-      isLocal: userLocation ? isLocalStore(product.store, userLocation) : false,
-    }));
-
-    // Sort by price (lowest first)
-    comparisons.sort((a, b) => a.price - b.price);
-
-    console.log(`🎯 Generated ${comparisons.length} real product comparisons`);
-    return comparisons;
-
-  } catch (error) {
-    console.error("❌ Real product search failed:", error);
-
-    // Fallback: return empty array instead of fake data
-    console.log("⚠️ No real products found, returning empty comparison list");
-    return [];
-    }
-}
-
-// Helper function to check if a store is local
-function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
-  const localStores = getLocalDealers(userLocation);
-  return localStores.some(dealer =>
-    dealer.name.toLowerCase().includes(storeName.toLowerCase()) ||
-    storeName.toLowerCase().includes(dealer.name.toLowerCase())
-  );
-}
-
-// Helper function to get realistic store URLs
-function getStoreUrl(storeName: string): string {
-  const storeUrls: { [key: string]: string } = {
+  // Get local dealers first, then add global retailers
+  let retailers: Array<{
     name: string;
     discount: number;
     condition: string;
