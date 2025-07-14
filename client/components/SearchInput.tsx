@@ -72,8 +72,16 @@ export function SearchInput({
 
   // Load search history with complete error isolation
   const loadSearchHistory = async () => {
-    // Return immediately if search history is disabled or environment doesn't support it
-    if (!isSearchHistoryEnabled || typeof fetch === "undefined") {
+    // Try localStorage first (always available)
+    if (isLocalSearchHistoryEnabled) {
+      const localHistory = getLocalSearchHistory();
+      if (localHistory.length > 0) {
+        setSuggestions(localHistory);
+      }
+    }
+
+    // Return immediately if remote search history is disabled or environment doesn't support it
+    if (!isRemoteSearchHistoryEnabled || typeof fetch === "undefined") {
       return;
     }
 
