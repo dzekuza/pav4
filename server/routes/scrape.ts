@@ -1666,7 +1666,13 @@ async function getPriceComparisons(
   console.log("Generating comprehensive price alternatives for:", searchQuery);
   console.log("User location:", userLocation);
 
-  const basePrice = originalProduct.price;
+  // Use original price or estimate a reasonable price if extraction failed
+  let basePrice = originalProduct.price;
+  if (basePrice === 0) {
+    // Estimate price based on product category/title
+    basePrice = estimatePriceFromTitle(originalProduct.title);
+    console.log(`Original price was 0, estimated base price: €${basePrice}`);
+  }
   const alternatives: PriceComparison[] = [];
 
   // Get local dealers first, then add global retailers
