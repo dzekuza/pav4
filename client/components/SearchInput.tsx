@@ -31,47 +31,44 @@ export function SearchInput({
     return `user_${navigator.userAgent.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "")}`;
   };
 
-  // Load search history with robust error handling
+  // Load search history with complete error isolation
   const loadSearchHistory = async () => {
-    try {
-      // Check if fetch is available
-      if (typeof fetch === "undefined") {
-        return;
-      }
-
-      // Only use legacy route since users are not authenticated by default
-      const userKey = getUserKey();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-      try {
-        const response = await fetch(
-          `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
-          { signal: controller.signal },
-        );
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.history && Array.isArray(data.history)) {
-            setSuggestions(data.history);
-          }
-        } else {
-          console.warn(
-            `Search history load failed: ${response.status} ${response.statusText}`,
-          );
-        }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        // Don't log fetch errors as they're not critical, but catch specific errors
-        if (fetchError instanceof Error && fetchError.name !== "AbortError") {
-          console.warn("Search history load failed:", fetchError.message);
-        }
-      }
-    } catch (error) {
-      // Completely silent - search history is not critical functionality
+    // Return immediately in production or if environment doesn't support it
+    if (process.env.NODE_ENV === "production" || typeof fetch === "undefined") {
+      return;
     }
+
+    // Use setTimeout to completely decouple from main thread
+    setTimeout(async () => {
+      try {
+        const userKey = getUserKey();
+        const controller = new AbortController();
+
+        // Very short timeout to not affect UX
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+        try {
+          const response = await fetch(
+            `/api/legacy/search-history?userKey=${encodeURIComponent(userKey)}`,
+            { signal: controller.signal },
+          );
+
+          clearTimeout(timeoutId);
+
+          if (response && response.ok) {
+            const data = await response.json();
+            if (data && data.history && Array.isArray(data.history)) {
+              setSuggestions(data.history);
+            }
+          }
+        } catch {
+          clearTimeout(timeoutId);
+          // Completely silent - never throw or log
+        }
+      } catch {
+        // Completely silent - never throw or log
+      }
+    }, 0);
   };
 
   // Save to search history with complete error isolation
