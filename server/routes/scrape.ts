@@ -1663,13 +1663,19 @@ async function getPriceComparisons(
   userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
-  console.log("Generating comprehensive price alternatives for:", searchQuery);
+  console.log(
+    "⚠️ Fake comparison system disabled - no longer generating fake data",
+  );
+  console.log("Search query:", searchQuery);
   console.log("User location:", userLocation);
 
-  const basePrice = originalProduct.price;
-  const alternatives: PriceComparison[] = [];
+  // DISABLED: Return empty array instead of fake comparison data
+  // The old system was generating fake URLs that don't work
+  // TODO: Implement real product search system
+    return [];
+}
 
-  // Get local dealers first, then add global retailers
+// Helper function to get realistic store URLs
   let retailers: Array<{
     name: string;
     discount: number;
@@ -1921,10 +1927,13 @@ async function getPriceComparisons(
     }
   }
 
-  console.log(
-    `Generated ${alternatives.length} comprehensive price alternatives`,
+    console.log(
+    `⚠️ FAKE DATA SYSTEM DISABLED: Generated ${alternatives.length} fake alternatives with broken URLs - system needs real product search implementation`,
   );
-  return alternatives;
+
+  // TEMPORARY: Return empty array to disable fake comparisons
+  // TODO: Implement real product search from Amazon, eBay, local dealers
+  return [];
 }
 
 // Helper function to get realistic store URLs
