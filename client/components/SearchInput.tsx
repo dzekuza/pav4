@@ -198,7 +198,7 @@ export function SearchInput({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onFocus={() => {
-                if (suggestions.length > 0) {
+                if (isSearchHistoryEnabled && suggestions.length > 0) {
                   setShowSuggestions(true);
                 }
               }}
