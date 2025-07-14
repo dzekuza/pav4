@@ -1781,7 +1781,7 @@ function isLocalStore(storeName: string, userLocation: LocationInfo): boolean {
   );
 }
 
-  // Get local dealers first, then add global retailers
+// Helper function to get realistic store URLs
   let retailers: Array<{
     name: string;
     discount: number;
