@@ -1464,6 +1464,10 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
       if (response.ok) {
         console.log(`HTTP request succeeded with status ${response.status}`);
+        console.log(
+          `Response headers:`,
+          Object.fromEntries(response.headers.entries()),
+        );
         break; // Success, exit retry loop
       } else if (response.status === 403 || response.status === 429) {
         // Rate limiting or forbidden, wait longer between retries
