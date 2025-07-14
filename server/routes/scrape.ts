@@ -251,7 +251,7 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
 
     const siteDomain = extractDomain(url);
 
-    // Launch Puppeteer browser
+    // Launch Puppeteer browser with more robust configuration
     browser = await puppeteer.launch({
       headless: true,
       args: [
@@ -263,7 +263,22 @@ async function scrapeWithPuppeteer(url: string): Promise<ProductData> {
         "--no-zygote",
         "--single-process", // For cloud environments
         "--disable-gpu",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-default-apps",
+        "--disable-extensions",
+        "--disable-sync",
+        "--disable-translate",
+        "--hide-scrollbars",
+        "--mute-audio",
+        "--no-default-browser-check",
+        "--no-pings",
+        "--memory-pressure-off",
+        "--max_old_space_size=4096",
       ],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     });
 
     page = await browser.newPage();
