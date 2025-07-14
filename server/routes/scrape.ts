@@ -1663,10 +1663,16 @@ async function getPriceComparisons(
   userLocation?: LocationInfo,
 ): Promise<PriceComparison[]> {
   const searchQuery = extractSearchKeywords(originalProduct.title);
-  console.log("Generating comprehensive price alternatives for:", searchQuery);
+  console.log(
+    "⚠️ Fake comparison system disabled - no longer generating fake data",
+  );
+  console.log("Search query:", searchQuery);
   console.log("User location:", userLocation);
 
-  const basePrice = originalProduct.price;
+  // DISABLED: Return empty array instead of fake comparison data
+  // The old system was generating fake URLs that don't work
+  // TODO: Implement real product search system
+  return [];
   const alternatives: PriceComparison[] = [];
 
   // Get local dealers first, then add global retailers
