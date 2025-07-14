@@ -1219,14 +1219,57 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
     headers["Referer"] = "https://www.google.lt/";
   }
 
-  const response = await fetch(url, {
-    headers,
-    redirect: "follow",
-    signal: AbortSignal.timeout(30000),
-  });
+  // Retry mechanism for HTTP requests
+  let response: Response | null = null;
+  let lastError: Error | null = null;
+  const maxRetries = 3;
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`HTTP scraping attempt ${attempt}/${maxRetries} for ${url}`);
+
+      response = await fetch(url, {
+        headers,
+        redirect: "follow",
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (response.ok) {
+        break; // Success, exit retry loop
+      } else if (response.status === 403 || response.status === 429) {
+        // Rate limiting or forbidden, wait longer between retries
+        if (attempt < maxRetries) {
+          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+          console.log(
+            `HTTP ${response.status}, waiting ${waitTime}ms before retry...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+        lastError = new Error(
+          `HTTP ${response.status}: ${response.statusText}`,
+        );
+      } else {
+        lastError = new Error(
+          `HTTP ${response.status}: ${response.statusText}`,
+        );
+        break; // Don't retry for other HTTP errors
+      }
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error("Unknown fetch error");
+      if (attempt < maxRetries) {
+        const waitTime = 1000 * attempt; // Linear backoff for network errors
+        console.log(
+          `Network error, waiting ${waitTime}ms before retry:`,
+          lastError.message,
+        );
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  if (!response || !response.ok) {
+    throw lastError || new Error("HTTP request failed after retries");
   }
 
   const html = await response.text();
