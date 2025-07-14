@@ -63,6 +63,9 @@ export function extractPriceImproved(text: string): {
   // Try each pattern and collect all valid prices
   for (const pattern of pricePatterns) {
     const matches = Array.from(cleanText.matchAll(pattern));
+    console.log(
+      `Trying pattern: ${pattern.source} - Found ${matches.length} matches`,
+    );
     for (const match of matches) {
       if (match[1]) {
         const rawPrice = match[1];
