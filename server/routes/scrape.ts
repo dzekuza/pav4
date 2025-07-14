@@ -1203,7 +1203,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
 
   const html = await response.text();
   const extracted = extractFromHtml(html);
-  const { price, currency } = extractPrice(extracted.priceText);
+  const { price, currency } = extractPriceImproved(extracted.priceText);
   const domain = extractDomain(url);
 
   return {
