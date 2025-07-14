@@ -15,6 +15,10 @@ import {
   detectLocationFromHeaders,
   detectLocationFromIP,
 } from "../services/location";
+import {
+  extractPriceImproved,
+  extractPriceFromSiteSpecificPatterns,
+} from "../price-utils";
 
 // Extract domain from URL
 function extractDomain(url: string): string {
