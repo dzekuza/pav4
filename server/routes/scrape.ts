@@ -1441,6 +1441,7 @@ async function scrapeWithHttp(url: string): Promise<ProductData> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`HTTP scraping attempt ${attempt}/${maxRetries} for ${url}`);
+      console.log(`Request headers:`, JSON.stringify(headers, null, 2));
 
       // Add different User-Agent for each retry
       if (attempt > 1) {
