@@ -1723,6 +1723,98 @@ function generateSearchUrl(storeName: string, searchQuery: string): string {
   }
 }
 
+// Extract detailed product information for better URL targeting
+function extractProductInfo(
+  title: string,
+  originalUrl: string,
+): {
+  brand?: string;
+  model?: string;
+  category?: string;
+  specificQuery: string;
+} {
+  const domain = extractDomain(originalUrl);
+  const keywords = extractProductKeywords(title);
+
+  // Build a more specific query based on the product title and source
+  let specificQuery = title;
+
+  // Clean up the title for better search results
+  specificQuery = specificQuery
+    .replace(/\s*-\s*(Used|New|Refurbished|Open Box).*$/i, "") // Remove condition info
+    .replace(/\s*\|\s*[^|]*$/i, "") // Remove site name after pipe
+    .replace(/Amazon\.com:\s*/i, "") // Remove Amazon prefix
+    .replace(/Buy\s+/i, "") // Remove "Buy" prefix
+    .trim();
+
+  // Enhance query based on source domain
+  if (domain.includes("amazon")) {
+    // Amazon products often have detailed titles, use them as-is
+    specificQuery = specificQuery.replace(/Amazon's Choice\s*/i, "");
+  } else if (domain.includes("ebay")) {
+    // eBay titles are usually descriptive, keep them
+    specificQuery = specificQuery.replace(/eBay\s*/i, "");
+  } else if (domain.includes("apple")) {
+    // Apple products benefit from including "Apple" in search
+    if (
+      !specificQuery.toLowerCase().includes("apple") &&
+      !specificQuery.toLowerCase().includes("iphone") &&
+      !specificQuery.toLowerCase().includes("ipad")
+    ) {
+      specificQuery = `Apple ${specificQuery}`;
+    }
+  }
+
+  // Identify category for better targeting
+  let category = "";
+  const categoryKeywords = {
+    electronics: [
+      "iphone",
+      "ipad",
+      "macbook",
+      "laptop",
+      "phone",
+      "tablet",
+      "computer",
+      "monitor",
+      "keyboard",
+      "mouse",
+    ],
+    gaming: [
+      "playstation",
+      "xbox",
+      "nintendo",
+      "ps5",
+      "ps4",
+      "controller",
+      "gamepad",
+      "console",
+    ],
+    appliances: [
+      "dishwasher",
+      "washing machine",
+      "refrigerator",
+      "oven",
+      "microwave",
+    ],
+    audio: ["headphones", "speaker", "earbuds", "soundbar", "amplifier"],
+  };
+
+  for (const [cat, words] of Object.entries(categoryKeywords)) {
+    if (words.some((word) => specificQuery.toLowerCase().includes(word))) {
+      category = cat;
+      break;
+    }
+  }
+
+  return {
+    brand: keywords.brand,
+    model: keywords.model,
+    category,
+    specificQuery,
+  };
+}
+
 // Extract brand and model information from product title for better search matching
 function extractProductKeywords(title: string): {
   brand?: string;
