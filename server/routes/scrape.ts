@@ -191,58 +191,23 @@ function extractFromHtml(html: string): {
     }
   }
 
-  // Extract price with comprehensive patterns
-  let priceText = "";
-  const pricePatterns = [
-    // EUR-specific patterns first (prioritize European sites)
-    /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)</i,
-    /data-price="([^"]*€[^"]*)"/i,
-    /"price"\s*:\s*"([^"]*€[^"]*)"/i,
-    /€\s*(\d{1,4}(?:[,.\s]\d{2,3})*)/i,
-    /(\d{1,4}(?:[,.\s]\d{2,3})*)\s*€/i,
+  // Extract price using improved function
+  const domain = extractDomain(
+    html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[0] || "",
+  );
+  priceText = extractPriceFromSiteSpecificPatterns(html, domain);
 
-    // Standard meta tags
-    /<meta property="product:price:amount" content="([^"]+)"/i,
-    /<meta itemprop="price" content="([^"]+)"/i,
-    /<meta name="price" content="([^"]+)"/i,
-    /data-price="([^"]+)"/i,
+  // Fallback to basic patterns if site-specific extraction fails
+  if (!priceText) {
+    const pricePatterns = [
+      /<meta property="product:price:amount" content="([^"]+)"/i,
+      /<meta itemprop="price" content="([^"]+)"/i,
+      /data-price="([^"]+)"/i,
+      /"price"\s*:\s*"([^"]+)"/i,
+      /class="[^"]*price[^"]*"[^>]*>([^<]*[€$£][^<]*)/i,
+    ];
 
-    // Apple-specific price patterns
-    /"dimensionPriceFrom"\s*:\s*"([^"]+)"/i,
-    /"dimensionPrice"\s*:\s*"([^"]+)"/i,
-    /"fromPrice"\s*:\s*"([^"]+)"/i,
-    /"currentPrice"\s*:\s*"([^"]+)"/i,
-    /data-analytics-activitymap-region-id="[^"]*price[^"]*"[^>]*>([^<]*[\$€][^<]*)</i,
-
-    // JSON price patterns
-    /"price"\s*:\s*"?([^",}]+)"?/i,
-    /"amount"\s*:\s*([^,}]+)/i,
-    /"value"\s*:\s*(\d+(?:\.\d+)?)/i,
-
-    // HTML price patterns
-    /class="[^"]*price[^"]*"[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-    /data-price[^>]*>([^<]*[\$£€¥₹][^<]*)</i,
-
-    // European price patterns (fallback)
-    /From\s*€(\d+(?:,\d{3})*)/i,
-    /Starting\s*at\s*€(\d+(?:,\d{3})*)/i,
-    /Price:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i,
-    /Kaina:\s*€?(\d+(?:[,.\s]\d{2,3})*)/i, // Lithuanian "Price"
-
-    // Global price patterns (fallback)
-    /From\s*\$(\d+(?:,\d{3})*)/i,
-    /Starting\s*at\s*\$(\d+(?:,\d{3})*)/i,
-    /[\$£€¥₹]\s*\d+(?:,\d{3})*(?:\.\d{2})?/g,
-  ];
-
-  for (const pattern of pricePatterns) {
-    if (pattern.global) {
-      const matches = html.match(pattern);
-      if (matches && matches[0]) {
-        priceText = matches[0];
-        break;
-      }
-    } else {
+    for (const pattern of pricePatterns) {
       const match = html.match(pattern);
       if (match && match[1]) {
         priceText = match[1].trim();
