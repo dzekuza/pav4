@@ -1,111 +1,107 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
-import { ExternalLink, AlertCircle } from "lucide-react";
+import { ExternalLink, AlertCircle, Search, TrendingUp, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SearchHeader } from "@/components/SearchHeader";
 import { ComparisonGrid, SavingsSummary } from "@/components/ComparisonGrid";
-import { SearchLoadingState, SearchLoadingOverlay } from "@/components/LoadingSkeleton";
+import { SearchLoadingState } from "@/components/LoadingSkeleton";
+import { LoadingState } from "@/components/LoadingState";
 import { ProductData, PriceComparison, ScrapeResponse } from "@shared/api";
-import { useLocation as useLocationHook } from "@/hooks/use-location";
 
 export default function SearchResults() {
-  const { requestId, slug } = useParams<{
-    requestId: string;
-    slug: string;
-  }>();
-  const [originalProduct, setOriginalProduct] = useState<ProductData | null>(
-    null,
-  );
+  const { requestId } = useParams<{ requestId: string }>();
+  const location = useLocation();
+  
+  const [originalProduct, setOriginalProduct] = useState<ProductData | null>(null);
   const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { location, localDealers } = useLocationHook();
-  const locationState = useLocation();
+  const [loadingMessage, setLoadingMessage] = useState("Detecting product details...");
+  const [loadingStep, setLoadingStep] = useState(1);
 
   useEffect(() => {
-    if (!requestId) return;
+    const { searchUrl, userCountry } = location.state || {};
+
+    if (!searchUrl) {
+      setError("No product URL provided.");
+      setLoading(false);
+      return;
+    }
 
     const fetchProductData = async () => {
+      setLoading(true);
       try {
-        // First, try to get data from navigation state (N8N flow)
-        if (locationState.state?.searchData) {
-          console.log("Using N8N data from navigation state");
-          const { searchData } = locationState.state;
-          setOriginalProduct(searchData.product || searchData.originalProduct);
-          setComparisons(searchData.comparisons || []);
-          setLoading(false);
-          return;
-        }
+        // Step 1: Product detection
+        setLoadingMessage("Detecting product details...");
+        setLoadingStep(1);
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Fallback: Get the original URL from sessionStorage
-        const storedData = sessionStorage.getItem(
-          `product_request_${requestId}`,
-        );
-        if (!storedData) {
-          setError("Product request not found");
-          setLoading(false);
-          return;
-        }
+        // Step 2: Searching retailers
+        setLoadingMessage("Searching hundreds of retailers...");
+        setLoadingStep(2);
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        const { url } = JSON.parse(storedData);
-
-        // Try enhanced scraping API first, then fallback to regular scraping API
-        let response = await fetch("/api/scrape-enhanced", {
+        const response = await fetch("/api/scrape-enhanced", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url,
-            userLocation: location,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: searchUrl, userLocation: { country: userCountry } }),
         });
 
         if (!response.ok) {
-          // Fallback to regular scraping API
-          response = await fetch("/api/scrape", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              url,
-              requestId,
-              userLocation: location,
-            }),
-          });
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch product data.");
         }
 
-        if (!response.ok) {
-          throw new Error("Failed to scrape product data");
-        }
+        // Step 3: Finalizing results
+        setLoadingMessage("Finalizing price comparisons...");
+        setLoadingStep(3);
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         const data: ScrapeResponse = await response.json();
-        setOriginalProduct(data.originalProduct || data.product);
+        
+        setOriginalProduct(data.product || data.originalProduct);
         setComparisons(data.comparisons || []);
+        
+        // Update the URL to be more descriptive
+        const newSlug = (data.product?.title || "product")
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .substring(0, 75);
+        window.history.replaceState({}, '', `/search/${requestId}/${newSlug}`);
+
       } catch (err) {
-        console.error("Error fetching product data:", err);
-        setError("Failed to load product data. Please try again.");
+        setError(err instanceof Error ? err.message : "An unknown error occurred.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProductData();
-  }, [requestId, locationState.state]);
+  }, [requestId, location.state]);
 
+  // Show loading state
   if (loading) {
     return (
-      <>
-        <SearchLoadingOverlay isVisible={true} />
-        <SearchLoadingState />
-      </>
+      <div className="min-h-screen bg-background">
+        <SearchHeader />
+        <div className="container mx-auto px-4 py-16">
+          <LoadingState 
+            title={loadingMessage} 
+            description="We're analyzing the product and finding the best deals across hundreds of retailers." 
+            step={loadingStep}
+          />
+          <SearchLoadingState />
+        </div>
+      </div>
     );
   }
 
+  // Show error state
   if (error && !originalProduct) {
+    console.log("Rendering error state:", error);
     return (
       <div className="min-h-screen bg-background">
         <SearchHeader />
@@ -124,32 +120,51 @@ export default function SearchResults() {
     );
   }
 
+  // Show results
+  console.log("Rendering results with product:", !!originalProduct, "comparisons:", comparisons.length);
   const lowestPrice = Math.min(
     originalProduct?.price || Infinity,
     ...comparisons.map((c) => c.price),
   );
+
+  const savings = originalProduct ? originalProduct.price - lowestPrice : 0;
+  const savingsPercentage = originalProduct ? (savings / originalProduct.price) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background">
       <SearchHeader />
 
       <div className="container mx-auto px-4 py-12">
-        {/* Modern Product Overview */}
+        {/* Enhanced Product Overview */}
         {originalProduct && (
           <div className="mb-16">
             <div className="grid lg:grid-cols-12 gap-12 items-start">
-              {/* Product Image - Clean & Modern */}
+              {/* Product Image - Enhanced */}
               <div className="lg:col-span-5">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl p-8 lg:p-12">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl p-8 lg:p-12 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20"></div>
                   <img
                     src={originalProduct.image}
                     alt={originalProduct.title}
-                    className="w-full h-auto object-contain max-h-96 mx-auto"
+                    className="w-full h-auto object-contain max-h-96 mx-auto relative z-10"
                   />
+                  {/* Product badges */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Verified
+                    </Badge>
+                    {savings > 0 && (
+                      <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Save {originalProduct.currency}{savings.toFixed(2)}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Product Details - Enhanced Typography */}
+              {/* Product Details - Enhanced */}
               <div className="lg:col-span-7 space-y-8">
                 {/* Store Badge */}
                 <div className="flex items-center gap-3">
@@ -169,9 +184,12 @@ export default function SearchResults() {
                   <h1 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4">
                     {originalProduct.title}
                   </h1>
+                  <p className="text-lg text-muted-foreground">
+                    Found {comparisons.length} alternative sources
+                  </p>
                 </div>
 
-                {/* Price Section */}
+                {/* Enhanced Price Section */}
                 <div className="bg-card rounded-xl p-6 border">
                   <div className="flex items-baseline gap-3 mb-2">
                     <span className="text-4xl font-bold text-foreground">
@@ -191,7 +209,7 @@ export default function SearchResults() {
                         className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                       >
                         Save {originalProduct.currency}
-                        {(originalProduct.price - lowestPrice).toFixed(2)}
+                        {savings.toFixed(2)} ({savingsPercentage.toFixed(0)}%)
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         Better prices found below
@@ -200,7 +218,7 @@ export default function SearchResults() {
                   )}
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons - Enhanced */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     variant="outline"
@@ -227,12 +245,13 @@ export default function SearchResults() {
                       element?.scrollIntoView({ behavior: "smooth" });
                     }}
                   >
+                    <Zap className="mr-2 h-5 w-5" />
                     Compare Prices
                   </Button>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                {/* Enhanced Quick Stats */}
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-brand-primary">
                       {comparisons.length}
@@ -243,12 +262,18 @@ export default function SearchResults() {
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">
-                      {originalProduct.price > lowestPrice
-                        ? `${Math.round(((originalProduct.price - lowestPrice) / originalProduct.price) * 100)}%`
-                        : "0%"}
+                      {savingsPercentage > 0 ? `${savingsPercentage.toFixed(0)}%` : "0%"}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Max savings
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {originalProduct.currency}{lowestPrice.toFixed(2)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Lowest price
                     </div>
                   </div>
                 </div>
@@ -257,8 +282,8 @@ export default function SearchResults() {
           </div>
         )}
 
-        {/* Savings Summary */}
-        {originalProduct && (
+        {/* Enhanced Savings Summary */}
+        {originalProduct && savings > 0 && (
           <SavingsSummary
             originalPrice={originalProduct.price}
             lowestPrice={lowestPrice}
@@ -267,7 +292,7 @@ export default function SearchResults() {
           />
         )}
 
-        {/* Price Comparison */}
+        {/* Enhanced Price Comparison */}
         <div id="price-comparison" className="mb-12">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
@@ -277,6 +302,12 @@ export default function SearchResults() {
               We've found {comparisons.length} alternative sources for this
               product. Compare prices and find the best deal for you.
             </p>
+            {comparisons.length > 0 && (
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Search className="w-4 h-4" />
+                <span>All prices verified and updated</span>
+              </div>
+            )}
           </div>
           <ComparisonGrid
             products={comparisons

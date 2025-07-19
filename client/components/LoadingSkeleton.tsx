@@ -82,15 +82,15 @@ export function SearchLoadingState() {
               <span className="text-sm">Extracting product details...</span>
             </div>
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:0.5s]"></div>
               <span className="text-sm">Searching across retailers...</span>
             </div>
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:1s]"></div>
               <span className="text-sm">Comparing prices...</span>
             </div>
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:1.5s]"></div>
               <span className="text-sm">Preparing results...</span>
             </div>
           </div>
@@ -101,8 +101,15 @@ export function SearchLoadingState() {
 }
 
 export function SearchLoadingOverlay({ isVisible }: { isVisible: boolean }) {
-  if (!isVisible) return null;
+  console.log("SearchLoadingOverlay render - isVisible:", isVisible);
+  
+  if (!isVisible) {
+    console.log("SearchLoadingOverlay not visible, returning null");
+    return null;
+  }
 
+  console.log("SearchLoadingOverlay visible, rendering overlay");
+  
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-background border rounded-2xl p-8 shadow-2xl max-w-md mx-4">
@@ -123,13 +130,13 @@ export function SearchLoadingOverlay({ isVisible }: { isVisible: boolean }) {
           {/* Progress dots */}
           <div className="flex justify-center gap-2 mb-6">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:0.2s]"></div>
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:0.4s]"></div>
           </div>
           
           {/* Animated progress bar */}
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+            <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse w-3/5"></div>
           </div>
           
           <p className="text-xs text-muted-foreground mt-4">

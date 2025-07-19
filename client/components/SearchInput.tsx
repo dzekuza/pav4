@@ -276,6 +276,7 @@ export function SearchInput({
               }}
               onKeyDown={handleKeyDown}
               className="pl-10 border-0 focus-visible:ring-0 h-12 text-base"
+              disabled={isLoading}
             />
           </div>
           <Button
