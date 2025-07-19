@@ -110,9 +110,113 @@ async function searchExactProductModel(productModel: string, productTitle: strin
     
     if (!response.ok) {
       console.error(`SearchAPI request failed: ${response.status} ${response.statusText}`);
+      
+      // Try to get error details from response
+      let errorDetails = "";
+      try {
+        const errorData = await response.json();
+        errorDetails = errorData.error || errorData.message || "";
+      } catch (e) {
+        errorDetails = "Could not parse error response";
+      }
+      
+      console.error(`SearchAPI error details: ${errorDetails}`);
+      
       if (response.status === 401) {
         console.error("SearchAPI key is invalid or expired. Please get a new key from https://www.searchapi.io/");
+      } else if (response.status === 400) {
+        console.error("SearchAPI request was malformed. Check country code and parameters.");
+        
+        // Try fallback to US if the original country code failed
+        if (countryCode !== 'us') {
+          console.log("Trying fallback to US country code...");
+          const fallbackUrl = `https://www.searchapi.io/api/v1/search?engine=google_shopping&q=${encodeURIComponent(searchQuery)}&gl=us&api_key=${SEARCH_API_KEY}`;
+          const fallbackResponse = await fetch(fallbackUrl);
+          
+          if (fallbackResponse.ok) {
+            console.log("Fallback to US country code successful");
+            const fallbackData = await fallbackResponse.json();
+            // Process the fallback data
+            let shoppingResults = fallbackData.shopping_ads || fallbackData.shopping_results || fallbackData.inline_shopping || [];
+            
+            // Also check for knowledge graph shopping offers
+            const knowledgeGraph = fallbackData.knowledge_graph;
+            if (knowledgeGraph && knowledgeGraph.offers) {
+              console.log(`Found ${knowledgeGraph.offers.length} knowledge graph offers from fallback`);
+              shoppingResults.push(...knowledgeGraph.offers);
+            }
+            
+            // Convert SearchAPI results to PriceComparison format
+            const comparisons: PriceComparison[] = shoppingResults.slice(0, 10).map((result: any) => {
+              // Extract price from SearchAPI result
+              let price = 0;
+              let currency = "€";
+              
+              if (result.price) {
+                // Handle different price formats from SearchAPI
+                const priceText = result.price.toString();
+                const priceMatch = priceText.match(/(\d+(?:[.,]\d{2})?)/);
+                if (priceMatch) {
+                  price = parseFloat(priceMatch[1].replace(',', '.'));
+                }
+                
+                // Extract currency if available
+                if (priceText.includes('€')) currency = "€";
+                else if (priceText.includes('$')) currency = "$";
+                else if (priceText.includes('£')) currency = "£";
+              }
+              
+              // Handle extracted_price field (common in SearchAPI)
+              if (result.extracted_price && !price) {
+                price = result.extracted_price;
+              }
+              
+              // Extract store name from seller or merchant
+              const store = result.seller || result.merchant?.name || "Unknown Store";
+              
+              // Extract the actual retailer URL instead of Google Shopping wrapper
+              const productUrl = extractDirectRetailerUrl(result, productTitle);
+              
+              // Generate assessment based on price comparison
+              const assessment = generateAssessment(price, actualPrice || 0, store);
+              
+              // Log detailed information about each result
+              console.log(`Processing fallback result for ${store}:`);
+              console.log(`  Title: ${result.title || 'N/A'}`);
+              console.log(`  Price: ${price} ${currency}`);
+              console.log(`  Original URL fields:`, {
+                link: result.link,
+                product_link: result.product_link,
+                source_url: result.source_url,
+                merchant_url: result.merchant?.url,
+                seller_url: result.seller_url,
+                direct_url: result.direct_url,
+                product_url: result.product_url
+              });
+              console.log(`  Extracted URL: ${productUrl}`);
+              
+              return {
+                title: result.title || productTitle,
+                store: store,
+                price: price,
+                currency: currency,
+                url: productUrl,
+                image: result.image || result.thumbnail || "/placeholder.svg",
+                condition: "New",
+                assessment: assessment
+              };
+            });
+            
+            console.log(`Converted ${comparisons.length} fallback SearchAPI results to PriceComparison format`);
+            return comparisons;
+          } else {
+            console.error("Fallback to US country code also failed");
+          }
+        }
+      } else if (response.status === 429) {
+        console.error("SearchAPI rate limit exceeded. Please wait before making more requests.");
       }
+      
       return [];
     }
     
@@ -333,6 +437,91 @@ function extractDirectRetailerUrl(result: any, productTitle: string): string {
   // If no direct URL found in SerpAPI response, return the original link
   const originalLink = result.link || result.product_link;
   if (originalLink && typeof originalLink === 'string' && originalLink.startsWith('http')) {
+    // If it's a Google Shopping URL, try to extract the actual retailer URL
+    if (originalLink.includes('google.com/shopping')) {
+      console.log(`Found Google Shopping URL: ${originalLink}`);
+      
+      // For Google Shopping URLs, we need to construct a search URL for the store
+      const store = result.seller || result.merchant?.name || "Unknown Store";
+      const storeUrlMap: { [key: string]: string } = {
+        "Amazon": "https://www.amazon.com",
+        "Amazon.de": "https://www.amazon.de",
+        "Amazon.de - Amazon.de-Seller": "https://www.amazon.de",
+        "Amazon.com": "https://www.amazon.com",
+        "Best Buy": "https://www.bestbuy.com",
+        "Walmart": "https://www.walmart.com",
+        "Target": "https://www.target.com",
+        "Newegg": "https://www.newegg.com",
+        "B&H Photo": "https://www.bhphotovideo.com",
+        "Micro Center": "https://www.microcenter.com",
+        "Adorama": "https://www.adorama.com",
+        "Logitech G": "https://www.logitechg.com",
+        "Logitech": "https://www.logitechg.com",
+        "eBay": "https://www.ebay.com",
+        "Costco": "https://www.costco.com",
+        "Sam's Club": "https://www.samsclub.com",
+        "TK Maxx DE": "https://www.tkmaxx.com",
+        "Lanolips Europe": "https://www.lanolips.com",
+        "Steiger Möbel": "https://www.steiger-moebel.de",
+        "GoSupps Beauty": "https://www.gosupps.com",
+        "FragranceX.com": "https://www.fragrancex.com",
+        "Jolifill": "https://www.jolifill.com",
+        "Quelle GER": "https://www.quelle.de",
+        "OTTO": "https://www.otto.de",
+        "animota": "https://www.animota.de",
+        "Antoine Online LB": "https://www.antoineonline.com",
+        "Biblio.com - Russell Books Ltd": "https://www.biblio.com",
+        "Russell Books Ltd": "https://www.biblio.com",
+        "acumax.ch": "https://www.acumax.ch",
+        "Nourished Life": "https://www.nourishedlife.com.au",
+        "SHOP APOTHEKE": "https://www.shop-apotheke.com",
+        "Beauty of Joseon": "https://www.beautyofjoseon.com",
+        "Zalando": "https://www.zalando.de"
+      };
+      
+      const baseUrl = storeUrlMap[store];
+      if (baseUrl) {
+        // Construct a search URL for the product
+        const searchQuery = encodeURIComponent(productTitle);
+        const searchUrl = `${baseUrl}/search?q=${searchQuery}`;
+        console.log(`Constructed search URL for ${store}: ${searchUrl}`);
+        return searchUrl;
+      }
+      
+      // If store not in map, try to extract domain from store name
+      console.log(`Store '${store}' not in URL map, trying to extract domain`);
+      
+      // Try to construct a URL based on common patterns
+      const storeName = store.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const commonDomains = [
+        'amazon', 'ebay', 'walmart', 'target', 'bestbuy', 'newegg',
+        'bhphotovideo', 'adorama', 'microcenter', 'costco', 'samsclub',
+        'tkmaxx', 'lanolips', 'gosupps', 'fragrancex', 'jolifill',
+        'quelle', 'otto', 'animota', 'antoineonline', 'biblio',
+        'acumax', 'nourishedlife', 'shopapotheke', 'beautyofjoseon', 'zalando'
+      ];
+      
+      for (const domain of commonDomains) {
+        if (storeName.includes(domain)) {
+          // Handle special cases for different domains
+          let constructedUrl;
+          if (domain === 'amazon') {
+            constructedUrl = `https://www.amazon.de/search?q=${encodeURIComponent(productTitle)}`;
+          } else if (domain === 'tkmaxx') {
+            constructedUrl = `https://www.tkmaxx.com/search?q=${encodeURIComponent(productTitle)}`;
+          } else {
+            constructedUrl = `https://www.${domain}.com/search?q=${encodeURIComponent(productTitle)}`;
+          }
+          console.log(`Constructed URL based on domain pattern: ${constructedUrl}`);
+          return constructedUrl;
+        }
+      }
+      
+      // Last resort: return the Google Shopping URL as fallback
+      console.log(`Store '${store}' not in URL map, using Google Shopping URL`);
+      return originalLink;
+    }
+    
     console.log(`Using original link from SerpAPI: ${originalLink}`);
     return originalLink;
   }
@@ -345,37 +534,37 @@ function extractDirectRetailerUrl(result: any, productTitle: string): string {
 // Get country code for SerpAPI
 function getCountryCode(country: string): string {
   const countryMap: { [key: string]: string } = {
-    'Lithuania': 'lt',
-    'Latvia': 'lv', 
-    'Estonia': 'ee',
+    'Lithuania': 'us', // Fallback to US since SearchAPI doesn't support 'lt'
+    'Latvia': 'us', // Fallback to US since SearchAPI doesn't support 'lv'
+    'Estonia': 'us', // Fallback to US since SearchAPI doesn't support 'ee'
     'United States': 'us',
     'United Kingdom': 'uk',
     'Germany': 'de',
     'France': 'fr',
     'Spain': 'es',
     'Italy': 'it',
-    'Poland': 'pl',
-    'Czech Republic': 'cz',
-    'Slovakia': 'sk',
-    'Hungary': 'hu',
-    'Romania': 'ro',
-    'Bulgaria': 'bg',
-    'Croatia': 'hr',
-    'Slovenia': 'si',
-    'Austria': 'at',
-    'Belgium': 'be',
-    'Netherlands': 'nl',
-    'Denmark': 'dk',
-    'Sweden': 'se',
-    'Norway': 'no',
-    'Finland': 'fi',
-    'Iceland': 'is',
-    'Ireland': 'ie',
-    'Portugal': 'pt',
-    'Greece': 'gr',
-    'Cyprus': 'cy',
-    'Malta': 'mt',
-    'Luxembourg': 'lu'
+    'Poland': 'us', // Fallback to US since SearchAPI doesn't support 'pl'
+    'Czech Republic': 'us', // Fallback to US since SearchAPI doesn't support 'cz'
+    'Slovakia': 'us', // Fallback to US since SearchAPI doesn't support 'sk'
+    'Hungary': 'us', // Fallback to US since SearchAPI doesn't support 'hu'
+    'Romania': 'us', // Fallback to US since SearchAPI doesn't support 'ro'
+    'Bulgaria': 'us', // Fallback to US since SearchAPI doesn't support 'bg'
+    'Croatia': 'us', // Fallback to US since SearchAPI doesn't support 'hr'
+    'Slovenia': 'us', // Fallback to US since SearchAPI doesn't support 'si'
+    'Austria': 'us', // Fallback to US since SearchAPI doesn't support 'at'
+    'Belgium': 'us', // Fallback to US since SearchAPI doesn't support 'be'
+    'Netherlands': 'us', // Fallback to US since SearchAPI doesn't support 'nl'
+    'Denmark': 'us', // Fallback to US since SearchAPI doesn't support 'dk'
+    'Sweden': 'us', // Fallback to US since SearchAPI doesn't support 'se'
+    'Norway': 'us', // Fallback to US since SearchAPI doesn't support 'no'
+    'Finland': 'us', // Fallback to US since SearchAPI doesn't support 'fi'
+    'Iceland': 'us', // Fallback to US since SearchAPI doesn't support 'is'
+    'Ireland': 'us', // Fallback to US since SearchAPI doesn't support 'ie'
+    'Portugal': 'us', // Fallback to US since SearchAPI doesn't support 'pt'
+    'Greece': 'us', // Fallback to US since SearchAPI doesn't support 'gr'
+    'Cyprus': 'us', // Fallback to US since SearchAPI doesn't support 'cy'
+    'Malta': 'us', // Fallback to US since SearchAPI doesn't support 'mt'
+    'Luxembourg': 'us' // Fallback to US since SearchAPI doesn't support 'lu'
   };
   
   return countryMap[country] || 'us';
