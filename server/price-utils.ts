@@ -30,12 +30,19 @@ export function extractPriceImproved(text: string): {
 
   // More precise price patterns - ordered by specificity
   const pricePatterns = [
-    // Exact currency + price patterns
+    // Exact currency + price patterns (improved for European format)
     /€\s*(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)(?!\d)/g,
     /(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)\s*€(?!\d)/g,
     /EUR\s*(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)(?!\d)/gi,
     /(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)\s*EUR(?!\d)/gi,
-
+    
+    // Handle European decimal format (comma as decimal separator)
+    /€\s*(\d{1,4}(?:\.\d{3})*(?:,\d{2})?)(?!\d)/g,
+    /(\d{1,4}(?:\.\d{3})*(?:,\d{2})?)\s*€(?!\d)/g,
+    
+    // Simple price patterns without currency symbol
+    /(\d{1,4}(?:[,\.]\d{2})?)(?!\d)/g,
+    
     // Dollar patterns
     /\$\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)(?!\d)/g,
     /(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*USD(?!\d)/gi,
@@ -74,9 +81,10 @@ export function extractPriceImproved(text: string): {
             price: normalizedPrice,
             pattern: pattern.source.substring(0, 30),
           });
+          console.log(`Valid price found: ${normalizedPrice} from pattern: ${pattern.source.substring(0, 30)}`);
         } else {
           console.log(
-            `Price ${normalizedPrice} is outside reasonable range, skipping`,
+            `Price ${normalizedPrice} is outside reasonable range (1-50000), skipping`,
           );
         }
       }
@@ -107,6 +115,7 @@ export function extractPriceImproved(text: string): {
       if (aReasonable && !bReasonable) return -1;
       if (!aReasonable && bReasonable) return 1;
 
+      // If both are reasonable or both are outside range, prefer the one with currency
       return 0;
     });
 
@@ -125,13 +134,16 @@ function normalizePriceString(priceStr: string): number {
   // Handle European number format (comma as decimal separator)
   let normalized = priceStr;
 
+  // Remove any whitespace
+  normalized = normalized.trim();
+
   if (normalized.includes(",") && normalized.includes(".")) {
     // If both comma and period exist, assume comma is thousands separator
     normalized = normalized.replace(/,/g, "");
   } else if (normalized.includes(",")) {
     const parts = normalized.split(",");
     if (parts.length === 2 && parts[1].length === 2) {
-      // If comma with exactly 2 digits after, it's decimal separator
+      // If comma with exactly 2 digits after, it's decimal separator (e.g., "189,99")
       normalized = normalized.replace(",", ".");
     } else {
       // Otherwise, comma is thousands separator
@@ -142,7 +154,9 @@ function normalizePriceString(priceStr: string): number {
     normalized = normalized.replace(/,/g, "");
   }
 
-  return parseFloat(normalized);
+  const result = parseFloat(normalized);
+  console.log(`Normalizing price: "${priceStr}" -> "${normalized}" -> ${result}`);
+  return result;
 }
 
 // Extract from HTML with better price detection for specific sites

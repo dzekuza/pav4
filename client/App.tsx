@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
+import NewSearchResults from "./pages/NewSearchResults";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
               path="/search/:requestId/:slug"
               element={<SearchResults />}
             />
+            <Route path="/new-search/:requestId/:slug" element={<NewSearchResults />} />
             <Route path="/history" element={<History />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/login" element={<Login />} />

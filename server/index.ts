@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { handleDemo } from "./routes/demo";
 import { handleScrape } from "./routes/scrape";
+import n8nScrapeRouter from "./routes/n8n-scrape";
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import {
   register,
@@ -21,6 +22,12 @@ import { gracefulShutdown } from "./services/database";
 
 // Load environment variables
 dotenv.config();
+
+// Debug logging for environment variables
+console.log("Environment variables loaded:");
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "Loaded" : "Not loaded");
+console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Loaded" : "Not loaded");
 
 export function createServer() {
   const app = express();
@@ -46,6 +53,7 @@ export function createServer() {
 
   app.get("/api/demo", handleDemo);
   app.post("/api/scrape", optionalAuth, handleScrape);
+  app.use("/api", n8nScrapeRouter); // N8N scraping routes
   app.get("/api/location", getLocationHandler);
 
   // Authentication routes

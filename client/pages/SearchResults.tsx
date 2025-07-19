@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { ExternalLink, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SearchHeader } from "@/components/SearchHeader";
 import { ComparisonGrid, SavingsSummary } from "@/components/ComparisonGrid";
-import { SearchLoadingState } from "@/components/LoadingSkeleton";
+import { SearchLoadingState, SearchLoadingOverlay } from "@/components/LoadingSkeleton";
 import { ProductData, PriceComparison, ScrapeResponse } from "@shared/api";
-import { useLocation } from "@/hooks/use-location";
+import { useLocation as useLocationHook } from "@/hooks/use-location";
 
 export default function SearchResults() {
   const { requestId, slug } = useParams<{
@@ -21,14 +21,25 @@ export default function SearchResults() {
   const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { location, localDealers } = useLocation();
+  const { location, localDealers } = useLocationHook();
+  const locationState = useLocation();
 
   useEffect(() => {
     if (!requestId) return;
 
     const fetchProductData = async () => {
       try {
-        // Get the original URL from sessionStorage
+        // First, try to get data from navigation state (N8N flow)
+        if (locationState.state?.searchData) {
+          console.log("Using N8N data from navigation state");
+          const { searchData } = locationState.state;
+          setOriginalProduct(searchData.product || searchData.originalProduct);
+          setComparisons(searchData.comparisons || []);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: Get the original URL from sessionStorage
         const storedData = sessionStorage.getItem(
           `product_request_${requestId}`,
         );
@@ -40,25 +51,39 @@ export default function SearchResults() {
 
         const { url } = JSON.parse(storedData);
 
-        // Call the scraping API
-        const response = await fetch("/api/scrape", {
+        // Try enhanced scraping API first, then fallback to regular scraping API
+        let response = await fetch("/api/scrape-enhanced", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             url,
-            requestId,
-            userLocation: location, // Pass user location for local dealers
+            userLocation: location,
           }),
         });
+
+        if (!response.ok) {
+          // Fallback to regular scraping API
+          response = await fetch("/api/scrape", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url,
+              requestId,
+              userLocation: location,
+            }),
+          });
+        }
 
         if (!response.ok) {
           throw new Error("Failed to scrape product data");
         }
 
         const data: ScrapeResponse = await response.json();
-        setOriginalProduct(data.originalProduct);
+        setOriginalProduct(data.originalProduct || data.product);
         setComparisons(data.comparisons || []);
       } catch (err) {
         console.error("Error fetching product data:", err);
@@ -69,10 +94,15 @@ export default function SearchResults() {
     };
 
     fetchProductData();
-  }, [requestId]);
+  }, [requestId, locationState.state]);
 
   if (loading) {
-    return <SearchLoadingState />;
+    return (
+      <>
+        <SearchLoadingOverlay isVisible={true} />
+        <SearchLoadingState />
+      </>
+    );
   }
 
   if (error && !originalProduct) {
@@ -249,7 +279,10 @@ export default function SearchResults() {
             </p>
           </div>
           <ComparisonGrid
-            products={comparisons}
+            products={comparisons
+              .filter((p) => typeof p.url === 'string' && p.url.startsWith('http'))
+              .sort((a, b) => a.price - b.price) // Sort by price (lowest first)
+            }
             originalPrice={originalProduct?.price}
           />
         </div>
