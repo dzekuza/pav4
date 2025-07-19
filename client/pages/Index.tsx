@@ -3,18 +3,122 @@ import { TrendingUp, Shield, Zap, Star, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/SearchInput";
+import { LocationPermission } from "@/components/LocationPermission";
+import { SearchLoadingOverlay } from "@/components/LoadingSkeleton";
+import { useLocation } from "@/hooks/use-location";
+import { useNavigate } from "react-router-dom";
 
 export default function Index() {
   const [searchUrl, setSearchUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState("DE"); // Default to Germany
+  const navigate = useNavigate();
+  
+  const { 
+    location, 
+    showLocationPermission, 
+    handleLocationDetected, 
+    handleLocationSkip 
+  } = useLocation();
+
+  // Map country codes to full country names for the API
+  const getCountryName = (countryCode: string): string => {
+    const countryMap: { [key: string]: string } = {
+      'US': 'United States',
+      'DE': 'Germany',
+      'UK': 'United Kingdom',
+      'LT': 'Lithuania',
+      'LV': 'Latvia',
+      'EE': 'Estonia',
+      'FR': 'France',
+      'ES': 'Spain',
+      'IT': 'Italy',
+      'PL': 'Poland',
+      'CZ': 'Czech Republic',
+      'SK': 'Slovakia',
+      'HU': 'Hungary',
+      'RO': 'Romania',
+      'BG': 'Bulgaria',
+      'HR': 'Croatia',
+      'SI': 'Slovenia',
+      'AT': 'Austria',
+      'BE': 'Belgium',
+      'NL': 'Netherlands',
+      'DK': 'Denmark',
+      'SE': 'Sweden',
+      'NO': 'Norway',
+      'FI': 'Finland',
+      'IS': 'Iceland',
+      'IE': 'Ireland',
+      'PT': 'Portugal',
+      'GR': 'Greece',
+      'CY': 'Cyprus',
+      'MT': 'Malta',
+      'LU': 'Luxembourg'
+    };
+    return countryMap[countryCode] || 'Germany';
+  };
 
   const handleSearch = async (url: string) => {
-    if (!url.trim()) return;
+    if (!url.trim()) {
+      setError("Please enter a product URL");
+      return;
+    }
 
     setIsLoading(true);
+    setError(null);
 
-    // Redirect to the URL-based flow
-    window.location.href = `/${url.trim()}`;
+    try {
+      // Use selected country or fallback to location detection
+      const userCountry = getCountryName(selectedCountry);
+      console.log(`Searching with country: ${userCountry}`);
+
+      // Call the enhanced scraping API with user location
+      const response = await fetch("/api/scrape-enhanced", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          url: url.trim(),
+          userLocation: { country: userCountry }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to scrape product");
+      }
+
+      const data = await response.json();
+      
+      // Generate a unique request ID
+      const requestId = data.requestId || Date.now().toString();
+      
+      // Create a URL-friendly search query from the product title
+      const searchQuery = data.product.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .substring(0, 50);
+
+      // Redirect to the search results page
+      const resultsUrl = `/search/${requestId}/${searchQuery}`;
+      navigate(resultsUrl, { 
+        state: { 
+          searchData: data,
+          originalUrl: url,
+          requestId 
+        }
+      });
+
+    } catch (err) {
+      console.error("N8N search error:", err);
+      setError(err instanceof Error ? err.message : "Failed to search product");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const popularStores = [
@@ -47,7 +151,7 @@ export default function Index() {
       title: "Lightning Fast",
       description: "Get results in seconds with our optimized scraping",
     },
-  ];
+    ];
 
   const recentSearches = [
     { product: "Sony WH-1000XM5 Headphones", savings: "$45" },
@@ -57,6 +161,17 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      {/* Loading Overlay */}
+      <SearchLoadingOverlay isVisible={isLoading} />
+      
+      {/* Location Permission Modal */}
+      {showLocationPermission && (
+        <LocationPermission
+          onLocationDetected={handleLocationDetected}
+          onSkip={handleLocationSkip}
+        />
+      )}
+
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -113,7 +228,15 @@ export default function Index() {
               onChange={setSearchUrl}
               onSubmit={handleSearch}
               isLoading={isLoading}
+              selectedCountry={selectedCountry}
+              onCountryChange={setSelectedCountry}
             />
+            
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg max-w-md mx-auto">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
           </div>
 
           {/* Popular Stores */}
@@ -176,21 +299,20 @@ export default function Index() {
               See how much others have saved
             </p>
           </div>
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="grid md:grid-cols-3 gap-6">
             {recentSearches.map((search, index) => (
               <Card
                 key={index}
-                className="border border-success/20 bg-success/5"
+                className="border-0 shadow-sm hover:shadow-md transition-shadow"
               >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-success rounded-full"></div>
-                    <span className="font-medium">{search.product}</span>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Star className="h-6 w-6 text-green-600" />
                   </div>
-                  <div className="flex items-center gap-1 text-success font-semibold">
-                    <Star className="h-4 w-4 fill-current" />
-                    Saved {search.savings}
-                  </div>
+                  <h3 className="font-semibold mb-2">{search.product}</h3>
+                  <p className="text-2xl font-bold text-green-600">
+                    {search.savings} saved
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -198,37 +320,12 @@ export default function Index() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-brand-gradient">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to start saving money?
-          </h2>
-          <p className="text-white/80 mb-8 max-w-md mx-auto">
-            Join thousands of smart shoppers who never overpay again
-          </p>
-          <Button
-            size="lg"
-            variant="secondary"
-            className="bg-white text-primary hover:bg-white/90"
-          >
-            Get Started Free
-          </Button>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-brand-gradient rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-white" />
-              </div>
-              <span className="font-semibold">PriceHunt</span>
-            </div>
+      <footer className="border-t bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              © 2024 PriceHunt. Find the best deals, every time.
+              © 2024 PriceHunt. All rights reserved.
             </p>
           </div>
         </div>

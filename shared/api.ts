@@ -72,7 +72,8 @@ export interface PriceComparison extends ProductData {
 }
 
 export interface ScrapeResponse {
-  originalProduct: ProductData;
+  originalProduct?: ProductData;
+  product?: ProductData; // N8N format
   comparisons: PriceComparison[];
 }
 
