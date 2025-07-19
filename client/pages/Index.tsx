@@ -60,65 +60,28 @@ export default function Index() {
     return countryMap[countryCode] || 'Germany';
   };
 
-  const handleSearch = async (url: string) => {
+  const handleSearch = (url: string) => {
     if (!url.trim()) {
       setError("Please enter a product URL");
       return;
     }
-
+    
     setIsLoading(true);
     setError(null);
 
-    try {
-      // Use selected country or fallback to location detection
-      const userCountry = getCountryName(selectedCountry);
-      console.log(`Searching with country: ${userCountry}`);
+    const userCountry = getCountryName(selectedCountry);
+    const requestId = Date.now().toString();
+    const searchQuery = "product-search"; // Generic slug
 
-      // Call the enhanced scraping API with user location
-      const response = await fetch("/api/scrape-enhanced", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          url: url.trim(),
-          userLocation: { country: userCountry }
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to scrape product");
-      }
-
-      const data = await response.json();
-      
-      // Generate a unique request ID
-      const requestId = data.requestId || Date.now().toString();
-      
-      // Create a URL-friendly search query from the product title
-      const searchQuery = data.product.title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .substring(0, 50);
-
-      // Redirect to the search results page
-      const resultsUrl = `/search/${requestId}/${searchQuery}`;
-      navigate(resultsUrl, { 
-        state: { 
-          searchData: data,
-          originalUrl: url,
-          requestId 
-        }
-      });
-
-    } catch (err) {
-      console.error("N8N search error:", err);
-      setError(err instanceof Error ? err.message : "Failed to search product");
-    } finally {
-      setIsLoading(false);
-    }
+    // Navigate to the search results page with the URL and country
+    const resultsUrl = `/search/${requestId}/${searchQuery}`;
+    navigate(resultsUrl, {
+      state: {
+        searchUrl: url.trim(),
+        userCountry,
+        requestId,
+      },
+    });
   };
 
   const popularStores = [

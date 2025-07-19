@@ -46,7 +46,8 @@
     --brand-gradient-to: 220 85% 60%;
     --success: 142 76% 36%;
     --warning: 38 92% 50%;
-    --info: 210 100% 56% --sidebar-background: 0 0% 98%;
+    --info: 210 100% 56%;
+    --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
 
@@ -118,5 +119,11 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, hsl(var(--brand-gradient-from)) 0%, hsl(var(--brand-gradient-to)) 100%);
   }
 }

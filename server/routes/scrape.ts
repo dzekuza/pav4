@@ -1677,89 +1677,13 @@ async function getPriceComparisons(
   const comparisons: PriceComparison[] = [];
   
   // Define retailers with real product URLs
-  const retailers = [
-    {
-      name: "Amazon",
-      url: "https://www.amazon.com/dp/B08N5WRWNW",
-      priceVariation: 0.95 + Math.random() * 0.1, // 5% below to 5% above
-      assessment: { cost: 3, value: 1.5, quality: 1.5, description: "Large selection, varied quality and reviews; value does not hold very well over time." }
-    },
-    {
-      name: "eBay",
-      url: "https://www.ebay.com/itm/404123456789",
-      priceVariation: 0.85 + Math.random() * 0.2, // 15% below to 5% above
-      assessment: { cost: 3.5, value: 3, quality: 2.5, description: "Global marketplace with wide price and quality ranges; deals on vintage finds, condition can vary." }
-    },
-    {
-      name: "Walmart",
-      url: "https://www.walmart.com/ip/123456789",
-      priceVariation: 0.9 + Math.random() * 0.15, // 10% below to 5% above
-      assessment: { cost: 4, value: 2.5, quality: 2, description: "Budget-friendly options with minimal resale; customers are generally happy with purchase." }
-    },
-    {
-      name: "Best Buy",
-      url: "https://www.bestbuy.com/site/123456789",
-      priceVariation: 1.0 + Math.random() * 0.1, // Same to 10% above
-      assessment: { cost: 2.5, value: 2, quality: 3, description: "Premium electronics retailer with excellent customer service and warranty support." }
-    },
-    {
-      name: "Target",
-      url: "https://www.target.com/p/123456789",
-      priceVariation: 0.95 + Math.random() * 0.1, // 5% below to 5% above
-      assessment: { cost: 3.5, value: 2.5, quality: 2.5, description: "Trendy products with good quality; often has exclusive items and collaborations." }
-    },
-    {
-      name: "Newegg",
-      url: "https://www.newegg.com/p/123456789",
-      priceVariation: 0.9 + Math.random() * 0.15, // 10% below to 5% above
-      assessment: { cost: 3, value: 2.5, quality: 2.5, description: "Specialized electronics retailer with competitive pricing." }
-    },
-    {
-      name: "B&H Photo",
-      url: "https://www.bhphotovideo.com/c/product/123456789",
-      priceVariation: 1.0 + Math.random() * 0.1, // Same to 10% above
-      assessment: { cost: 2.5, value: 3, quality: 4, description: "Professional photography and video equipment retailer." }
-    },
-    {
-      name: "Adorama",
-      url: "https://www.adorama.com/product/123456789",
-      priceVariation: 0.95 + Math.random() * 0.1, // 5% below to 5% above
-      assessment: { cost: 3, value: 2.5, quality: 3, description: "Specialized camera and electronics retailer." }
-    }
-  ];
+  // Don't generate fake URLs - return empty array
+  console.log("Not generating fake URLs in scrape.ts - returning empty array");
+  return [];
 
-  // Add local dealers based on user location
-  if (userLocation) {
-    const localDealers = getLocalDealers(userLocation);
-    for (const dealer of localDealers) {
-      retailers.push({
-        name: dealer.name,
-        url: dealer.url,
-        priceVariation: 0.9 + Math.random() * 0.2, // 10% below to 10% above
-        assessment: { cost: 2.5, value: 3, quality: 2.5, description: `Local ${dealer.name} retailer with competitive pricing.` }
-      });
-    }
-  }
-
-  // Generate comparison for each retailer
-  for (const retailer of retailers) {
-    // Calculate price based on variation
-    const comparisonPrice = originalProduct.price * retailer.priceVariation;
-    
-    comparisons.push({
-      title: originalProduct.title, // Use the original product title
-      store: retailer.name,
-      price: Math.round(comparisonPrice * 100) / 100, // Round to 2 decimal places
-      currency: originalProduct.currency, // Use the original product's currency
-      url: retailer.url, // Use the real product URL
-      image: originalProduct.image, // Use the original product's image
-      condition: "New",
-      assessment: retailer.assessment,
-    });
-  }
-
-  console.log(`Generated ${comparisons.length} price comparisons with real URLs`);
-  return comparisons;
+  // Don't generate fake URLs - return empty array
+  console.log("Not generating fake URLs in scrape.ts - returning empty array");
+  return [];
 }
 
 // Helper function to get realistic store URLs

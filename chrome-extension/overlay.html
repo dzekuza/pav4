@@ -258,6 +258,32 @@
         background: #b91c1c;
       }
 
+      /* Display state classes */
+      .hidden {
+        display: none;
+      }
+
+      .visible {
+        display: block;
+      }
+
+      .visible-flex {
+        display: flex;
+      }
+
+      /* Initial states */
+      #productInfo,
+      #alternatives,
+      #noAlternatives,
+      #error,
+      #actions {
+        display: none;
+      }
+
+      #loading {
+        display: block;
+      }
+
       /* Responsive adjustments */
       @media (max-width: 480px) {
         .container {
@@ -342,13 +368,13 @@
         </div>
 
         <!-- Product Info -->
-        <div class="product-info" id="productInfo" style="display: none">
+        <div class="product-info" id="productInfo">
           <div class="product-title" id="productTitle"></div>
           <div class="product-price" id="productPrice"></div>
         </div>
 
         <!-- Alternatives -->
-        <div class="alternatives" id="alternatives" style="display: none">
+        <div class="alternatives" id="alternatives">
           <div class="alternatives-title">
             Better prices found
             <span class="savings-badge" id="savingsBadge"></span>
@@ -357,7 +383,7 @@
         </div>
 
         <!-- No Alternatives -->
-        <div class="no-alternatives" id="noAlternatives" style="display: none">
+        <div class="no-alternatives" id="noAlternatives">
           <div class="no-alternatives-icon">🔍</div>
           <div>
             <strong>No better prices found</strong>
@@ -366,7 +392,7 @@
         </div>
 
         <!-- Error State -->
-        <div class="error" id="error" style="display: none">
+        <div class="error" id="error">
           <div class="error-icon">⚠️</div>
           <div>
             <strong>Something went wrong</strong>
@@ -378,7 +404,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="actions" id="actions" style="display: none">
+        <div class="actions" id="actions">
           <button
             class="btn btn-secondary"
             onclick="window.parent.postMessage({action: 'close'}, '*')"
@@ -488,7 +514,8 @@
           productTitle.textContent = product.title || "Product";
           productPrice.textContent = product.price || "";
 
-          productInfo.style.display = "block";
+          productInfo.classList.remove("hidden");
+          productInfo.classList.add("visible");
         }
 
         showAlternatives(alternatives) {
@@ -519,7 +546,8 @@
             alternativesList.appendChild(item);
           });
 
-          alternativesSection.style.display = "block";
+          alternativesSection.classList.remove("hidden");
+          alternativesSection.classList.add("visible");
         }
 
         createAlternativeItem(alternative) {
@@ -576,20 +604,24 @@
         }
 
         showNoAlternatives() {
-          document.getElementById("noAlternatives").style.display = "block";
+          document.getElementById("noAlternatives").classList.remove("hidden");
+          document.getElementById("noAlternatives").classList.add("visible");
         }
 
         showLoading() {
-          document.getElementById("loading").style.display = "block";
+          document.getElementById("loading").classList.remove("hidden");
+          document.getElementById("loading").classList.add("visible");
           this.hideOtherSections();
         }
 
         hideLoading() {
-          document.getElementById("loading").style.display = "none";
+          document.getElementById("loading").classList.remove("visible");
+          document.getElementById("loading").classList.add("hidden");
         }
 
         showActions() {
-          document.getElementById("actions").style.display = "flex";
+          document.getElementById("actions").classList.remove("hidden");
+          document.getElementById("actions").classList.add("visible-flex");
         }
 
         showError(message) {
@@ -600,16 +632,22 @@
           const errorMessage = document.getElementById("errorMessage");
 
           errorMessage.textContent = message;
-          errorSection.style.display = "block";
+          errorSection.classList.remove("hidden");
+          errorSection.classList.add("visible");
           this.showActions();
         }
 
         hideOtherSections() {
-          document.getElementById("productInfo").style.display = "none";
-          document.getElementById("alternatives").style.display = "none";
-          document.getElementById("noAlternatives").style.display = "none";
-          document.getElementById("error").style.display = "none";
-          document.getElementById("actions").style.display = "none";
+          document.getElementById("productInfo").classList.remove("visible");
+          document.getElementById("productInfo").classList.add("hidden");
+          document.getElementById("alternatives").classList.remove("visible");
+          document.getElementById("alternatives").classList.add("hidden");
+          document.getElementById("noAlternatives").classList.remove("visible");
+          document.getElementById("noAlternatives").classList.add("hidden");
+          document.getElementById("error").classList.remove("visible");
+          document.getElementById("error").classList.add("hidden");
+          document.getElementById("actions").classList.remove("visible-flex");
+          document.getElementById("actions").classList.add("hidden");
         }
       }
 
