@@ -1,8 +1,8 @@
 // Script to create an admin user
 // Usage: node scripts/create-admin.js <email> <password>
 
-const bcrypt = require("bcryptjs");
-const { PrismaClient } = require("@prisma/client");
+import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
