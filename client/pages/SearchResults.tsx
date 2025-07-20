@@ -40,6 +40,7 @@ const SearchResults = () => {
   const [loadingStep, setLoadingStep] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [newSearchUrl, setNewSearchUrl] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("de");
   const [favoriteStates, setFavoriteStates] = useState<Map<string, { isFavorited: boolean; favoriteId?: number }>>(new Map());
 
   const { favorites, addFavorite, removeFavorite, checkFavorite } = useFavorites();
@@ -313,30 +314,18 @@ const SearchResults = () => {
           Back to Search
         </Button>
 
-        {/* New Search Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Search for Another Product
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <SearchInput
-                  value={newSearchUrl}
-                  onChange={(value) => setNewSearchUrl(value)}
-                  placeholder="Enter product URL (e.g., Amazon, eBay, etc.)"
-                  onSubmit={handleNewSearch}
-                />
-              </div>
-              <Button onClick={() => handleNewSearch(newSearchUrl)} className="px-6">
-                Search
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Search Field - Left Aligned */}
+        <div className="mb-8">
+          <SearchInput
+            value={newSearchUrl}
+            onChange={(value) => setNewSearchUrl(value)}
+            placeholder="Enter product URL (e.g., Amazon, eBay, etc.)"
+            onSubmit={handleNewSearch}
+            align="left"
+            selectedCountry={selectedCountry}
+            onCountryChange={setSelectedCountry}
+          />
+        </div>
 
         {/* Main Product */}
         <Card className="mb-8">

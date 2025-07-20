@@ -3,12 +3,23 @@ class PriceHuntPopup {
   constructor() {
     this.currentTab = null;
     this.productInfo = null;
+    
+    // Immediately ensure current page section is visible
+    this.forceShowCurrentPage();
+    
     this.init();
   }
 
   async init() {
     await this.getCurrentTab();
     this.setupEventListeners();
+    
+    // Ensure current page section is visible by default
+    this.showCurrentPageSection();
+    
+    // Force show current page section after a short delay to ensure it's visible
+    setTimeout(() => this.showCurrentPageSection(), 100);
+    
     await this.detectProduct();
   }
 
@@ -21,6 +32,9 @@ class PriceHuntPopup {
   }
 
   setupEventListeners() {
+    // Force show current page section
+    this.forceShowCurrentPage();
+    
     // Detect URL button
     document.getElementById("detectBtn").addEventListener("click", () => {
       this.detectUrl();
@@ -74,6 +88,9 @@ class PriceHuntPopup {
 
     try {
       console.log("Manually detecting product on:", this.currentTab.url);
+      
+      // Always show the current page section
+      this.showCurrentPageSection();
       
       // Always show the current page URL
       document.getElementById("pageTitle").textContent = "Detecting product...";
@@ -149,6 +166,9 @@ class PriceHuntPopup {
       return;
     }
 
+    // Always show the current page section
+    this.showCurrentPageSection();
+    
     // Always show the current page URL
     document.getElementById("pageTitle").textContent = "Detecting product...";
     document.getElementById("pageUrl").textContent = this.currentTab.url;
@@ -208,7 +228,7 @@ class PriceHuntPopup {
     similarBtn.textContent = "Find Similar";
     
     // Show current page section and hide others
-    document.getElementById("currentPage").classList.remove("hidden");
+    this.showCurrentPageSection();
     document.getElementById("results").classList.add("hidden");
     document.getElementById("similarResults").classList.add("hidden");
     document.getElementById("noProduct").classList.add("hidden");
@@ -233,11 +253,43 @@ class PriceHuntPopup {
     if (searchBtn) searchBtn.disabled = true;
     if (similarBtn) similarBtn.disabled = true;
     
-    // Show current page section and hide others
-    document.getElementById("currentPage").classList.remove("hidden");
+    // Always show current page section and hide others
+    this.showCurrentPageSection();
     document.getElementById("results").classList.add("hidden");
     document.getElementById("similarResults").classList.add("hidden");
     document.getElementById("noProduct").classList.add("hidden");
+  }
+
+  showCurrentPageSection() {
+    // Ensure current page section is always visible
+    const currentPage = document.getElementById("currentPage");
+    if (currentPage) {
+      // Remove hidden class and ensure visibility
+      currentPage.classList.remove("hidden");
+      currentPage.style.display = "block";
+      currentPage.style.visibility = "visible";
+      currentPage.style.opacity = "1";
+      
+      // Also ensure the container is visible
+      const container = currentPage.closest('.container');
+      if (container) {
+        container.style.display = "block";
+      }
+    }
+  }
+
+  forceShowCurrentPage() {
+    // Force remove hidden class from current page section
+    const currentPage = document.getElementById("currentPage");
+    if (currentPage) {
+      currentPage.classList.remove("hidden");
+      currentPage.style.display = "block";
+      currentPage.style.visibility = "visible";
+      currentPage.style.opacity = "1";
+      currentPage.style.position = "static";
+      currentPage.style.height = "auto";
+      currentPage.style.overflow = "visible";
+    }
   }
 
   async searchPrices() {
