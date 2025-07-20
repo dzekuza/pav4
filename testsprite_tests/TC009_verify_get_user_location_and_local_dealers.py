@@ -24,14 +24,16 @@ def test_verify_get_user_location_and_local_dealers():
     local_dealers = data["localDealers"]
 
     # Validate location fields
-    expected_location_fields = ["country", "countryCode", "region", "currency", "timeZone"]
-    for field in expected_location_fields:
+    required_location_fields = ["country", "countryCode", "region", "currency", "timeZone"]
+    optional_location_fields = ["city"]
+
+    for field in required_location_fields:
         assert field in location, f"Location missing field '{field}'"
         assert isinstance(location[field], str), f"Location field '{field}' should be a string"
 
-    # 'city' may be missing, so check if present and type
+    # Check city only if present
     if "city" in location:
-        assert isinstance(location["city"], str), "Location field 'city' should be a string"
+        assert isinstance(location["city"], str), "Location field 'city' should be a string if present"
 
     # Validate localDealers is a list
     assert isinstance(local_dealers, list), "'localDealers' should be a list"

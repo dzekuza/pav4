@@ -4,90 +4,80 @@ import uuid
 BASE_URL = "http://localhost:3000"
 TIMEOUT = 30
 
-def verify_admin_get_all_users_access_control():
-    # Helper function to register a user
-    def register_user(email, password):
-        url = f"{BASE_URL}/api/auth/register"
-        payload = {"email": email, "password": password}
-        resp = requests.post(url, json=payload, timeout=TIMEOUT)
-        resp.raise_for_status()
-        return resp.json()
+def register_user(email: str, password: str):
+    url = f"{BASE_URL}/api/auth/register"
+    payload = {"email": email, "password": password}
+    resp = requests.post(url, json=payload, timeout=TIMEOUT)
+    resp.raise_for_status()
+    data = resp.json()
+    assert data.get("success") is True
+    assert "accessToken" in data
+    assert "user" in data
+    return data["accessToken"], data["user"]
 
-    # Helper function to login a user
-    def login_user(email, password):
-        url = f"{BASE_URL}/api/auth/login"
-        payload = {"email": email, "password": password}
-        resp = requests.post(url, json=payload, timeout=TIMEOUT)
-        resp.raise_for_status()
-        return resp.json()
+def login_user(email: str, password: str):
+    url = f"{BASE_URL}/api/auth/login"
+    payload = {"email": email, "password": password}
+    resp = requests.post(url, json=payload, timeout=TIMEOUT)
+    resp.raise_for_status()
+    data = resp.json()
+    assert data.get("success") is True
+    assert "accessToken" in data
+    assert "user" in data
+    return data["accessToken"], data["user"]
 
-    # Helper function to delete user if API supported (not in PRD, so skip)
-    # Instead, just rely on unique emails for test isolation
+def delete_user(token: str):
+    # No explicit delete user endpoint in PRD, so no deletion possible.
+    # This function is a placeholder if deletion is implemented later.
+    pass
 
+def test_verify_admin_get_all_users_access_control():
     # Create admin user
     admin_email = f"admin_{uuid.uuid4().hex}@example.com"
     admin_password = "AdminPass123!"
-    admin_token = None
+    admin_token, admin_user = register_user(admin_email, admin_password)
+    # We need to ensure this user is admin. Since no endpoint to set admin, assume first user is admin or login as existing admin.
+    # If the registered user is not admin, try to login as a known admin user.
+    # For test, try login as admin user with known credentials fallback:
+    if not admin_user.get("isAdmin", False):
+        # Try login as known admin user (replace with actual admin credentials if known)
+        # For this test, we assume admin user exists with email admin@example.com and password AdminPass123!
+        try:
+            admin_token, admin_user = login_user("admin@example.com", "AdminPass123!")
+            assert admin_user.get("isAdmin", False) is True
+        except Exception:
+            # If no known admin, skip admin tests as no admin user available
+            raise AssertionError("No admin user available for testing admin access control.")
 
-    # Create non-admin user
+    # Create normal user
     user_email = f"user_{uuid.uuid4().hex}@example.com"
     user_password = "UserPass123!"
-    user_token = None
+    user_token, user_user = register_user(user_email, user_password)
+    assert user_user.get("isAdmin", False) is False
 
-    try:
-        # Register admin user
-        admin_reg = register_user(admin_email, admin_password)
-        assert admin_reg.get("success") is True
-        # If the registered user is not admin by default, we need to login and check
-        # But PRD does not specify admin creation, assume first user is admin or admin flag is false
-        # So login admin user to get token and isAdmin flag
-        admin_login = login_user(admin_email, admin_password)
-        assert admin_login.get("success") is True
-        admin_token = admin_login.get("accessToken") or admin_login.get("token")
-        assert admin_token is not None
-        assert isinstance(admin_login.get("user"), dict)
-        # We need admin user, so check isAdmin flag
-        if not admin_login["user"].get("isAdmin", False):
-            # If not admin, we cannot test admin access properly, so skip test with assertion error
-            raise AssertionError("Registered admin user does not have admin privileges.")
+    headers_admin = {"Authorization": f"Bearer {admin_token}"}
+    headers_user = {"Authorization": f"Bearer {user_token}"}
 
-        # Register non-admin user
-        user_reg = register_user(user_email, user_password)
-        assert user_reg.get("success") is True
-        user_login = login_user(user_email, user_password)
-        assert user_login.get("success") is True
-        user_token = user_login.get("accessToken") or user_login.get("token")
-        assert user_token is not None
-        assert isinstance(user_login.get("user"), dict)
-        assert user_login["user"].get("isAdmin", False) is False
+    # Admin user should access /api/admin/users successfully
+    admin_users_url = f"{BASE_URL}/api/admin/users"
+    resp_admin = requests.get(admin_users_url, headers=headers_admin, timeout=TIMEOUT)
+    assert resp_admin.status_code == 200
+    data_admin = resp_admin.json()
+    assert "users" in data_admin
+    assert isinstance(data_admin["users"], list)
+    for user in data_admin["users"]:
+        assert isinstance(user.get("id"), int)
+        assert isinstance(user.get("email"), str)
+        assert isinstance(user.get("isAdmin"), bool)
+        assert isinstance(user.get("createdAt"), str)
+        assert isinstance(user.get("searchCount"), int)
 
-        # Test admin access to /api/admin/users
-        admin_headers = {"Authorization": f"Bearer {admin_token}"}
-        admin_resp = requests.get(f"{BASE_URL}/api/admin/users", headers=admin_headers, timeout=TIMEOUT)
-        assert admin_resp.status_code == 200
-        admin_data = admin_resp.json()
-        assert "users" in admin_data
-        assert isinstance(admin_data["users"], list)
-        # Validate each user object has required fields
-        for user in admin_data["users"]:
-            assert isinstance(user.get("id"), int)
-            assert isinstance(user.get("email"), str)
-            assert isinstance(user.get("isAdmin"), bool)
-            assert isinstance(user.get("createdAt"), str)
-            # searchCount can be zero or more
-            assert isinstance(user.get("searchCount"), int)
+    # Normal user should be forbidden or unauthorized to access /api/admin/users
+    resp_user = requests.get(admin_users_url, headers=headers_user, timeout=TIMEOUT)
+    assert resp_user.status_code in (401, 403)
 
-        # Test non-admin access to /api/admin/users - should be forbidden or unauthorized
-        user_headers = {"Authorization": f"Bearer {user_token}"}
-        user_resp = requests.get(f"{BASE_URL}/api/admin/users", headers=user_headers, timeout=TIMEOUT)
-        # Expect 403 Forbidden or 401 Unauthorized
-        assert user_resp.status_code in (401, 403)
+    # Unauthenticated request should be unauthorized
+    resp_unauth = requests.get(admin_users_url, timeout=TIMEOUT)
+    assert resp_unauth.status_code == 401
 
-        # Test unauthenticated access to /api/admin/users - should be unauthorized
-        no_auth_resp = requests.get(f"{BASE_URL}/api/admin/users", timeout=TIMEOUT)
-        assert no_auth_resp.status_code in (401, 403)
-
-    except requests.RequestException as e:
-        raise AssertionError(f"HTTP request failed: {e}")
-
-verify_admin_get_all_users_access_control()
+test_verify_admin_get_all_users_access_control()

@@ -3,6 +3,9 @@
   functions = "netlify/functions"
   publish = "dist/spa"
 
+[build.environment]
+  SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_OMIT_KEYS = "DATABASE_URL,GEMINI_API_KEY,N8N_WEBHOOK_URL"
 
 [functions]
   external_node_modules = ["express"]

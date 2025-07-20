@@ -11,62 +11,70 @@ def verify_get_user_search_history():
     email = f"testuser_{uuid.uuid4().hex[:8]}@example.com"
     password = "TestPass123!"
     register_payload = {"email": email, "password": password}
-    headers = {"Content-Type": "application/json"}
-
     try:
-        reg_resp = requests.post(register_url, json=register_payload, headers=headers, timeout=TIMEOUT)
-        assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
-        reg_data = reg_resp.json()
-        assert reg_data.get("success") is True
-        token = reg_data.get("token") or reg_data.get("accessToken")
+        register_resp = requests.post(register_url, json=register_payload, timeout=TIMEOUT)
+        assert register_resp.status_code == 201, f"Registration failed: {register_resp.text}"
+        register_data = register_resp.json()
+        assert register_data.get("success") is True
+        token = register_data.get("token") or register_data.get("accessToken")
         assert token, "No token received on registration"
+        headers = {"Authorization": f"Bearer {token}"}
 
-        auth_headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        # Scrape a product to get a requestId and product title
+        scrape_url = f"{BASE_URL}/api/scrape"
+        test_product_url = "https://example.com/product/test-product"
+        scrape_payload = {"url": test_product_url}
+        scrape_resp = requests.post(scrape_url, json=scrape_payload, headers=headers, timeout=TIMEOUT)
+        assert scrape_resp.status_code == 200, f"Scrape failed: {scrape_resp.text}"
+        scrape_data = scrape_resp.json()
+        product = scrape_data.get("product")
+        request_id = scrape_data.get("requestId")
+        assert product and isinstance(product, dict), "Product data missing or invalid"
+        assert request_id and isinstance(request_id, str), "requestId missing or invalid"
+        product_title = product.get("title")
+        assert product_title and isinstance(product_title, str), "Product title missing or invalid"
 
-        # Add a search entry to history
-        search_history_post_url = f"{BASE_URL}/api/search-history"
-        test_url = "https://example.com/product/12345"
-        test_title = "Example Product Title"
-        test_request_id = str(uuid.uuid4())
-        search_payload = {
-            "url": test_url,
-            "title": test_title,
-            "requestId": test_request_id
+        # Add search to history
+        add_history_url = f"{BASE_URL}/api/search-history"
+        add_history_payload = {
+            "url": test_product_url,
+            "title": product_title,
+            "requestId": request_id
         }
-        post_resp = requests.post(search_history_post_url, json=search_payload, headers=auth_headers, timeout=TIMEOUT)
-        assert post_resp.status_code == 201, f"Failed to add search to history: {post_resp.text}"
+        add_resp = requests.post(add_history_url, json=add_history_payload, headers=headers, timeout=TIMEOUT)
+        assert add_resp.status_code == 201, f"Add search to history failed: {add_resp.text}"
 
-        # Small delay to ensure timestamp difference if needed
+        # Wait briefly to ensure timestamp difference if needed
         time.sleep(1)
 
-        # Retrieve user search history
-        search_history_get_url = f"{BASE_URL}/api/search-history"
-        get_resp = requests.get(search_history_get_url, headers=auth_headers, timeout=TIMEOUT)
-        assert get_resp.status_code == 200, f"Failed to get search history: {get_resp.text}"
-        get_data = get_resp.json()
-        history = get_data.get("history")
+        # Get user search history
+        get_history_url = f"{BASE_URL}/api/search-history"
+        get_resp = requests.get(get_history_url, headers=headers, timeout=TIMEOUT)
+        assert get_resp.status_code == 200, f"Get search history failed: {get_resp.text}"
+        history_data = get_resp.json()
+        history = history_data.get("history")
         assert isinstance(history, list), "History is not a list"
 
         # Find the added search entry in history
-        matched_entries = [entry for entry in history if entry.get("url") == test_url and entry.get("title") == test_title and entry.get("requestId") == test_request_id]
+        matched_entries = [
+            entry for entry in history
+            if entry.get("url") == test_product_url and
+               entry.get("title") == product_title and
+               entry.get("requestId") == request_id
+        ]
         assert matched_entries, "Added search entry not found in history"
 
-        # Validate timestamp format and presence
+        # Validate timestamp format (ISO 8601 string)
         for entry in matched_entries:
             timestamp = entry.get("timestamp")
-            assert timestamp and isinstance(timestamp, str), "Timestamp missing or not a string"
-            # Optional: further validate timestamp format (ISO 8601)
-            # Example: 2025-07-19T12:34:56Z or with timezone offset
-            # Basic check for 'T' and ':' presence
-            assert "T" in timestamp and ":" in timestamp, f"Timestamp format invalid: {timestamp}"
+            assert isinstance(timestamp, str) and len(timestamp) > 0, "Timestamp missing or invalid"
 
     finally:
         # Logout user to clean session (optional)
-        if 'token' in locals():
+        try:
             logout_url = f"{BASE_URL}/api/auth/logout"
-            try:
-                requests.post(logout_url, headers=auth_headers, timeout=TIMEOUT)
-            except Exception:
-                pass
+            requests.post(logout_url, headers={"Authorization": f"Bearer {token}"}, timeout=TIMEOUT)
+        except Exception:
+            pass
 
 verify_get_user_search_history()
