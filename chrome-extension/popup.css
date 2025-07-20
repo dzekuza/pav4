@@ -61,6 +61,16 @@ body {
 .current-page {
   padding: 20px;
   border-bottom: 1px solid #e5e7eb;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure current page section is never hidden */
+#currentPage {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .page-info {

@@ -14,6 +14,7 @@ interface SearchInputProps {
   isLoading?: boolean;
   selectedCountry?: string;
   onCountryChange?: (country: string) => void;
+  align?: 'left' | 'center';
 }
 
 const countries = [
@@ -80,11 +81,13 @@ export function SearchInput({
   isLoading = false,
   selectedCountry = "de",
   onCountryChange,
+  align = "center",
 }: SearchInputProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [openCountrySelect, setOpenCountrySelect] = useState(false);
+  const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +97,41 @@ export function SearchInput({
   // Use localStorage for basic search history (always enabled)
   const isLocalSearchHistoryEnabled =
     typeof window !== "undefined" && typeof localStorage !== "undefined";
+
+  // Auto-detect user's country on component mount
+  useEffect(() => {
+    const detectUserCountry = async () => {
+      try {
+        const response = await fetch('/api/location', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.location && data.location.countryCode) {
+            const countryCode = data.location.countryCode.toLowerCase();
+            setDetectedCountry(countryCode);
+            
+            // Only update the country if no country is currently selected or if it's different
+            if (!selectedCountry || selectedCountry !== countryCode) {
+              onCountryChange?.(countryCode);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Failed to detect user location:', error);
+        // Keep the default country if detection fails
+      }
+    };
+
+    // Only detect if we haven't already detected and if onCountryChange is provided
+    if (!detectedCountry && onCountryChange) {
+      detectUserCountry();
+    }
+  }, [detectedCountry, onCountryChange, selectedCountry]);
 
   // Get user key for search history (IP-based simulation)
   const getUserKey = () => {
@@ -235,7 +273,7 @@ export function SearchInput({
   const selectedCountryData = countries.find(c => c.code === selectedCountry);
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto">
+    <div className={`relative w-full ${align === 'left' ? '' : 'mx-auto'}`}>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col sm:flex-row gap-3 p-2 bg-background border rounded-xl shadow-lg">
           {/* Searchable Country Selector */}
