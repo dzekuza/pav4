@@ -158,7 +158,7 @@ export default function History() {
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
                         <Button asChild size="sm">
-                          <Link to={`/search/${item.requestId}/results`}>
+                          <Link to={`/new-search/${item.requestId}/results`}>
                             View Results
                           </Link>
                         </Button>

@@ -72,7 +72,7 @@ export function UrlRedirectHandler() {
           }),
         );
 
-        const redirectPath = `/search/${requestId}/${slug}`;
+        const redirectPath = `/new-search/${requestId}/${slug}`;
         console.log("Redirecting to:", redirectPath);
 
         // Redirect to search results page
