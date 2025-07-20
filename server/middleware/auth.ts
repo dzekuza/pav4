@@ -6,7 +6,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        id: string;
+        id: number;
         email: string;
         isAdmin: boolean;
       };
@@ -17,7 +17,15 @@ declare global {
 // Middleware to check if user is authenticated
 export const requireAuth: RequestHandler = async (req, res, next) => {
   try {
-    const token = req.cookies.auth_token;
+    // Check for token in cookies or Authorization header
+    let token = req.cookies.auth_token;
+    
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
       return res.status(401).json({ error: "Authentication required" });
@@ -28,19 +36,31 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
       return res.status(401).json({ error: "Invalid authentication token" });
     }
 
-    const user = await userService.findUserById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
+    try {
+      // Handle both string and number user IDs
+      const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
+      
+      if (isNaN(userId)) {
+        return res.status(401).json({ error: "Invalid user ID in token" });
+      }
+
+      const user = await userService.findUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Attach user info to request
+      req.user = {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      };
+
+      next();
+    } catch (dbError) {
+      console.error("Database error in requireAuth:", dbError);
+      return res.status(500).json({ error: "Database error during authentication" });
     }
-
-    // Attach user info to request
-    req.user = {
-      id: user.id,
-      email: user.email,
-      isAdmin: user.isAdmin,
-    };
-
-    next();
   } catch (error) {
     console.error("Auth middleware error:", error);
     return res.status(500).json({ error: "Authentication error" });
@@ -63,18 +83,37 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
 // Optional auth middleware - sets user if authenticated but doesn't require it
 export const optionalAuth: RequestHandler = async (req, res, next) => {
   try {
-    const token = req.cookies.auth_token;
+    // Check for token in cookies or Authorization header
+    let token = req.cookies.auth_token;
+    
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (token) {
       const decoded = verifyToken(token);
       if (decoded) {
-        const user = await userService.findUserById(decoded.userId);
-        if (user) {
-          req.user = {
-            id: user.id,
-            email: user.email,
-            isAdmin: user.isAdmin,
-          };
+        try {
+          // Handle both string and number user IDs
+          const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
+          
+          if (!isNaN(userId)) {
+            const user = await userService.findUserById(userId);
+            if (user) {
+              req.user = {
+                id: user.id,
+                email: user.email,
+                isAdmin: user.isAdmin,
+              };
+            }
+          }
+        } catch (dbError) {
+          // Log the error but don't break the request
+          console.warn("Database error in optionalAuth:", dbError);
+          // Continue without setting user
         }
       }
     }

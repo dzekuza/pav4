@@ -75,6 +75,21 @@ export interface ScrapeResponse {
   originalProduct?: ProductData;
   product?: ProductData; // N8N format
   comparisons: PriceComparison[];
+  // N8N webhook response format
+  mainProduct?: {
+    title: string;
+    price: string;
+    image: string;
+    url: string | null;
+  };
+  suggestions?: Array<{
+    title: string;
+    standardPrice: string | null;
+    discountPrice: string | null;
+    site: string;
+    link: string;
+    image: string;
+  }>;
 }
 
 /**

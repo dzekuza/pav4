@@ -11,14 +11,14 @@ interface LocationPermissionProps {
 }
 
 const commonCountries = [
-  { name: "Lithuania", code: "LT", flag: "🇱🇹" },
-  { name: "Latvia", code: "LV", flag: "🇱🇻" },
-  { name: "Estonia", code: "EE", flag: "🇪🇪" },
-  { name: "Germany", code: "DE", flag: "🇩🇪" },
-  { name: "United Kingdom", code: "GB", flag: "🇬🇧" },
-  { name: "United States", code: "US", flag: "🇺🇸" },
-  { name: "Poland", code: "PL", flag: "🇵🇱" },
-  { name: "France", code: "FR", flag: "🇫🇷" },
+  { name: "Lithuania", code: "lt", flag: "🇱🇹" },
+  { name: "Latvia", code: "lv", flag: "🇱🇻" },
+  { name: "Estonia", code: "ee", flag: "🇪🇪" },
+  { name: "Germany", code: "de", flag: "🇩🇪" },
+  { name: "United Kingdom", code: "uk", flag: "🇬🇧" },
+  { name: "United States", code: "us", flag: "🇺🇸" },
+  { name: "Poland", code: "pl", flag: "🇵🇱" },
+  { name: "France", code: "fr", flag: "🇫🇷" },
 ];
 
 export function LocationPermission({ onLocationDetected, onSkip }: LocationPermissionProps) {
@@ -53,14 +53,14 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
           
           // Map country code to our location format
           const locationMap: { [key: string]: LocationInfo } = {
-            LT: { country: "Lithuania", countryCode: "LT", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
-            LV: { country: "Latvia", countryCode: "LV", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
-            EE: { country: "Estonia", countryCode: "EE", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
-            DE: { country: "Germany", countryCode: "DE", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
-            GB: { country: "United Kingdom", countryCode: "GB", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
-            US: { country: "United States", countryCode: "US", region: "North America", currency: "$", timeZone: "America/New_York" },
-            PL: { country: "Poland", countryCode: "PL", region: "Eastern Europe", currency: "PLN", timeZone: "Europe/Warsaw" },
-            FR: { country: "France", countryCode: "FR", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
+            LT: { country: "Lithuania", countryCode: "lt", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
+            LV: { country: "Latvia", countryCode: "lv", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
+            EE: { country: "Estonia", countryCode: "ee", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
+            DE: { country: "Germany", countryCode: "de", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
+            GB: { country: "United Kingdom", countryCode: "uk", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
+            US: { country: "United States", countryCode: "us", region: "North America", currency: "$", timeZone: "America/New_York" },
+            PL: { country: "Poland", countryCode: "pl", region: "Eastern Europe", currency: "PLN", timeZone: "Europe/Warsaw" },
+            FR: { country: "France", countryCode: "fr", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
           };
 
           const location = locationMap[countryCode] || locationMap["US"];
@@ -81,14 +81,14 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
 
   const selectManualLocation = (countryCode: string) => {
     const locationMap: { [key: string]: LocationInfo } = {
-      LT: { country: "Lithuania", countryCode: "LT", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
-      LV: { country: "Latvia", countryCode: "LV", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
-      EE: { country: "Estonia", countryCode: "EE", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
-      DE: { country: "Germany", countryCode: "DE", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
-      GB: { country: "United Kingdom", countryCode: "GB", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
-      US: { country: "United States", countryCode: "US", region: "North America", currency: "$", timeZone: "America/New_York" },
-      PL: { country: "Poland", countryCode: "PL", region: "Eastern Europe", currency: "PLN", timeZone: "Europe/Warsaw" },
-      FR: { country: "France", countryCode: "FR", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
+      lt: { country: "Lithuania", countryCode: "lt", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
+      lv: { country: "Latvia", countryCode: "lv", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
+      ee: { country: "Estonia", countryCode: "ee", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
+      de: { country: "Germany", countryCode: "de", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
+      uk: { country: "United Kingdom", countryCode: "uk", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
+      us: { country: "United States", countryCode: "us", region: "North America", currency: "$", timeZone: "America/New_York" },
+      pl: { country: "Poland", countryCode: "pl", region: "Eastern Europe", currency: "PLN", timeZone: "Europe/Warsaw" },
+      fr: { country: "France", countryCode: "fr", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
     };
 
     const location = locationMap[countryCode];
