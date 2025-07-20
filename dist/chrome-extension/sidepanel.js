@@ -180,8 +180,8 @@ class PriceHuntSidePanel {
         document.getElementById('similarBtn').disabled = false;
         
         // Hide no product message
-        document.getElementById('noProduct').classList.add('hidden');
-        document.getElementById('currentPage').classList.remove('hidden');
+        document.getElementById('noProduct').style.display = 'none';
+        document.getElementById('currentPage').style.display = 'block';
       } else {
         console.log('No product detected');
         this.showNoProduct();
@@ -193,10 +193,10 @@ class PriceHuntSidePanel {
   }
 
   showNoProduct() {
-    document.getElementById('currentPage').classList.add('hidden');
-    document.getElementById('results').classList.add('hidden');
-    document.getElementById('similarResults').classList.add('hidden');
-    document.getElementById('noProduct').classList.remove('hidden');
+    document.getElementById('currentPage').style.display = 'none';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('similarResults').style.display = 'none';
+    document.getElementById('noProduct').style.display = 'block';
   }
 
   async handleSearch(findSimilar = false) {
@@ -214,11 +214,11 @@ class PriceHuntSidePanel {
       // Show loading state
       if (findSimilar) {
         similarBtn.classList.add('loading');
-        similarLoader.classList.remove('hidden');
+        similarLoader.style.display = 'inline-block';
         similarBtn.disabled = true;
       } else {
         searchBtn.classList.add('loading');
-        loader.classList.remove('hidden');
+        loader.style.display = 'inline-block';
         searchBtn.disabled = true;
       }
 
@@ -264,11 +264,11 @@ class PriceHuntSidePanel {
       // Hide loading state
       if (findSimilar) {
         similarBtn.classList.remove('loading');
-        similarLoader.classList.add('hidden');
+        similarLoader.style.display = 'none';
         similarBtn.disabled = false;
       } else {
         searchBtn.classList.remove('loading');
-        loader.classList.add('hidden');
+        loader.style.display = 'none';
         searchBtn.disabled = false;
       }
     }
@@ -280,8 +280,8 @@ class PriceHuntSidePanel {
     const resultsCount = document.getElementById('resultsCount');
 
     // Hide other sections
-    document.getElementById('similarResults').classList.add('hidden');
-    document.getElementById('noProduct').classList.add('hidden');
+    document.getElementById('similarResults').style.display = 'none';
+    document.getElementById('noProduct').style.display = 'none';
 
     // Clear previous results
     resultsList.innerHTML = '';
@@ -314,7 +314,7 @@ class PriceHuntSidePanel {
       resultsList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">No price comparisons found</div>';
     }
 
-    resultsDiv.classList.remove('hidden');
+    resultsDiv.style.display = 'block';
   }
 
   displaySimilarResults(data) {
@@ -323,8 +323,8 @@ class PriceHuntSidePanel {
     const resultsCount = document.getElementById('similarResultsCount');
 
     // Hide other sections
-    document.getElementById('results').classList.add('hidden');
-    document.getElementById('noProduct').classList.add('hidden');
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('noProduct').style.display = 'none';
 
     // Clear previous results
     resultsList.innerHTML = '';
@@ -357,7 +357,7 @@ class PriceHuntSidePanel {
       resultsList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">No similar products found</div>';
     }
 
-    resultsDiv.classList.remove('hidden');
+    resultsDiv.style.display = 'block';
   }
 
   showError(message) {

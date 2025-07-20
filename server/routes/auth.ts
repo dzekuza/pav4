@@ -290,41 +290,8 @@ export const getUserSearchHistory: RequestHandler = async (req, res) => {
 // Get all users (admin only)
 export const getAllUsers: RequestHandler = async (req, res) => {
   try {
-    // Check for token in cookies or Authorization header
-    let token = req.cookies.auth_token;
-    
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-
-    // Handle both string and number user IDs
-    const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
-    
-    if (isNaN(userId)) {
-      return res.status(401).json({ error: "Invalid user ID in token" });
-    }
-
-    const user = await userService.findUserById(userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-
-    if (!user.isAdmin) {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-
+    // This function is now called with admin authentication middleware
+    // The admin authentication is handled by requireAdminAuth middleware
     const users = await userService.getAllUsers();
 
     res.json({

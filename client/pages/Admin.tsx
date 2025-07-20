@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "react-router-dom";
 import { SearchHeader } from "@/components/SearchHeader";
 import {
   Card,
@@ -10,20 +10,67 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Search, Shield, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Search, Shield, Calendar, LogOut } from "lucide-react";
 import { AdminUsersResponse } from "@shared/api";
 
+interface AdminAuthResponse {
+  success: boolean;
+  admin?: {
+    id: number;
+    email: string;
+    name?: string;
+    role: string;
+  };
+}
+
 export default function Admin() {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUsersResponse["users"]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [admin, setAdmin] = useState<AdminAuthResponse["admin"] | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
-      fetchUsers();
+    checkAdminAuth();
+  }, []);
+
+  const checkAdminAuth = async () => {
+    try {
+      const response = await fetch("/api/admin/auth/me", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data: AdminAuthResponse = await response.json();
+        if (data.success && data.admin) {
+          setAdmin(data.admin);
+          fetchUsers();
+        } else {
+          navigate("/admin-login");
+        }
+      } else {
+        navigate("/admin-login");
+      }
+    } catch (err) {
+      navigate("/admin-login");
+    } finally {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, isAdmin]);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      navigate("/admin-login");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -57,7 +104,7 @@ export default function Admin() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!admin) {
     return (
       <div className="min-h-screen bg-background">
         <SearchHeader />
@@ -65,7 +112,7 @@ export default function Admin() {
           <Alert variant="destructive" className="max-w-md mx-auto">
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              Access denied. Admin privileges required.
+              Redirecting to admin login...
             </AlertDescription>
           </Alert>
         </div>
@@ -82,11 +129,26 @@ export default function Admin() {
       <SearchHeader />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Manage users and monitor system activity
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage users and monitor system activity
+            </p>
+            {admin && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Logged in as: {admin.email}
+              </p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="flex items-center space-x-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
         </div>
 
         {error && (

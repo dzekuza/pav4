@@ -15,7 +15,14 @@ import {
   getUserSearchHistory,
   getAllUsers,
 } from "./routes/auth";
+import {
+  adminLogin,
+  adminLogout,
+  getCurrentAdmin,
+  createAdmin,
+} from "./routes/admin-auth";
 import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
+import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
 import { gracefulShutdown } from "./services/database";
@@ -64,6 +71,12 @@ export function createServer() {
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
   
+  // Admin authentication routes
+  app.post("/api/admin/auth/login", adminLogin);
+  app.post("/api/admin/auth/logout", adminLogout);
+  app.get("/api/admin/auth/me", getCurrentAdmin);
+  app.post("/api/admin/auth/create", createAdmin); // For initial setup
+  
   // TestSprite compatibility routes (redirects)
   app.post("/api/register", register);
   app.post("/api/login", login);
@@ -73,6 +86,9 @@ export function createServer() {
   // Protected routes - require authentication
   app.post("/api/search-history", requireAuth, addToSearchHistory);
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
+  
+  // Admin routes
+  app.get("/api/admin/users", requireAdminAuth, getAllUsers);
   
   // Favorites routes
   app.use("/api/favorites", favoritesRouter);

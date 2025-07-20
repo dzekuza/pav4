@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PriceHunt - Price Comparison</title>
-    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
     <div class="container">
@@ -13,6 +13,52 @@
         <div class="logo">
           <div class="logo-icon">📈</div>
           <span class="logo-text">PriceHunt</span>
+        </div>
+        
+        <!-- Country Selection -->
+        <div class="country-selector">
+          <select id="countrySelect" class="country-select" aria-label="Select country">
+            <option value="us">🇺🇸 US</option>
+            <option value="de" selected>🇩🇪 DE</option>
+            <option value="uk">🇬🇧 UK</option>
+            <option value="lt">🇱🇹 LT</option>
+            <option value="lv">🇱🇻 LV</option>
+            <option value="ee">🇪🇪 EE</option>
+            <option value="fr">🇫🇷 FR</option>
+            <option value="es">🇪🇸 ES</option>
+            <option value="it">🇮🇹 IT</option>
+            <option value="pl">🇵🇱 PL</option>
+            <option value="cz">🇨🇿 CZ</option>
+            <option value="sk">🇸🇰 SK</option>
+            <option value="hu">🇭🇺 HU</option>
+            <option value="ro">🇷🇴 RO</option>
+            <option value="bg">🇧🇬 BG</option>
+            <option value="hr">🇭🇷 HR</option>
+            <option value="si">🇸🇮 SI</option>
+            <option value="at">🇦🇹 AT</option>
+            <option value="be">🇧🇪 BE</option>
+            <option value="nl">🇳🇱 NL</option>
+            <option value="dk">🇩🇰 DK</option>
+            <option value="se">🇸🇪 SE</option>
+            <option value="no">🇳🇴 NO</option>
+            <option value="fi">🇫🇮 FI</option>
+            <option value="is">🇮🇸 IS</option>
+            <option value="ie">🇮🇪 IE</option>
+            <option value="pt">🇵🇹 PT</option>
+            <option value="gr">🇬🇷 GR</option>
+            <option value="cy">🇨🇾 CY</option>
+            <option value="mt">🇲🇹 MT</option>
+            <option value="lu">🇱🇺 LU</option>
+            <option value="ca">🇨🇦 CA</option>
+            <option value="mx">🇲🇽 MX</option>
+            <option value="br">🇧🇷 BR</option>
+            <option value="ar">🇦🇷 AR</option>
+            <option value="au">🇦🇺 AU</option>
+            <option value="jp">🇯🇵 JP</option>
+            <option value="kr">🇰🇷 KR</option>
+            <option value="in">🇮🇳 IN</option>
+            <option value="sg">🇸🇬 SG</option>
+          </select>
         </div>
       </div>
 
@@ -47,7 +93,7 @@
       </div>
 
       <!-- Results Section -->
-      <div class="results hidden" id="results">
+      <div class="results" id="results" style="display: none">
         <div class="results-header">
           <span class="results-title">Price Comparison</span>
           <span class="results-count" id="resultsCount">0 results</span>
@@ -58,7 +104,7 @@
       </div>
 
       <!-- Similar Products Results -->
-      <div class="similar-results hidden" id="similarResults">
+      <div class="similar-results" id="similarResults" style="display: none">
         <div class="results-header">
           <span class="results-title">Similar Products</span>
           <span class="results-count" id="similarResultsCount">0 results</span>
@@ -69,7 +115,7 @@
       </div>
 
       <!-- No Product Detected -->
-      <div class="no-product hidden" id="noProduct">
+      <div class="no-product" id="noProduct" style="display: none">
         <div class="no-product-icon">🛍️</div>
         <div class="no-product-text">
           <strong>No product detected</strong>
@@ -94,6 +140,6 @@
       </div>
     </div>
 
-    <script src="popup.js"></script>
+    <script src="sidepanel.js"></script>
   </body>
-</html>
+</html> 
