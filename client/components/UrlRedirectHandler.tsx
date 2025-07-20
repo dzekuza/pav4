@@ -49,7 +49,8 @@ export function UrlRedirectHandler() {
       location.pathname.startsWith("/https://") ||
       location.pathname.startsWith("/http://")
     ) {
-      const productUrl = fullPath.substring(1); // Remove leading slash
+      // Extract the product URL by removing the leading slash
+      const productUrl = location.pathname.substring(1); // Remove leading slash
       console.log("Detected product URL:", productUrl);
 
       // Validate URL
