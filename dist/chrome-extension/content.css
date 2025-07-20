@@ -1,0 +1,395 @@
+/* Content styles for PriceHunt Chrome Extension */
+
+/* Overlay styles */
+.pricehunt-overlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  z-index: 2147483647; /* Maximum z-index */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.pricehunt-overlay-content {
+  padding: 0;
+}
+
+.pricehunt-overlay-header {
+  background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pricehunt-logo {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.pricehunt-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.pricehunt-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.pricehunt-overlay-body {
+  padding: 20px;
+}
+
+.pricehunt-overlay-body h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.pricehunt-alternatives {
+  margin-bottom: 16px;
+}
+
+.pricehunt-alternative {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pricehunt-alternative:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+  transform: translateY(-1px);
+}
+
+.pricehunt-alternative:last-child {
+  margin-bottom: 0;
+}
+
+.pricehunt-store {
+  font-weight: 500;
+  color: #374151;
+  min-width: 60px;
+  font-size: 12px;
+}
+
+.pricehunt-price {
+  font-weight: 600;
+  color: #059669;
+  margin-left: auto;
+}
+
+.pricehunt-savings {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.pricehunt-view-all {
+  width: 100%;
+  background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pricehunt-view-all:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Price highlight styles */
+.pricehunt-price-highlight {
+  position: relative;
+  display: inline-block;
+}
+
+.pricehunt-price-highlight::after {
+  content: "💰";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 12px;
+  background: #fef3c7;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Floating action button */
+.pricehunt-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2147483646;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: all 0.2s ease;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.pricehunt-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+}
+
+.pricehunt-fab:active {
+  transform: translateY(0);
+}
+
+/* Tooltip for FAB */
+.pricehunt-fab-tooltip {
+  position: absolute;
+  right: 64px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.pricehunt-fab-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 4px solid transparent;
+  border-left-color: #1f2937;
+}
+
+.pricehunt-fab:hover .pricehunt-fab-tooltip {
+  opacity: 1;
+}
+
+/* Loading indicator */
+.pricehunt-loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Notification style */
+.pricehunt-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #059669;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  z-index: 2147483647;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Badge indicator */
+.pricehunt-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: bounce 0.5s ease-out;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  53%,
+  80%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%,
+  43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .pricehunt-overlay {
+    width: calc(100vw - 40px);
+    max-width: 320px;
+  }
+
+  .pricehunt-fab {
+    bottom: 80px; /* Avoid mobile browser UI */
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .pricehunt-overlay {
+    background: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+
+  .pricehunt-overlay-body h3 {
+    color: #10b981;
+  }
+
+  .pricehunt-alternative {
+    border-color: #374151;
+    background: #111827;
+  }
+
+  .pricehunt-alternative:hover {
+    border-color: #7c3aed;
+    background: #1f2937;
+  }
+
+  .pricehunt-store {
+    color: #d1d5db;
+  }
+
+  .pricehunt-savings {
+    background: #7f1d1d;
+    color: #fca5a5;
+  }
+}
+
+/* Accessibility improvements */
+.pricehunt-overlay:focus-within {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.pricehunt-alternative:focus {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.pricehunt-fab:focus {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

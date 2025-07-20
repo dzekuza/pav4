@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PriceHunt - Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="logo">
+          <div class="logo-icon">📈</div>
+          <div class="logo-text">
+            <h1>PriceHunt Settings</h1>
+            <p>Customize your price comparison experience</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main">
+        <!-- General Settings -->
+        <section class="section">
+          <h2 class="section-title">General Settings</h2>
+          <div class="section-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label" for="autoDetect"
+                  >Auto-detect products</label
+                >
+                <p class="setting-description">
+                  Automatically detect products when you visit supported
+                  retailers
+                </p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="autoDetect" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label" for="notifications"
+                  >Show notifications</label
+                >
+                <p class="setting-description">
+                  Get notified when better prices are found
+                </p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="notifications" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label" for="priceThreshold"
+                  >Minimum savings to notify</label
+                >
+                <p class="setting-description">
+                  Only show notifications when savings exceed this amount
+                </p>
+              </div>
+              <div class="input-group">
+                <span class="input-prefix">$</span>
+                <input
+                  type="number"
+                  id="priceThreshold"
+                  min="1"
+                  max="1000"
+                  value="10"
+                  class="number-input"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Supported Stores -->
+        <section class="section">
+          <h2 class="section-title">Supported Stores</h2>
+          <div class="section-content">
+            <p class="section-description">
+              Choose which stores to include in price comparisons
+            </p>
+            <div class="stores-grid" id="storesGrid">
+              <!-- Stores will be populated by JavaScript -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Privacy & Data -->
+        <section class="section">
+          <h2 class="section-title">Privacy & Data</h2>
+          <div class="section-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Search History</label>
+                <p class="setting-description">
+                  Your search history is stored locally for quick access
+                </p>
+              </div>
+              <button class="btn btn-outline" id="clearHistory">
+                Clear History
+              </button>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Data Usage</label>
+                <p class="setting-description">
+                  PriceHunt only collects anonymous usage data to improve the
+                  service
+                </p>
+              </div>
+              <a
+                href="http://localhost:8080/privacy"
+                target="_blank"
+                class="btn btn-link"
+                >Privacy Policy</a
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- About -->
+        <section class="section">
+          <h2 class="section-title">About</h2>
+          <div class="section-content">
+            <div class="about-grid">
+              <div class="about-item">
+                <strong>Version</strong>
+                <span id="version">1.0.0</span>
+              </div>
+              <div class="about-item">
+                <strong>Support</strong>
+                <a href="http://localhost:8080/help" target="_blank"
+                  >Get Help</a
+                >
+              </div>
+              <div class="about-item">
+                <strong>Feedback</strong>
+                <a href="http://localhost:8080/feedback" target="_blank"
+                  >Send Feedback</a
+                >
+              </div>
+              <div class="about-item">
+                <strong>Website</strong>
+                <a href="http://localhost:8080" target="_blank"
+                  >Visit PriceHunt</a
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="save-status" id="saveStatus">
+            Settings saved automatically
+          </div>
+          <div class="footer-links">
+            <a href="http://localhost:8080" target="_blank">Open PriceHunt</a>
+            <span class="divider">•</span>
+            <a href="http://localhost:8080/help" target="_blank">Help</a>
+            <span class="divider">•</span>
+            <a href="http://localhost:8080/privacy" target="_blank">Privacy</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>
