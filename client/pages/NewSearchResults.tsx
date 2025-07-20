@@ -49,12 +49,20 @@ const NewSearchResults = () => {
   const [newSearchUrl, setNewSearchUrl] = useState("");
 
   useEffect(() => {
+    // Clear any existing data when starting fresh
+    if (location.state?.searchUrl) {
+      setSearchData(null);
+      setOriginalUrl("");
+      setError(null);
+      setIsLoading(true);
+    }
+    
     // Get data from navigation state or try to fetch from API
     if (location.state?.searchData) {
       setSearchData(location.state.searchData);
       setOriginalUrl(location.state.originalUrl || "");
     } else if (location.state?.searchUrl) {
-      // Handle state from Index.tsx navigation
+      // Handle state from Index.tsx navigation or fresh search
       setOriginalUrl(location.state.searchUrl);
       // Trigger the search immediately
       handleSearchFromState(location.state.searchUrl, location.state.userCountry, location.state.gl);
@@ -80,7 +88,7 @@ const NewSearchResults = () => {
       // If no URL found in slug, try to fetch the data (fallback)
       fetchSearchData();
     }
-  }, [location.state, requestId]);
+  }, [location.state, requestId, location.pathname]);
 
   const handleSearchFromState = async (url: string, userCountry: string, gl?: string) => {
     setIsLoading(true);
@@ -200,7 +208,24 @@ const NewSearchResults = () => {
 
   const handleNewSearch = async (url: string) => {
     if (!url.trim()) return;
-    navigate(`/new-search/${Date.now()}/${encodeURIComponent(url.trim())}`);
+    
+    // Clear all current search data
+    setSearchData(null);
+    setOriginalUrl("");
+    setError(null);
+    setIsLoading(true);
+    setNewSearchUrl("");
+    
+    // Navigate to new search with fresh state
+    const newRequestId = Date.now().toString();
+    navigate(`/new-search/${newRequestId}/${encodeURIComponent(url.trim())}`, {
+      replace: true,
+      state: {
+        searchUrl: url.trim(),
+        userCountry: "Germany",
+        gl: "de"
+      }
+    });
   };
 
   const toggleFavorite = async (suggestion: any) => {
@@ -358,19 +383,18 @@ const NewSearchResults = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <SearchInput
-                  value={newSearchUrl}
-                  onChange={(value) => setNewSearchUrl(value)}
-                  placeholder="Enter product URL (e.g., Amazon, eBay, etc.)"
-                  onSubmit={handleNewSearch}
-                />
-              </div>
-              <Button onClick={() => handleNewSearch(newSearchUrl)} className="px-6">
-                Search
-              </Button>
-            </div>
+            <SearchInput
+              value={newSearchUrl}
+              onChange={(value) => setNewSearchUrl(value)}
+              placeholder="Enter product URL (e.g., Amazon, eBay, etc.)"
+              onSubmit={handleNewSearch}
+            />
+            <Button 
+              onClick={() => handleNewSearch(newSearchUrl)} 
+              className="w-full mt-4"
+            >
+              Compare Prices →
+            </Button>
           </CardContent>
         </Card>
 
