@@ -2264,16 +2264,33 @@ router$1.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
   try {
-    const { url, requestId, gl, userCountry } = req.body;
+    const { url, requestId, gl, userCountry, findSimilar } = req.body;
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
     }
     console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
     console.log(`Request ID: ${requestId}`);
+    console.log(`Find Similar: ${findSimilar}`);
     const result = await scrapeWithN8nWebhook(url, gl);
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
     console.log("Suggestions count:", result.suggestions?.length || 0);
+    if (findSimilar && result.mainProduct) {
+      console.log("Processing similar products search...");
+      const productTitle = result.mainProduct.title;
+      const productBrand = extractBrandFromTitle(productTitle);
+      const productType = extractProductType(productTitle);
+      const similarSearchQuery = `${productBrand} ${productType}`;
+      console.log(`Similar products search query: ${similarSearchQuery}`);
+      if (result.suggestions && result.suggestions.length > 0) {
+        result.suggestions = result.suggestions.map((suggestion) => ({
+          ...suggestion,
+          isSimilar: true,
+          similarityReason: `Similar ${productType} from ${suggestion.merchant || suggestion.site || "other retailers"}`
+        }));
+        console.log(`Enhanced ${result.suggestions.length} suggestions for similar products`);
+      }
+    }
     try {
       const userId = req.user?.id;
       if (userId && result.mainProduct?.title) {
@@ -2282,7 +2299,7 @@ router$1.post("/n8n-scrape", async (req, res) => {
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`
         });
-        console.log(`Search history saved for user ${userId}`);
+        console.log(`Search history saved for user ${userId} (type: ${findSimilar ? "similar" : "price_comparison"})`);
       }
     } catch (historyError) {
       console.error("Failed to save search history:", historyError);
