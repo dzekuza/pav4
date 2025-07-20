@@ -1050,9 +1050,23 @@ function generateAssessment(price: number, basePrice: number, retailer: string):
   };
 }
 
+// Extract price from SearchAPI extensions
+const extractPriceFromExtensions = (extensions: string[] = []): string | null => {
+  const priceRegex = /€\s?\d{1,3}(?:[.,]\d{2})?/; // Matches €437.00 or € 437,00
+  for (const el of extensions) {
+    const match = el.match(priceRegex);
+    if (match) {
+      return match[0].trim();
+    }
+  }
+  return null;
+};
+
 // Validate and sanitize SearchAPI result to ensure it has a valid price and URL
 async function validateAndSanitizeResult(result: any, productTitle: string, actualPrice?: number): Promise<PriceComparison | null> {
-  const price = extractPrice(result.price || result.priceText || result.price_string || result.extracted_price || '');
+  // Try to extract price from extensions first, then fallback to other fields
+  const priceFromExtensions = extractPriceFromExtensions(result.rich_snippet?.extensions);
+  const price = priceFromExtensions ? extractPrice(priceFromExtensions) : extractPrice(result.price || result.priceText || result.price_string || result.extracted_price || '');
   const rawUrl = result.link || result.product_link || result.source_url || result.url || result.offers_link || '';
   const url = extractDirectRetailerUrl(rawUrl);
   
@@ -1673,34 +1687,40 @@ router.post("/scrape-enhanced", async (req, res) => {
     const userCountry = req.body.userLocation?.country || "United States";
     console.log(`User country detected: ${userCountry}`);
 
-    // Import the original scraping function
-    const { handleScrape } = await import("../routes/scrape.js");
-
-    // Create a mock response object to capture the data
+    // Extract product data directly without calling the old scraping function
     let capturedData: any = null;
-    const mockRes = {
-      json: (data: any) => {
-        capturedData = data;
-        return mockRes;
-      },
-      status: (code: number) => mockRes,
-    } as any;
-
-    // Create a request object with the required fields
-    const mockReq = {
-      body: {
-        url,
-        requestId: Date.now().toString(),
-        userLocation: req.body.userLocation || { country: userCountry },
-      },
-      user: req.user,
-      ip: req.ip,
-      socket: req.socket,
-      headers: req.headers,
-    } as any;
-
-    // Call the original scraping function
-    await handleScrape(mockReq, mockRes, () => {});
+    
+    try {
+      // Use the enhanced product detection
+      const detectedProduct = await detectProductFromUrl(url);
+      console.log("Detected product:", detectedProduct);
+      
+      // Create basic product data structure
+      capturedData = {
+        originalProduct: {
+          title: detectedProduct?.title || "Product",
+          price: detectedProduct?.price || 0,
+          currency: "€",
+          url,
+          image: "/placeholder.svg",
+          store: new URL(url).hostname.replace(/^www\./, ""),
+        },
+        comparisons: [],
+      };
+    } catch (error) {
+      console.error("Error detecting product:", error);
+      capturedData = {
+        originalProduct: {
+          title: "Product",
+          price: 0,
+          currency: "€",
+          url,
+          image: "/placeholder.svg",
+          store: new URL(url).hostname.replace(/^www\./, ""),
+        },
+        comparisons: [],
+      };
+    }
 
     // Debug: Log what the original scraping returned
     console.log("Original scraping result:", JSON.stringify(capturedData, null, 2));
@@ -1862,8 +1882,158 @@ router.post("/scrape-enhanced", async (req, res) => {
       });
     } catch (fallbackError) {
       console.error("Fallback also failed:", fallbackError);
-      res.status(500).json({ error: "Failed to scrape product data" });
+      res.json({ 
+        product: {
+          title: "Product",
+          price: 0,
+          currency: "€",
+          url: req.body.url || "",
+          image: "/placeholder.svg",
+          store: "unknown"
+        },
+        comparisons: [],
+        requestId: Date.now().toString(),
+        error: "Failed to scrape product data"
+      });
     }
+  }
+});
+
+// New n8n webhook scraping function
+async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
+  try {
+    console.log("Calling n8n webhook for URL:", url, "GL:", gl);
+    
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv824584.hstgr.cloud/webhook/new-test';
+    
+    console.log("Using n8n webhook URL:", n8nWebhookUrl);
+    console.log("Environment variable N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
+    
+    const params: any = { url };
+    if (gl) {
+      params.gl = gl;
+    }
+    
+    console.log("Full URL being called:", `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`);
+    
+    const response = await axios.get(n8nWebhookUrl, {
+      params: params,
+      timeout: 30000, // 30 second timeout
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    console.log("n8n webhook response status:", response.status);
+    console.log("n8n webhook response data:", JSON.stringify(response.data, null, 2));
+
+    if (response.status !== 200) {
+      throw new Error(`n8n webhook returned status ${response.status}`);
+    }
+
+    const data = response.data;
+    
+    // Handle the n8n response format
+    if (data && data.mainProduct && Array.isArray(data.suggestions)) {
+      // Convert suggestions to PriceComparison format
+      const comparisons: PriceComparison[] = data.suggestions.map((suggestion: any) => ({
+        title: suggestion.title,
+        store: suggestion.site || 'unknown',
+        price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
+        currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
+        url: suggestion.link,
+        image: suggestion.image,
+        condition: "New",
+        assessment: {
+          cost: 3,
+          value: 3,
+          quality: 3,
+          description: `Found on ${suggestion.site || 'unknown'}`
+        }
+      }));
+
+      return {
+        mainProduct: {
+          title: data.mainProduct.title,
+          price: data.mainProduct.price,
+          image: data.mainProduct.image,
+          url: data.mainProduct.url
+        },
+        suggestions: data.suggestions,
+        comparisons: comparisons
+      };
+    }
+
+    throw new Error("Invalid n8n webhook response format");
+  } catch (error) {
+    console.error("n8n webhook error:", error);
+    
+    // If it's an axios error, log more details
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        fullUrl: error.config?.url + '?' + new URLSearchParams(error.config?.params || {}).toString()
+      });
+    }
+    
+    throw error;
+  }
+}
+
+// Helper function to extract currency from price string
+function extractCurrency(priceString: string): string {
+  if (priceString.includes('€')) return '€';
+  if (priceString.includes('$')) return '$';
+  if (priceString.includes('£')) return '£';
+  return '€'; // Default to Euro
+}
+
+// New route for n8n webhook scraping
+router.post("/n8n-scrape", async (req, res) => {
+  console.log("=== n8n-scrape route called ===");
+  console.log("Request body:", req.body);
+  console.log("Environment variable N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
+  
+  try {
+    const { url, requestId, gl } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+
+    console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
+    console.log(`Request ID: ${requestId}`);
+
+    // Call the n8n webhook with gl parameter
+    const result = await scrapeWithN8nWebhook(url, gl);
+
+    console.log("n8n webhook scraping successful");
+    console.log("Main product:", result.mainProduct);
+    console.log("Suggestions count:", result.suggestions?.length || 0);
+
+    res.json(result);
+  } catch (error) {
+    console.error("n8n webhook scraping error:", error);
+    
+    // Provide a fallback response instead of 500 error
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.log("Providing fallback response due to error:", errorMessage);
+    
+    res.json({ 
+      mainProduct: {
+        title: "Product",
+        price: "€0",
+        image: "/placeholder.svg",
+        url: req.body.url || null
+      },
+      suggestions: [],
+      error: errorMessage
+    });
   }
 });
 

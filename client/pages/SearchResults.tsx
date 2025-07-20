@@ -1,118 +1,203 @@
-import { useEffect, useState } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
-import { ExternalLink, AlertCircle, Search, TrendingUp, Shield, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { SearchHeader } from "@/components/SearchHeader";
-import { ComparisonGrid, SavingsSummary } from "@/components/ComparisonGrid";
-import { SearchLoadingState } from "@/components/LoadingSkeleton";
-import { LoadingState } from "@/components/LoadingState";
-import { ProductData, PriceComparison, ScrapeResponse } from "@shared/api";
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { ScrapeResponse, ProductData, PriceComparison } from "../../shared/api";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Separator } from "../components/ui/separator";
+import { ArrowLeft, RefreshCw, ExternalLink, Star, AlertCircle } from "lucide-react";
+import { useToast } from "../hooks/use-toast";
+import { Alert, AlertDescription } from "../components/ui/alert";
 
-export default function SearchResults() {
+// Helper functions
+function extractPrice(priceString: string): number {
+  if (!priceString) return 0;
+  const match = priceString.match(/[€$£]?\s?(\d+(?:[.,]\d{2})?)/);
+  return match ? parseFloat(match[1].replace(',', '.')) : 0;
+}
+
+function extractCurrency(priceString: string): string {
+  if (priceString.includes('€')) return '€';
+  if (priceString.includes('$')) return '$';
+  if (priceString.includes('£')) return '£';
+  return '€'; // Default to Euro
+}
+
+const SearchResults = () => {
   const { requestId } = useParams<{ requestId: string }>();
   const location = useLocation();
-  
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   const [originalProduct, setOriginalProduct] = useState<ProductData | null>(null);
   const [comparisons, setComparisons] = useState<PriceComparison[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState("Detecting product details...");
-  const [loadingStep, setLoadingStep] = useState(1);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   useEffect(() => {
-    const { searchUrl, userCountry } = location.state || {};
-
-    if (!searchUrl) {
-      setError("No product URL provided.");
-      setLoading(false);
-      return;
+    if (location.state?.searchUrl && location.state?.userCountry) {
+      fetchProductData(location.state.searchUrl, location.state.userCountry, location.state.gl);
     }
+  }, [location.state]);
 
-    const fetchProductData = async () => {
-      setLoading(true);
-      try {
-        // Step 1: Product detection
-        setLoadingMessage("Detecting product details...");
-        setLoadingStep(1);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+  const fetchProductData = async (searchUrl: string, userCountry: string, gl?: string) => {
+    setIsLoading(true);
+    setError(null);
+    setLoadingStep(1);
+    setLoadingMessage("Analyzing product...");
 
-        // Step 2: Searching retailers
-        setLoadingMessage("Searching hundreds of retailers...");
-        setLoadingStep(2);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Step 1: Analyzing product
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const response = await fetch("/api/scrape-enhanced", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: searchUrl, userLocation: { country: userCountry } }),
-        });
+      // Step 2: Searching retailers
+      setLoadingMessage("Searching hundreds of retailers...");
+      setLoadingStep(2);
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch product data.");
-        }
+      const response = await fetch("/api/n8n-scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          url: searchUrl, 
+          requestId: requestId,
+          userLocation: { country: userCountry },
+          gl: gl // Pass the gl parameter for country-specific search
+        }),
+      });
 
-        // Step 3: Finalizing results
-        setLoadingMessage("Finalizing price comparisons...");
-        setLoadingStep(3);
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const data: ScrapeResponse = await response.json();
-        
-        setOriginalProduct(data.product || data.originalProduct);
-        setComparisons(data.comparisons || []);
-        
-        // Update the URL to be more descriptive
-        const newSlug = (data.product?.title || "product")
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .substring(0, 75);
-        window.history.replaceState({}, '', `/search/${requestId}/${newSlug}`);
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred.");
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch product data.");
       }
-    };
 
-    fetchProductData();
-  }, [requestId, location.state]);
+      // Step 3: Finalizing results
+      setLoadingMessage("Finalizing price comparisons...");
+      setLoadingStep(3);
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-  // Show loading state
-  if (loading) {
+      const data: ScrapeResponse = await response.json();
+      
+      // Handle n8n response format
+      if (data.mainProduct && data.suggestions) {
+        // Convert n8n format to our expected format
+        const mainProduct: ProductData = {
+          title: data.mainProduct.title,
+          price: extractPrice(data.mainProduct.price),
+          currency: extractCurrency(data.mainProduct.price),
+          image: data.mainProduct.image,
+          url: data.mainProduct.url,
+          store: new URL(data.mainProduct.url || searchUrl).hostname.replace(/^www\./, "")
+        };
+
+        // Convert suggestions to PriceComparison format
+        const comparisons: PriceComparison[] = data.suggestions.map((suggestion: any) => ({
+          title: suggestion.title,
+          store: suggestion.site || 'unknown',
+          price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
+          currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
+          url: suggestion.link,
+          image: suggestion.image,
+          condition: "New",
+          assessment: {
+            cost: 3,
+            value: 3,
+            quality: 3,
+            description: `Found on ${suggestion.site || 'unknown'}`
+          }
+        }));
+
+        setOriginalProduct(mainProduct);
+        setComparisons(comparisons);
+      } else if (data.product && data.comparisons) {
+        // Handle legacy format
+        setOriginalProduct(data.product);
+        setComparisons(data.comparisons);
+      } else {
+        throw new Error("Invalid response format from server");
+      }
+      
+      setLoadingStep(0);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching product data:", error);
+      setError(error instanceof Error ? error.message : "An error occurred");
+      setIsLoading(false);
+      setLoadingStep(0);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (location.state?.searchUrl && location.state?.userCountry) {
+      fetchProductData(location.state.searchUrl, location.state.userCountry);
+    }
+  };
+
+  const handleBack = () => {
+    navigate("/");
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <SearchHeader />
-        <div className="container mx-auto px-4 py-16">
-          <LoadingState 
-            title={loadingMessage} 
-            description="We're analyzing the product and finding the best deals across hundreds of retailers." 
-            step={loadingStep}
-          />
-          <SearchLoadingState />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center">
+            <div 
+              className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
+              role="status"
+              aria-label="Loading"
+            ></div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {loadingMessage}
+            </h2>
+            <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-2" role="progressbar" aria-label="Loading progress">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300 progress-bar"
+                style={{ '--progress-width': `${(loadingStep / 3) * 100}%` } as React.CSSProperties}
+              ></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Show error state
-  if (error && !originalProduct) {
-    console.log("Rendering error state:", error);
+  if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <SearchHeader />
-        <div className="container mx-auto px-4 py-16">
-          <Alert variant="destructive" className="max-w-md mx-auto">
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Button onClick={handleBack} variant="ghost" className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Search
+          </Button>
+          
+          <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <div className="text-center mt-8">
-            <Button asChild>
-              <Link to="/">Back to Home</Link>
+          
+          <Button onClick={handleRefresh} className="w-full">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!originalProduct) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              No product data available
+            </h2>
+            <Button onClick={handleBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Search
             </Button>
           </div>
         </div>
@@ -120,204 +205,138 @@ export default function SearchResults() {
     );
   }
 
-  // Show results
-  console.log("Rendering results with product:", !!originalProduct, "comparisons:", comparisons.length);
-  const lowestPrice = Math.min(
-    originalProduct?.price || Infinity,
-    ...comparisons.map((c) => c.price),
-  );
-
-  const savings = originalProduct ? originalProduct.price - lowestPrice : 0;
-  const savingsPercentage = originalProduct ? (savings / originalProduct.price) * 100 : 0;
-
   return (
-    <div className="min-h-screen bg-background">
-      <SearchHeader />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <Button onClick={handleBack} variant="ghost" className="mb-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Search
+        </Button>
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Enhanced Product Overview */}
-        {originalProduct && (
-          <div className="mb-16">
-            <div className="grid lg:grid-cols-12 gap-12 items-start">
-              {/* Product Image - Enhanced */}
-              <div className="lg:col-span-5">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl p-8 lg:p-12 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20"></div>
-                  <img
-                    src={originalProduct.image}
-                    alt={originalProduct.title}
-                    className="w-full h-auto object-contain max-h-96 mx-auto relative z-10"
-                  />
-                  {/* Product badges */}
-                  <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Verified
-                    </Badge>
-                    {savings > 0 && (
-                      <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                        Save {originalProduct.currency}{savings.toFixed(2)}
-                      </Badge>
-                    )}
-                  </div>
+        {/* Main Product */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Original Product</span>
+              <Badge variant="secondary">Found</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4">
+              <img 
+                src={originalProduct.image} 
+                alt={originalProduct.title}
+                className="w-24 h-24 object-cover rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }}
+              />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">{originalProduct.title}</h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {originalProduct.currency}{originalProduct.price}
+                </p>
+                <div className="flex items-center mt-2">
+                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                  <span className="ml-1 text-sm text-gray-600">Original Price</span>
                 </div>
               </div>
-
-              {/* Product Details - Enhanced */}
-              <div className="lg:col-span-7 space-y-8">
-                {/* Store Badge */}
-                <div className="flex items-center gap-3">
-                  <Badge
-                    variant="secondary"
-                    className="px-4 py-2 text-sm font-medium bg-brand-primary/10 text-brand-primary border-brand-primary/20"
+              {originalProduct.url && (
+                <Button asChild>
+                  <a 
+                    href={originalProduct.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    aria-label="View original product details"
                   >
-                    {originalProduct.store}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Original listing
-                  </span>
-                </div>
-
-                {/* Product Title */}
-                <div>
-                  <h1 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-4">
-                    {originalProduct.title}
-                  </h1>
-                  <p className="text-lg text-muted-foreground">
-                    Found {comparisons.length} alternative sources
-                  </p>
-                </div>
-
-                {/* Enhanced Price Section */}
-                <div className="bg-card rounded-xl p-6 border">
-                  <div className="flex items-baseline gap-3 mb-2">
-                    <span className="text-4xl font-bold text-foreground">
-                      {originalProduct.currency}
-                      {originalProduct.price.toFixed(2)}
-                    </span>
-                    {lowestPrice < originalProduct.price && (
-                      <span className="text-lg text-muted-foreground line-through">
-                        Original price
-                      </span>
-                    )}
-                  </div>
-                  {lowestPrice < originalProduct.price && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="destructive"
-                        className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      >
-                        Save {originalProduct.currency}
-                        {savings.toFixed(2)} ({savingsPercentage.toFixed(0)}%)
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        Better prices found below
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons - Enhanced */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 h-12 text-base font-medium border-2 hover:border-brand-primary hover:text-brand-primary transition-colors"
-                    asChild
-                  >
-                    <a
-                      href={originalProduct.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      View on {originalProduct.store}
-                      <ExternalLink className="ml-2 h-5 w-5" />
-                    </a>
-                  </Button>
-
-                  <Button
-                    size="lg"
-                    className="flex-1 h-12 text-base font-medium bg-brand-gradient hover:opacity-90 transition-opacity"
-                    onClick={() => {
-                      const element =
-                        document.getElementById("price-comparison");
-                      element?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                  >
-                    <Zap className="mr-2 h-5 w-5" />
-                    Compare Prices
-                  </Button>
-                </div>
-
-                {/* Enhanced Quick Stats */}
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-brand-primary">
-                      {comparisons.length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Alternative sources
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {savingsPercentage > 0 ? `${savingsPercentage.toFixed(0)}%` : "0%"}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Max savings
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {originalProduct.currency}{lowestPrice.toFixed(2)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Lowest price
-                    </div>
-                  </div>
-                </div>
-              </div>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Product
+                  </a>
+                </Button>
+              )}
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Price Comparisons */}
+        {comparisons.length > 0 && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Price Comparisons ({comparisons.length})
+              </h2>
+              <Button onClick={handleRefresh} variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {comparisons.map((comparison, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <img 
+                        src={comparison.image} 
+                        alt={comparison.title}
+                        className="w-16 h-16 object-cover rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm line-clamp-2 mb-1">
+                          {comparison.title}
+                        </h4>
+                        <p className="text-lg font-bold text-green-600">
+                          {comparison.currency}{comparison.price}
+                        </p>
+                        <p className="text-xs text-gray-500 capitalize">
+                          {comparison.store}
+                        </p>
+                        <div className="flex items-center mt-2">
+                          <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                          <span className="ml-1 text-xs text-gray-600">
+                            {comparison.assessment.description}
+                          </span>
+                        </div>
+                      </div>
+                      {comparison.url && (
+                        <Button asChild size="sm" variant="outline">
+                          <a 
+                            href={comparison.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            title="View product details"
+                            aria-label="View product details"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            <span className="sr-only">View product details</span>
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Enhanced Savings Summary */}
-        {originalProduct && savings > 0 && (
-          <SavingsSummary
-            originalPrice={originalProduct.price}
-            lowestPrice={lowestPrice}
-            currency={originalProduct.currency}
-            totalComparisons={comparisons.length}
-          />
+        {comparisons.length === 0 && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500 mb-4">No price comparisons found</p>
+              <Button onClick={handleRefresh}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
         )}
-
-        {/* Enhanced Price Comparison */}
-        <div id="price-comparison" className="mb-12">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Price Comparison
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We've found {comparisons.length} alternative sources for this
-              product. Compare prices and find the best deal for you.
-            </p>
-            {comparisons.length > 0 && (
-              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Search className="w-4 h-4" />
-                <span>All prices verified and updated</span>
-              </div>
-            )}
-          </div>
-          <ComparisonGrid
-            products={comparisons
-              .filter((p) => typeof p.url === 'string' && p.url.startsWith('http'))
-              .sort((a, b) => a.price - b.price) // Sort by price (lowest first)
-            }
-            originalPrice={originalProduct?.price}
-          />
-        </div>
       </div>
     </div>
   );
-}
+};
+
+export default SearchResults;

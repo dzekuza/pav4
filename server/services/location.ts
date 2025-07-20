@@ -377,6 +377,17 @@ export const getLocationHandler: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error("Location detection error:", error);
-    res.status(500).json({ error: "Failed to detect location" });
+    // Return a fallback response instead of 500 error
+    res.json({
+      location: {
+        country: "United States",
+        countryCode: "US",
+        region: "North America",
+        currency: "$",
+        timeZone: "America/New_York",
+      },
+      localDealers: [],
+      error: "Failed to detect location"
+    });
   }
 };

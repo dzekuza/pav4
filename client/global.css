@@ -126,4 +126,8 @@
   .bg-brand-gradient {
     background: linear-gradient(135deg, hsl(var(--brand-gradient-from)) 0%, hsl(var(--brand-gradient-to)) 100%);
   }
+
+  .progress-bar {
+    width: var(--progress-width, 0%);
+  }
 }

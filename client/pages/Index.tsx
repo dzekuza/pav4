@@ -12,7 +12,7 @@ export default function Index() {
   const [searchUrl, setSearchUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState("DE"); // Default to Germany
+  const [selectedCountry, setSelectedCountry] = useState("de"); // Default to Germany
   const navigate = useNavigate();
   
   const { 
@@ -25,37 +25,59 @@ export default function Index() {
   // Map country codes to full country names for the API
   const getCountryName = (countryCode: string): string => {
     const countryMap: { [key: string]: string } = {
-      'US': 'United States',
-      'DE': 'Germany',
-      'UK': 'United Kingdom',
-      'LT': 'Lithuania',
-      'LV': 'Latvia',
-      'EE': 'Estonia',
-      'FR': 'France',
-      'ES': 'Spain',
-      'IT': 'Italy',
-      'PL': 'Poland',
-      'CZ': 'Czech Republic',
-      'SK': 'Slovakia',
-      'HU': 'Hungary',
-      'RO': 'Romania',
-      'BG': 'Bulgaria',
-      'HR': 'Croatia',
-      'SI': 'Slovenia',
-      'AT': 'Austria',
-      'BE': 'Belgium',
-      'NL': 'Netherlands',
-      'DK': 'Denmark',
-      'SE': 'Sweden',
-      'NO': 'Norway',
-      'FI': 'Finland',
-      'IS': 'Iceland',
-      'IE': 'Ireland',
-      'PT': 'Portugal',
-      'GR': 'Greece',
-      'CY': 'Cyprus',
-      'MT': 'Malta',
-      'LU': 'Luxembourg'
+      'us': 'United States',
+      'de': 'Germany',
+      'uk': 'United Kingdom',
+      'lt': 'Lithuania',
+      'lv': 'Latvia',
+      'ee': 'Estonia',
+      'fr': 'France',
+      'es': 'Spain',
+      'it': 'Italy',
+      'pl': 'Poland',
+      'cz': 'Czech Republic',
+      'sk': 'Slovakia',
+      'hu': 'Hungary',
+      'ro': 'Romania',
+      'bg': 'Bulgaria',
+      'hr': 'Croatia',
+      'si': 'Slovenia',
+      'at': 'Austria',
+      'be': 'Belgium',
+      'nl': 'Netherlands',
+      'dk': 'Denmark',
+      'se': 'Sweden',
+      'no': 'Norway',
+      'fi': 'Finland',
+      'is': 'Iceland',
+      'ie': 'Ireland',
+      'pt': 'Portugal',
+      'gr': 'Greece',
+      'cy': 'Cyprus',
+      'mt': 'Malta',
+      'lu': 'Luxembourg',
+      'ae': 'United Arab Emirates',
+      'ai': 'Anguilla',
+      'ar': 'Argentina',
+      'au': 'Australia',
+      'bm': 'Bermuda',
+      'br': 'Brazil',
+      'ca': 'Canada',
+      'cl': 'Chile',
+      'co': 'Colombia',
+      'cr': 'Costa Rica',
+      'do': 'Dominican Republic',
+      'ec': 'Ecuador',
+      'sv': 'El Salvador',
+      'gt': 'Guatemala',
+      'hn': 'Honduras',
+      'mx': 'Mexico',
+      'ni': 'Nicaragua',
+      'pa': 'Panama',
+      'py': 'Paraguay',
+      'pe': 'Peru',
+      'uy': 'Uruguay',
+      've': 'Venezuela'
     };
     return countryMap[countryCode] || 'Germany';
   };
@@ -73,12 +95,13 @@ export default function Index() {
     const requestId = Date.now().toString();
     const searchQuery = "product-search"; // Generic slug
 
-    // Navigate to the search results page with the URL and country
-    const resultsUrl = `/search/${requestId}/${searchQuery}`;
+    // Navigate to the new search results page with the URL, country, and gl parameter
+    const resultsUrl = `/new-search/${requestId}/${searchQuery}`;
     navigate(resultsUrl, {
       state: {
         searchUrl: url.trim(),
         userCountry,
+        gl: selectedCountry, // Pass the gl parameter
         requestId,
       },
     });

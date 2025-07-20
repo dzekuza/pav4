@@ -1,11 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 
 // Global instance to prevent multiple Prisma Client instances in development
 declare global {
-  var __prisma: PrismaClient | undefined;
+  var __prisma: ReturnType<typeof createPrismaClient> | undefined;
 }
 
-export const prisma = globalThis.__prisma || new PrismaClient();
+const createPrismaClient = () => new PrismaClient().$extends(withAccelerate());
+
+export const prisma = globalThis.__prisma || createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
@@ -33,7 +36,7 @@ export const userService = {
     });
   },
 
-  async findUserById(id: string) {
+  async findUserById(id: number) {
     return prisma.user.findUnique({
       where: { id },
     });
@@ -59,7 +62,7 @@ export const userService = {
   },
 
   async updateUser(
-    id: string,
+    id: number,
     data: Partial<{
       email: string;
       password: string;
@@ -72,7 +75,7 @@ export const userService = {
     });
   },
 
-  async deleteUser(id: string) {
+  async deleteUser(id: number) {
     return prisma.user.delete({
       where: { id },
     });
@@ -82,7 +85,7 @@ export const userService = {
 // Search history operations
 export const searchHistoryService = {
   async addSearch(
-    userId: string,
+    userId: number,
     data: {
       url: string;
       title: string;
@@ -99,7 +102,7 @@ export const searchHistoryService = {
     });
   },
 
-  async getUserSearchHistory(userId: string, limit: number = 20) {
+  async getUserSearchHistory(userId: number, limit: number = 20) {
     return prisma.searchHistory.findMany({
       where: { userId },
       orderBy: { timestamp: "desc" },
@@ -107,7 +110,7 @@ export const searchHistoryService = {
     });
   },
 
-  async deleteUserSearch(userId: string, searchId: string) {
+  async deleteUserSearch(userId: number, searchId: number) {
     return prisma.searchHistory.delete({
       where: {
         id: searchId,
@@ -116,7 +119,7 @@ export const searchHistoryService = {
     });
   },
 
-  async clearUserSearchHistory(userId: string) {
+  async clearUserSearchHistory(userId: number) {
     return prisma.searchHistory.deleteMany({
       where: { userId },
     });

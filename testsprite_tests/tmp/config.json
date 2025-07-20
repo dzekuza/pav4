@@ -1,0 +1,17 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "fusion-starter",
+    "projectPath": "/Users/gvozdovic/Desktop/pav19/pav4",
+    "testIds": [],
+    "additionalInstruction": "Test all backend endpoints with the fixed authentication system that now properly handles both cookies and Authorization headers. The server has been rebuilt with all authentication fixes applied.",
+    "envs": {
+      "API_KEY": "sk-user-ckkcvvqwjYsXTv-CzyAyeRuUUSmwQNY1i6WDyMlPTg4XuQZnnSydWUiRcdpel1L0uXXhNvJJvAaUpwHXL-x87LH87Z6jIJZXhYz0d0wu_ElSa7I0UfhDLAFg_WdY4ABqx5o"
+    }
+  },
+  "proxy": "http://0ffe4c8e-7d03-4d94-a463-8d8ed3b8985b:nIjjYqKcqsVlbkbw34ePDlGfaJ2R9NLB@tun.testsprite.com:8080"
+}

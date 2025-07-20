@@ -1,52 +1,45 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  isAdmin   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Search history relation
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String
+  isAdmin       Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   searchHistory SearchHistory[]
 
   @@map("users")
 }
 
 model SearchHistory {
-  id        String   @id @default(cuid())
+  id        Int      @id @default(autoincrement())
   url       String
   title     String
   requestId String
   timestamp DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // User relation
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("search_history")
   @@index([userId])
   @@index([timestamp])
+  @@map("search_history")
 }
 
 model LegacySearchHistory {
-  id        String   @id @default(cuid())
-  userKey   String   // IP address or session ID for non-authenticated users
+  id        Int      @id @default(autoincrement())
+  userKey   String
   url       String
   timestamp DateTime @default(now())
 
-  @@map("legacy_search_history")
   @@index([userKey])
   @@index([timestamp])
+  @@map("legacy_search_history")
 }

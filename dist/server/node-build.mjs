@@ -4,1402 +4,26 @@ import * as express from "express";
 import express__default from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import "@google/generative-ai";
-import "puppeteer";
+import axios from "axios";
+import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-import axios from "axios";
 const handleDemo = (req, res) => {
   const response = {
     message: "Hello from Express server"
   };
   res.status(200).json(response);
 };
-const prisma = globalThis.__prisma || new PrismaClient();
-const userService = {
-  async createUser(data) {
-    return prisma.user.create({
-      data: {
-        email: data.email,
-        password: data.password,
-        isAdmin: data.isAdmin || false
-      }
-    });
-  },
-  async findUserByEmail(email) {
-    return prisma.user.findUnique({
-      where: { email }
-    });
-  },
-  async findUserById(id) {
-    return prisma.user.findUnique({
-      where: { id }
-    });
-  },
-  async getAllUsers() {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        isAdmin: true,
-        createdAt: true,
-        _count: {
-          select: {
-            searchHistory: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-  },
-  async updateUser(id, data) {
-    return prisma.user.update({
-      where: { id },
-      data
-    });
-  },
-  async deleteUser(id) {
-    return prisma.user.delete({
-      where: { id }
-    });
-  }
-};
-const searchHistoryService = {
-  async addSearch(userId, data) {
-    return prisma.searchHistory.create({
-      data: {
-        userId,
-        url: data.url,
-        title: data.title,
-        requestId: data.requestId
-      }
-    });
-  },
-  async getUserSearchHistory(userId, limit = 20) {
-    return prisma.searchHistory.findMany({
-      where: { userId },
-      orderBy: { timestamp: "desc" },
-      take: limit
-    });
-  },
-  async deleteUserSearch(userId, searchId) {
-    return prisma.searchHistory.delete({
-      where: {
-        id: searchId,
-        userId
-        // Ensure user can only delete their own searches
-      }
-    });
-  },
-  async clearUserSearchHistory(userId) {
-    return prisma.searchHistory.deleteMany({
-      where: { userId }
-    });
-  },
-  // Clean up old search history (older than X days)
-  async cleanupOldSearches(daysToKeep = 90) {
-    const cutoffDate = /* @__PURE__ */ new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma.searchHistory.deleteMany({
-      where: {
-        timestamp: {
-          lt: cutoffDate
-        }
-      }
-    });
-  }
-};
-const legacySearchHistoryService = {
-  async addSearch(userKey, url) {
-    return prisma.legacySearchHistory.create({
-      data: {
-        userKey,
-        url
-      }
-    });
-  },
-  async getUserSearchHistory(userKey, limit = 10) {
-    return prisma.legacySearchHistory.findMany({
-      where: { userKey },
-      orderBy: { timestamp: "desc" },
-      take: limit
-    });
-  },
-  async cleanupOldLegacySearches(daysToKeep = 30) {
-    const cutoffDate = /* @__PURE__ */ new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma.legacySearchHistory.deleteMany({
-      where: {
-        timestamp: {
-          lt: cutoffDate
-        }
-      }
-    });
-  }
-};
-const healthCheck = {
-  async checkConnection() {
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      return { status: "healthy", message: "Database connection successful" };
-    } catch (error) {
-      return {
-        status: "unhealthy",
-        message: "Database connection failed",
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-  },
-  async getStats() {
-    const [userCount, searchCount, legacySearchCount] = await Promise.all([
-      prisma.user.count(),
-      prisma.searchHistory.count(),
-      prisma.legacySearchHistory.count()
-    ]);
-    return {
-      users: userCount,
-      searches: searchCount,
-      legacySearches: legacySearchCount
-    };
-  }
-};
-const gracefulShutdown = async () => {
-  await prisma.$disconnect();
-};
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-function generateToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
-}
-function verifyToken(token) {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
-const register = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters long" });
-    }
-    const existingUser = await userService.findUserByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ error: "User with this email already exists" });
-    }
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await userService.createUser({
-      email,
-      password: hashedPassword,
-      isAdmin: false
-      // First user can be made admin manually
-    });
-    const token = generateToken(user.id);
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1e3
-      // 7 days
-    });
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        isAdmin: user.isAdmin
-      }
-    });
-  } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ error: "Failed to register user" });
-  }
-};
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-    const user = await userService.findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-    const token = generateToken(user.id);
-    res.cookie("auth_token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1e3
-      // 7 days
-    });
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        isAdmin: user.isAdmin
-      }
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ error: "Failed to login" });
-  }
-};
-const logout = (req, res) => {
-  res.clearCookie("auth_token");
-  res.json({ success: true });
-};
-const getCurrentUser = async (req, res) => {
-  try {
-    const token = req.cookies.auth_token;
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-    const user = await userService.findUserById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        isAdmin: user.isAdmin
-      }
-    });
-  } catch (error) {
-    console.error("Get current user error:", error);
-    res.status(500).json({ error: "Failed to get user info" });
-  }
-};
-const addToSearchHistory = async (req, res) => {
-  try {
-    const token = req.cookies.auth_token;
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-    const user = await userService.findUserById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-    const { url, title, requestId } = req.body;
-    if (!url || !title || !requestId) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    await searchHistoryService.addSearch(user.id, {
-      url,
-      title,
-      requestId
-    });
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error adding to search history:", error);
-    res.status(500).json({ error: "Failed to add to search history" });
-  }
-};
-const getUserSearchHistory = async (req, res) => {
-  try {
-    const token = req.cookies.auth_token;
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-    const user = await userService.findUserById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-    const history = await searchHistoryService.getUserSearchHistory(
-      user.id,
-      20
-    );
-    res.json({
-      history: history.map((h) => ({
-        url: h.url,
-        title: h.title,
-        requestId: h.requestId,
-        timestamp: h.timestamp
-      }))
-    });
-  } catch (error) {
-    console.error("Error getting search history:", error);
-    res.status(500).json({ error: "Failed to get search history" });
-  }
-};
-const getAllUsers = async (req, res) => {
-  try {
-    const token = req.cookies.auth_token;
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-    const user = await userService.findUserById(decoded.userId);
-    if (!user || !user.isAdmin) {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-    const allUsers = await userService.getAllUsers();
-    res.json({
-      users: allUsers.map((u) => ({
-        id: u.id,
-        email: u.email,
-        isAdmin: u.isAdmin,
-        createdAt: u.createdAt,
-        searchCount: u._count.searchHistory
-      }))
-    });
-  } catch (error) {
-    console.error("Error getting all users:", error);
-    res.status(500).json({ error: "Failed to get users" });
-  }
-};
-const localDealers = [
-  // Lithuania
-  {
-    name: "pigu.lt",
-    url: "https://pigu.lt",
-    country: "Lithuania",
-    region: "Baltic",
-    searchUrlPattern: "https://pigu.lt/search?q={query}",
-    currency: "€",
-    priority: 1
-  },
-  {
-    name: "varle.lt",
-    url: "https://varle.lt",
-    country: "Lithuania",
-    region: "Baltic",
-    searchUrlPattern: "https://varle.lt/search?q={query}",
-    currency: "€",
-    priority: 2
-  },
-  {
-    name: "kilobaitas.lt",
-    url: "https://kilobaitas.lt",
-    country: "Lithuania",
-    region: "Baltic",
-    searchUrlPattern: "https://kilobaitas.lt/search?q={query}",
-    currency: "€",
-    priority: 3
-  },
-  // Latvia
-  {
-    name: "1a.lv",
-    url: "https://1a.lv",
-    country: "Latvia",
-    region: "Baltic",
-    searchUrlPattern: "https://1a.lv/search?q={query}",
-    currency: "€",
-    priority: 1
-  },
-  {
-    name: "220.lv",
-    url: "https://220.lv",
-    country: "Latvia",
-    region: "Baltic",
-    searchUrlPattern: "https://220.lv/search?q={query}",
-    currency: "€",
-    priority: 2
-  },
-  // Estonia
-  {
-    name: "kaup24.ee",
-    url: "https://kaup24.ee",
-    country: "Estonia",
-    region: "Baltic",
-    searchUrlPattern: "https://kaup24.ee/search?q={query}",
-    currency: "€",
-    priority: 1
-  },
-  // Germany
-  {
-    name: "amazon.de",
-    url: "https://amazon.de",
-    country: "Germany",
-    region: "Western Europe",
-    searchUrlPattern: "https://amazon.de/s?k={query}",
-    currency: "€",
-    priority: 1
-  },
-  {
-    name: "mediamarkt.de",
-    url: "https://mediamarkt.de",
-    country: "Germany",
-    region: "Western Europe",
-    searchUrlPattern: "https://mediamarkt.de/search?query={query}",
-    currency: "€",
-    priority: 2
-  },
-  // France
-  {
-    name: "amazon.fr",
-    url: "https://amazon.fr",
-    country: "France",
-    region: "Western Europe",
-    searchUrlPattern: "https://amazon.fr/s?k={query}",
-    currency: "€",
-    priority: 1
-  },
-  {
-    name: "fnac.com",
-    url: "https://fnac.com",
-    country: "France",
-    region: "Western Europe",
-    searchUrlPattern: "https://fnac.com/search?query={query}",
-    currency: "€",
-    priority: 2
-  },
-  // UK
-  {
-    name: "amazon.co.uk",
-    url: "https://amazon.co.uk",
-    country: "United Kingdom",
-    region: "Western Europe",
-    searchUrlPattern: "https://amazon.co.uk/s?k={query}",
-    currency: "£",
-    priority: 1
-  },
-  {
-    name: "currys.co.uk",
-    url: "https://currys.co.uk",
-    country: "United Kingdom",
-    region: "Western Europe",
-    searchUrlPattern: "https://currys.co.uk/search?q={query}",
-    currency: "£",
-    priority: 2
-  },
-  // Poland
-  {
-    name: "allegro.pl",
-    url: "https://allegro.pl",
-    country: "Poland",
-    region: "Eastern Europe",
-    searchUrlPattern: "https://allegro.pl/listing?string={query}",
-    currency: "PLN",
-    priority: 1
-  },
-  {
-    name: "x-kom.pl",
-    url: "https://x-kom.pl",
-    country: "Poland",
-    region: "Eastern Europe",
-    searchUrlPattern: "https://x-kom.pl/search?q={query}",
-    currency: "PLN",
-    priority: 2
-  },
-  // Nordic countries
-  {
-    name: "elgiganten.dk",
-    url: "https://elgiganten.dk",
-    country: "Denmark",
-    region: "Nordic",
-    searchUrlPattern: "https://elgiganten.dk/search?SearchTerm={query}",
-    currency: "DKK",
-    priority: 1
-  },
-  {
-    name: "elkjop.no",
-    url: "https://elkjop.no",
-    country: "Norway",
-    region: "Nordic",
-    searchUrlPattern: "https://elkjop.no/search?SearchTerm={query}",
-    currency: "NOK",
-    priority: 1
-  },
-  {
-    name: "power.fi",
-    url: "https://power.fi",
-    country: "Finland",
-    region: "Nordic",
-    searchUrlPattern: "https://power.fi/search?SearchTerm={query}",
-    currency: "€",
-    priority: 1
-  }
-];
-function detectLocationFromIP(ip) {
-  if (ip.includes("192.168") || ip.includes("127.0") || ip.includes("10.") || ip.includes("172.")) {
-    return {
-      country: "Lithuania",
-      countryCode: "LT",
-      region: "Baltic",
-      city: "Vilnius",
-      currency: "€",
-      timeZone: "Europe/Vilnius"
-    };
-  }
-  return {
-    country: "United States",
-    countryCode: "US",
-    region: "North America",
-    currency: "$",
-    timeZone: "America/New_York"
-  };
-}
-function detectLocationFromHeaders(headers) {
-  if (headers["cf-ipcountry"]) {
-    const countryCode = headers["cf-ipcountry"].toUpperCase();
-    return getLocationByCountryCode(countryCode);
-  }
-  const acceptLanguage = headers["accept-language"];
-  if (acceptLanguage) {
-    if (acceptLanguage.includes("lt")) {
-      return {
-        country: "Lithuania",
-        countryCode: "LT",
-        region: "Baltic",
-        currency: "€",
-        timeZone: "Europe/Vilnius"
-      };
-    }
-    if (acceptLanguage.includes("lv")) {
-      return {
-        country: "Latvia",
-        countryCode: "LV",
-        region: "Baltic",
-        currency: "€",
-        timeZone: "Europe/Riga"
-      };
-    }
-    if (acceptLanguage.includes("et")) {
-      return {
-        country: "Estonia",
-        countryCode: "EE",
-        region: "Baltic",
-        currency: "€",
-        timeZone: "Europe/Tallinn"
-      };
-    }
-    if (acceptLanguage.includes("de")) {
-      return {
-        country: "Germany",
-        countryCode: "DE",
-        region: "Western Europe",
-        currency: "€",
-        timeZone: "Europe/Berlin"
-      };
-    }
-  }
-  return null;
-}
-function getLocationByCountryCode(countryCode) {
-  const countryMap = {
-    LT: {
-      country: "Lithuania",
-      countryCode: "LT",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Vilnius"
-    },
-    LV: {
-      country: "Latvia",
-      countryCode: "LV",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Riga"
-    },
-    EE: {
-      country: "Estonia",
-      countryCode: "EE",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Tallinn"
-    },
-    DE: {
-      country: "Germany",
-      countryCode: "DE",
-      region: "Western Europe",
-      currency: "€",
-      timeZone: "Europe/Berlin"
-    },
-    FR: {
-      country: "France",
-      countryCode: "FR",
-      region: "Western Europe",
-      currency: "€",
-      timeZone: "Europe/Paris"
-    },
-    GB: {
-      country: "United Kingdom",
-      countryCode: "GB",
-      region: "Western Europe",
-      currency: "£",
-      timeZone: "Europe/London"
-    },
-    PL: {
-      country: "Poland",
-      countryCode: "PL",
-      region: "Eastern Europe",
-      currency: "PLN",
-      timeZone: "Europe/Warsaw"
-    },
-    US: {
-      country: "United States",
-      countryCode: "US",
-      region: "North America",
-      currency: "$",
-      timeZone: "America/New_York"
-    }
-  };
-  return countryMap[countryCode] || countryMap["US"];
-}
-function getLocalDealers(location) {
-  return localDealers.filter(
-    (dealer) => dealer.country === location.country || dealer.region === location.region
-  ).sort((a, b) => a.priority - b.priority);
-}
-const getLocationHandler = async (req, res) => {
-  try {
-    const clientIP = req.ip || req.socket.remoteAddress || "127.0.0.1";
-    let location = detectLocationFromHeaders(req.headers);
-    if (!location) {
-      location = detectLocationFromIP(clientIP);
-    }
-    const dealers = getLocalDealers(location);
-    res.json({
-      location,
-      localDealers: dealers.slice(0, 5)
-      // Return top 5 local dealers
-    });
-  } catch (error) {
-    console.error("Location detection error:", error);
-    res.status(500).json({ error: "Failed to detect location" });
-  }
-};
-function extractPriceImproved(text) {
-  if (!text) return { price: 0, currency: "€" };
-  const cleanText = text.replace(/\s+/g, " ").trim();
-  console.log("Extracting price from text:", cleanText);
-  const currencyDetection = [
-    { symbol: "€", currency: "€" },
-    { symbol: "$", currency: "$" },
-    { symbol: "£", currency: "£" },
-    { symbol: "USD", currency: "$" },
-    { symbol: "EUR", currency: "€" },
-    { symbol: "GBP", currency: "£" }
-  ];
-  let detectedCurrency = "€";
-  for (const { symbol, currency } of currencyDetection) {
-    if (cleanText.includes(symbol)) {
-      detectedCurrency = currency;
-      break;
-    }
-  }
-  const pricePatterns = [
-    // Exact currency + price patterns (improved for European format)
-    /€\s*(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)(?!\d)/g,
-    /(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)\s*€(?!\d)/g,
-    /EUR\s*(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)(?!\d)/gi,
-    /(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)\s*EUR(?!\d)/gi,
-    // Handle European decimal format (comma as decimal separator)
-    /€\s*(\d{1,4}(?:\.\d{3})*(?:,\d{2})?)(?!\d)/g,
-    /(\d{1,4}(?:\.\d{3})*(?:,\d{2})?)\s*€(?!\d)/g,
-    // Simple price patterns without currency symbol
-    /(\d{1,4}(?:[,\.]\d{2})?)(?!\d)/g,
-    // Dollar patterns
-    /\$\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)(?!\d)/g,
-    /(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*USD(?!\d)/gi,
-    /USD\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)(?!\d)/gi,
-    // Pound patterns
-    /£\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)(?!\d)/g,
-    /(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*GBP(?!\d)/gi,
-    // Context-based patterns (with price keywords)
-    /(?:price|cost|kaina|preis|prix)\s*:?\s*€?\s*(\d{1,4}(?:[,\.]\d{2,3})?)(?!\d)/gi,
-    /(?:from|starting|ab|vanaf)\s*€?\s*(\d{1,4}(?:[,\.]\d{2})?)(?!\d)/gi,
-    // Meta tag and JSON patterns
-    /"price"\s*:\s*"?(\d{1,4}(?:[,\.]\d{2,3})?)"?/gi,
-    /content="(\d{1,4}(?:[,\.]\d{2,3})?)"/gi
-  ];
-  const foundPrices = [];
-  for (const pattern of pricePatterns) {
-    const matches = Array.from(cleanText.matchAll(pattern));
-    for (const match of matches) {
-      if (match[1]) {
-        const rawPrice = match[1];
-        const normalizedPrice = normalizePriceString(rawPrice);
-        console.log(
-          `Pattern ${pattern.source} matched: ${rawPrice} -> normalized: ${normalizedPrice}`
-        );
-        if (normalizedPrice >= 1 && normalizedPrice <= 5e4) {
-          foundPrices.push({
-            price: normalizedPrice,
-            pattern: pattern.source.substring(0, 30)
-          });
-          console.log(`Valid price found: ${normalizedPrice} from pattern: ${pattern.source.substring(0, 30)}`);
-        } else {
-          console.log(
-            `Price ${normalizedPrice} is outside reasonable range (1-50000), skipping`
-          );
-        }
-      }
-    }
-  }
-  if (foundPrices.length > 0) {
-    foundPrices.sort((a, b) => {
-      const aHasCurrency = a.pattern.includes("€") || a.pattern.includes("\\$") || a.pattern.includes("£");
-      const bHasCurrency = b.pattern.includes("€") || b.pattern.includes("\\$") || b.pattern.includes("£");
-      if (aHasCurrency && !bHasCurrency) return -1;
-      if (!aHasCurrency && bHasCurrency) return 1;
-      const aReasonable = a.price >= 10 && a.price <= 5e3;
-      const bReasonable = b.price >= 10 && b.price <= 5e3;
-      if (aReasonable && !bReasonable) return -1;
-      if (!aReasonable && bReasonable) return 1;
-      return 0;
-    });
-    const selectedPrice = foundPrices[0];
-    console.log(
-      `Selected price: ${selectedPrice.price} ${detectedCurrency} from pattern: ${selectedPrice.pattern}`
-    );
-    return { price: selectedPrice.price, currency: detectedCurrency };
-  }
-  console.log("No valid price found in text:", cleanText);
-  return { price: 0, currency: detectedCurrency };
-}
-function normalizePriceString(priceStr) {
-  let normalized = priceStr;
-  normalized = normalized.trim();
-  if (normalized.includes(",") && normalized.includes(".")) {
-    normalized = normalized.replace(/,/g, "");
-  } else if (normalized.includes(",")) {
-    const parts = normalized.split(",");
-    if (parts.length === 2 && parts[1].length === 2) {
-      normalized = normalized.replace(",", ".");
-    } else {
-      normalized = normalized.replace(/,/g, "");
-    }
-  } else {
-    normalized = normalized.replace(/,/g, "");
-  }
-  const result = parseFloat(normalized);
-  console.log(`Normalizing price: "${priceStr}" -> "${normalized}" -> ${result}`);
-  return result;
-}
-function extractPriceFromSiteSpecificPatterns(html, domain) {
-  console.log(`Extracting price for domain: ${domain}`);
-  const sitePatterns = {
-    "logitechg.com": [
-      /data-price="([^"]+)"/gi,
-      /"price"\s*:\s*"([^"]+)"/gi,
-      /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)/gi,
-      /€\s*(\d{2,4}(?:[,\.]\d{2})?)/gi
-    ],
-    "ebay.de": [
-      /notranslate">([^<]*€[^<]*)</gi,
-      /class="[^"]*price[^"]*"[^>]*>([^<]*€[^<]*)/gi,
-      /EUR\s*(\d{2,4}(?:[,\.]\d{2})?)/gi,
-      /"price"\s*:\s*"([^"]+)"/gi
-    ],
-    amazon: [
-      /class="[^"]*a-price-whole[^"]*"[^>]*>([^<]+)</gi,
-      /priceblock_ourprice"[^>]*>([^<]*\$[^<]*)/gi,
-      /"price"\s*:\s*"([^"]+)"/gi
-    ]
-  };
-  for (const [site, patterns] of Object.entries(sitePatterns)) {
-    if (domain.includes(site)) {
-      console.log(`Using ${site} specific patterns`);
-      for (const pattern of patterns) {
-        const matches = Array.from(html.matchAll(pattern));
-        for (const match of matches) {
-          if (match[1]) {
-            console.log(`Site-specific pattern found: ${match[1]}`);
-            return match[1].trim();
-          }
-        }
-      }
-    }
-  }
-  const genericPatterns = [
-    /<meta property="product:price:amount" content="([^"]+)"/gi,
-    /<meta itemprop="price" content="([^"]+)"/gi,
-    /data-price="([^"]+)"/gi,
-    /class="[^"]*price[^"]*"[^>]*>([^<]*[€$£][^<]*)/gi,
-    /"price"\s*:\s*"([^"]+)"/gi
-  ];
-  for (const pattern of genericPatterns) {
-    const matches = Array.from(html.matchAll(pattern));
-    for (const match of matches) {
-      if (match[1]) {
-        console.log(`Generic pattern found: ${match[1]}`);
-        return match[1].trim();
-      }
-    }
-  }
-  return "";
-}
-function extractDomain(url) {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace(/^www\./, "");
-  } catch {
-    return "unknown";
-  }
-}
-async function tryApiEndpoint(url) {
-  const domain = extractDomain(url);
-  if (domain.includes("playstation")) {
-    console.log("Trying PlayStation API endpoint...");
-    const productCodeMatch = url.match(/\/products\/(\d+)/);
-    if (productCodeMatch) {
-      try {
-        const apiUrl = `https://direct.playstation.com/en-us/api/v1/products?productCodes=${productCodeMatch[1]}`;
-        console.log("PlayStation API URL:", apiUrl);
-        const apiResponse = await fetch(apiUrl, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            Accept: "application/json"
-          }
-        });
-        if (apiResponse.ok) {
-          const data = await apiResponse.json();
-          console.log(
-            "PlayStation API response:",
-            JSON.stringify(data, null, 2)
-          );
-          if (data.products && data.products.length > 0) {
-            const product = data.products[0];
-            return {
-              title: product.name || "PlayStation Product",
-              price: product.price?.value || 0,
-              currency: product.price?.currencySymbol || "$",
-              image: product.defaultVariant?.images?.[0] || "/placeholder.svg",
-              url,
-              store: "direct.playstation.com"
-            };
-          }
-        }
-      } catch (error) {
-        console.log("PlayStation API failed:", error);
-      }
-    }
-  }
-  return null;
-}
-function extractFromHtml(html, domain = "") {
-  let title = "";
-  const titlePatterns = [
-    // Standard meta tags
-    /<meta property="og:title" content="([^"]+)"/i,
-    /<meta name="twitter:title" content="([^"]+)"/i,
-    /<meta name="title" content="([^"]+)"/i,
-    /<title[^>]*>([^<]+)<\/title>/i,
-    // Apple-specific patterns
-    /"productTitle"\s*:\s*"([^"]+)"/i,
-    /"displayName"\s*:\s*"([^"]+)"/i,
-    /"familyName"\s*:\s*"([^"]+)"/i,
-    /data-analytics-title="([^"]+)"/i,
-    /<h1[^>]*class="[^"]*hero[^"]*"[^>]*>([^<]+)<\/h1>/i,
-    // Product page patterns
-    /<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)<\/h1>/i,
-    /<h1[^>]*>([^<]+)<\/h1>/i,
-    /"productName"\s*:\s*"([^"]+)"/i,
-    /"name"\s*:\s*"([^"]+)"/i,
-    /data-product-name="([^"]+)"/i,
-    // JSON-LD structured data
-    /"@type"\s*:\s*"Product"[^}]*"name"\s*:\s*"([^"]+)"/i
-  ];
-  for (const pattern of titlePatterns) {
-    const match = html.match(pattern);
-    if (match && match[1] && match[1].trim().length > 3) {
-      title = match[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-      break;
-    }
-  }
-  let priceText = extractPriceFromSiteSpecificPatterns(html, domain);
-  if (!priceText) {
-    const pricePatterns = [
-      /<meta property="product:price:amount" content="([^"]+)"/i,
-      /<meta itemprop="price" content="([^"]+)"/i,
-      /data-price="([^"]+)"/i,
-      /"price"\s*:\s*"([^"]+)"/i,
-      /class="[^"]*price[^"]*"[^>]*>([^<]*[€$£][^<]*)/i
-    ];
-    for (const pattern of pricePatterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        priceText = match[1].trim();
-        break;
-      }
-    }
-  }
-  let image = "";
-  const imagePatterns = [
-    /<meta property="og:image" content="([^"]+)"/i,
-    /<meta name="twitter:image" content="([^"]+)"/i
-  ];
-  for (const pattern of imagePatterns) {
-    const match = html.match(pattern);
-    if (match && match[1]) {
-      image = match[1].trim();
-      break;
-    }
-  }
-  return { title, priceText, image };
-}
-function extractProductInfoFromUrl(url, domain) {
-  console.log("Extracting product info from URL structure:", url);
-  try {
-    const urlObj = new URL(url);
-    const path2 = urlObj.pathname;
-    const searchParams = urlObj.searchParams;
-    let title = "Product Title Not Available";
-    let estimatedPrice = 0;
-    let currency = "€";
-    if (domain.includes("varle.lt")) {
-      const pathMatch = path2.match(/\/[^\/]+\/([^-]+(?:-[^-]+)*?)--\d+\.html/);
-      if (pathMatch) {
-        title = pathMatch[1].replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()).trim();
-        if (path2.includes("indaplove")) title = `Indaplovė ${title}`;
-        if (path2.includes("beko")) title = `Beko ${title}`;
-        if (path2.includes("indaplove")) estimatedPrice = 450;
-      }
-      currency = "€";
-    } else if (domain.includes("pigu.lt")) {
-      const pathParts = path2.split("/").filter((p) => p);
-      if (pathParts.length > 0) {
-        const productPart = pathParts[pathParts.length - 1];
-        const productId = searchParams.get("id");
-        if (productPart.includes("sony-dualsense")) {
-          title = "Sony DualSense PS5 Wireless Controller";
-          estimatedPrice = 65;
-        } else {
-          title = productPart.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-        }
-      }
-      currency = "€";
-    } else if (domain.includes("ebay.de")) {
-      const itemMatch = path2.match(/\/itm\/(\d+)/);
-      if (itemMatch) {
-        title = "eBay Product";
-        estimatedPrice = 0;
-      }
-      currency = "€";
-    } else if (domain.includes("logitechg.com")) {
-      if (path2.includes("pro-x-tkl")) {
-        title = "Logitech G Pro X TKL Gaming Keyboard";
-        estimatedPrice = 150;
-      } else if (path2.includes("keyboard")) {
-        title = "Logitech Gaming Keyboard";
-        estimatedPrice = 100;
-      }
-      currency = "€";
-    } else if (domain.includes("amazon")) {
-      const dpMatch = path2.match(/\/dp\/([A-Z0-9]+)/);
-      if (dpMatch) {
-        title = "Amazon Product";
-        if (path2.includes("ring") && path2.includes("doorbell")) {
-          title = "Ring Video Doorbell";
-          estimatedPrice = 100;
-        }
-      }
-      currency = domain.includes(".de") ? "€" : "$";
-    }
-    if (title === "Product Title Not Available") {
-      const pathParts = path2.split("/").filter((p) => p && p !== "html");
-      if (pathParts.length > 0) {
-        const lastPart = pathParts[pathParts.length - 1];
-        title = lastPart.replace(/[-_]/g, " ").replace(/\.(html?|php|asp)$/i, "").replace(/\b\w/g, (l) => l.toUpperCase()).substring(0, 100);
-      }
-    }
-    console.log(
-      `Extracted from URL - Title: "${title}", Price: ${estimatedPrice}, Currency: ${currency}`
-    );
-    return {
-      title,
-      price: estimatedPrice,
-      currency,
-      image: "/placeholder.svg",
-      url,
-      store: domain
-    };
-  } catch (error) {
-    console.log("URL parsing failed:", error);
-    return {
-      title: "Product Information Unavailable",
-      price: 0,
-      currency: "€",
-      image: "/placeholder.svg",
-      url,
-      store: domain
-    };
-  }
-}
-async function scrapeWithHttp(url) {
-  console.log(`Fallback: Scraping with HTTP: ${url}`);
-  const apiResult = await tryApiEndpoint(url);
-  if (apiResult) {
-    console.log("Successfully used API endpoint");
-    return apiResult;
-  }
-  const siteDomain = extractDomain(url);
-  if (siteDomain.includes("varle.lt") || siteDomain.includes("pigu.lt")) {
-    try {
-      const homeUrl = `https://${siteDomain}`;
-      console.log(`Pre-visiting homepage to establish session: ${homeUrl}`);
-      await fetch(homeUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
-          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "lt-LT,lt;q=0.9,en;q=0.8",
-          "Accept-Encoding": "gzip, deflate, br",
-          DNT: "1",
-          Connection: "keep-alive",
-          "Upgrade-Insecure-Requests": "1"
-        },
-        signal: AbortSignal.timeout(1e4)
-      });
-      await new Promise(
-        (resolve) => setTimeout(resolve, 1e3 + Math.random() * 2e3)
-      );
-    } catch (error) {
-      console.log(
-        "Pre-visit failed, continuing with direct request:",
-        error instanceof Error ? error.message : "Unknown error"
-      );
-    }
-  }
-  const userAgents = [
-    // Mobile Chrome (like the one you provided)
-    "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
-    // Desktop browsers
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
-  ];
-  const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-  console.log(`Using User-Agent: ${randomUserAgent}`);
-  const headers = {
-    "User-Agent": randomUserAgent,
-    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-    "Accept-Language": "en-US,en;q=0.9,de;q=0.8,lt;q=0.7",
-    "Accept-Encoding": "gzip, deflate, br",
-    Connection: "keep-alive",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Dest": "document",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Site": "cross-site",
-    "Sec-Fetch-User": "?1",
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache"
-  };
-  if (randomUserAgent.includes("Chrome") && !randomUserAgent.includes("Mobile")) {
-    headers["Sec-Ch-Ua"] = '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"';
-    headers["Sec-Ch-Ua-Mobile"] = "?0";
-    headers["Sec-Ch-Ua-Platform"] = randomUserAgent.includes("Windows") ? '"Windows"' : randomUserAgent.includes("Mac") ? '"macOS"' : '"Linux"';
-  }
-  if (siteDomain.includes("ebay.de")) {
-    headers["Accept-Language"] = "de-DE,de;q=0.9,en;q=0.8";
-    headers["Referer"] = "https://www.google.de/";
-    headers["Origin"] = "https://www.ebay.de";
-  } else if (siteDomain.includes("amazon.de")) {
-    headers["Accept-Language"] = "de-DE,de;q=0.9,en;q=0.8";
-    headers["Referer"] = "https://www.google.de/";
-  } else if (siteDomain.includes("varle.lt") || siteDomain.includes("pigu.lt") || siteDomain.endsWith(".lt")) {
-    headers["Accept-Language"] = "lt-LT,lt;q=0.9,en;q=0.8,ru;q=0.7";
-    headers["Referer"] = "https://www.google.lt/";
-    headers["X-Forwarded-For"] = "85.206.128.1";
-    if (siteDomain.includes("varle.lt")) {
-      headers["Origin"] = "https://www.varle.lt";
-    } else if (siteDomain.includes("pigu.lt")) {
-      headers["Origin"] = "https://pigu.lt";
-    }
-  } else if (siteDomain.includes("logitechg.com")) {
-    headers["Accept-Language"] = "en-US,en;q=0.9";
-    headers["Referer"] = "https://www.google.com/";
-  }
-  let initialDelay = 800 + Math.random() * 1200;
-  if (siteDomain.includes("varle.lt") || siteDomain.includes("pigu.lt")) {
-    initialDelay = 1500 + Math.random() * 2e3;
-  }
-  console.log(
-    `Waiting ${initialDelay.toFixed(0)}ms before request to appear more human...`
-  );
-  await new Promise((resolve) => setTimeout(resolve, initialDelay));
-  let response = null;
-  let lastError = null;
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`HTTP scraping attempt ${attempt}/${maxRetries} for ${url}`);
-      console.log(`Request headers:`, JSON.stringify(headers, null, 2));
-      if (attempt > 1) {
-        const userAgents2 = [
-          "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1",
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
-        ];
-        headers["User-Agent"] = userAgents2[attempt - 1] || userAgents2[0];
-        console.log(
-          `Retry ${attempt} with User-Agent: ${headers["User-Agent"]}`
-        );
-      }
-      response = await fetch(url, {
-        headers,
-        redirect: "follow",
-        signal: AbortSignal.timeout(45e3)
-        // Longer timeout
-      });
-      if (response.ok) {
-        console.log(`HTTP request succeeded with status ${response.status}`);
-        console.log(
-          `Response headers:`,
-          Object.fromEntries(response.headers.entries())
-        );
-        break;
-      } else if (response.status === 403 || response.status === 429) {
-        console.log(`HTTP ${response.status}: ${response.statusText}`);
-        console.log(
-          `Response headers:`,
-          Object.fromEntries(response.headers.entries())
-        );
-        if (attempt < maxRetries) {
-          const waitTime = Math.pow(2, attempt) * 2e3 + Math.random() * 1e3;
-          console.log(`Waiting ${waitTime.toFixed(0)}ms before retry...`);
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-        }
-        lastError = new Error(
-          `HTTP ${response.status}: ${response.statusText}`
-        );
-      } else {
-        console.log(`HTTP error ${response.status}: ${response.statusText}`);
-        console.log(
-          `Response headers:`,
-          Object.fromEntries(response.headers.entries())
-        );
-        lastError = new Error(
-          `HTTP ${response.status}: ${response.statusText}`
-        );
-        break;
-      }
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error("Unknown fetch error");
-      console.log(`Network error on attempt ${attempt}:`, lastError.message);
-      if (attempt < maxRetries) {
-        const waitTime = 2e3 * attempt + Math.random() * 1e3;
-        console.log(`Waiting ${waitTime.toFixed(0)}ms before retry...`);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      }
-    }
-  }
-  if (!response || !response.ok) {
-    throw lastError || new Error("HTTP request failed after retries");
-  }
-  const html = await response.text();
-  const domain = extractDomain(url);
-  const extracted = extractFromHtml(html, domain);
-  const { price, currency } = extractPriceImproved(extracted.priceText);
-  return {
-    title: extracted.title || "Product Title Not Found",
-    price,
-    currency,
-    image: extracted.image || "/placeholder.svg",
-    url,
-    store: domain
-  };
-}
-async function scrapeProductData(url) {
-  process.env.DISABLE_PUPPETEER === "true" || true;
-  {
-    console.log("Puppeteer disabled, using HTTP scraping...");
-  }
-  try {
-    return await scrapeWithHttp(url);
-  } catch (fallbackError) {
-    console.log("HTTP scraping also failed:", fallbackError);
-    const domain = extractDomain(url);
-    const urlBasedProduct = extractProductInfoFromUrl(url, domain);
-    console.log("Using URL-based product extraction:", urlBasedProduct);
-    return urlBasedProduct;
-  }
-}
-function extractSearchKeywords(title) {
-  const cleanTitle = title.replace(/Amazon\.com:\s*/i, "").replace(/\s*:\s*[^:]*$/i, "").replace(/\b(for|with|in|by|the|and|or|&)\b/gi, " ").replace(/\s+/g, " ").trim();
-  return cleanTitle;
-}
-async function getPriceComparisons(originalProduct, userLocation) {
-  const searchQuery = extractSearchKeywords(originalProduct.title);
-  console.log("Generating price comparisons for:", searchQuery);
-  console.log("User location:", userLocation);
-  const comparisons = [];
-  const retailers = [
-    {
-      name: "Amazon",
-      url: "https://www.amazon.com/dp/B08N5WRWNW",
-      priceVariation: 0.95 + Math.random() * 0.1,
-      // 5% below to 5% above
-      assessment: { cost: 3, value: 1.5, quality: 1.5, description: "Large selection, varied quality and reviews; value does not hold very well over time." }
-    },
-    {
-      name: "eBay",
-      url: "https://www.ebay.com/itm/404123456789",
-      priceVariation: 0.85 + Math.random() * 0.2,
-      // 15% below to 5% above
-      assessment: { cost: 3.5, value: 3, quality: 2.5, description: "Global marketplace with wide price and quality ranges; deals on vintage finds, condition can vary." }
-    },
-    {
-      name: "Walmart",
-      url: "https://www.walmart.com/ip/123456789",
-      priceVariation: 0.9 + Math.random() * 0.15,
-      // 10% below to 5% above
-      assessment: { cost: 4, value: 2.5, quality: 2, description: "Budget-friendly options with minimal resale; customers are generally happy with purchase." }
-    },
-    {
-      name: "Best Buy",
-      url: "https://www.bestbuy.com/site/123456789",
-      priceVariation: 1 + Math.random() * 0.1,
-      // Same to 10% above
-      assessment: { cost: 2.5, value: 2, quality: 3, description: "Premium electronics retailer with excellent customer service and warranty support." }
-    },
-    {
-      name: "Target",
-      url: "https://www.target.com/p/123456789",
-      priceVariation: 0.95 + Math.random() * 0.1,
-      // 5% below to 5% above
-      assessment: { cost: 3.5, value: 2.5, quality: 2.5, description: "Trendy products with good quality; often has exclusive items and collaborations." }
-    },
-    {
-      name: "Newegg",
-      url: "https://www.newegg.com/p/123456789",
-      priceVariation: 0.9 + Math.random() * 0.15,
-      // 10% below to 5% above
-      assessment: { cost: 3, value: 2.5, quality: 2.5, description: "Specialized electronics retailer with competitive pricing." }
-    },
-    {
-      name: "B&H Photo",
-      url: "https://www.bhphotovideo.com/c/product/123456789",
-      priceVariation: 1 + Math.random() * 0.1,
-      // Same to 10% above
-      assessment: { cost: 2.5, value: 3, quality: 4, description: "Professional photography and video equipment retailer." }
-    },
-    {
-      name: "Adorama",
-      url: "https://www.adorama.com/product/123456789",
-      priceVariation: 0.95 + Math.random() * 0.1,
-      // 5% below to 5% above
-      assessment: { cost: 3, value: 2.5, quality: 3, description: "Specialized camera and electronics retailer." }
-    }
-  ];
-  if (userLocation) {
-    const localDealers2 = getLocalDealers(userLocation);
-    for (const dealer of localDealers2) {
-      retailers.push({
-        name: dealer.name,
-        url: dealer.url,
-        priceVariation: 0.9 + Math.random() * 0.2,
-        // 10% below to 10% above
-        assessment: { cost: 2.5, value: 3, quality: 2.5, description: `Local ${dealer.name} retailer with competitive pricing.` }
-      });
-    }
-  }
-  for (const retailer of retailers) {
-    const comparisonPrice = originalProduct.price * retailer.priceVariation;
-    comparisons.push({
-      title: originalProduct.title,
-      // Use the original product title
-      store: retailer.name,
-      price: Math.round(comparisonPrice * 100) / 100,
-      // Round to 2 decimal places
-      currency: originalProduct.currency,
-      // Use the original product's currency
-      url: retailer.url,
-      // Use the real product URL
-      image: originalProduct.image,
-      // Use the original product's image
-      condition: "New",
-      assessment: retailer.assessment
-    });
-  }
-  console.log(`Generated ${comparisons.length} price comparisons with real URLs`);
-  return comparisons;
-}
-const handleScrape = async (req, res) => {
-  try {
-    const { url, requestId, userLocation } = req.body;
-    if (!url || !requestId) {
-      return res.status(400).json({
-        error: "Missing required fields: url and requestId"
-      });
-    }
-    try {
-      new URL(url);
-    } catch {
-      return res.status(400).json({
-        error: "Invalid URL format"
-      });
-    }
-    console.log(`Scraping product data for: ${url}`);
-    let detectedLocation = userLocation;
-    if (!detectedLocation) {
-      const clientIP = req.ip || req.socket.remoteAddress || "127.0.0.1";
-      detectedLocation = detectLocationFromHeaders(req.headers);
-      if (!detectedLocation) {
-        detectedLocation = detectLocationFromIP(clientIP);
-      }
-      console.log("Detected user location:", detectedLocation);
-    }
-    const originalProduct = await scrapeProductData(url);
-    const comparisons = await getPriceComparisons(
-      originalProduct,
-      detectedLocation
-    );
-    if (req.user) {
-      try {
-        await searchHistoryService.addSearch(req.user.id, {
-          url,
-          title: originalProduct.title,
-          requestId
-        });
-      } catch (error) {
-        console.error("Error saving search history:", error);
-      }
-    }
-    const response = {
-      originalProduct,
-      comparisons
-    };
-    res.json(response);
-  } catch (error) {
-    console.error("Scraping error:", error);
-    res.status(500).json({
-      error: "Failed to scrape product data",
-      details: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-};
-const scrape = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
-  __proto__: null,
-  handleScrape
-}, Symbol.toStringTag, { value: "Module" }));
 function extractPrice(text) {
   const match = text.match(/(\d{1,4}[.,]?\d{2})/);
   return match ? parseFloat(match[1].replace(",", ".")) : null;
 }
 function extractDirectRetailerUrl(link) {
+  if (!link) return "";
+  if (link.includes("google.com/shopping/product/")) {
+    return link;
+  }
   try {
     const url = new URL(link);
     return `${url.origin}${url.pathname}`;
@@ -1408,6 +32,10 @@ function extractDirectRetailerUrl(link) {
   }
 }
 function extractStoreName(link) {
+  if (!link) return "unknown";
+  if (link.includes("google.com/shopping/product/")) {
+    return "Google Shopping";
+  }
   try {
     return new URL(link).hostname.replace("www.", "");
   } catch {
@@ -2375,6 +1003,106 @@ async function searchExactProductModel(productModel, productTitle, userCountry, 
     return [];
   }
   try {
+    let getCountryCode = function(country) {
+      const countryMap = {
+        "Germany": "de",
+        "United States": "us",
+        "United Kingdom": "uk",
+        "France": "fr",
+        "Italy": "it",
+        "Spain": "es",
+        "Netherlands": "nl",
+        "Belgium": "be",
+        "Austria": "at",
+        "Switzerland": "ch",
+        "Poland": "pl",
+        "Czech Republic": "cz",
+        "Slovakia": "sk",
+        "Hungary": "hu",
+        "Romania": "ro",
+        "Bulgaria": "bg",
+        "Croatia": "hr",
+        "Slovenia": "si",
+        "Estonia": "ee",
+        "Latvia": "lv",
+        "Lithuania": "lt",
+        "Finland": "fi",
+        "Sweden": "se",
+        "Norway": "no",
+        "Denmark": "dk",
+        "Canada": "ca",
+        "Australia": "au",
+        "New Zealand": "nz",
+        "Japan": "jp",
+        "South Korea": "kr",
+        "China": "cn",
+        "India": "in",
+        "Brazil": "br",
+        "Mexico": "mx",
+        "Argentina": "ar",
+        "Chile": "cl",
+        "Colombia": "co",
+        "Peru": "pe",
+        "Venezuela": "ve",
+        "Uruguay": "uy",
+        "Paraguay": "py",
+        "Bolivia": "bo",
+        "Ecuador": "ec",
+        "Guyana": "gy",
+        "Suriname": "sr",
+        "French Guiana": "gf",
+        "Falkland Islands": "fk",
+        "South Georgia": "gs",
+        "South Sandwich Islands": "gs",
+        "Bouvet Island": "bv",
+        "Heard Island": "hm",
+        "McDonald Islands": "hm",
+        "French Southern Territories": "tf",
+        "British Indian Ocean Territory": "io",
+        "Christmas Island": "cx",
+        "Cocos Islands": "cc",
+        "Norfolk Island": "nf",
+        "Pitcairn Islands": "pn",
+        "Tokelau": "tk",
+        "Niue": "nu",
+        "Cook Islands": "ck",
+        "Wallis and Futuna": "wf",
+        "French Polynesia": "pf",
+        "New Caledonia": "nc",
+        "Vanuatu": "vu",
+        "Solomon Islands": "sb",
+        "Papua New Guinea": "pg",
+        "Fiji": "fj",
+        "Tonga": "to",
+        "Samoa": "ws",
+        "American Samoa": "as",
+        "Guam": "gu",
+        "Northern Mariana Islands": "mp",
+        "Micronesia": "fm",
+        "Marshall Islands": "mh",
+        "Palau": "pw",
+        "Nauru": "nr",
+        "Kiribati": "ki",
+        "Tuvalu": "tv",
+        "Maldives": "mv",
+        "Sri Lanka": "lk",
+        "Bangladesh": "bd",
+        "Nepal": "np",
+        "Bhutan": "bt",
+        "Myanmar": "mm",
+        "Thailand": "th",
+        "Laos": "la",
+        "Cambodia": "kh",
+        "Vietnam": "vn",
+        "Malaysia": "my",
+        "Singapore": "sg",
+        "Brunei": "bn",
+        "Philippines": "ph",
+        "Indonesia": "id",
+        "East Timor": "tl"
+      };
+      return countryMap[country] || "us";
+    };
     console.log(`Searching for exact product model: ${productModel}`);
     console.log(`Original product title: ${productTitle}`);
     console.log(`User country: ${userCountry}`);
@@ -2387,7 +1115,7 @@ async function searchExactProductModel(productModel, productTitle, userCountry, 
     }
     const cleanedProductTitle = await cleanProductTitleWithGemini(productTitle);
     console.log(`Cleaned product title: "${cleanedProductTitle}"`);
-    const countryCode = userCountry;
+    const countryCode = getCountryCode(userCountry);
     console.log(`Using country code: ${countryCode} for SearchAPI search`);
     let searchQueries = [];
     if (productModel) {
@@ -2468,68 +1196,23 @@ async function searchExactProductModel(productModel, productTitle, userCountry, 
     console.log(`Converted ${comparisons.length} relevant SearchAPI results to PriceComparison format`);
     const priceFilteredComparisons = filterByPriceRange(comparisons, actualPrice || 0);
     console.log("Final price-filtered comparisons:", JSON.stringify(priceFilteredComparisons, null, 2));
-    const realResults = priceFilteredComparisons.filter((comp) => {
-      const hasRealUrl = comp.url && !comp.url.includes("amazon.de") && !comp.url.includes("mediamarkt.de") && !comp.url.includes("saturn.de") && !comp.url.includes("otto.de") && !comp.url.includes("idealo.de") && comp.url !== `https://${comp.store}`;
-      return hasRealUrl;
-    });
-    if (realResults.length > 0) {
-      console.log(`Returning ${realResults.length} real SearchAPI results with actual product URLs`);
-      return realResults;
+    if (priceFilteredComparisons.length > 0) {
+      console.log(`Returning ${priceFilteredComparisons.length} SearchAPI results with actual product URLs`);
+      return priceFilteredComparisons;
     } else {
-      console.log("No real SearchAPI results with valid URLs found, using fallback");
+      console.log("No SearchAPI results found, using fallback");
       return generateFallbackComparisons(productTitle, actualPrice || 0, userCountry);
     }
   } catch (error) {
     console.error("SearchAPI search error:", error);
     console.log("Using fallback comparisons due to error");
-    return generateFallbackComparisons(productTitle, actualPrice || 0, userCountry);
+    return generateFallbackComparisons();
   }
 }
 function generateFallbackComparisons(productTitle, actualPrice, userCountry) {
-  console.log("Generating fallback comparisons");
-  extractBrandFromTitle(productTitle);
-  extractProductType(productTitle);
-  const fallbackRetailers = getLocalRetailers(userCountry);
-  const fallbackComparisons = [];
-  for (let i = 0; i < Math.min(5, fallbackRetailers.length); i++) {
-    const retailer = fallbackRetailers[i];
-    let priceVariation = 0.8 + Math.random() * 0.4;
-    if (retailer.includes("amazon") || retailer.includes("mediamarkt")) {
-      priceVariation = 0.85 + Math.random() * 0.3;
-    } else if (retailer.includes("saturn") || retailer.includes("otto")) {
-      priceVariation = 0.9 + Math.random() * 0.4;
-    } else {
-      priceVariation = 0.95 + Math.random() * 0.5;
-    }
-    const fallbackPrice = Math.round(actualPrice * priceVariation * 100) / 100;
-    let costRating = 2;
-    if (fallbackPrice < actualPrice * 0.9) costRating = 1;
-    else if (fallbackPrice > actualPrice * 1.1) costRating = 3;
-    let valueRating = Math.floor(Math.random() * 3) + 1;
-    let qualityRating = Math.floor(Math.random() * 3) + 1;
-    if (retailer.includes("amazon") || retailer.includes("mediamarkt")) {
-      qualityRating = Math.max(qualityRating, 2);
-    }
-    const comparison = {
-      title: productTitle,
-      store: retailer,
-      price: fallbackPrice,
-      currency: "€",
-      url: `https://${retailer}`,
-      image: "",
-      condition: "New",
-      assessment: {
-        cost: costRating,
-        value: valueRating,
-        quality: qualityRating,
-        description: `${retailer} offers this product at ${fallbackPrice < actualPrice ? "a competitive" : "a standard"} price`
-      }
-    };
-    fallbackComparisons.push(comparison);
-  }
-  fallbackComparisons.sort((a, b) => a.price - b.price);
-  console.log(`Generated ${fallbackComparisons.length} fallback comparisons`);
-  return fallbackComparisons;
+  console.log("No real product comparisons available - SearchAPI failed or returned no results");
+  console.log("Returning empty array to avoid fake URLs");
+  return [];
 }
 function filterRelevantProductMatches(results, productModel, cleanedTitle, originalTitle) {
   if (!results || results.length === 0) return [];
@@ -2581,9 +1264,20 @@ function generateAssessment(price, basePrice, retailer) {
     description: `Found on ${retailer}`
   };
 }
+const extractPriceFromExtensions = (extensions = []) => {
+  const priceRegex = /€\s?\d{1,3}(?:[.,]\d{2})?/;
+  for (const el of extensions) {
+    const match = el.match(priceRegex);
+    if (match) {
+      return match[0].trim();
+    }
+  }
+  return null;
+};
 async function validateAndSanitizeResult(result, productTitle, actualPrice) {
-  const price = extractPrice(result.price || result.priceText || result.price_string || "");
-  const rawUrl = result.link || result.product_link || result.source_url || result.url || "";
+  const priceFromExtensions = extractPriceFromExtensions(result.rich_snippet?.extensions);
+  const price = priceFromExtensions ? extractPrice(priceFromExtensions) : extractPrice(result.price || result.priceText || result.price_string || result.extracted_price || "");
+  const rawUrl = result.link || result.product_link || result.source_url || result.url || result.offers_link || "";
   const url = extractDirectRetailerUrl(rawUrl);
   if (price == null || !url) {
     console.log(`Skipping invalid result: ${result.title} (no price or URL)`);
@@ -2591,10 +1285,27 @@ async function validateAndSanitizeResult(result, productTitle, actualPrice) {
   }
   const isRealProductUrl = url && url.length > 20 && // Real product URLs are longer
   !url.match(/^https?:\/\/[^\/]+\/?$/) && // Not just a domain
-  (url.includes("/product/") || url.includes("/p/") || url.includes("/dp/") || url.includes("/item/") || url.includes("/shop/"));
+  (url.includes("/product/") || url.includes("/p/") || url.includes("/dp/") || url.includes("/item/") || url.includes("/shop/") || url.includes("google.com/shopping/product/"));
   if (!isRealProductUrl) {
     console.log(`Skipping result with non-product URL: ${result.title} (URL: ${url})`);
     return null;
+  }
+  if (url.includes("google.com/shopping/product/")) {
+    console.log(`Skipping HTML validation for Google Shopping URL: ${url}`);
+    const finalTitle = result.title || "Unknown Product";
+    const finalPrice = price || 0;
+    const finalImage = result.thumbnail || result.image || "";
+    const assessment = generateAssessment(finalPrice, actualPrice || 0, result.seller || result.source || "");
+    return {
+      title: finalTitle,
+      store: extractStoreName(result.seller || result.source || ""),
+      price: finalPrice,
+      currency: result.currency || "€",
+      url,
+      image: finalImage,
+      condition: "New",
+      assessment
+    };
   }
   try {
     console.log(`Validating URL: ${url}`);
@@ -2620,7 +1331,7 @@ async function validateAndSanitizeResult(result, productTitle, actualPrice) {
     const assessment = generateAssessment(finalPrice, actualPrice || 0, result.seller || result.source || "");
     return {
       title: finalTitle,
-      store: extractStoreName(result.source || result.seller || ""),
+      store: extractStoreName(result.seller || result.source || ""),
       price: finalPrice,
       currency: result.currency || "€",
       url,
@@ -2736,9 +1447,17 @@ function filterByPriceRange(comparisons, originalPrice) {
     console.log("No original price available, skipping price filtering");
     return comparisons;
   }
-  const minPrice = originalPrice * 0.4;
-  const maxPrice = originalPrice * 2;
-  console.log(`Price range: €${minPrice.toFixed(2)} - €${maxPrice.toFixed(2)}`);
+  const isGoogleShopping = comparisons.some((comp) => comp.url.includes("google.com/shopping/product/"));
+  let minPrice, maxPrice;
+  if (isGoogleShopping) {
+    minPrice = originalPrice * 0.1;
+    maxPrice = originalPrice * 3;
+    console.log(`Google Shopping detected - using lenient price range: €${minPrice.toFixed(2)} - €${maxPrice.toFixed(2)}`);
+  } else {
+    minPrice = originalPrice * 0.4;
+    maxPrice = originalPrice * 2;
+    console.log(`Price range: €${minPrice.toFixed(2)} - €${maxPrice.toFixed(2)}`);
+  }
   const filtered = comparisons.filter((comparison) => {
     const isInRange = comparison.price >= minPrice && comparison.price <= maxPrice;
     if (isInRange) {
@@ -3016,45 +1735,6 @@ function extractProductFromPathname(pathname) {
     category: "electronics"
   };
 }
-function generatePriceComparisons(mainProduct) {
-  console.log(`Generating price comparisons for: ${mainProduct.title}`);
-  const userLocation = { country: "Germany" };
-  console.log(`User location: ${JSON.stringify(userLocation)}`);
-  const comparisons = [];
-  const retailers = [
-    { name: "Amazon", url: "https://www.amazon.com/dp/B08N5WRWNW", priceVariation: 0.95 },
-    { name: "eBay", url: "https://www.ebay.com/itm/404123456789", priceVariation: 0.85 },
-    { name: "Walmart", url: "https://www.walmart.com/ip/123456789", priceVariation: 0.96 },
-    { name: "Best Buy", url: "https://www.bestbuy.com/site/123456789", priceVariation: 1.05 },
-    { name: "Target", url: "https://www.target.com/p/123456789", priceVariation: 1.04 },
-    { name: "Newegg", url: "https://www.newegg.com/p/123456789", priceVariation: 0.98 },
-    { name: "B&H Photo", url: "https://www.bhphotovideo.com/c/product/123456789", priceVariation: 1.02 },
-    { name: "Adorama", url: "https://www.adorama.com/product/123456789", priceVariation: 1.01 },
-    { name: "amazon.de", url: "https://amazon.de", priceVariation: 0.92 },
-    { name: "mediamarkt.de", url: "https://mediamarkt.de", priceVariation: 0.9 }
-  ];
-  for (const retailer of retailers) {
-    const price = Math.round(mainProduct.price * retailer.priceVariation * 100) / 100;
-    const comparison = {
-      title: mainProduct.title,
-      store: retailer.name,
-      price,
-      currency: mainProduct.currency,
-      url: retailer.url,
-      image: mainProduct.image,
-      condition: "New",
-      assessment: {
-        cost: price < mainProduct.price ? 1 : price > mainProduct.price ? 3 : 2,
-        value: Math.floor(Math.random() * 3) + 1,
-        quality: Math.floor(Math.random() * 3) + 1,
-        description: `Found on ${retailer.name}`
-      }
-    };
-    comparisons.push(comparison);
-  }
-  console.log(`Generated ${comparisons.length} price comparisons with real URLs`);
-  return comparisons;
-}
 function convertToStandardFormat(scrapedData) {
   const product = {
     title: scrapedData.originalProduct?.title || "Product",
@@ -3123,28 +1803,35 @@ router.post("/scrape-enhanced", async (req, res) => {
     console.log(`Extracted product model: ${productModel || "Not found"}`);
     const userCountry = req.body.userLocation?.country || "United States";
     console.log(`User country detected: ${userCountry}`);
-    const { handleScrape: handleScrape2 } = await Promise.resolve().then(() => scrape);
     let capturedData = null;
-    const mockRes = {
-      json: (data) => {
-        capturedData = data;
-        return mockRes;
-      },
-      status: (code) => mockRes
-    };
-    const mockReq = {
-      body: {
-        url,
-        requestId: Date.now().toString(),
-        userLocation: req.body.userLocation || { country: userCountry }
-      },
-      user: req.user,
-      ip: req.ip,
-      socket: req.socket,
-      headers: req.headers
-    };
-    await handleScrape2(mockReq, mockRes, () => {
-    });
+    try {
+      const detectedProduct2 = await detectProductFromUrl(url);
+      console.log("Detected product:", detectedProduct2);
+      capturedData = {
+        originalProduct: {
+          title: detectedProduct2?.title || "Product",
+          price: detectedProduct2?.price || 0,
+          currency: "€",
+          url,
+          image: "/placeholder.svg",
+          store: new URL(url).hostname.replace(/^www\./, "")
+        },
+        comparisons: []
+      };
+    } catch (error) {
+      console.error("Error detecting product:", error);
+      capturedData = {
+        originalProduct: {
+          title: "Product",
+          price: 0,
+          currency: "€",
+          url,
+          image: "/placeholder.svg",
+          store: new URL(url).hostname.replace(/^www\./, "")
+        },
+        comparisons: []
+      };
+    }
     console.log("Original scraping result:", JSON.stringify(capturedData, null, 2));
     let comparisons = [];
     let searchApiUsed = false;
@@ -3208,7 +1895,7 @@ router.post("/scrape-enhanced", async (req, res) => {
         };
       }
     } else {
-      console.log("No real SearchAPI results with valid URLs found, using fallback comparisons");
+      console.log("No real SearchAPI results with valid URLs found, using empty comparisons");
       if (!capturedData || !capturedData.originalProduct || capturedData.originalProduct.price === 0) {
         console.log("Original scraping failed or returned no price");
         const product = {
@@ -3221,11 +1908,12 @@ router.post("/scrape-enhanced", async (req, res) => {
         };
         capturedData = {
           originalProduct: product,
-          comparisons: generatePriceComparisons(product)
+          comparisons: []
+          // Empty array instead of fake URLs
         };
       } else {
-        console.log("Using fallback comparisons with unique URLs");
-        capturedData.comparisons = generatePriceComparisons(capturedData.originalProduct);
+        console.log("Using empty comparisons - no real URLs available");
+        capturedData.comparisons = [];
       }
     }
     if (!capturedData) {
@@ -3260,18 +1948,291 @@ router.post("/scrape-enhanced", async (req, res) => {
         image: "/placeholder.svg",
         store: new URL(url).hostname.replace(/^www\./, "")
       };
-      const fallbackComparisons = generateFallbackComparisons("Product", 0, userCountry);
       res.json({
         product: fallbackProduct,
-        comparisons: fallbackComparisons,
+        comparisons: [],
+        // Empty array instead of fake URLs
         requestId: Date.now().toString()
       });
     } catch (fallbackError) {
       console.error("Fallback also failed:", fallbackError);
-      res.status(500).json({ error: "Failed to scrape product data" });
+      res.json({
+        product: {
+          title: "Product",
+          price: 0,
+          currency: "€",
+          url: req.body.url || "",
+          image: "/placeholder.svg",
+          store: "unknown"
+        },
+        comparisons: [],
+        requestId: Date.now().toString(),
+        error: "Failed to scrape product data"
+      });
     }
   }
 });
+async function scrapeWithN8nWebhook(url, gl) {
+  try {
+    console.log("Calling n8n webhook for URL:", url, "GL:", gl);
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || "https://n8n.srv824584.hstgr.cloud/webhook/new-test";
+    console.log("Using n8n webhook URL:", n8nWebhookUrl);
+    console.log("Environment variable N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
+    const params = { url };
+    if (gl) {
+      params.gl = gl;
+    }
+    console.log("Full URL being called:", `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`);
+    const response = await axios.get(n8nWebhookUrl, {
+      params,
+      timeout: 3e4,
+      // 30 second timeout
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    console.log("n8n webhook response status:", response.status);
+    console.log("n8n webhook response data:", JSON.stringify(response.data, null, 2));
+    if (response.status !== 200) {
+      throw new Error(`n8n webhook returned status ${response.status}`);
+    }
+    const data = response.data;
+    if (data && data.mainProduct && Array.isArray(data.suggestions)) {
+      const comparisons = data.suggestions.map((suggestion) => ({
+        title: suggestion.title,
+        store: suggestion.site || "unknown",
+        price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || "0"),
+        currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ""),
+        url: suggestion.link,
+        image: suggestion.image,
+        condition: "New",
+        assessment: {
+          cost: 3,
+          value: 3,
+          quality: 3,
+          description: `Found on ${suggestion.site || "unknown"}`
+        }
+      }));
+      return {
+        mainProduct: {
+          title: data.mainProduct.title,
+          price: data.mainProduct.price,
+          image: data.mainProduct.image,
+          url: data.mainProduct.url
+        },
+        suggestions: data.suggestions,
+        comparisons
+      };
+    }
+    throw new Error("Invalid n8n webhook response format");
+  } catch (error) {
+    console.error("n8n webhook error:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        params: error.config?.params,
+        fullUrl: error.config?.url + "?" + new URLSearchParams(error.config?.params || {}).toString()
+      });
+    }
+    throw error;
+  }
+}
+function extractCurrency(priceString) {
+  if (priceString.includes("€")) return "€";
+  if (priceString.includes("$")) return "$";
+  if (priceString.includes("£")) return "£";
+  return "€";
+}
+router.post("/n8n-scrape", async (req, res) => {
+  console.log("=== n8n-scrape route called ===");
+  console.log("Request body:", req.body);
+  console.log("Environment variable N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
+  try {
+    const { url, requestId, gl } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+    console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
+    console.log(`Request ID: ${requestId}`);
+    const result = await scrapeWithN8nWebhook(url, gl);
+    console.log("n8n webhook scraping successful");
+    console.log("Main product:", result.mainProduct);
+    console.log("Suggestions count:", result.suggestions?.length || 0);
+    res.json(result);
+  } catch (error) {
+    console.error("n8n webhook scraping error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.log("Providing fallback response due to error:", errorMessage);
+    res.json({
+      mainProduct: {
+        title: "Product",
+        price: "€0",
+        image: "/placeholder.svg",
+        url: req.body.url || null
+      },
+      suggestions: [],
+      error: errorMessage
+    });
+  }
+});
+const createPrismaClient = () => new PrismaClient().$extends(withAccelerate());
+const prisma = globalThis.__prisma || createPrismaClient();
+const userService = {
+  async createUser(data) {
+    return prisma.user.create({
+      data: {
+        email: data.email,
+        password: data.password,
+        isAdmin: data.isAdmin || false
+      }
+    });
+  },
+  async findUserByEmail(email) {
+    return prisma.user.findUnique({
+      where: { email }
+    });
+  },
+  async findUserById(id) {
+    return prisma.user.findUnique({
+      where: { id }
+    });
+  },
+  async getAllUsers() {
+    return prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        _count: {
+          select: {
+            searchHistory: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  },
+  async updateUser(id, data) {
+    return prisma.user.update({
+      where: { id },
+      data
+    });
+  },
+  async deleteUser(id) {
+    return prisma.user.delete({
+      where: { id }
+    });
+  }
+};
+const searchHistoryService = {
+  async addSearch(userId, data) {
+    return prisma.searchHistory.create({
+      data: {
+        userId,
+        url: data.url,
+        title: data.title,
+        requestId: data.requestId
+      }
+    });
+  },
+  async getUserSearchHistory(userId, limit = 20) {
+    return prisma.searchHistory.findMany({
+      where: { userId },
+      orderBy: { timestamp: "desc" },
+      take: limit
+    });
+  },
+  async deleteUserSearch(userId, searchId) {
+    return prisma.searchHistory.delete({
+      where: {
+        id: searchId,
+        userId
+        // Ensure user can only delete their own searches
+      }
+    });
+  },
+  async clearUserSearchHistory(userId) {
+    return prisma.searchHistory.deleteMany({
+      where: { userId }
+    });
+  },
+  // Clean up old search history (older than X days)
+  async cleanupOldSearches(daysToKeep = 90) {
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    return prisma.searchHistory.deleteMany({
+      where: {
+        timestamp: {
+          lt: cutoffDate
+        }
+      }
+    });
+  }
+};
+const legacySearchHistoryService = {
+  async addSearch(userKey, url) {
+    return prisma.legacySearchHistory.create({
+      data: {
+        userKey,
+        url
+      }
+    });
+  },
+  async getUserSearchHistory(userKey, limit = 10) {
+    return prisma.legacySearchHistory.findMany({
+      where: { userKey },
+      orderBy: { timestamp: "desc" },
+      take: limit
+    });
+  },
+  async cleanupOldLegacySearches(daysToKeep = 30) {
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    return prisma.legacySearchHistory.deleteMany({
+      where: {
+        timestamp: {
+          lt: cutoffDate
+        }
+      }
+    });
+  }
+};
+const healthCheck = {
+  async checkConnection() {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: "healthy", message: "Database connection successful" };
+    } catch (error) {
+      return {
+        status: "unhealthy",
+        message: "Database connection failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+  async getStats() {
+    const [userCount, searchCount, legacySearchCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.searchHistory.count(),
+      prisma.legacySearchHistory.count()
+    ]);
+    return {
+      users: userCount,
+      searches: searchCount,
+      legacySearches: legacySearchCount
+    };
+  }
+};
+const gracefulShutdown = async () => {
+  await prisma.$disconnect();
+};
 const saveSearchHistory = async (req, res) => {
   try {
     const { url, userKey } = req.body;
@@ -3299,9 +2260,272 @@ const getSearchHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to get search history" });
   }
 };
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+function generateToken(userId) {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+}
+function verifyToken(token) {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+const register = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long" });
+    }
+    const existingUser = await userService.findUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ error: "User with this email already exists" });
+    }
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = await userService.createUser({
+      email,
+      password: hashedPassword,
+      isAdmin: false
+      // First user can be made admin manually
+    });
+    const token = generateToken(user.id);
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1e3
+      // 7 days
+    });
+    res.status(201).json({
+      success: true,
+      token,
+      accessToken: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ error: "Failed to register user" });
+  }
+};
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    const user = await userService.findUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    const token = generateToken(user.id);
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1e3
+      // 7 days
+    });
+    res.json({
+      success: true,
+      token,
+      accessToken: token,
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Failed to login" });
+  }
+};
+const logout = (req, res) => {
+  res.clearCookie("auth_token");
+  res.json({ success: true });
+};
+const getCurrentUser = async (req, res) => {
+  try {
+    let token = req.cookies.auth_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+    if (isNaN(userId)) {
+      return res.status(401).json({ error: "Invalid user ID in token" });
+    }
+    const user = await userService.findUserById(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin
+      }
+    });
+  } catch (error) {
+    console.error("Get current user error:", error);
+    res.status(500).json({ error: "Failed to get user info" });
+  }
+};
+const addToSearchHistory = async (req, res) => {
+  try {
+    let token = req.cookies.auth_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+    if (isNaN(userId)) {
+      return res.status(401).json({ error: "Invalid user ID in token" });
+    }
+    const user = await userService.findUserById(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    const { url, title, requestId } = req.body;
+    if (!url || !title || !requestId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    await searchHistoryService.addSearch(user.id, {
+      url,
+      title,
+      requestId
+    });
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error("Error adding to search history:", error);
+    res.status(500).json({ error: "Failed to add to search history" });
+  }
+};
+const getUserSearchHistory = async (req, res) => {
+  try {
+    let token = req.cookies.auth_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+    if (isNaN(userId)) {
+      return res.status(401).json({ error: "Invalid user ID in token" });
+    }
+    const user = await userService.findUserById(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    const history = await searchHistoryService.getUserSearchHistory(
+      user.id,
+      20
+    );
+    res.json({
+      history: history.map((h) => ({
+        url: h.url,
+        title: h.title,
+        requestId: h.requestId,
+        timestamp: h.timestamp
+      }))
+    });
+  } catch (error) {
+    console.error("Error getting search history:", error);
+    res.status(500).json({ error: "Failed to get search history" });
+  }
+};
+const getAllUsers = async (req, res) => {
+  try {
+    let token = req.cookies.auth_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+    const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+    if (isNaN(userId)) {
+      return res.status(401).json({ error: "Invalid user ID in token" });
+    }
+    const user = await userService.findUserById(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    if (!user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    const users = await userService.getAllUsers();
+    res.json({
+      users: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt,
+        searchCount: u._count.searchHistory
+      }))
+    });
+  } catch (error) {
+    console.error("Error getting all users:", error);
+    res.json({
+      users: [],
+      error: "Failed to get users"
+    });
+  }
+};
 const requireAuth = async (req, res, next) => {
   try {
-    const token = req.cookies.auth_token;
+    let token = req.cookies.auth_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
     if (!token) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -3309,16 +2533,25 @@ const requireAuth = async (req, res, next) => {
     if (!decoded) {
       return res.status(401).json({ error: "Invalid authentication token" });
     }
-    const user = await userService.findUserById(decoded.userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
+    try {
+      const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+      if (isNaN(userId)) {
+        return res.status(401).json({ error: "Invalid user ID in token" });
+      }
+      const user = await userService.findUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      req.user = {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin
+      };
+      next();
+    } catch (dbError) {
+      console.error("Database error in requireAuth:", dbError);
+      return res.status(500).json({ error: "Database error during authentication" });
     }
-    req.user = {
-      id: user.id,
-      email: user.email,
-      isAdmin: user.isAdmin
-    };
-    next();
   } catch (error) {
     console.error("Auth middleware error:", error);
     return res.status(500).json({ error: "Authentication error" });
@@ -3335,17 +2568,30 @@ const requireAdmin = (req, res, next) => {
 };
 const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.cookies.auth_token;
+    let token = req.cookies.auth_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
     if (token) {
       const decoded = verifyToken(token);
       if (decoded) {
-        const user = await userService.findUserById(decoded.userId);
-        if (user) {
-          req.user = {
-            id: user.id,
-            email: user.email,
-            isAdmin: user.isAdmin
-          };
+        try {
+          const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+          if (!isNaN(userId)) {
+            const user = await userService.findUserById(userId);
+            if (user) {
+              req.user = {
+                id: user.id,
+                email: user.email,
+                isAdmin: user.isAdmin
+              };
+            }
+          }
+        } catch (dbError) {
+          console.warn("Database error in optionalAuth:", dbError);
         }
       }
     }
@@ -3375,11 +2621,334 @@ const healthCheckHandler = async (req, res) => {
     });
   }
 };
+const localDealers = [
+  // Lithuania
+  {
+    name: "pigu.lt",
+    url: "https://pigu.lt",
+    country: "Lithuania",
+    region: "Baltic",
+    searchUrlPattern: "https://pigu.lt/search?q={query}",
+    currency: "€",
+    priority: 1
+  },
+  {
+    name: "varle.lt",
+    url: "https://varle.lt",
+    country: "Lithuania",
+    region: "Baltic",
+    searchUrlPattern: "https://varle.lt/search?q={query}",
+    currency: "€",
+    priority: 2
+  },
+  {
+    name: "kilobaitas.lt",
+    url: "https://kilobaitas.lt",
+    country: "Lithuania",
+    region: "Baltic",
+    searchUrlPattern: "https://kilobaitas.lt/search?q={query}",
+    currency: "€",
+    priority: 3
+  },
+  // Latvia
+  {
+    name: "1a.lv",
+    url: "https://1a.lv",
+    country: "Latvia",
+    region: "Baltic",
+    searchUrlPattern: "https://1a.lv/search?q={query}",
+    currency: "€",
+    priority: 1
+  },
+  {
+    name: "220.lv",
+    url: "https://220.lv",
+    country: "Latvia",
+    region: "Baltic",
+    searchUrlPattern: "https://220.lv/search?q={query}",
+    currency: "€",
+    priority: 2
+  },
+  // Estonia
+  {
+    name: "kaup24.ee",
+    url: "https://kaup24.ee",
+    country: "Estonia",
+    region: "Baltic",
+    searchUrlPattern: "https://kaup24.ee/search?q={query}",
+    currency: "€",
+    priority: 1
+  },
+  // Germany
+  {
+    name: "amazon.de",
+    url: "https://amazon.de",
+    country: "Germany",
+    region: "Western Europe",
+    searchUrlPattern: "https://amazon.de/s?k={query}",
+    currency: "€",
+    priority: 1
+  },
+  {
+    name: "mediamarkt.de",
+    url: "https://mediamarkt.de",
+    country: "Germany",
+    region: "Western Europe",
+    searchUrlPattern: "https://mediamarkt.de/search?query={query}",
+    currency: "€",
+    priority: 2
+  },
+  // France
+  {
+    name: "amazon.fr",
+    url: "https://amazon.fr",
+    country: "France",
+    region: "Western Europe",
+    searchUrlPattern: "https://amazon.fr/s?k={query}",
+    currency: "€",
+    priority: 1
+  },
+  {
+    name: "fnac.com",
+    url: "https://fnac.com",
+    country: "France",
+    region: "Western Europe",
+    searchUrlPattern: "https://fnac.com/search?query={query}",
+    currency: "€",
+    priority: 2
+  },
+  // UK
+  {
+    name: "amazon.co.uk",
+    url: "https://amazon.co.uk",
+    country: "United Kingdom",
+    region: "Western Europe",
+    searchUrlPattern: "https://amazon.co.uk/s?k={query}",
+    currency: "£",
+    priority: 1
+  },
+  {
+    name: "currys.co.uk",
+    url: "https://currys.co.uk",
+    country: "United Kingdom",
+    region: "Western Europe",
+    searchUrlPattern: "https://currys.co.uk/search?q={query}",
+    currency: "£",
+    priority: 2
+  },
+  // Poland
+  {
+    name: "allegro.pl",
+    url: "https://allegro.pl",
+    country: "Poland",
+    region: "Eastern Europe",
+    searchUrlPattern: "https://allegro.pl/listing?string={query}",
+    currency: "PLN",
+    priority: 1
+  },
+  {
+    name: "x-kom.pl",
+    url: "https://x-kom.pl",
+    country: "Poland",
+    region: "Eastern Europe",
+    searchUrlPattern: "https://x-kom.pl/search?q={query}",
+    currency: "PLN",
+    priority: 2
+  },
+  // Nordic countries
+  {
+    name: "elgiganten.dk",
+    url: "https://elgiganten.dk",
+    country: "Denmark",
+    region: "Nordic",
+    searchUrlPattern: "https://elgiganten.dk/search?SearchTerm={query}",
+    currency: "DKK",
+    priority: 1
+  },
+  {
+    name: "elkjop.no",
+    url: "https://elkjop.no",
+    country: "Norway",
+    region: "Nordic",
+    searchUrlPattern: "https://elkjop.no/search?SearchTerm={query}",
+    currency: "NOK",
+    priority: 1
+  },
+  {
+    name: "power.fi",
+    url: "https://power.fi",
+    country: "Finland",
+    region: "Nordic",
+    searchUrlPattern: "https://power.fi/search?SearchTerm={query}",
+    currency: "€",
+    priority: 1
+  }
+];
+function detectLocationFromIP(ip) {
+  if (ip.includes("192.168") || ip.includes("127.0") || ip.includes("10.") || ip.includes("172.")) {
+    return {
+      country: "Lithuania",
+      countryCode: "LT",
+      region: "Baltic",
+      city: "Vilnius",
+      currency: "€",
+      timeZone: "Europe/Vilnius"
+    };
+  }
+  return {
+    country: "United States",
+    countryCode: "US",
+    region: "North America",
+    currency: "$",
+    timeZone: "America/New_York"
+  };
+}
+function detectLocationFromHeaders(headers) {
+  if (headers["cf-ipcountry"]) {
+    const countryCode = headers["cf-ipcountry"].toUpperCase();
+    return getLocationByCountryCode(countryCode);
+  }
+  const acceptLanguage = headers["accept-language"];
+  if (acceptLanguage) {
+    if (acceptLanguage.includes("lt")) {
+      return {
+        country: "Lithuania",
+        countryCode: "LT",
+        region: "Baltic",
+        currency: "€",
+        timeZone: "Europe/Vilnius"
+      };
+    }
+    if (acceptLanguage.includes("lv")) {
+      return {
+        country: "Latvia",
+        countryCode: "LV",
+        region: "Baltic",
+        currency: "€",
+        timeZone: "Europe/Riga"
+      };
+    }
+    if (acceptLanguage.includes("et")) {
+      return {
+        country: "Estonia",
+        countryCode: "EE",
+        region: "Baltic",
+        currency: "€",
+        timeZone: "Europe/Tallinn"
+      };
+    }
+    if (acceptLanguage.includes("de")) {
+      return {
+        country: "Germany",
+        countryCode: "DE",
+        region: "Western Europe",
+        currency: "€",
+        timeZone: "Europe/Berlin"
+      };
+    }
+  }
+  return null;
+}
+function getLocationByCountryCode(countryCode) {
+  const countryMap = {
+    LT: {
+      country: "Lithuania",
+      countryCode: "LT",
+      region: "Baltic",
+      currency: "€",
+      timeZone: "Europe/Vilnius"
+    },
+    LV: {
+      country: "Latvia",
+      countryCode: "LV",
+      region: "Baltic",
+      currency: "€",
+      timeZone: "Europe/Riga"
+    },
+    EE: {
+      country: "Estonia",
+      countryCode: "EE",
+      region: "Baltic",
+      currency: "€",
+      timeZone: "Europe/Tallinn"
+    },
+    DE: {
+      country: "Germany",
+      countryCode: "DE",
+      region: "Western Europe",
+      currency: "€",
+      timeZone: "Europe/Berlin"
+    },
+    FR: {
+      country: "France",
+      countryCode: "FR",
+      region: "Western Europe",
+      currency: "€",
+      timeZone: "Europe/Paris"
+    },
+    GB: {
+      country: "United Kingdom",
+      countryCode: "GB",
+      region: "Western Europe",
+      currency: "£",
+      timeZone: "Europe/London"
+    },
+    PL: {
+      country: "Poland",
+      countryCode: "PL",
+      region: "Eastern Europe",
+      currency: "PLN",
+      timeZone: "Europe/Warsaw"
+    },
+    US: {
+      country: "United States",
+      countryCode: "US",
+      region: "North America",
+      currency: "$",
+      timeZone: "America/New_York"
+    }
+  };
+  return countryMap[countryCode] || countryMap["US"];
+}
+function getLocalDealers(location) {
+  return localDealers.filter(
+    (dealer) => dealer.country === location.country || dealer.region === location.region
+  ).sort((a, b) => a.priority - b.priority);
+}
+const getLocationHandler = async (req, res) => {
+  try {
+    const clientIP = req.ip || req.socket.remoteAddress || "127.0.0.1";
+    let location = detectLocationFromHeaders(req.headers);
+    if (!location) {
+      location = detectLocationFromIP(clientIP);
+    }
+    const dealers = getLocalDealers(location);
+    res.json({
+      location,
+      localDealers: dealers.slice(0, 5)
+      // Return top 5 local dealers
+    });
+  } catch (error) {
+    console.error("Location detection error:", error);
+    res.json({
+      location: {
+        country: "United States",
+        countryCode: "US",
+        region: "North America",
+        currency: "$",
+        timeZone: "America/New_York"
+      },
+      localDealers: [],
+      error: "Failed to detect location"
+    });
+  }
+};
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
 console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "Loaded" : "Not loaded");
 console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Loaded" : "Not loaded");
+console.log("N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL || "Not set");
 function createServer() {
   const app2 = express__default();
   app2.use(
@@ -3395,7 +2964,11 @@ function createServer() {
     res.json({ message: "Hello from Express server v2!" });
   });
   app2.get("/api/demo", handleDemo);
-  app2.post("/api/scrape", optionalAuth, handleScrape);
+  app2.post("/api/scrape", optionalAuth, (req, res) => {
+    req.url = "/n8n-scrape";
+    router(req, res, () => {
+    });
+  });
   app2.use("/api", router);
   app2.get("/api/location", getLocationHandler);
   app2.post("/api/auth/register", register);
