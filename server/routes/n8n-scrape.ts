@@ -2087,6 +2087,8 @@ router.post("/n8n-scrape", async (req, res) => {
           requestId: requestId || `search_${Date.now()}`,
         });
         console.log(`Search history saved for user ${userId} (type: ${findSimilar ? 'similar' : 'price_comparison'})`);
+      } else {
+        console.log("No user authentication found, skipping search history save");
       }
     } catch (historyError) {
       console.error("Failed to save search history:", historyError);

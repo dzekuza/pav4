@@ -53,11 +53,17 @@ export async function createServer() {
   // Middleware
   app.use(
     cors({
-      origin:
-        process.env.NODE_ENV === "production"
-          ? process.env.FRONTEND_URL || "http://localhost:8080"
-          : "http://localhost:8080",
+      origin: process.env.NODE_ENV === "production"
+        ? [
+            process.env.FRONTEND_URL || "https://pavlo4.netlify.app",
+            "https://pavlo4.netlify.app",
+            "http://localhost:8080",
+            "http://localhost:3000"
+          ]
+        : "http://localhost:8080",
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
     }),
   );
   app.use(express.json({ limit: "10mb" }));
