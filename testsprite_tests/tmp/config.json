@@ -8,10 +8,10 @@
     "projectName": "fusion-starter",
     "projectPath": "/Users/gvozdovic/Desktop/pav19/pav4",
     "testIds": [],
-    "additionalInstruction": "Test all backend endpoints with the fixed authentication system that now properly handles both cookies and Authorization headers. The server has been rebuilt with all authentication fixes applied.",
+    "additionalInstruction": "Test all backend endpoints with the fixed authentication system and TestSprite compatibility routes. The server now supports both /api/auth/* and /api/* endpoints for full compatibility.",
     "envs": {
       "API_KEY": "sk-user-ckkcvvqwjYsXTv-CzyAyeRuUUSmwQNY1i6WDyMlPTg4XuQZnnSydWUiRcdpel1L0uXXhNvJJvAaUpwHXL-x87LH87Z6jIJZXhYz0d0wu_ElSa7I0UfhDLAFg_WdY4ABqx5o"
     }
   },
-  "proxy": "http://0ffe4c8e-7d03-4d94-a463-8d8ed3b8985b:nIjjYqKcqsVlbkbw34ePDlGfaJ2R9NLB@tun.testsprite.com:8080"
+  "proxy": "http://ed4a751b-72d0-49bc-ae6a-622b7fe71270:TZX7cu9wjlI0Nz1SXpE71w2hhy1Trnb8@tun.testsprite.com:8080"
 }
