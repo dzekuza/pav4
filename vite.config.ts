@@ -27,7 +27,7 @@ function expressPlugin(): Plugin {
     async configureServer(server) {
       // Dynamic import to prevent loading server during build
       const { createServer } = await import("./server");
-      const app = createServer();
+      const app = await createServer();
 
       // Add Express app as middleware to Vite dev server
       server.middlewares.use(app);

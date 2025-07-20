@@ -12,6 +12,8 @@ import { SearchHeader } from "../components/SearchHeader";
 import { SearchInput } from "../components/SearchInput";
 import { LoadingSkeleton, SearchLoadingState } from "../components/LoadingSkeleton";
 import { useFavorites } from "../hooks/use-favorites";
+import { useAuthModal } from '../hooks/use-auth-modal';
+import { AuthModal } from '../components/AuthModal';
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -40,6 +42,19 @@ const NewSearchResults = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { favorites, addFavorite, removeFavorite, checkFavorite } = useFavorites();
+  
+  const { handleProtectedAction, modalProps } = useAuthModal({
+    title: "Sign in to save favorites",
+    description: "Create an account or sign in to save products to your favorites",
+    defaultTab: "login",
+    onSuccess: () => {
+      // After successful authentication, the user can retry their action
+      toast({
+        title: "Welcome back!",
+        description: "You can now save products to your favorites",
+      });
+    },
+  });
 
   const [searchData, setSearchData] = useState<any>(null);
   const [originalUrl, setOriginalUrl] = useState<string>("");
@@ -233,56 +248,61 @@ const NewSearchResults = () => {
     const itemKey = `${suggestion.site}-${suggestion.title}`;
     const currentState = favoriteStates.get(itemKey);
     
-    try {
-      if (currentState?.isFavorited && currentState.favoriteId) {
-        // Remove from favorites
-        await removeFavorite(currentState.favoriteId);
-        setFavoriteStates(prev => {
-          const newMap = new Map(prev);
-          newMap.set(itemKey, { isFavorited: false });
-          return newMap;
-        });
+    const performToggle = async () => {
+      try {
+        if (currentState?.isFavorited && currentState.favoriteId) {
+          // Remove from favorites
+          await removeFavorite(currentState.favoriteId);
+          setFavoriteStates(prev => {
+            const newMap = new Map(prev);
+            newMap.set(itemKey, { isFavorited: false });
+            return newMap;
+          });
+          toast({
+            title: "Removed from favorites",
+            description: "Item removed from your favorites",
+          });
+        } else {
+          // Add to favorites
+          const newFavorite = await addFavorite({
+            title: suggestion.title,
+            price: suggestion.standardPrice || suggestion.discountPrice,
+            currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
+            url: suggestion.link,
+            image: suggestion.image,
+            store: suggestion.site,
+            merchant: suggestion.merchant,
+            stock: suggestion.stock,
+            rating: suggestion.rating,
+            reviewsCount: suggestion.reviewsCount,
+            deliveryPrice: suggestion.deliveryPrice,
+            details: suggestion.details,
+            returnPolicy: suggestion.returnPolicy,
+            condition: 'New'
+          });
+          
+          setFavoriteStates(prev => {
+            const newMap = new Map(prev);
+            newMap.set(itemKey, { isFavorited: true, favoriteId: newFavorite.id });
+            return newMap;
+          });
+          
+          toast({
+            title: "Added to favorites",
+            description: "Item added to your favorites",
+          });
+        }
+      } catch (error) {
         toast({
-          title: "Removed from favorites",
-          description: "Item removed from your favorites",
-        });
-      } else {
-        // Add to favorites
-        const newFavorite = await addFavorite({
-          title: suggestion.title,
-          price: suggestion.standardPrice || suggestion.discountPrice,
-          currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
-          url: suggestion.link,
-          image: suggestion.image,
-          store: suggestion.site,
-          merchant: suggestion.merchant,
-          stock: suggestion.stock,
-          rating: suggestion.rating,
-          reviewsCount: suggestion.reviewsCount,
-          deliveryPrice: suggestion.deliveryPrice,
-          details: suggestion.details,
-          returnPolicy: suggestion.returnPolicy,
-          condition: 'New'
-        });
-        
-        setFavoriteStates(prev => {
-          const newMap = new Map(prev);
-          newMap.set(itemKey, { isFavorited: true, favoriteId: newFavorite.id });
-          return newMap;
-        });
-        
-        toast({
-          title: "Added to favorites",
-          description: "Item added to your favorites",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update favorites",
+          variant: "destructive"
         });
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update favorites",
-        variant: "destructive"
-      });
-    }
+    };
+
+    // Use protected action handler to check authentication
+    handleProtectedAction(performToggle);
   };
 
   const suggestions = searchData?.suggestions || [];
@@ -624,6 +644,9 @@ const NewSearchResults = () => {
           </Card>
         )}
       </div>
+      
+      {/* Authentication Modal */}
+      <AuthModal {...modalProps} />
     </div>
   );
 };

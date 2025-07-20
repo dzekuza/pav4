@@ -150,7 +150,7 @@ export interface AuthRequest {
 export interface AuthResponse {
   success: boolean;
   user?: {
-    id: string;
+    id: number;
     email: string;
     isAdmin: boolean;
   };
@@ -158,7 +158,7 @@ export interface AuthResponse {
 }
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
   isAdmin: boolean;
 }
@@ -176,10 +176,41 @@ export interface UserSearchHistoryResponse {
 
 export interface AdminUsersResponse {
   users: Array<{
-    id: string;
+    id: number;
     email: string;
     isAdmin: boolean;
     createdAt: Date;
     searchCount: number;
   }>;
+}
+
+export interface AffiliateUrl {
+  id: number;
+  name: string;
+  url: string;
+  description?: string;
+  isActive: boolean;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AffiliateStats {
+  totalUrls: number;
+  activeUrls: number;
+  totalClicks: number;
+  totalConversions: number;
+  totalRevenue: number;
+}
+
+export interface AffiliateUrlsResponse {
+  success: boolean;
+  urls: AffiliateUrl[];
+}
+
+export interface AffiliateStatsResponse {
+  success: boolean;
+  stats: AffiliateStats;
 }

@@ -14,7 +14,12 @@ const handleDemo = (req, res) => {
   };
   res.status(200).json(response);
 };
-const prisma = globalThis.__prisma || new PrismaClient();
+const createPrismaClient = () => {
+  return new PrismaClient({
+    log: ["error"]
+  });
+};
+const prisma = globalThis.__prisma || createPrismaClient();
 const userService = {
   async createUser(data) {
     return prisma.user.create({
@@ -212,8 +217,105 @@ const healthCheck = {
     };
   }
 };
+const affiliateService = {
+  async createAffiliateUrl(data) {
+    return prisma.affiliateUrl.create({
+      data: {
+        name: data.name,
+        url: data.url,
+        description: data.description,
+        isActive: data.isActive ?? true
+      }
+    });
+  },
+  async getAllAffiliateUrls() {
+    return prisma.affiliateUrl.findMany({
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  },
+  async getAffiliateUrlById(id) {
+    return prisma.affiliateUrl.findUnique({
+      where: { id }
+    });
+  },
+  async updateAffiliateUrl(id, data) {
+    return prisma.affiliateUrl.update({
+      where: { id },
+      data
+    });
+  },
+  async deleteAffiliateUrl(id) {
+    return prisma.affiliateUrl.delete({
+      where: { id }
+    });
+  },
+  async incrementClicks(id) {
+    return prisma.affiliateUrl.update({
+      where: { id },
+      data: {
+        clicks: {
+          increment: 1
+        }
+      }
+    });
+  },
+  async addConversion(id, revenue = 0) {
+    return prisma.affiliateUrl.update({
+      where: { id },
+      data: {
+        conversions: {
+          increment: 1
+        },
+        revenue: {
+          increment: revenue
+        }
+      }
+    });
+  },
+  async getAffiliateStats() {
+    const [totalUrls, activeUrls, totalClicks, totalConversions, totalRevenue] = await Promise.all([
+      prisma.affiliateUrl.count(),
+      prisma.affiliateUrl.count({ where: { isActive: true } }),
+      prisma.affiliateUrl.aggregate({
+        _sum: { clicks: true }
+      }),
+      prisma.affiliateUrl.aggregate({
+        _sum: { conversions: true }
+      }),
+      prisma.affiliateUrl.aggregate({
+        _sum: { revenue: true }
+      })
+    ]);
+    return {
+      totalUrls,
+      activeUrls,
+      totalClicks: totalClicks._sum.clicks || 0,
+      totalConversions: totalConversions._sum.conversions || 0,
+      totalRevenue: totalRevenue._sum.revenue || 0
+    };
+  }
+};
 const gracefulShutdown = async () => {
-  await prisma.$disconnect();
+  try {
+    await prisma.$disconnect();
+    console.log("Database connection closed gracefully");
+  } catch (error) {
+    console.error("Error during database shutdown:", error);
+  }
+};
+const checkDatabaseConnection = async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return { status: "connected", message: "Database connection successful" };
+  } catch (error) {
+    return {
+      status: "error",
+      message: "Database connection failed",
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
 };
 function extractPrice(text) {
   const match = text.match(/(\d{1,4}[.,]?\d{2})/);
@@ -3671,10 +3773,144 @@ const getLocationHandler = async (req, res) => {
     });
   }
 };
+const getAllAffiliateUrls = async (req, res) => {
+  try {
+    const urls = await affiliateService.getAllAffiliateUrls();
+    res.json({ success: true, urls });
+  } catch (error) {
+    console.error("Error fetching affiliate URLs:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch affiliate URLs" });
+  }
+};
+const getAffiliateStats = async (req, res) => {
+  try {
+    const stats = await affiliateService.getAffiliateStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error("Error fetching affiliate stats:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch affiliate stats" });
+  }
+};
+const createAffiliateUrl = async (req, res) => {
+  try {
+    const { name, url, description, isActive } = req.body;
+    if (!name || !url) {
+      return res.status(400).json({
+        success: false,
+        error: "Name and URL are required"
+      });
+    }
+    try {
+      new URL(url);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid URL format"
+      });
+    }
+    const affiliateUrl = await affiliateService.createAffiliateUrl({
+      name,
+      url,
+      description,
+      isActive
+    });
+    res.status(201).json({
+      success: true,
+      affiliateUrl,
+      message: "Affiliate URL created successfully"
+    });
+  } catch (error) {
+    console.error("Error creating affiliate URL:", error);
+    res.status(500).json({ success: false, error: "Failed to create affiliate URL" });
+  }
+};
+const updateAffiliateUrl = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, url, description, isActive } = req.body;
+    if (!name || !url) {
+      return res.status(400).json({
+        success: false,
+        error: "Name and URL are required"
+      });
+    }
+    try {
+      new URL(url);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid URL format"
+      });
+    }
+    const affiliateUrl = await affiliateService.updateAffiliateUrl(parseInt(id), {
+      name,
+      url,
+      description,
+      isActive
+    });
+    res.json({
+      success: true,
+      affiliateUrl,
+      message: "Affiliate URL updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating affiliate URL:", error);
+    res.status(500).json({ success: false, error: "Failed to update affiliate URL" });
+  }
+};
+const deleteAffiliateUrl = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await affiliateService.deleteAffiliateUrl(parseInt(id));
+    res.json({
+      success: true,
+      message: "Affiliate URL deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting affiliate URL:", error);
+    res.status(500).json({ success: false, error: "Failed to delete affiliate URL" });
+  }
+};
+const trackAffiliateClick = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await affiliateService.incrementClicks(parseInt(id));
+    const affiliateUrl = await affiliateService.getAffiliateUrlById(parseInt(id));
+    if (affiliateUrl && affiliateUrl.isActive) {
+      res.redirect(affiliateUrl.url);
+    } else {
+      res.status(404).json({ success: false, error: "Affiliate URL not found or inactive" });
+    }
+  } catch (error) {
+    console.error("Error tracking affiliate click:", error);
+    res.status(500).json({ success: false, error: "Failed to track click" });
+  }
+};
+const trackAffiliateConversion = async (req, res) => {
+  try {
+    const { id, revenue = 0 } = req.body;
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: "Affiliate URL ID is required"
+      });
+    }
+    await affiliateService.addConversion(parseInt(id), parseFloat(revenue));
+    res.json({
+      success: true,
+      message: "Conversion tracked successfully"
+    });
+  } catch (error) {
+    console.error("Error tracking affiliate conversion:", error);
+    res.status(500).json({ success: false, error: "Failed to track conversion" });
+  }
+};
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
-function createServer() {
+async function createServer() {
+  const dbStatus = await checkDatabaseConnection();
+  console.log("Database status:", dbStatus.status, dbStatus.message);
   const app2 = express__default();
   app2.use(
     cors({
@@ -3711,6 +3947,13 @@ function createServer() {
   app2.post("/api/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/search-history", requireAuth, getUserSearchHistory);
   app2.get("/api/admin/users", requireAdminAuth, getAllUsers);
+  app2.get("/api/admin/affiliate/urls", requireAdminAuth, getAllAffiliateUrls);
+  app2.get("/api/admin/affiliate/stats", requireAdminAuth, getAffiliateStats);
+  app2.post("/api/admin/affiliate/urls", requireAdminAuth, createAffiliateUrl);
+  app2.put("/api/admin/affiliate/urls/:id", requireAdminAuth, updateAffiliateUrl);
+  app2.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
+  app2.get("/api/affiliate/click/:id", trackAffiliateClick);
+  app2.post("/api/affiliate/conversion", trackAffiliateConversion);
   app2.use("/api/favorites", router);
   app2.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);

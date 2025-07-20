@@ -5,7 +5,14 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
-export const prisma = globalThis.__prisma || new PrismaClient();
+// Create a single Prisma Client instance
+const createPrismaClient = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+};
+
+export const prisma = globalThis.__prisma || createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
@@ -269,7 +276,129 @@ export const healthCheck = {
   },
 };
 
+// Affiliate URL operations
+export const affiliateService = {
+  async createAffiliateUrl(data: {
+    name: string;
+    url: string;
+    description?: string;
+    isActive?: boolean;
+  }) {
+    return prisma.affiliateUrl.create({
+      data: {
+        name: data.name,
+        url: data.url,
+        description: data.description,
+        isActive: data.isActive ?? true,
+      },
+    });
+  },
+
+  async getAllAffiliateUrls() {
+    return prisma.affiliateUrl.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  },
+
+  async getAffiliateUrlById(id: number) {
+    return prisma.affiliateUrl.findUnique({
+      where: { id },
+    });
+  },
+
+  async updateAffiliateUrl(
+    id: number,
+    data: Partial<{
+      name: string;
+      url: string;
+      description: string;
+      isActive: boolean;
+    }>,
+  ) {
+    return prisma.affiliateUrl.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async deleteAffiliateUrl(id: number) {
+    return prisma.affiliateUrl.delete({
+      where: { id },
+    });
+  },
+
+  async incrementClicks(id: number) {
+    return prisma.affiliateUrl.update({
+      where: { id },
+      data: {
+        clicks: {
+          increment: 1,
+        },
+      },
+    });
+  },
+
+  async addConversion(id: number, revenue: number = 0) {
+    return prisma.affiliateUrl.update({
+      where: { id },
+      data: {
+        conversions: {
+          increment: 1,
+        },
+        revenue: {
+          increment: revenue,
+        },
+      },
+    });
+  },
+
+  async getAffiliateStats() {
+    const [totalUrls, activeUrls, totalClicks, totalConversions, totalRevenue] = await Promise.all([
+      prisma.affiliateUrl.count(),
+      prisma.affiliateUrl.count({ where: { isActive: true } }),
+      prisma.affiliateUrl.aggregate({
+        _sum: { clicks: true },
+      }),
+      prisma.affiliateUrl.aggregate({
+        _sum: { conversions: true },
+      }),
+      prisma.affiliateUrl.aggregate({
+        _sum: { revenue: true },
+      }),
+    ]);
+
+    return {
+      totalUrls,
+      activeUrls,
+      totalClicks: totalClicks._sum.clicks || 0,
+      totalConversions: totalConversions._sum.conversions || 0,
+      totalRevenue: totalRevenue._sum.revenue || 0,
+    };
+  },
+};
+
 // Graceful shutdown
 export const gracefulShutdown = async () => {
-  await prisma.$disconnect();
+  try {
+    await prisma.$disconnect();
+    console.log('Database connection closed gracefully');
+  } catch (error) {
+    console.error('Error during database shutdown:', error);
+  }
+};
+
+// Health check for database connection
+export const checkDatabaseConnection = async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return { status: 'connected', message: 'Database connection successful' };
+  } catch (error) {
+    return { 
+      status: 'error', 
+      message: 'Database connection failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 };

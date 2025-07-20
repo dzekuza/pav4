@@ -6,10 +6,20 @@ import { SearchHeader } from '../components/SearchHeader';
 import { useFavorites } from '../hooks/use-favorites';
 import { useToast } from '../hooks/use-toast';
 import { Heart, ExternalLink, Star, Package, Truck, Shield, Trash2 } from 'lucide-react';
+import { useAuth } from '../hooks/use-auth';
+import { useAuthModal } from '../hooks/use-auth-modal';
+import { AuthModal } from '../components/AuthModal';
 
 const Favorites = () => {
   const { favorites, loading, error, removeFavorite } = useFavorites();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  
+  const { modalProps } = useAuthModal({
+    title: "Sign in to view favorites",
+    description: "Create an account or sign in to view your saved favorites",
+    defaultTab: "login",
+  });
 
   const handleRemoveFavorite = async (favoriteId: number, title: string) => {
     try {
@@ -26,6 +36,30 @@ const Favorites = () => {
       });
     }
   };
+
+  // Show authentication modal if user is not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <SearchHeader />
+        <div className="container mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view favorites</h3>
+              <p className="text-gray-600 mb-4">
+                Create an account or sign in to view your saved favorites.
+              </p>
+              <Button onClick={() => modalProps.onClose()}>
+                Sign In
+              </Button>
+            </CardContent>
+          </Card>
+          <AuthModal {...modalProps} />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
