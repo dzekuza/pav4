@@ -9,7 +9,8 @@
     "storage",
     "cookies",
     "scripting",
-    "contextMenus"
+    "contextMenus",
+    "sidePanel"
   ],
 
   "host_permissions": [
@@ -46,8 +47,11 @@
     }
   ],
 
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+
   "action": {
-    "default_popup": "popup.html",
     "default_title": "PriceHunt - Compare Prices",
     "default_icon": {
       "16": "icons/icon16.svg",

@@ -21,13 +21,13 @@ class PriceHuntBackground {
       this.handleTabUpdate(tabId, changeInfo, tab);
     });
 
-    // Messages from content scripts and popup
+    // Messages from content scripts and side panel
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       this.handleMessage(request, sender, sendResponse);
       return true; // Keep the message channel open for async responses
     });
 
-    // Action button click (when popup is disabled)
+    // Action button click (opens side panel)
     chrome.action.onClicked.addListener((tab) => {
       this.handleActionClick(tab);
     });
@@ -221,17 +221,21 @@ class PriceHuntBackground {
   }
 
   handleActionClick(tab) {
-    // Open PriceHunt with the current URL if it's a product page
-    if (this.isSupportedSite(tab.url)) {
-      // Extract just the product URL without the domain prefix
-      const productUrl = tab.url;
-      chrome.tabs.create({
-        url: `https://pavlo4.netlify.app/${encodeURIComponent(productUrl)}`,
-      });
+    // Open the side panel when extension icon is clicked
+    if (chrome.sidePanel && chrome.sidePanel.open) {
+      chrome.sidePanel.open({ windowId: tab.windowId });
     } else {
-      chrome.tabs.create({
-        url: "https://pavlo4.netlify.app",
-      });
+      // Fallback: Open PriceHunt with the current URL if it's a product page
+      if (this.isSupportedSite(tab.url)) {
+        const productUrl = tab.url;
+        chrome.tabs.create({
+          url: `https://pavlo4.netlify.app/${encodeURIComponent(productUrl)}`,
+        });
+      } else {
+        chrome.tabs.create({
+          url: "https://pavlo4.netlify.app",
+        });
+      }
     }
   }
 

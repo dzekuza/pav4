@@ -2177,65 +2177,8 @@ async function scrapeWithN8nWebhook(url, gl) {
       };
     }
     if (!data || Object.keys(data).length === 0) {
-      console.log("n8n webhook returned empty data, providing fallback");
-      return {
-        mainProduct: {
-          title: "Sample Product",
-          price: "$99.99",
-          image: "https://via.placeholder.com/300x300?text=Product",
-          url
-        },
-        suggestions: [
-          {
-            title: "Sample Product - Retailer A",
-            standardPrice: "$99.99",
-            discountPrice: "$89.99",
-            site: "amazon.com",
-            link: "https://amazon.com/product/sample",
-            image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-          },
-          {
-            title: "Sample Product - Retailer B",
-            standardPrice: "$109.99",
-            discountPrice: "$95.99",
-            site: "bestbuy.com",
-            link: "https://bestbuy.com/product/sample",
-            image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-          }
-        ],
-        comparisons: [
-          {
-            title: "Sample Product - Retailer A",
-            store: "amazon.com",
-            price: 89.99,
-            currency: "$",
-            url: "https://amazon.com/product/sample",
-            image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-            condition: "New",
-            assessment: {
-              cost: 3,
-              value: 3,
-              quality: 3,
-              description: "Found on amazon.com"
-            }
-          },
-          {
-            title: "Sample Product - Retailer B",
-            store: "bestbuy.com",
-            price: 95.99,
-            currency: "$",
-            url: "https://bestbuy.com/product/sample",
-            image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-            condition: "New",
-            assessment: {
-              cost: 3,
-              value: 3,
-              quality: 3,
-              description: "Found on bestbuy.com"
-            }
-          }
-        ]
-      };
+      console.log("n8n webhook returned empty data");
+      throw new Error("No product data received from webhook");
     }
     throw new Error("Invalid n8n webhook response format");
   } catch (error) {
@@ -2308,33 +2251,12 @@ router$1.post("/n8n-scrape", async (req, res) => {
   } catch (error) {
     console.error("n8n webhook scraping error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    console.log("Providing fallback response due to error:", errorMessage);
-    res.json({
-      mainProduct: {
-        title: "Sample Product",
-        price: "$99.99",
-        image: "https://via.placeholder.com/300x300?text=Product",
-        url: req.body.url || "https://example.com/product/sample"
-      },
-      suggestions: [
-        {
-          title: "Sample Product - Retailer A",
-          standardPrice: "$99.99",
-          discountPrice: "$89.99",
-          site: "amazon.com",
-          link: "https://amazon.com/product/sample",
-          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-        },
-        {
-          title: "Sample Product - Retailer B",
-          standardPrice: "$109.99",
-          discountPrice: "$95.99",
-          site: "bestbuy.com",
-          link: "https://bestbuy.com/product/sample",
-          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAyAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-        }
-      ],
-      error: errorMessage
+    console.log("Returning error response:", errorMessage);
+    res.status(500).json({
+      error: "Failed to fetch product information",
+      message: errorMessage,
+      mainProduct: null,
+      suggestions: []
     });
   }
 });
