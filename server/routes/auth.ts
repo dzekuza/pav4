@@ -147,24 +147,37 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
     }
 
     if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
+      // Return null user instead of 401 for unauthenticated requests
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
 
     // Handle both string and number user IDs
     const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
     
     if (isNaN(userId)) {
-      return res.status(401).json({ error: "Invalid user ID in token" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
 
     const user = await userService.findUserById(userId);
     if (!user) {
-      return res.status(401).json({ error: "User not found" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
 
     res.json({
@@ -173,10 +186,15 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
         email: user.email,
         isAdmin: user.isAdmin,
       },
+      authenticated: true
     });
   } catch (error) {
     console.error("Get current user error:", error);
-    res.status(500).json({ error: "Failed to get user info" });
+    // Return null user instead of 500 error
+    res.json({
+      user: null,
+      authenticated: false
+    });
   }
 };
 
