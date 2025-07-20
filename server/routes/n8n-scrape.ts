@@ -719,111 +719,28 @@ async function searchExactProductModel(productModel: string, productTitle: strin
     console.log(`Cleaned product title: "${cleanedProductTitle}"`);
     
     // Get country code for SearchAPI - convert to ISO format
-const countryCode = getCountryCode(userCountry);
-console.log(`Using country code: ${countryCode} for SearchAPI search`);
+    const countryCode = getCountryCode(userCountry);
+    console.log(`Using country code: ${countryCode} for SearchAPI search`);
 
-// Helper function to convert country names to ISO codes
-function getCountryCode(country: string): string {
-  const countryMap: { [key: string]: string } = {
-    'Germany': 'de',
-    'United States': 'us',
-    'United Kingdom': 'uk',
-    'France': 'fr',
-    'Italy': 'it',
-    'Spain': 'es',
-    'Netherlands': 'nl',
-    'Belgium': 'be',
-    'Austria': 'at',
-    'Switzerland': 'ch',
-    'Poland': 'pl',
-    'Czech Republic': 'cz',
-    'Slovakia': 'sk',
-    'Hungary': 'hu',
-    'Romania': 'ro',
-    'Bulgaria': 'bg',
-    'Croatia': 'hr',
-    'Slovenia': 'si',
-    'Estonia': 'ee',
-    'Latvia': 'lv',
-    'Lithuania': 'lt',
-    'Finland': 'fi',
-    'Sweden': 'se',
-    'Norway': 'no',
-    'Denmark': 'dk',
-    'Canada': 'ca',
-    'Australia': 'au',
-    'New Zealand': 'nz',
-    'Japan': 'jp',
-    'South Korea': 'kr',
-    'China': 'cn',
-    'India': 'in',
-    'Brazil': 'br',
-    'Mexico': 'mx',
-    'Argentina': 'ar',
-    'Chile': 'cl',
-    'Colombia': 'co',
-    'Peru': 'pe',
-    'Venezuela': 've',
-    'Uruguay': 'uy',
-    'Paraguay': 'py',
-    'Bolivia': 'bo',
-    'Ecuador': 'ec',
-    'Guyana': 'gy',
-    'Suriname': 'sr',
-    'French Guiana': 'gf',
-    'Falkland Islands': 'fk',
-    'South Georgia': 'gs',
-    'South Sandwich Islands': 'gs',
-    'Bouvet Island': 'bv',
-    'Heard Island': 'hm',
-    'McDonald Islands': 'hm',
-    'French Southern Territories': 'tf',
-    'British Indian Ocean Territory': 'io',
-    'Christmas Island': 'cx',
-    'Cocos Islands': 'cc',
-    'Norfolk Island': 'nf',
-    'Pitcairn Islands': 'pn',
-    'Tokelau': 'tk',
-    'Niue': 'nu',
-    'Cook Islands': 'ck',
-    'Wallis and Futuna': 'wf',
-    'French Polynesia': 'pf',
-    'New Caledonia': 'nc',
-    'Vanuatu': 'vu',
-    'Solomon Islands': 'sb',
-    'Papua New Guinea': 'pg',
-    'Fiji': 'fj',
-    'Tonga': 'to',
-    'Samoa': 'ws',
-    'American Samoa': 'as',
-    'Guam': 'gu',
-    'Northern Mariana Islands': 'mp',
-    'Micronesia': 'fm',
-    'Marshall Islands': 'mh',
-    'Palau': 'pw',
-    'Nauru': 'nr',
-    'Kiribati': 'ki',
-    'Tuvalu': 'tv',
-    'Maldives': 'mv',
-    'Sri Lanka': 'lk',
-    'Bangladesh': 'bd',
-    'Nepal': 'np',
-    'Bhutan': 'bt',
-    'Myanmar': 'mm',
-    'Thailand': 'th',
-    'Laos': 'la',
-    'Cambodia': 'kh',
-    'Vietnam': 'vn',
-    'Malaysia': 'my',
-    'Singapore': 'sg',
-    'Brunei': 'bn',
-    'Philippines': 'ph',
-    'Indonesia': 'id',
-    'East Timor': 'tl'
-  };
-  
-  return countryMap[country] || 'us'; // Default to US if country not found
-}
+    // Helper function to convert country names to ISO codes
+    function getCountryCode(country: string): string {
+      // Import the supported countries from location service
+      const { SEARCH_API_SUPPORTED_COUNTRIES } = require("../services/location");
+      
+      // Find the country in supported countries by name
+      const supportedCountry = Object.values(SEARCH_API_SUPPORTED_COUNTRIES).find(
+        (c: any) => c.country.toLowerCase() === country.toLowerCase()
+      ) as any;
+      
+      if (supportedCountry) {
+        // Return the gl code (lowercase country code)
+        return supportedCountry.countryCode;
+      }
+      
+      // If not found, default to US
+      console.warn(`Country "${country}" not found in supported countries, defaulting to US`);
+      return 'us';
+    }
     
     // Create more flexible search queries for better matching
     let searchQueries: string[] = [];
@@ -1916,7 +1833,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
     
     const response = await axios.get(n8nWebhookUrl, {
       params: params,
-      timeout: 30000, // 30 second timeout
+      timeout: 60000, // 60 second timeout (increased from 30)
       headers: {
         'Content-Type': 'application/json',
       }
@@ -1959,6 +1876,110 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         },
         suggestions: data.suggestions,
         comparisons: comparisons
+      };
+    }
+
+    // Handle new n8n response format (array with single object containing mainProduct and suggestions)
+    if (Array.isArray(data) && data.length > 0 && data[0].mainProduct && Array.isArray(data[0].suggestions)) {
+      console.log("Handling new n8n response format (array with mainProduct and suggestions)");
+      
+      const firstItem = data[0];
+      const mainProduct = firstItem.mainProduct;
+      
+      // Convert suggestions to PriceComparison format
+      const comparisons: PriceComparison[] = firstItem.suggestions.map((suggestion: any) => ({
+        title: suggestion.title,
+        store: suggestion.site || 'unknown',
+        price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
+        currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
+        url: suggestion.link,
+        image: suggestion.image,
+        condition: "New",
+        // New fields
+        merchant: suggestion.merchant,
+        stock: suggestion.stock,
+        reviewsCount: suggestion.reviewsCount,
+        deliveryPrice: suggestion.deliveryPrice,
+        details: suggestion.details,
+        returnPolicy: suggestion.returnPolicy,
+        rating: suggestion.rating ? parseFloat(suggestion.rating) : undefined,
+        assessment: {
+          cost: 3,
+          value: 3,
+          quality: 3,
+          description: `Found on ${suggestion.site || 'unknown'}`
+        }
+      }));
+
+      return {
+        mainProduct: {
+          title: mainProduct.title,
+          price: mainProduct.price,
+          image: mainProduct.image,
+          url: mainProduct.url
+        },
+        suggestions: firstItem.suggestions,
+        comparisons: comparisons
+      };
+    }
+
+    // Handle new n8n response format (single object with all fields)
+    if (data && data.title && (data.standardPrice || data.discountPrice)) {
+      console.log("Handling new n8n response format (single object)");
+      
+      // Convert single object to the expected format
+      const mainProduct = {
+        title: data.title,
+        price: data.standardPrice || data.discountPrice || "Price not available",
+        image: data.image,
+        url: data.link
+      };
+
+      const suggestion = {
+        title: data.title,
+        standardPrice: data.standardPrice,
+        discountPrice: data.discountPrice,
+        site: data.site,
+        link: data.link,
+        image: data.image,
+        // New fields
+        merchant: data.merchant,
+        stock: data.stock,
+        reviewsCount: data.reviewsCount,
+        deliveryPrice: data.deliveryPrice,
+        details: data.details,
+        returnPolicy: data.returnPolicy,
+        rating: data.rating
+      };
+
+      const comparison: PriceComparison = {
+        title: data.title,
+        store: data.site || 'unknown',
+        price: extractPrice(data.standardPrice || data.discountPrice || '0'),
+        currency: extractCurrency(data.standardPrice || data.discountPrice || ''),
+        url: data.link,
+        image: data.image,
+        condition: "New",
+        // New fields
+        merchant: data.merchant,
+        stock: data.stock,
+        reviewsCount: data.reviewsCount,
+        deliveryPrice: data.deliveryPrice,
+        details: data.details,
+        returnPolicy: data.returnPolicy,
+        rating: data.rating ? parseFloat(data.rating) : undefined,
+        assessment: {
+          cost: 3,
+          value: 3,
+          quality: 3,
+          description: `Found on ${data.site || 'unknown'}`
+        }
+      };
+
+      return {
+        mainProduct: mainProduct,
+        suggestions: [suggestion],
+        comparisons: [comparison]
       };
     }
 

@@ -53,22 +53,49 @@ export interface ProductData {
   store: string;
 }
 
-export interface PriceComparison extends ProductData {
-  rating?: number;
-  availability?: string;
-  reviews?: number;
-  inStock?: boolean;
-  condition?: string;
-  verified?: boolean;
-  position?: number;
-  isLocal?: boolean; // Whether this is a local dealer
-  distance?: string; // Distance from user (for local dealers)
-  assessment?: {
-    cost?: number;
-    value?: number;
-    quality?: number;
-    description?: string;
+export interface PriceComparison {
+  title: string;
+  store: string;
+  price: number;
+  currency: string;
+  url: string;
+  image?: string;
+  condition: string;
+  assessment: {
+    cost: number;
+    value: number;
+    quality: number;
+    description: string;
   };
+  // New fields from n8n response
+  merchant?: string;
+  stock?: string;
+  reviewsCount?: number;
+  deliveryPrice?: string;
+  details?: string;
+  returnPolicy?: string;
+  rating?: number;
+}
+
+export interface Favorite {
+  id: number;
+  userId: number;
+  title: string;
+  price?: string;
+  currency?: string;
+  url: string;
+  image?: string;
+  store?: string;
+  merchant?: string;
+  stock?: string;
+  rating?: number;
+  reviewsCount?: number;
+  deliveryPrice?: string;
+  details?: string;
+  returnPolicy?: string;
+  condition: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ScrapeResponse {
@@ -89,6 +116,14 @@ export interface ScrapeResponse {
     site: string;
     link: string;
     image: string;
+    // New fields from n8n response
+    merchant?: string;
+    stock?: string;
+    reviewsCount?: string;
+    deliveryPrice?: string;
+    details?: string;
+    returnPolicy?: string;
+    rating?: string;
   }>;
 }
 

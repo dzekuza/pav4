@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/SearchInput";
 import { LocationPermission } from "@/components/LocationPermission";
 import { SearchLoadingOverlay } from "@/components/LoadingSkeleton";
+import { SearchHeader } from "@/components/SearchHeader";
 import { useLocation } from "@/hooks/use-location";
 import { useNavigate } from "react-router-dom";
 
@@ -159,37 +160,7 @@ export default function Index() {
       )}
 
       {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-brand-gradient rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-brand-gradient bg-clip-text text-transparent">
-                PriceHunt
-              </span>
-            </div>
-            <nav className="hidden md:flex items-center space-x-6">
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                How it works
-              </a>
-              <a
-                href="#"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Popular stores
-              </a>
-              <Button variant="outline" size="sm">
-                Sign in
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <SearchHeader showBackButton={false} />
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 md:py-24">

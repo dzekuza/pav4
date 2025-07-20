@@ -15,6 +15,7 @@ model User {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   searchHistory SearchHistory[]
+  favorites     Favorite[]
 
   @@map("users")
 }
@@ -31,6 +32,32 @@ model SearchHistory {
   @@index([userId])
   @@index([timestamp])
   @@map("search_history")
+}
+
+model Favorite {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  price         String?
+  currency      String?
+  url           String
+  image         String?
+  store         String?
+  merchant      String?
+  stock         String?
+  rating        Float?
+  reviewsCount  Int?
+  deliveryPrice String?
+  details       String?
+  returnPolicy  String?
+  condition     String   @default("New")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("favorites")
 }
 
 model LegacySearchHistory {
