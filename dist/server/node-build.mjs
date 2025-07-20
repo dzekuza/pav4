@@ -6,7 +6,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
-import { withAccelerate } from "@prisma/extension-accelerate";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 const handleDemo = (req, res) => {
@@ -42,7 +41,7 @@ function extractStoreName(link) {
     return "unknown";
   }
 }
-const router = express__default.Router();
+const router$1 = express__default.Router();
 const SEARCH_API_KEY = process.env.SEARCH_API_KEY || process.env.SERP_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 console.log("SearchAPI Key loaded:", SEARCH_API_KEY ? "Yes" : "No");
@@ -1003,104 +1002,15 @@ async function searchExactProductModel(productModel, productTitle, userCountry, 
   }
   try {
     let getCountryCode = function(country) {
-      const countryMap = {
-        "Germany": "de",
-        "United States": "us",
-        "United Kingdom": "uk",
-        "France": "fr",
-        "Italy": "it",
-        "Spain": "es",
-        "Netherlands": "nl",
-        "Belgium": "be",
-        "Austria": "at",
-        "Switzerland": "ch",
-        "Poland": "pl",
-        "Czech Republic": "cz",
-        "Slovakia": "sk",
-        "Hungary": "hu",
-        "Romania": "ro",
-        "Bulgaria": "bg",
-        "Croatia": "hr",
-        "Slovenia": "si",
-        "Estonia": "ee",
-        "Latvia": "lv",
-        "Lithuania": "lt",
-        "Finland": "fi",
-        "Sweden": "se",
-        "Norway": "no",
-        "Denmark": "dk",
-        "Canada": "ca",
-        "Australia": "au",
-        "New Zealand": "nz",
-        "Japan": "jp",
-        "South Korea": "kr",
-        "China": "cn",
-        "India": "in",
-        "Brazil": "br",
-        "Mexico": "mx",
-        "Argentina": "ar",
-        "Chile": "cl",
-        "Colombia": "co",
-        "Peru": "pe",
-        "Venezuela": "ve",
-        "Uruguay": "uy",
-        "Paraguay": "py",
-        "Bolivia": "bo",
-        "Ecuador": "ec",
-        "Guyana": "gy",
-        "Suriname": "sr",
-        "French Guiana": "gf",
-        "Falkland Islands": "fk",
-        "South Georgia": "gs",
-        "South Sandwich Islands": "gs",
-        "Bouvet Island": "bv",
-        "Heard Island": "hm",
-        "McDonald Islands": "hm",
-        "French Southern Territories": "tf",
-        "British Indian Ocean Territory": "io",
-        "Christmas Island": "cx",
-        "Cocos Islands": "cc",
-        "Norfolk Island": "nf",
-        "Pitcairn Islands": "pn",
-        "Tokelau": "tk",
-        "Niue": "nu",
-        "Cook Islands": "ck",
-        "Wallis and Futuna": "wf",
-        "French Polynesia": "pf",
-        "New Caledonia": "nc",
-        "Vanuatu": "vu",
-        "Solomon Islands": "sb",
-        "Papua New Guinea": "pg",
-        "Fiji": "fj",
-        "Tonga": "to",
-        "Samoa": "ws",
-        "American Samoa": "as",
-        "Guam": "gu",
-        "Northern Mariana Islands": "mp",
-        "Micronesia": "fm",
-        "Marshall Islands": "mh",
-        "Palau": "pw",
-        "Nauru": "nr",
-        "Kiribati": "ki",
-        "Tuvalu": "tv",
-        "Maldives": "mv",
-        "Sri Lanka": "lk",
-        "Bangladesh": "bd",
-        "Nepal": "np",
-        "Bhutan": "bt",
-        "Myanmar": "mm",
-        "Thailand": "th",
-        "Laos": "la",
-        "Cambodia": "kh",
-        "Vietnam": "vn",
-        "Malaysia": "my",
-        "Singapore": "sg",
-        "Brunei": "bn",
-        "Philippines": "ph",
-        "Indonesia": "id",
-        "East Timor": "tl"
-      };
-      return countryMap[country] || "us";
+      const { SEARCH_API_SUPPORTED_COUNTRIES: SEARCH_API_SUPPORTED_COUNTRIES2 } = require("../services/location");
+      const supportedCountry = Object.values(SEARCH_API_SUPPORTED_COUNTRIES2).find(
+        (c) => c.country.toLowerCase() === country.toLowerCase()
+      );
+      if (supportedCountry) {
+        return supportedCountry.countryCode;
+      }
+      console.warn(`Country "${country}" not found in supported countries, defaulting to US`);
+      return "us";
     };
     console.log(`Searching for exact product model: ${productModel}`);
     console.log(`Original product title: ${productTitle}`);
@@ -1789,7 +1699,7 @@ Return ONLY a JSON array of cleaned and validated comparison products:`;
     throw new Error(`Gemini API request failed: ${error}`);
   }
 }
-router.post("/scrape-enhanced", async (req, res) => {
+router$1.post("/scrape-enhanced", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) {
@@ -1983,8 +1893,8 @@ async function scrapeWithN8nWebhook(url, gl) {
     console.log("Full URL being called:", `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`);
     const response = await axios.get(n8nWebhookUrl, {
       params,
-      timeout: 3e4,
-      // 30 second timeout
+      timeout: 6e4,
+      // 60 second timeout (increased from 30)
       headers: {
         "Content-Type": "application/json"
       }
@@ -2020,6 +1930,97 @@ async function scrapeWithN8nWebhook(url, gl) {
         },
         suggestions: data.suggestions,
         comparisons
+      };
+    }
+    if (Array.isArray(data) && data.length > 0 && data[0].mainProduct && Array.isArray(data[0].suggestions)) {
+      console.log("Handling new n8n response format (array with mainProduct and suggestions)");
+      const firstItem = data[0];
+      const mainProduct = firstItem.mainProduct;
+      const comparisons = firstItem.suggestions.map((suggestion) => ({
+        title: suggestion.title,
+        store: suggestion.site || "unknown",
+        price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || "0"),
+        currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ""),
+        url: suggestion.link,
+        image: suggestion.image,
+        condition: "New",
+        // New fields
+        merchant: suggestion.merchant,
+        stock: suggestion.stock,
+        reviewsCount: suggestion.reviewsCount,
+        deliveryPrice: suggestion.deliveryPrice,
+        details: suggestion.details,
+        returnPolicy: suggestion.returnPolicy,
+        rating: suggestion.rating ? parseFloat(suggestion.rating) : void 0,
+        assessment: {
+          cost: 3,
+          value: 3,
+          quality: 3,
+          description: `Found on ${suggestion.site || "unknown"}`
+        }
+      }));
+      return {
+        mainProduct: {
+          title: mainProduct.title,
+          price: mainProduct.price,
+          image: mainProduct.image,
+          url: mainProduct.url
+        },
+        suggestions: firstItem.suggestions,
+        comparisons
+      };
+    }
+    if (data && data.title && (data.standardPrice || data.discountPrice)) {
+      console.log("Handling new n8n response format (single object)");
+      const mainProduct = {
+        title: data.title,
+        price: data.standardPrice || data.discountPrice || "Price not available",
+        image: data.image,
+        url: data.link
+      };
+      const suggestion = {
+        title: data.title,
+        standardPrice: data.standardPrice,
+        discountPrice: data.discountPrice,
+        site: data.site,
+        link: data.link,
+        image: data.image,
+        // New fields
+        merchant: data.merchant,
+        stock: data.stock,
+        reviewsCount: data.reviewsCount,
+        deliveryPrice: data.deliveryPrice,
+        details: data.details,
+        returnPolicy: data.returnPolicy,
+        rating: data.rating
+      };
+      const comparison = {
+        title: data.title,
+        store: data.site || "unknown",
+        price: extractPrice(data.standardPrice || data.discountPrice || "0"),
+        currency: extractCurrency(data.standardPrice || data.discountPrice || ""),
+        url: data.link,
+        image: data.image,
+        condition: "New",
+        // New fields
+        merchant: data.merchant,
+        stock: data.stock,
+        reviewsCount: data.reviewsCount,
+        deliveryPrice: data.deliveryPrice,
+        details: data.details,
+        returnPolicy: data.returnPolicy,
+        rating: data.rating ? parseFloat(data.rating) : void 0,
+        assessment: {
+          cost: 3,
+          value: 3,
+          quality: 3,
+          description: `Found on ${data.site || "unknown"}`
+        }
+      };
+      return {
+        mainProduct,
+        suggestions: [suggestion],
+        comparisons: [comparison]
       };
     }
     if (!data || Object.keys(data).length === 0) {
@@ -2106,7 +2107,7 @@ function extractCurrency(priceString) {
   if (priceString.includes("£")) return "£";
   return "€";
 }
-router.post("/n8n-scrape", async (req, res) => {
+router$1.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
   try {
@@ -2154,8 +2155,7 @@ router.post("/n8n-scrape", async (req, res) => {
     });
   }
 });
-const createPrismaClient = () => new PrismaClient().$extends(withAccelerate());
-const prisma = globalThis.__prisma || createPrismaClient();
+const prisma = globalThis.__prisma || new PrismaClient();
 const userService = {
   async createUser(data) {
     return prisma.user.create({
@@ -2307,33 +2307,6 @@ const healthCheck = {
 };
 const gracefulShutdown = async () => {
   await prisma.$disconnect();
-};
-const saveSearchHistory = async (req, res) => {
-  try {
-    const { url, userKey } = req.body;
-    if (!url || !userKey) {
-      return res.status(400).json({ error: "Missing url or userKey" });
-    }
-    await legacySearchHistoryService.addSearch(userKey, url);
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error saving search history:", error);
-    res.status(500).json({ error: "Failed to save search history" });
-  }
-};
-const getSearchHistory = async (req, res) => {
-  try {
-    const userKey = req.query.userKey;
-    if (!userKey) {
-      return res.status(400).json({ error: "Missing userKey" });
-    }
-    const historyRecords = await legacySearchHistoryService.getUserSearchHistory(userKey, 10);
-    const history = historyRecords.map((record) => record.url);
-    res.json({ history });
-  } catch (error) {
-    console.error("Error getting search history:", error);
-    res.status(500).json({ error: "Failed to get search history" });
-  }
 };
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 function generateToken(userId) {
@@ -2676,6 +2649,147 @@ const optionalAuth = async (req, res, next) => {
     next();
   }
 };
+const router = express__default.Router();
+router.get("/", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const favorites = await prisma.favorite.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(favorites);
+  } catch (error) {
+    console.error("Error fetching favorites:", error);
+    res.status(500).json({
+      error: "Failed to fetch favorites",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+router.post("/", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      title,
+      price,
+      currency,
+      url,
+      image,
+      store,
+      merchant,
+      stock,
+      rating,
+      reviewsCount,
+      deliveryPrice,
+      details,
+      returnPolicy,
+      condition = "New"
+    } = req.body;
+    if (!title || !url) {
+      return res.status(400).json({ error: "Title and URL are required" });
+    }
+    const existingFavorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        url
+      }
+    });
+    if (existingFavorite) {
+      return res.status(400).json({ error: "Product already in favorites" });
+    }
+    const favorite = await prisma.favorite.create({
+      data: {
+        userId,
+        title,
+        price,
+        currency,
+        url,
+        image,
+        store,
+        merchant,
+        stock,
+        rating: rating ? parseFloat(rating) : null,
+        reviewsCount: reviewsCount ? parseInt(reviewsCount) : null,
+        deliveryPrice,
+        details,
+        returnPolicy,
+        condition
+      }
+    });
+    res.json(favorite);
+  } catch (error) {
+    console.error("Error adding favorite:", error);
+    res.status(500).json({ error: "Failed to add favorite" });
+  }
+});
+router.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const favoriteId = parseInt(req.params.id);
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        id: favoriteId,
+        userId
+      }
+    });
+    if (!favorite) {
+      return res.status(404).json({ error: "Favorite not found" });
+    }
+    await prisma.favorite.delete({
+      where: { id: favoriteId }
+    });
+    res.json({ message: "Favorite removed successfully" });
+  } catch (error) {
+    console.error("Error removing favorite:", error);
+    res.status(500).json({ error: "Failed to remove favorite" });
+  }
+});
+router.get("/check", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        userId,
+        url
+      }
+    });
+    res.json({ isFavorited: !!favorite, favoriteId: favorite?.id });
+  } catch (error) {
+    console.error("Error checking favorite status:", error);
+    res.status(500).json({ error: "Failed to check favorite status" });
+  }
+});
+const saveSearchHistory = async (req, res) => {
+  try {
+    const { url, userKey } = req.body;
+    if (!url || !userKey) {
+      return res.status(400).json({ error: "Missing url or userKey" });
+    }
+    await legacySearchHistoryService.addSearch(userKey, url);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error saving search history:", error);
+    res.status(500).json({ error: "Failed to save search history" });
+  }
+};
+const getSearchHistory = async (req, res) => {
+  try {
+    const userKey = req.query.userKey;
+    if (!userKey) {
+      return res.status(400).json({ error: "Missing userKey" });
+    }
+    const historyRecords = await legacySearchHistoryService.getUserSearchHistory(userKey, 10);
+    const history = historyRecords.map((record) => record.url);
+    res.json({ history });
+  } catch (error) {
+    console.error("Error getting search history:", error);
+    res.status(500).json({ error: "Failed to get search history" });
+  }
+};
 const healthCheckHandler = async (req, res) => {
   try {
     const dbHealth = await healthCheck.checkConnection();
@@ -2694,6 +2808,448 @@ const healthCheckHandler = async (req, res) => {
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  }
+};
+const SEARCH_API_SUPPORTED_COUNTRIES = {
+  // Middle East
+  AE: {
+    country: "United Arab Emirates",
+    countryCode: "ae",
+    region: "Middle East",
+    currency: "AED",
+    timeZone: "Asia/Dubai"
+  },
+  // Americas
+  AI: {
+    country: "Anguilla",
+    countryCode: "ai",
+    region: "Caribbean",
+    currency: "XCD",
+    timeZone: "America/Anguilla"
+  },
+  AR: {
+    country: "Argentina",
+    countryCode: "ar",
+    region: "South America",
+    currency: "ARS",
+    timeZone: "America/Argentina/Buenos_Aires"
+  },
+  AU: {
+    country: "Australia",
+    countryCode: "au",
+    region: "Asia Pacific",
+    currency: "AUD",
+    timeZone: "Australia/Sydney"
+  },
+  BM: {
+    country: "Bermuda",
+    countryCode: "bm",
+    region: "North America",
+    currency: "BMD",
+    timeZone: "Atlantic/Bermuda"
+  },
+  BR: {
+    country: "Brazil",
+    countryCode: "br",
+    region: "South America",
+    currency: "BRL",
+    timeZone: "America/Sao_Paulo"
+  },
+  CA: {
+    country: "Canada",
+    countryCode: "ca",
+    region: "North America",
+    currency: "CAD",
+    timeZone: "America/Toronto"
+  },
+  CL: {
+    country: "Chile",
+    countryCode: "cl",
+    region: "South America",
+    currency: "CLP",
+    timeZone: "America/Santiago"
+  },
+  CO: {
+    country: "Colombia",
+    countryCode: "co",
+    region: "South America",
+    currency: "COP",
+    timeZone: "America/Bogota"
+  },
+  MX: {
+    country: "Mexico",
+    countryCode: "mx",
+    region: "North America",
+    currency: "MXN",
+    timeZone: "America/Mexico_City"
+  },
+  PE: {
+    country: "Peru",
+    countryCode: "pe",
+    region: "South America",
+    currency: "PEN",
+    timeZone: "America/Lima"
+  },
+  US: {
+    country: "United States",
+    countryCode: "us",
+    region: "North America",
+    currency: "$",
+    timeZone: "America/New_York"
+  },
+  VE: {
+    country: "Venezuela",
+    countryCode: "ve",
+    region: "South America",
+    currency: "VES",
+    timeZone: "America/Caracas"
+  },
+  // Europe
+  AT: {
+    country: "Austria",
+    countryCode: "at",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Vienna"
+  },
+  BE: {
+    country: "Belgium",
+    countryCode: "be",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Brussels"
+  },
+  BG: {
+    country: "Bulgaria",
+    countryCode: "bg",
+    region: "Eastern Europe",
+    currency: "BGN",
+    timeZone: "Europe/Sofia"
+  },
+  CH: {
+    country: "Switzerland",
+    countryCode: "ch",
+    region: "Western Europe",
+    currency: "CHF",
+    timeZone: "Europe/Zurich"
+  },
+  CZ: {
+    country: "Czech Republic",
+    countryCode: "cz",
+    region: "Eastern Europe",
+    currency: "CZK",
+    timeZone: "Europe/Prague"
+  },
+  DE: {
+    country: "Germany",
+    countryCode: "de",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Berlin"
+  },
+  DK: {
+    country: "Denmark",
+    countryCode: "dk",
+    region: "Nordic",
+    currency: "DKK",
+    timeZone: "Europe/Copenhagen"
+  },
+  EE: {
+    country: "Estonia",
+    countryCode: "ee",
+    region: "Baltic",
+    currency: "€",
+    timeZone: "Europe/Tallinn"
+  },
+  ES: {
+    country: "Spain",
+    countryCode: "es",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Madrid"
+  },
+  FI: {
+    country: "Finland",
+    countryCode: "fi",
+    region: "Nordic",
+    currency: "€",
+    timeZone: "Europe/Helsinki"
+  },
+  FR: {
+    country: "France",
+    countryCode: "fr",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Paris"
+  },
+  GB: {
+    country: "United Kingdom",
+    countryCode: "gb",
+    region: "Western Europe",
+    currency: "£",
+    timeZone: "Europe/London"
+  },
+  GR: {
+    country: "Greece",
+    countryCode: "gr",
+    region: "Southern Europe",
+    currency: "€",
+    timeZone: "Europe/Athens"
+  },
+  HR: {
+    country: "Croatia",
+    countryCode: "hr",
+    region: "Eastern Europe",
+    currency: "€",
+    timeZone: "Europe/Zagreb"
+  },
+  HU: {
+    country: "Hungary",
+    countryCode: "hu",
+    region: "Eastern Europe",
+    currency: "HUF",
+    timeZone: "Europe/Budapest"
+  },
+  IE: {
+    country: "Ireland",
+    countryCode: "ie",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Dublin"
+  },
+  IT: {
+    country: "Italy",
+    countryCode: "it",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Rome"
+  },
+  LT: {
+    country: "Lithuania",
+    countryCode: "lt",
+    region: "Baltic",
+    currency: "€",
+    timeZone: "Europe/Vilnius"
+  },
+  LV: {
+    country: "Latvia",
+    countryCode: "lv",
+    region: "Baltic",
+    currency: "€",
+    timeZone: "Europe/Riga"
+  },
+  LU: {
+    country: "Luxembourg",
+    countryCode: "lu",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Luxembourg"
+  },
+  MT: {
+    country: "Malta",
+    countryCode: "mt",
+    region: "Southern Europe",
+    currency: "€",
+    timeZone: "Europe/Malta"
+  },
+  NL: {
+    country: "Netherlands",
+    countryCode: "nl",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Amsterdam"
+  },
+  NO: {
+    country: "Norway",
+    countryCode: "no",
+    region: "Nordic",
+    currency: "NOK",
+    timeZone: "Europe/Oslo"
+  },
+  PL: {
+    country: "Poland",
+    countryCode: "pl",
+    region: "Eastern Europe",
+    currency: "PLN",
+    timeZone: "Europe/Warsaw"
+  },
+  PT: {
+    country: "Portugal",
+    countryCode: "pt",
+    region: "Western Europe",
+    currency: "€",
+    timeZone: "Europe/Lisbon"
+  },
+  RO: {
+    country: "Romania",
+    countryCode: "ro",
+    region: "Eastern Europe",
+    currency: "RON",
+    timeZone: "Europe/Bucharest"
+  },
+  SE: {
+    country: "Sweden",
+    countryCode: "se",
+    region: "Nordic",
+    currency: "SEK",
+    timeZone: "Europe/Stockholm"
+  },
+  SI: {
+    country: "Slovenia",
+    countryCode: "si",
+    region: "Eastern Europe",
+    currency: "€",
+    timeZone: "Europe/Ljubljana"
+  },
+  SK: {
+    country: "Slovakia",
+    countryCode: "sk",
+    region: "Eastern Europe",
+    currency: "€",
+    timeZone: "Europe/Bratislava"
+  },
+  // Asia Pacific
+  HK: {
+    country: "Hong Kong",
+    countryCode: "hk",
+    region: "Asia Pacific",
+    currency: "HKD",
+    timeZone: "Asia/Hong_Kong"
+  },
+  ID: {
+    country: "Indonesia",
+    countryCode: "id",
+    region: "Asia Pacific",
+    currency: "IDR",
+    timeZone: "Asia/Jakarta"
+  },
+  IN: {
+    country: "India",
+    countryCode: "in",
+    region: "Asia Pacific",
+    currency: "₹",
+    timeZone: "Asia/Kolkata"
+  },
+  JP: {
+    country: "Japan",
+    countryCode: "jp",
+    region: "Asia Pacific",
+    currency: "¥",
+    timeZone: "Asia/Tokyo"
+  },
+  KR: {
+    country: "South Korea",
+    countryCode: "kr",
+    region: "Asia Pacific",
+    currency: "₩",
+    timeZone: "Asia/Seoul"
+  },
+  MY: {
+    country: "Malaysia",
+    countryCode: "my",
+    region: "Asia Pacific",
+    currency: "MYR",
+    timeZone: "Asia/Kuala_Lumpur"
+  },
+  NZ: {
+    country: "New Zealand",
+    countryCode: "nz",
+    region: "Asia Pacific",
+    currency: "NZD",
+    timeZone: "Pacific/Auckland"
+  },
+  PH: {
+    country: "Philippines",
+    countryCode: "ph",
+    region: "Asia Pacific",
+    currency: "PHP",
+    timeZone: "Asia/Manila"
+  },
+  SG: {
+    country: "Singapore",
+    countryCode: "sg",
+    region: "Asia Pacific",
+    currency: "SGD",
+    timeZone: "Asia/Singapore"
+  },
+  TH: {
+    country: "Thailand",
+    countryCode: "th",
+    region: "Asia Pacific",
+    currency: "THB",
+    timeZone: "Asia/Bangkok"
+  },
+  TW: {
+    country: "Taiwan",
+    countryCode: "tw",
+    region: "Asia Pacific",
+    currency: "TWD",
+    timeZone: "Asia/Taipei"
+  },
+  VN: {
+    country: "Vietnam",
+    countryCode: "vn",
+    region: "Asia Pacific",
+    currency: "VND",
+    timeZone: "Asia/Ho_Chi_Minh"
+  },
+  // Africa
+  EG: {
+    country: "Egypt",
+    countryCode: "eg",
+    region: "Africa",
+    currency: "EGP",
+    timeZone: "Africa/Cairo"
+  },
+  GH: {
+    country: "Ghana",
+    countryCode: "gh",
+    region: "Africa",
+    currency: "GHS",
+    timeZone: "Africa/Accra"
+  },
+  KE: {
+    country: "Kenya",
+    countryCode: "ke",
+    region: "Africa",
+    currency: "KES",
+    timeZone: "Africa/Nairobi"
+  },
+  NG: {
+    country: "Nigeria",
+    countryCode: "ng",
+    region: "Africa",
+    currency: "NGN",
+    timeZone: "Africa/Lagos"
+  },
+  ZA: {
+    country: "South Africa",
+    countryCode: "za",
+    region: "Africa",
+    currency: "ZAR",
+    timeZone: "Africa/Johannesburg"
+  },
+  // Middle East
+  IL: {
+    country: "Israel",
+    countryCode: "il",
+    region: "Middle East",
+    currency: "ILS",
+    timeZone: "Asia/Jerusalem"
+  },
+  SA: {
+    country: "Saudi Arabia",
+    countryCode: "sa",
+    region: "Middle East",
+    currency: "SAR",
+    timeZone: "Asia/Riyadh"
+  },
+  TR: {
+    country: "Turkey",
+    countryCode: "tr",
+    region: "Middle East",
+    currency: "TRY",
+    timeZone: "Europe/Istanbul"
   }
 };
 const localDealers = [
@@ -2925,65 +3481,17 @@ function detectLocationFromHeaders(headers) {
   return null;
 }
 function getLocationByCountryCode(countryCode) {
-  const countryMap = {
-    LT: {
-      country: "Lithuania",
-      countryCode: "LT",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Vilnius"
-    },
-    LV: {
-      country: "Latvia",
-      countryCode: "LV",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Riga"
-    },
-    EE: {
-      country: "Estonia",
-      countryCode: "EE",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Tallinn"
-    },
-    DE: {
-      country: "Germany",
-      countryCode: "DE",
-      region: "Western Europe",
-      currency: "€",
-      timeZone: "Europe/Berlin"
-    },
-    FR: {
-      country: "France",
-      countryCode: "FR",
-      region: "Western Europe",
-      currency: "€",
-      timeZone: "Europe/Paris"
-    },
-    GB: {
-      country: "United Kingdom",
-      countryCode: "GB",
-      region: "Western Europe",
-      currency: "£",
-      timeZone: "Europe/London"
-    },
-    PL: {
-      country: "Poland",
-      countryCode: "PL",
-      region: "Eastern Europe",
-      currency: "PLN",
-      timeZone: "Europe/Warsaw"
-    },
-    US: {
-      country: "United States",
-      countryCode: "US",
-      region: "North America",
-      currency: "$",
-      timeZone: "America/New_York"
-    }
-  };
-  return countryMap[countryCode] || countryMap["US"];
+  const supportedCountry = SEARCH_API_SUPPORTED_COUNTRIES[countryCode];
+  if (supportedCountry) {
+    return supportedCountry;
+  }
+  return SEARCH_API_SUPPORTED_COUNTRIES["US"];
+}
+function isCountrySupported(countryCode) {
+  const normalizedCode = countryCode.toLowerCase();
+  return Object.values(SEARCH_API_SUPPORTED_COUNTRIES).some(
+    (country) => country.countryCode === normalizedCode
+  );
 }
 function getLocalDealers(location) {
   return localDealers.filter(
@@ -2992,10 +3500,29 @@ function getLocalDealers(location) {
 }
 const getLocationHandler = async (req, res) => {
   try {
+    if (req.method === "POST" && req.body && req.body.location) {
+      const userLocation = req.body.location;
+      if (!isCountrySupported(userLocation.countryCode)) {
+        return res.status(400).json({
+          error: "Country not supported by SearchAPI",
+          message: `Country code '${userLocation.countryCode}' is not supported. Please choose from the supported countries list.`
+        });
+      }
+      const dealers2 = getLocalDealers(userLocation);
+      res.json({
+        location: userLocation,
+        localDealers: dealers2.slice(0, 5)
+        // Return top 5 local dealers
+      });
+      return;
+    }
     const clientIP = req.ip || req.socket.remoteAddress || "127.0.0.1";
     let location = detectLocationFromHeaders(req.headers);
     if (!location) {
       location = detectLocationFromIP(clientIP);
+    }
+    if (!isCountrySupported(location.countryCode)) {
+      location = SEARCH_API_SUPPORTED_COUNTRIES["US"];
     }
     const dealers = getLocalDealers(location);
     res.json({
@@ -3006,13 +3533,7 @@ const getLocationHandler = async (req, res) => {
   } catch (error) {
     console.error("Location detection error:", error);
     res.json({
-      location: {
-        country: "United States",
-        countryCode: "US",
-        region: "North America",
-        currency: "$",
-        timeZone: "America/New_York"
-      },
+      location: SEARCH_API_SUPPORTED_COUNTRIES["US"],
       localDealers: [],
       error: "Failed to detect location"
     });
@@ -3038,11 +3559,17 @@ function createServer() {
   app2.get("/api/demo", handleDemo);
   app2.post("/api/scrape", optionalAuth, (req, res) => {
     req.url = "/n8n-scrape";
-    router(req, res, () => {
+    router$1(req, res, () => {
     });
   });
-  app2.use("/api", router);
+  app2.use("/api", router$1);
   app2.get("/api/location", getLocationHandler);
+  app2.post("/api/location", getLocationHandler);
+  app2.get("/api/supported-countries", (req, res) => {
+    const { getSupportedCountries } = require("./services/location");
+    const countries = getSupportedCountries();
+    res.json({ countries });
+  });
   app2.post("/api/auth/register", register);
   app2.post("/api/auth/login", login);
   app2.post("/api/auth/logout", logout);
@@ -3053,6 +3580,7 @@ function createServer() {
   app2.get("/api/user/me", getCurrentUser);
   app2.post("/api/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/search-history", requireAuth, getUserSearchHistory);
+  app2.use("/api/favorites", router);
   app2.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);
   app2.post("/api/legacy/search-history", saveSearchHistory);
@@ -3060,12 +3588,12 @@ function createServer() {
   app2.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
   app2.post("/api/scrape-product", optionalAuth, (req, res) => {
     req.url = "/n8n-scrape";
-    router(req, res, () => {
+    router$1(req, res, () => {
     });
   });
   app2.post("/api/n8n-webhook-scrape", optionalAuth, (req, res) => {
     req.url = "/n8n-scrape";
-    router(req, res, () => {
+    router$1(req, res, () => {
     });
   });
   app2.get("/api/location-info", getLocationHandler);

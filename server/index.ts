@@ -50,7 +50,7 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
-  app.post("/api/scrape", optionalAuth, (req, res) => {
+  app.post("/api/scrape", requireAuth, (req, res) => {
     // Redirect to the n8n webhook scraping endpoint
     req.url = '/n8n-scrape';
     n8nScrapeRouter(req, res, () => {});
@@ -95,12 +95,12 @@ export function createServer() {
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
   
   // TestSprite compatibility routes
-  app.post("/api/scrape-product", optionalAuth, (req, res) => {
+  app.post("/api/scrape-product", requireAuth, (req, res) => {
     // Redirect to the n8n webhook scraping endpoint
     req.url = '/n8n-scrape';
     n8nScrapeRouter(req, res, () => {});
   });
-  app.post("/api/n8n-webhook-scrape", optionalAuth, (req, res) => {
+  app.post("/api/n8n-webhook-scrape", requireAuth, (req, res) => {
     // Redirect to the n8n webhook scraping endpoint
     req.url = '/n8n-scrape';
     n8nScrapeRouter(req, res, () => {});

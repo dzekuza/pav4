@@ -4,6 +4,9 @@
 import express from "express";
 import axios from "axios";
 import { ProductData, PriceComparison } from "../../shared/api";
+import { Request, Response } from "express";
+import { searchHistoryService } from "../services/database";
+import { requireAuth } from "../middleware/auth";
 
 // --- Product patterns for better product parsing ---
 const productPatterns = [
@@ -65,6 +68,9 @@ function extractStoreName(link: string): string {
 }
 
 const router = express.Router();
+
+// Apply authentication middleware to all routes in this router
+router.use(requireAuth);
 
 // SearchAPI configuration (Google Search API)
 const SEARCH_API_KEY = process.env.SEARCH_API_KEY || process.env.SERP_API_KEY;
@@ -2081,7 +2087,7 @@ router.post("/n8n-scrape", async (req, res) => {
   console.log("Request body:", req.body);
   
   try {
-    const { url, requestId, gl } = req.body;
+    const { url, requestId, gl, userCountry } = req.body;
 
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
@@ -2096,6 +2102,23 @@ router.post("/n8n-scrape", async (req, res) => {
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
     console.log("Suggestions count:", result.suggestions?.length || 0);
+
+    // Save to search history if user is authenticated
+    try {
+      // Check if user is authenticated by looking for user info in request
+      const userId = (req as any).user?.id;
+      if (userId && result.mainProduct?.title) {
+        await searchHistoryService.addSearch(userId, {
+          url: url,
+          title: result.mainProduct.title,
+          requestId: requestId || `search_${Date.now()}`,
+        });
+        console.log(`Search history saved for user ${userId}`);
+      }
+    } catch (historyError) {
+      console.error("Failed to save search history:", historyError);
+      // Don't fail the main request if history saving fails
+    }
 
     res.json(result);
   } catch (error) {
@@ -2127,7 +2150,7 @@ router.post("/n8n-scrape", async (req, res) => {
           discountPrice: "$95.99",
           site: "bestbuy.com",
           link: "https://bestbuy.com/product/sample",
-          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAyAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         }
       ],
       error: errorMessage
