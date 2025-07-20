@@ -21,10 +21,17 @@ function extractPrice(priceString: string): number {
 }
 
 function extractCurrency(priceString: string): string {
-  if (priceString.includes('€')) return '€';
-  if (priceString.includes('$')) return '$';
-  if (priceString.includes('£')) return '£';
-  return '€'; // Default to Euro
+  const match = priceString.match(/^[^\d]*/);
+  return match ? match[0].trim() : '';
+}
+
+function getFaviconUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`;
+  } catch {
+    return "/placeholder.svg";
+  }
 }
 
 const NewSearchResults = () => {
@@ -234,7 +241,7 @@ const NewSearchResults = () => {
     }
   };
 
-  const suggestions = searchData.suggestions || [];
+  const suggestions = searchData?.suggestions || [];
 
   // Check favorite status for all suggestions
   useEffect(() => {
@@ -313,7 +320,7 @@ const NewSearchResults = () => {
     );
   }
 
-  const mainProduct = searchData.mainProduct;
+  const mainProduct = searchData?.mainProduct;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -361,11 +368,12 @@ const NewSearchResults = () => {
             <CardContent>
               <div className="flex items-center space-x-4">
                 <img 
-                  src={mainProduct.image} 
+                  src={mainProduct.image && !mainProduct.image.includes('placeholder') && !mainProduct.image.includes('fallback') ? mainProduct.image : getFaviconUrl(mainProduct.url)} 
                   alt={mainProduct.title}
                   className="w-24 h-24 object-cover rounded-lg"
                   onError={(e) => {
-                    e.currentTarget.src = "/placeholder.svg";
+                    // Fallback to favicon if the image fails to load
+                    e.currentTarget.src = getFaviconUrl(mainProduct.url);
                   }}
                 />
                 <div className="flex-1">
