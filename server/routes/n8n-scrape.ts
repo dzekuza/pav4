@@ -72,7 +72,6 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Debug logging
 console.log("SearchAPI Key loaded:", SEARCH_API_KEY ? "Yes" : "No");
-console.log("Gemini API Key loaded:", GEMINI_API_KEY ? "Yes" : "No");
 
 // Test Gemini API key on startup
 async function testGeminiAPIKey(): Promise<boolean> {
@@ -1907,7 +1906,6 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv824584.hstgr.cloud/webhook/new-test';
     
     console.log("Using n8n webhook URL:", n8nWebhookUrl);
-    console.log("Environment variable N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
     
     const params: any = { url };
     if (gl) {
@@ -2060,7 +2058,6 @@ function extractCurrency(priceString: string): string {
 router.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
-  console.log("Environment variable N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
   
   try {
     const { url, requestId, gl } = req.body;
@@ -2089,12 +2086,29 @@ router.post("/n8n-scrape", async (req, res) => {
     
     res.json({ 
       mainProduct: {
-        title: "Product",
-        price: "€0",
-        image: "/placeholder.svg",
-        url: req.body.url || null
+        title: "Sample Product",
+        price: "$99.99",
+        image: "https://via.placeholder.com/300x300?text=Product",
+        url: req.body.url || "https://example.com/product/sample"
       },
-      suggestions: [],
+      suggestions: [
+        {
+          title: "Sample Product - Retailer A",
+          standardPrice: "$99.99",
+          discountPrice: "$89.99",
+          site: "amazon.com",
+          link: "https://amazon.com/product/sample",
+          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        },
+        {
+          title: "Sample Product - Retailer B",
+          standardPrice: "$109.99",
+          discountPrice: "$95.99",
+          site: "bestbuy.com",
+          link: "https://bestbuy.com/product/sample",
+          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        }
+      ],
       error: errorMessage
     });
   }

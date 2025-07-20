@@ -22,12 +22,9 @@ import { gracefulShutdown } from "./services/database";
 // Load environment variables
 dotenv.config();
 
-// Debug logging for environment variables
+// Environment variables
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "Loaded" : "Not loaded");
-console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Loaded" : "Not loaded");
-console.log("N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL || "Not set");
 
 export function createServer() {
   const app = express();
