@@ -84,13 +84,13 @@ export function useLocation() {
   };
 
   const handleLocationSkip = () => {
-    // Use Lithuania as default for Baltic region users
+    // Use United States as default since it's always supported
     const defaultLocation: LocationInfo = {
-      country: "Lithuania",
-      countryCode: "lt",
-      region: "Baltic",
-      currency: "€",
-      timeZone: "Europe/Vilnius",
+      country: "United States",
+      countryCode: "US",
+      region: "North America",
+      currency: "$",
+      timeZone: "America/New_York",
     };
     
     setLocation(defaultLocation);

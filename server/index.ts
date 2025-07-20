@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
+import favoritesRouter from "./routes/favorites";
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import {
   register,
@@ -56,6 +57,12 @@ export function createServer() {
   });
   app.use("/api", n8nScrapeRouter); // N8N scraping routes
   app.get("/api/location", getLocationHandler);
+  app.post("/api/location", getLocationHandler);
+  app.get("/api/supported-countries", (req, res) => {
+    const { getSupportedCountries } = require("./services/location");
+    const countries = getSupportedCountries();
+    res.json({ countries });
+  });
 
   // Authentication routes
   app.post("/api/auth/register", register);
@@ -72,6 +79,9 @@ export function createServer() {
   // Protected routes - require authentication
   app.post("/api/search-history", requireAuth, addToSearchHistory);
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
+  
+  // Favorites routes
+  app.use("/api/favorites", favoritesRouter);
   
   // TestSprite compatibility routes
   app.post("/api/user/search-history", requireAuth, addToSearchHistory);

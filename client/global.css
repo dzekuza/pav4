@@ -128,6 +128,36 @@
   }
 
   .progress-bar {
-    width: var(--progress-width, 0%);
+    width: attr(data-progress-width);
+  }
+
+  /* Sidebar custom properties */
+  .sidebar-wrapper {
+    --sidebar-width: 280px;
+    --sidebar-width-icon: 60px;
+  }
+
+  .sidebar-mobile {
+    --sidebar-width: 280px;
+  }
+
+  /* Skeleton width */
+  .skeleton-width {
+    max-width: attr(data-skeleton-width);
+  }
+
+  /* Progress indicator */
+  .progress-indicator {
+    transform: translateX(calc(-100% + attr(data-progress-value) * 1%));
+  }
+
+  /* Chart components */
+  .chart-indicator {
+    --color-bg: attr(data-color-bg);
+    --color-border: attr(data-color-border);
+  }
+
+  .chart-legend-item {
+    background-color: attr(data-background-color);
   }
 }

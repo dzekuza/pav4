@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Globe, Shield, CheckCircle, AlertCircle } from "lucide-react";
+import { MapPin, Globe, Shield, CheckCircle, AlertCircle, Search } from "lucide-react";
 import { LocationInfo } from "@shared/api";
 
 interface LocationPermissionProps {
@@ -10,21 +10,80 @@ interface LocationPermissionProps {
   onSkip: () => void;
 }
 
-const commonCountries = [
-  { name: "Lithuania", code: "lt", flag: "🇱🇹" },
-  { name: "Latvia", code: "lv", flag: "🇱🇻" },
-  { name: "Estonia", code: "ee", flag: "🇪🇪" },
-  { name: "Germany", code: "de", flag: "🇩🇪" },
-  { name: "United Kingdom", code: "uk", flag: "🇬🇧" },
-  { name: "United States", code: "us", flag: "🇺🇸" },
-  { name: "Poland", code: "pl", flag: "🇵🇱" },
-  { name: "France", code: "fr", flag: "🇫🇷" },
-];
+interface SupportedCountry {
+  country: string;
+  countryCode: string;
+  region: string;
+  currency: string;
+  timeZone: string;
+}
 
 export function LocationPermission({ onLocationDetected, onSkip }: LocationPermissionProps) {
   const [status, setStatus] = useState<"idle" | "detecting" | "success" | "error" | "manual">("idle");
   const [error, setError] = useState<string | null>(null);
   const [detectedLocation, setDetectedLocation] = useState<LocationInfo | null>(null);
+  const [supportedCountries, setSupportedCountries] = useState<SupportedCountry[]>([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchSupportedCountries();
+  }, []);
+
+  const fetchSupportedCountries = async () => {
+    try {
+      const response = await fetch("/api/supported-countries");
+      if (response.ok) {
+        const data = await response.json();
+        setSupportedCountries(data.countries);
+      } else {
+        // Fallback to common countries if API fails
+        setSupportedCountries([
+          { country: "United States", countryCode: "US", region: "North America", currency: "$", timeZone: "America/New_York" },
+          { country: "Germany", countryCode: "DE", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
+          { country: "United Kingdom", countryCode: "GB", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
+          { country: "France", countryCode: "FR", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
+          { country: "Spain", countryCode: "ES", region: "Western Europe", currency: "€", timeZone: "Europe/Madrid" },
+          { country: "Italy", countryCode: "IT", region: "Western Europe", currency: "€", timeZone: "Europe/Rome" },
+          { country: "Lithuania", countryCode: "LT", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
+          { country: "Latvia", countryCode: "LV", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
+          { country: "Estonia", countryCode: "EE", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
+        ]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch supported countries:", err);
+      // Use fallback countries
+      setSupportedCountries([
+        { country: "United States", countryCode: "US", region: "North America", currency: "$", timeZone: "America/New_York" },
+        { country: "Germany", countryCode: "DE", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
+        { country: "United Kingdom", countryCode: "GB", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
+        { country: "France", countryCode: "FR", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
+        { country: "Spain", countryCode: "ES", region: "Western Europe", currency: "€", timeZone: "Europe/Madrid" },
+        { country: "Italy", countryCode: "IT", region: "Western Europe", currency: "€", timeZone: "Europe/Rome" },
+        { country: "Lithuania", countryCode: "LT", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
+        { country: "Latvia", countryCode: "LV", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
+        { country: "Estonia", countryCode: "EE", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
+      ]);
+    } finally {
+      setLoadingCountries(false);
+    }
+  };
+
+  const getCountryFlag = (countryCode: string) => {
+    const flagMap: { [key: string]: string } = {
+      US: "🇺🇸", DE: "🇩🇪", GB: "🇬🇧", FR: "🇫🇷", ES: "🇪🇸", IT: "🇮🇹",
+      LT: "🇱🇹", LV: "🇱🇻", EE: "🇪🇪", PL: "🇵🇱", NL: "🇳🇱", BE: "🇧🇪",
+      AT: "🇦🇹", CH: "🇨🇭", SE: "🇸🇪", NO: "🇳🇴", DK: "🇩🇰", FI: "🇫🇮",
+      CZ: "🇨🇿", HU: "🇭🇺", RO: "🇷🇴", BG: "🇧🇬", HR: "🇭🇷", SK: "🇸🇰",
+      SI: "🇸🇮", IE: "🇮🇪", PT: "🇵🇹", GR: "🇬🇷", CY: "🇨🇾", MT: "🇲🇹",
+      LU: "🇱🇺", CA: "🇨🇦", MX: "🇲🇽", JP: "🇯🇵", KR: "🇰🇷", AU: "🇦🇺",
+      NZ: "🇳🇿", IN: "🇮🇳", SG: "🇸🇬", MY: "🇲🇾", TH: "🇹🇭", VN: "🇻🇳",
+      PH: "🇵🇭", ID: "🇮🇩", HK: "🇭🇰", TW: "🇹🇼", BR: "🇧🇷", AR: "🇦🇷",
+      CL: "🇨🇱", CO: "🇨🇴", PE: "🇵🇪", VE: "🇻🇪", ZA: "🇿🇦", EG: "🇪🇬",
+      NG: "🇳🇬", KE: "🇰🇪", GH: "🇬🇭", IL: "🇮🇱", AE: "🇦🇪", SA: "🇸🇦", TR: "🇹🇷"
+    };
+    return flagMap[countryCode] || "🌍";
+  };
 
   const detectBrowserLocation = () => {
     setStatus("detecting");
@@ -51,21 +110,17 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
           const data = await response.json();
           const countryCode = data.countryCode;
           
-          // Map country code to our location format
-          const locationMap: { [key: string]: LocationInfo } = {
-            LT: { country: "Lithuania", countryCode: "lt", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
-            LV: { country: "Latvia", countryCode: "lv", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
-            EE: { country: "Estonia", countryCode: "ee", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
-            DE: { country: "Germany", countryCode: "de", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
-            GB: { country: "United Kingdom", countryCode: "uk", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
-            US: { country: "United States", countryCode: "us", region: "North America", currency: "$", timeZone: "America/New_York" },
-            PL: { country: "Poland", countryCode: "pl", region: "Eastern Europe", currency: "PLN", timeZone: "Europe/Warsaw" },
-            FR: { country: "France", countryCode: "fr", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
-          };
-
-          const location = locationMap[countryCode] || locationMap["US"];
-          setDetectedLocation(location);
-          setStatus("success");
+          // Find the country in supported countries
+          const location = supportedCountries.find(c => c.countryCode === countryCode);
+          if (location) {
+            setDetectedLocation(location);
+            setStatus("success");
+          } else {
+            // If detected country is not supported, default to US
+            const defaultLocation = supportedCountries.find(c => c.countryCode === "US") || supportedCountries[0];
+            setDetectedLocation(defaultLocation);
+            setStatus("success");
+          }
         } catch (err) {
           setError("Failed to determine your location");
           setStatus("error");
@@ -79,23 +134,13 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
     );
   };
 
-  const selectManualLocation = (countryCode: string) => {
-    const locationMap: { [key: string]: LocationInfo } = {
-      lt: { country: "Lithuania", countryCode: "lt", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
-      lv: { country: "Latvia", countryCode: "lv", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
-      ee: { country: "Estonia", countryCode: "ee", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
-      de: { country: "Germany", countryCode: "de", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
-      uk: { country: "United Kingdom", countryCode: "uk", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
-      us: { country: "United States", countryCode: "us", region: "North America", currency: "$", timeZone: "America/New_York" },
-      pl: { country: "Poland", countryCode: "pl", region: "Eastern Europe", currency: "PLN", timeZone: "Europe/Warsaw" },
-      fr: { country: "France", countryCode: "fr", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
-    };
-
-    const location = locationMap[countryCode];
-    if (location) {
-      onLocationDetected(location);
-    }
+  const selectManualLocation = (country: SupportedCountry) => {
+    onLocationDetected(country);
   };
+
+  const filteredCountries = supportedCountries.filter(country =>
+    country.country.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -136,20 +181,40 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-2">
-                  {commonCountries.map((country) => (
-                    <Button
-                      key={country.code}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => selectManualLocation(country.code)}
-                      className="justify-start"
-                    >
-                      <span className="mr-2">{country.flag}</span>
-                      {country.name}
-                    </Button>
-                  ))}
-                </div>
+                {loadingCountries ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-sm text-muted-foreground mt-2">Loading countries...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search country..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border rounded-md text-sm"
+                      />
+                    </div>
+                    
+                    <div className="max-h-60 overflow-y-auto space-y-1">
+                      {filteredCountries.map((country) => (
+                        <Button
+                          key={country.countryCode}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => selectManualLocation(country)}
+                          className="w-full justify-start"
+                        >
+                          <span className="mr-2">{getCountryFlag(country.countryCode)}</span>
+                          {country.country}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -207,17 +272,27 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
               <p className="text-sm text-muted-foreground">
                 Select your country to get localized results:
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {commonCountries.map((country) => (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search country..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-md text-sm"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-1">
+                {filteredCountries.map((country) => (
                   <Button
-                    key={country.code}
+                    key={country.countryCode}
                     variant="outline"
                     size="sm"
-                    onClick={() => selectManualLocation(country.code)}
-                    className="justify-start"
+                    onClick={() => selectManualLocation(country)}
+                    className="w-full justify-start"
                   >
-                    <span className="mr-2">{country.flag}</span>
-                    {country.name}
+                    <span className="mr-2">{getCountryFlag(country.countryCode)}</span>
+                    {country.country}
                   </Button>
                 ))}
               </div>

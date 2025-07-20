@@ -20,13 +20,46 @@ export function SearchHeader({
   showBackButton = true,
   title = "PriceHunt",
 }: SearchHeaderProps) {
-  const { isAuthenticated, user, logout, isAdmin } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate("/");
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-brand-gradient rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-xl font-bold bg-brand-gradient bg-clip-text text-transparent">
+                  {title}
+                </span>
+              </Link>
+              {showBackButton && (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    New Search
+                  </Link>
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
@@ -52,6 +85,7 @@ export function SearchHeader({
           </div>
 
           <nav className="flex items-center space-x-4">
+            {/* Show navigation links only when authenticated */}
             {isAuthenticated && (
               <>
                 <Button
@@ -86,6 +120,7 @@ export function SearchHeader({
               </>
             )}
 
+            {/* User Profile Dropdown or Sign In Button */}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -140,11 +175,16 @@ export function SearchHeader({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/login">
-                  <User className="mr-2 h-4 w-4" />
-                  Sign in
-                </Link>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  console.log("Sign in button clicked, navigating to /login");
+                  window.location.href = "/login";
+                }}
+              >
+                <User className="mr-2 h-4 w-4" />
+                Sign in
               </Button>
             )}
           </nav>
