@@ -56,6 +56,7 @@ class PriceHuntPopup {
 
   async detectProduct() {
     if (!this.currentTab || !this.isSupportedSite(this.currentTab.url)) {
+      console.log("Site not supported or no current tab:", this.currentTab?.url);
       this.showNoProduct();
       return;
     }
@@ -63,6 +64,7 @@ class PriceHuntPopup {
     // Update UI to show detection in progress
     document.getElementById("pageTitle").textContent = "Detecting product...";
     document.getElementById("pageUrl").textContent = this.currentTab.url;
+    console.log("Attempting to detect product on:", this.currentTab.url);
 
     try {
       // Send message to content script to detect product
@@ -70,16 +72,21 @@ class PriceHuntPopup {
         action: "detectProduct",
       });
 
+      console.log("Content script response:", response);
+
       if (response && response.product) {
         this.productInfo = response.product;
+        console.log("Product detected:", this.productInfo);
         this.showProductDetected();
       } else {
+        console.log("No product detected in response");
         this.showNoProduct();
       }
     } catch (error) {
       console.error("Error detecting product:", error);
       // Try to inject content script if it's not already loaded
       try {
+        console.log("Attempting to inject content script...");
         await chrome.scripting.executeScript({
           target: { tabId: this.currentTab.id },
           files: ["content.js"],
@@ -360,20 +367,59 @@ class PriceHuntPopup {
   isSupportedSite(url) {
     if (!url) return false;
 
-    const supportedDomains = [
-      "amazon.com",
-      "ebay.com",
-      "walmart.com",
-      "target.com",
-      "bestbuy.com",
-      "apple.com",
-      "playstation.com",
-      "newegg.com",
-      "costco.com",
-      "sonos.com", // Add Sonos to supported sites
-    ];
-
-    return supportedDomains.some((domain) => url.includes(domain));
+    // Check if it's a valid URL
+    try {
+      const urlObj = new URL(url);
+      
+      // Allow any e-commerce site, not just predefined ones
+      // Most e-commerce sites have product pages with common patterns
+      const pathname = urlObj.pathname.toLowerCase();
+      
+      // Common e-commerce patterns that indicate a product page
+      const productPatterns = [
+        '/product/',
+        '/products/',
+        '/shop/',
+        '/item/',
+        '/p/',
+        '/dp/',
+        '/itm/',
+        '/ip/',
+        '/buy/',
+        '/purchase/',
+        '/bottle/',
+        '/headphones/',
+        '/keyboard/',
+        '/speaker/',
+        '/purification/',
+        '/en-us/shop/',
+        '/en-eu/products/'
+      ];
+      
+      // Check if the URL contains any product patterns
+      const hasProductPattern = productPatterns.some(pattern => 
+        pathname.includes(pattern)
+      );
+      
+      // Also check for common e-commerce domains as a fallback
+      const commonEcommerceDomains = [
+        "amazon.com", "ebay.com", "walmart.com", "target.com", 
+        "bestbuy.com", "apple.com", "playstation.com", "newegg.com", 
+        "costco.com", "sonos.com", "livelarq.com", "shopify.com",
+        "etsy.com", "wayfair.com", "home depot", "lowes.com"
+      ];
+      
+      const isKnownDomain = commonEcommerceDomains.some(domain => 
+        urlObj.hostname.toLowerCase().includes(domain)
+      );
+      
+      // Allow if it has product patterns OR is a known e-commerce domain
+      return hasProductPattern || isKnownDomain;
+      
+    } catch (error) {
+      console.error("Error parsing URL:", error);
+      return false;
+    }
   }
 }
 

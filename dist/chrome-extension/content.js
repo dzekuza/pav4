@@ -69,9 +69,11 @@ class PriceHuntContentScript {
     if (this.isDetecting) return this.productInfo;
 
     this.isDetecting = true;
+    console.log("Content script: Starting product detection");
 
     try {
       const hostname = window.location.hostname.toLowerCase();
+      console.log("Content script: Detecting on hostname:", hostname);
       let product = null;
 
       if (hostname.includes("amazon.com")) {
@@ -92,9 +94,18 @@ class PriceHuntContentScript {
         product = this.detectNeweggProduct();
       } else if (hostname.includes("costco.com")) {
         product = this.detectCostcoProduct();
+      } else if (hostname.includes("livelarq.com") || hostname.includes("larq.com")) {
+        console.log("Content script: Using LARQ detection");
+        product = this.detectLarqProduct();
+      } else if (hostname.includes("sonos.com")) {
+        console.log("Content script: Using Sonos detection");
+        product = this.detectSonosProduct();
       } else {
+        console.log("Content script: Using generic detection");
         product = this.detectGenericProduct();
       }
+
+      console.log("Content script: Product detection result:", product);
 
       if (product) {
         this.productInfo = {
@@ -103,6 +114,8 @@ class PriceHuntContentScript {
           timestamp: Date.now(),
           source: hostname,
         };
+
+        console.log("Content script: Final product info:", this.productInfo);
 
         // Notify background script
         chrome.runtime.sendMessage({
@@ -113,7 +126,7 @@ class PriceHuntContentScript {
 
       return this.productInfo;
     } catch (error) {
-      console.error("Error detecting product:", error);
+      console.error("Content script: Error detecting product:", error);
       return null;
     } finally {
       this.isDetecting = false;
@@ -231,18 +244,146 @@ class PriceHuntContentScript {
     return this.extractProductInfo(selectors);
   }
 
-  detectGenericProduct() {
-    // Generic selectors for other e-commerce sites
+  detectLarqProduct() {
     const selectors = {
-      title: 'h1, .product-title, .product-name, [itemprop="name"]',
-      price: '.price, .cost, .amount, [itemprop="price"]',
-      image: '.product-image img, .main-image img, [itemprop="image"]',
-      rating: '.rating, .stars, .review-rating, [itemprop="ratingValue"]',
-      availability:
-        '.availability, .stock, .in-stock, [itemprop="availability"]',
+      title: 'h1, .product-title, .product-name, [data-testid="product-title"]',
+      price: '.price, .cost, .amount, [data-testid="price"], .product-price',
+      image: '.product-image img, .main-image img, [data-testid="product-image"]',
+      rating: '.rating, .stars, .review-rating, [data-testid="rating"]',
+      availability: '.availability, .stock, .in-stock, [data-testid="availability"]',
     };
 
     return this.extractProductInfo(selectors);
+  }
+
+  detectSonosProduct() {
+    const selectors = {
+      title: 'h1, .product-title, .product-name, [data-testid="product-title"]',
+      price: '.price, .cost, .amount, [data-testid="price"], .product-price',
+      image: '.product-image img, .main-image img, [data-testid="product-image"]',
+      rating: '.rating, .stars, .review-rating, [data-testid="rating"]',
+      availability: '.availability, .stock, .in-stock, [data-testid="availability"]',
+    };
+
+    return this.extractProductInfo(selectors);
+  }
+
+  detectGenericProduct() {
+    // Enhanced generic selectors for other e-commerce sites
+    const selectors = {
+      title: [
+        'h1', 
+        '.product-title', 
+        '.product-name', 
+        '[itemprop="name"]',
+        '[data-testid="product-title"]',
+        '.pdp-title',
+        '.product__title',
+        '.product-details h1',
+        '.product-info h1',
+        '.product-header h1'
+      ],
+      price: [
+        '.price', 
+        '.cost', 
+        '.amount', 
+        '[itemprop="price"]',
+        '[data-testid="price"]',
+        '.product-price',
+        '.price-current',
+        '.price__current',
+        '.product__price',
+        '.pdp-price',
+        '.price-display'
+      ],
+      image: [
+        '.product-image img', 
+        '.main-image img', 
+        '[itemprop="image"]',
+        '[data-testid="product-image"]',
+        '.product__image img',
+        '.pdp-image img',
+        '.product-gallery img',
+        '.hero-image img',
+        '.product-hero img'
+      ],
+      rating: [
+        '.rating', 
+        '.stars', 
+        '.review-rating', 
+        '[itemprop="ratingValue"]',
+        '[data-testid="rating"]',
+        '.product-rating',
+        '.reviews-rating',
+        '.star-rating'
+      ],
+      availability: [
+        '.availability', 
+        '.stock', 
+        '.in-stock', 
+        '[itemprop="availability"]',
+        '[data-testid="availability"]',
+        '.product-availability',
+        '.stock-status',
+        '.inventory-status'
+      ],
+    };
+
+    return this.extractProductInfoEnhanced(selectors);
+  }
+
+  extractProductInfoEnhanced(selectors) {
+    const product = {};
+
+    // Extract title - try multiple selectors
+    for (const selector of selectors.title) {
+      const titleElement = document.querySelector(selector);
+      if (titleElement && titleElement.textContent.trim()) {
+        product.title = this.cleanText(titleElement.textContent);
+        break;
+      }
+    }
+
+    // Extract price - try multiple selectors
+    for (const selector of selectors.price) {
+      const priceElement = document.querySelector(selector);
+      if (priceElement && priceElement.textContent.trim()) {
+        product.price = this.extractPrice(priceElement.textContent);
+        if (product.price) break;
+      }
+    }
+
+    // Extract image - try multiple selectors
+    for (const selector of selectors.image) {
+      const imageElement = document.querySelector(selector);
+      if (imageElement) {
+        product.image = imageElement.src || imageElement.getAttribute("data-src");
+        if (product.image) break;
+      }
+    }
+
+    // Extract rating - try multiple selectors
+    for (const selector of selectors.rating) {
+      const ratingElement = document.querySelector(selector);
+      if (ratingElement) {
+        product.rating = this.extractRating(
+          ratingElement.textContent || ratingElement.getAttribute("aria-label"),
+        );
+        if (product.rating) break;
+      }
+    }
+
+    // Extract availability - try multiple selectors
+    for (const selector of selectors.availability) {
+      const availabilityElement = document.querySelector(selector);
+      if (availabilityElement) {
+        product.availability = this.cleanText(availabilityElement.textContent);
+        if (product.availability) break;
+      }
+    }
+
+    // Only return if we found at least a title
+    return product.title ? product : null;
   }
 
   extractProductInfo(selectors) {
