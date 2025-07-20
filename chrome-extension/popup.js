@@ -26,6 +26,11 @@ class PriceHuntPopup {
       this.searchPrices();
     });
 
+    // Similar product button
+    document.getElementById("similarBtn").addEventListener("click", () => {
+      this.findSimilarProducts();
+    });
+
     // Open app button
     document.getElementById("openApp").addEventListener("click", () => {
       chrome.tabs.create({ url: "https://pavlo4.netlify.app" });
@@ -92,10 +97,13 @@ class PriceHuntPopup {
   showProductDetected() {
     const pageTitle = document.getElementById("pageTitle");
     const searchBtn = document.getElementById("searchBtn");
+    const similarBtn = document.getElementById("similarBtn");
 
     pageTitle.textContent = this.productInfo.title || "Product detected";
     searchBtn.disabled = false;
+    similarBtn.disabled = false;
     searchBtn.textContent = "Compare Prices";
+    similarBtn.textContent = "Find Similar";
   }
 
   showNoProduct() {
@@ -149,10 +157,61 @@ class PriceHuntPopup {
     }
   }
 
+  async findSimilarProducts() {
+    if (!this.productInfo) return;
+
+    const similarBtn = document.getElementById("similarBtn");
+    const similarLoader = document.getElementById("similarLoader");
+
+    // Show loading state
+    similarBtn.classList.add("loading");
+    similarBtn.disabled = true;
+
+    try {
+      // Send the current URL to PriceHunt for similar products analysis
+      const response = await fetch("https://pavlo4.netlify.app/api/scrape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: this.currentTab.url,
+          fromExtension: true,
+          findSimilar: true,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.displaySimilarResults(data);
+
+        // Save to search history
+        await this.saveToHistory({
+          url: this.currentTab.url,
+          product: this.productInfo,
+          similarResults: data,
+          timestamp: new Date().toISOString(),
+          type: "similar",
+        });
+      } else {
+        throw new Error("Failed to fetch similar products");
+      }
+    } catch (error) {
+      console.error("Error finding similar products:", error);
+      this.showSimilarError("Failed to find similar products. Please try again.");
+    } finally {
+      similarBtn.classList.remove("loading");
+      similarBtn.disabled = false;
+    }
+  }
+
   displayResults(data) {
     const resultsSection = document.getElementById("results");
     const resultsList = document.getElementById("resultsList");
     const resultsCount = document.getElementById("resultsCount");
+
+    // Hide similar results if they're showing
+    document.getElementById("similarResults").style.display = "none";
 
     // Show results section
     resultsSection.style.display = "block";
@@ -161,11 +220,11 @@ class PriceHuntPopup {
     // Clear previous results
     resultsList.innerHTML = "";
 
-    if (data.alternatives && data.alternatives.length > 0) {
-      resultsCount.textContent = `${data.alternatives.length} results`;
+    if (data.suggestions && data.suggestions.length > 0) {
+      resultsCount.textContent = `${data.suggestions.length} results`;
 
-      data.alternatives.forEach((alternative) => {
-        const resultItem = this.createResultItem(alternative);
+      data.suggestions.forEach((suggestion) => {
+        const resultItem = this.createResultItem(suggestion);
         resultsList.appendChild(resultItem);
       });
     } else {
@@ -175,22 +234,74 @@ class PriceHuntPopup {
     }
   }
 
+  displaySimilarResults(data) {
+    const similarResultsSection = document.getElementById("similarResults");
+    const similarResultsList = document.getElementById("similarResultsList");
+    const similarResultsCount = document.getElementById("similarResultsCount");
+
+    // Hide price comparison results if they're showing
+    document.getElementById("results").style.display = "none";
+
+    // Show similar results section
+    similarResultsSection.style.display = "block";
+    similarResultsSection.classList.add("fade-in");
+
+    // Clear previous results
+    similarResultsList.innerHTML = "";
+
+    if (data.suggestions && data.suggestions.length > 0) {
+      similarResultsCount.textContent = `${data.suggestions.length} similar products`;
+
+      data.suggestions.forEach((suggestion) => {
+        const similarItem = this.createSimilarItem(suggestion);
+        similarResultsList.appendChild(similarItem);
+      });
+    } else {
+      similarResultsCount.textContent = "0 similar products";
+      similarResultsList.innerHTML =
+        '<div class="no-results">No similar products found.</div>';
+    }
+  }
+
   createResultItem(alternative) {
     const item = document.createElement("div");
     item.className = "result-item";
     item.style.cursor = "pointer";
 
-    const storeName = this.extractStoreName(alternative.url);
-    const savings = alternative.savings ? `Save ${alternative.savings}` : "";
+    const storeName = this.extractStoreName(alternative.link || alternative.url);
+    const price = alternative.standardPrice || alternative.discountPrice || alternative.price || "Price not available";
 
     item.innerHTML = `
             <div class="result-store">${storeName}</div>
-            <div class="result-price">${alternative.price}</div>
-            ${savings ? `<div class="result-savings">${savings}</div>` : ""}
+            <div class="result-price">${price}</div>
         `;
 
     item.addEventListener("click", () => {
-      chrome.tabs.create({ url: alternative.url });
+      chrome.tabs.create({ url: alternative.link || alternative.url });
+    });
+
+    return item;
+  }
+
+  createSimilarItem(suggestion) {
+    const item = document.createElement("div");
+    item.className = "similar-item";
+
+    const storeName = this.extractStoreName(suggestion.link);
+    const price = suggestion.standardPrice || suggestion.discountPrice || suggestion.price || "Price not available";
+    const image = suggestion.image || "/placeholder.svg";
+
+    item.innerHTML = `
+            <img src="${image}" alt="${suggestion.title}" class="similar-item-image" onerror="this.src='/placeholder.svg'">
+            <div class="similar-item-content">
+                <div class="similar-item-title">${suggestion.title}</div>
+                <div class="similar-item-price">${price}</div>
+                <div class="similar-item-store">${storeName}</div>
+            </div>
+        `;
+
+    item.addEventListener("click", () => {
+      chrome.tabs.create({ url: suggestion.link });
     });
 
     return item;
@@ -235,6 +346,17 @@ class PriceHuntPopup {
     document.getElementById("results").style.display = "block";
   }
 
+  showSimilarError(message) {
+    const similarResultsList = document.getElementById("similarResultsList");
+    similarResultsList.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #dc2626;">
+                <div style="margin-bottom: 8px;">⚠️</div>
+                <div>${message}</div>
+            </div>
+        `;
+    document.getElementById("similarResults").style.display = "block";
+  }
+
   isSupportedSite(url) {
     if (!url) return false;
 
@@ -248,6 +370,7 @@ class PriceHuntPopup {
       "playstation.com",
       "newegg.com",
       "costco.com",
+      "sonos.com", // Add Sonos to supported sites
     ];
 
     return supportedDomains.some((domain) => url.includes(domain));

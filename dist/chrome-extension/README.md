@@ -31,8 +31,8 @@ This is the built version of the PriceHunt Chrome Extension.
 
 ## Troubleshooting
 
-- Make sure the PriceHunt app is running at `http://localhost:8080`
+- Make sure the PriceHunt app is running at `https://pavlo4.netlify.app`
 - Check the browser console for any errors
 - Ensure you're on a supported retailer website
 
-For more information, visit: http://localhost:8080
+For more information, visit: https://pavlo4.netlify.app
