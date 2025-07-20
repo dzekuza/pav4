@@ -65,6 +65,54 @@ const userService = {
     });
   }
 };
+const adminService = {
+  async createAdmin(data) {
+    return prisma.admin.create({
+      data: {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        role: data.role || "admin"
+      }
+    });
+  },
+  async findAdminByEmail(email) {
+    return prisma.admin.findUnique({
+      where: { email }
+    });
+  },
+  async findAdminById(id) {
+    return prisma.admin.findUnique({
+      where: { id }
+    });
+  },
+  async getAllAdmins() {
+    return prisma.admin.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  },
+  async updateAdmin(id, data) {
+    return prisma.admin.update({
+      where: { id },
+      data
+    });
+  },
+  async deleteAdmin(id) {
+    return prisma.admin.delete({
+      where: { id }
+    });
+  }
+};
 const searchHistoryService = {
   async addSearch(userId, data) {
     return prisma.searchHistory.create({
@@ -2260,13 +2308,13 @@ router$1.post("/n8n-scrape", async (req, res) => {
     });
   }
 });
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET$2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 function generateToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ userId }, JWT_SECRET$2, { expiresIn: "7d" });
 }
 function verifyToken(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET$2);
     return decoded;
   } catch {
     return null;
@@ -2472,6 +2520,26 @@ const getUserSearchHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to get search history" });
   }
 };
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await userService.getAllUsers();
+    res.json({
+      users: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt,
+        searchCount: u._count.searchHistory
+      }))
+    });
+  } catch (error) {
+    console.error("Error getting all users:", error);
+    res.json({
+      users: [],
+      error: "Failed to get users"
+    });
+  }
+};
 const requireAuth = async (req, res, next) => {
   try {
     let token = req.cookies.auth_token;
@@ -2651,6 +2719,207 @@ const getSearchHistory = async (req, res) => {
   } catch (error) {
     console.error("Error getting search history:", error);
     res.status(500).json({ error: "Failed to get search history" });
+  }
+};
+const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key";
+const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+    const admin = await adminService.findAdminByEmail(email);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
+    if (!admin.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Account is deactivated"
+      });
+    }
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials"
+      });
+    }
+    const token = jwt.sign(
+      {
+        adminId: admin.id,
+        email: admin.email,
+        role: admin.role,
+        type: "admin"
+      },
+      JWT_SECRET$1,
+      { expiresIn: "24h" }
+    );
+    res.cookie("adminToken", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1e3
+      // 24 hours
+    });
+    res.json({
+      success: true,
+      message: "Admin login successful",
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error("Admin login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+const adminLogout = async (req, res) => {
+  try {
+    res.clearCookie("adminToken");
+    res.json({
+      success: true,
+      message: "Admin logout successful"
+    });
+  } catch (error) {
+    console.error("Admin logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+const getCurrentAdmin = async (req, res) => {
+  try {
+    const adminId = req.adminId;
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated"
+      });
+    }
+    const admin = await adminService.findAdminById(adminId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+    if (!admin.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Account is deactivated"
+      });
+    }
+    res.json({
+      success: true,
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error("Get current admin error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+const createAdmin = async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+    const existingAdmin = await adminService.findAdminByEmail(email);
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin with this email already exists"
+      });
+    }
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const admin = await adminService.createAdmin({
+      email,
+      password: hashedPassword,
+      name
+    });
+    res.status(201).json({
+      success: true,
+      message: "Admin created successfully",
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error("Create admin error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const requireAdminAuth = async (req, res, next) => {
+  try {
+    const token = req.cookies.adminToken;
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin authentication required"
+      });
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== "admin") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token type"
+      });
+    }
+    const admin = await adminService.findAdminById(decoded.adminId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+    if (!admin.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin account is deactivated"
+      });
+    }
+    req.adminId = admin.id;
+    req.adminEmail = admin.email;
+    req.adminRole = admin.role;
+    next();
+  } catch (error) {
+    console.error("Admin auth middleware error:", error);
+    res.status(401).json({
+      success: false,
+      message: "Invalid token"
+    });
   }
 };
 const healthCheckHandler = async (req, res) => {
@@ -3431,12 +3700,17 @@ function createServer() {
   app2.post("/api/auth/login", login);
   app2.post("/api/auth/logout", logout);
   app2.get("/api/auth/me", getCurrentUser);
+  app2.post("/api/admin/auth/login", adminLogin);
+  app2.post("/api/admin/auth/logout", adminLogout);
+  app2.get("/api/admin/auth/me", getCurrentAdmin);
+  app2.post("/api/admin/auth/create", createAdmin);
   app2.post("/api/register", register);
   app2.post("/api/login", login);
   app2.post("/api/logout", logout);
   app2.get("/api/user/me", getCurrentUser);
   app2.post("/api/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/search-history", requireAuth, getUserSearchHistory);
+  app2.get("/api/admin/users", requireAdminAuth, getAllUsers);
   app2.use("/api/favorites", router);
   app2.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);

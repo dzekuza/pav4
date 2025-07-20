@@ -79,6 +79,75 @@ export const userService = {
   },
 };
 
+// Admin operations
+export const adminService = {
+  async createAdmin(data: {
+    email: string;
+    password: string;
+    name?: string;
+    role?: string;
+  }) {
+    return prisma.admin.create({
+      data: {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        role: data.role || "admin",
+      },
+    });
+  },
+
+  async findAdminByEmail(email: string) {
+    return prisma.admin.findUnique({
+      where: { email },
+    });
+  },
+
+  async findAdminById(id: number) {
+    return prisma.admin.findUnique({
+      where: { id },
+    });
+  },
+
+  async getAllAdmins() {
+    return prisma.admin.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  },
+
+  async updateAdmin(
+    id: number,
+    data: Partial<{
+      email: string;
+      password: string;
+      name: string;
+      role: string;
+      isActive: boolean;
+    }>,
+  ) {
+    return prisma.admin.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async deleteAdmin(id: number) {
+    return prisma.admin.delete({
+      where: { id },
+    });
+  },
+};
+
 // Search history operations
 export const searchHistoryService = {
   async addSearch(
