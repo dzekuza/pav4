@@ -12,6 +12,8 @@ import { SearchHeader } from "../components/SearchHeader";
 import { SearchInput } from "../components/SearchInput";
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { useFavorites } from '../hooks/use-favorites';
+import { useAuthModal } from '../hooks/use-auth-modal';
+import { AuthModal } from '../components/AuthModal';
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -44,6 +46,19 @@ const SearchResults = () => {
   const [favoriteStates, setFavoriteStates] = useState<Map<string, { isFavorited: boolean; favoriteId?: number }>>(new Map());
 
   const { favorites, addFavorite, removeFavorite, checkFavorite } = useFavorites();
+  
+  const { handleProtectedAction, modalProps } = useAuthModal({
+    title: "Sign in to save favorites",
+    description: "Create an account or sign in to save products to your favorites",
+    defaultTab: "login",
+    onSuccess: () => {
+      // After successful authentication, the user can retry their action
+      toast({
+        title: "Welcome back!",
+        description: "You can now save products to your favorites",
+      });
+    },
+  });
 
   useEffect(() => {
     if (location.state?.searchUrl && location.state?.userCountry) {
@@ -163,56 +178,61 @@ const SearchResults = () => {
     const itemKey = `${comparison.store}-${comparison.title}`;
     const currentState = favoriteStates.get(itemKey);
     
-    try {
-      if (currentState?.isFavorited && currentState.favoriteId) {
-        // Remove from favorites
-        await removeFavorite(currentState.favoriteId);
-        setFavoriteStates(prev => {
-          const newMap = new Map(prev);
-          newMap.set(itemKey, { isFavorited: false });
-          return newMap;
-        });
+    const performToggle = async () => {
+      try {
+        if (currentState?.isFavorited && currentState.favoriteId) {
+          // Remove from favorites
+          await removeFavorite(currentState.favoriteId);
+          setFavoriteStates(prev => {
+            const newMap = new Map(prev);
+            newMap.set(itemKey, { isFavorited: false });
+            return newMap;
+          });
+          toast({
+            title: "Removed from favorites",
+            description: "Item removed from your favorites",
+          });
+        } else {
+          // Add to favorites
+          const newFavorite = await addFavorite({
+            title: comparison.title,
+            price: comparison.price.toString(),
+            currency: comparison.currency,
+            url: comparison.url,
+            image: comparison.image,
+            store: comparison.store,
+            merchant: comparison.merchant,
+            stock: comparison.stock,
+            rating: comparison.rating,
+            reviewsCount: comparison.reviewsCount,
+            deliveryPrice: comparison.deliveryPrice,
+            details: comparison.details,
+            returnPolicy: comparison.returnPolicy,
+            condition: comparison.condition
+          });
+          
+          setFavoriteStates(prev => {
+            const newMap = new Map(prev);
+            newMap.set(itemKey, { isFavorited: true, favoriteId: newFavorite.id });
+            return newMap;
+          });
+          
+          toast({
+            title: "Added to favorites",
+            description: "Item added to your favorites",
+          });
+        }
+      } catch (error) {
         toast({
-          title: "Removed from favorites",
-          description: "Item removed from your favorites",
-        });
-      } else {
-        // Add to favorites
-        const newFavorite = await addFavorite({
-          title: comparison.title,
-          price: comparison.price.toString(),
-          currency: comparison.currency,
-          url: comparison.url,
-          image: comparison.image,
-          store: comparison.store,
-          merchant: comparison.merchant,
-          stock: comparison.stock,
-          rating: comparison.rating,
-          reviewsCount: comparison.reviewsCount,
-          deliveryPrice: comparison.deliveryPrice,
-          details: comparison.details,
-          returnPolicy: comparison.returnPolicy,
-          condition: comparison.condition
-        });
-        
-        setFavoriteStates(prev => {
-          const newMap = new Map(prev);
-          newMap.set(itemKey, { isFavorited: true, favoriteId: newFavorite.id });
-          return newMap;
-        });
-        
-        toast({
-          title: "Added to favorites",
-          description: "Item added to your favorites",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update favorites",
+          variant: "destructive"
         });
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update favorites",
-        variant: "destructive"
-      });
-    }
+    };
+
+    // Use protected action handler to check authentication
+    handleProtectedAction(performToggle);
   };
 
   // Check favorite status for all comparisons
@@ -559,6 +579,9 @@ const SearchResults = () => {
           </Card>
         )}
       </div>
+      
+      {/* Authentication Modal */}
+      <AuthModal {...modalProps} />
     </div>
   );
 };

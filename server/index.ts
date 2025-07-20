@@ -25,7 +25,16 @@ import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
-import { gracefulShutdown } from "./services/database";
+import { gracefulShutdown, checkDatabaseConnection } from "./services/database";
+import {
+  getAllAffiliateUrls,
+  getAffiliateStats,
+  createAffiliateUrl,
+  updateAffiliateUrl,
+  deleteAffiliateUrl,
+  trackAffiliateClick,
+  trackAffiliateConversion,
+} from "./routes/affiliate";
 
 // Load environment variables
 dotenv.config();
@@ -34,7 +43,11 @@ dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", process.env.NODE_ENV);
 
-export function createServer() {
+export async function createServer() {
+  // Check database connection on startup
+  const dbStatus = await checkDatabaseConnection();
+  console.log('Database status:', dbStatus.status, dbStatus.message);
+  
   const app = express();
 
   // Middleware
@@ -89,6 +102,17 @@ export function createServer() {
   
   // Admin routes
   app.get("/api/admin/users", requireAdminAuth, getAllUsers);
+  
+  // Affiliate routes
+  app.get("/api/admin/affiliate/urls", requireAdminAuth, getAllAffiliateUrls);
+  app.get("/api/admin/affiliate/stats", requireAdminAuth, getAffiliateStats);
+  app.post("/api/admin/affiliate/urls", requireAdminAuth, createAffiliateUrl);
+  app.put("/api/admin/affiliate/urls/:id", requireAdminAuth, updateAffiliateUrl);
+  app.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
+  
+  // Public affiliate tracking endpoints
+  app.get("/api/affiliate/click/:id", trackAffiliateClick);
+  app.post("/api/affiliate/conversion", trackAffiliateConversion);
   
   // Favorites routes
   app.use("/api/favorites", favoritesRouter);

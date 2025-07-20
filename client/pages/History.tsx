@@ -8,6 +8,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { UserSearchHistoryResponse, UserSearchHistory } from "@shared/api";
 import { Clock, ExternalLink, User } from "lucide-react";
+import { useAuthModal } from '../hooks/use-auth-modal';
+import { AuthModal } from '../components/AuthModal';
 
 export default function History() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -15,20 +17,18 @@ export default function History() {
   const [history, setHistory] = useState<UserSearchHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [error, setError] = useState("");
+  
+  const { modalProps } = useAuthModal({
+    title: "Sign in to view history",
+    description: "Create an account or sign in to view your search history",
+    defaultTab: "login",
+  });
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Redirect to login if not authenticated
-      navigate("/login", {
-        state: { from: { pathname: "/history" } },
-      });
-      return;
-    }
-
     if (isAuthenticated) {
       fetchHistory();
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading]);
 
   const fetchHistory = async () => {
     try {
@@ -84,12 +84,19 @@ export default function History() {
       <div className="min-h-screen bg-background">
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
-          <Alert className="max-w-md mx-auto">
-            <User className="h-4 w-4" />
-            <AlertDescription>
-              Please sign in to view your search history.
-            </AlertDescription>
-          </Alert>
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view history</h3>
+              <p className="text-gray-600 mb-4">
+                Create an account or sign in to view your search history.
+              </p>
+              <Button onClick={() => modalProps.onClose()}>
+                Sign In
+              </Button>
+            </CardContent>
+          </Card>
+          <AuthModal {...modalProps} />
         </div>
       </div>
     );

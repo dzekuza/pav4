@@ -11,8 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Users, Search, Shield, Calendar, LogOut } from "lucide-react";
+import { Users, Search, Shield, Calendar, LogOut, ExternalLink } from "lucide-react";
 import { AdminUsersResponse } from "@shared/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AffiliateManager } from "@/components/AffiliateManager";
 
 interface AdminAuthResponse {
   success: boolean;
@@ -157,93 +159,113 @@ export default function Admin() {
           </Alert>
         )}
 
-        {/* Statistics Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalUsers}</div>
-              <p className="text-xs text-muted-foreground">
-                {adminUsers} admin{adminUsers !== 1 ? "s" : ""}
-              </p>
-            </CardContent>
-          </Card>
+        {/* Tabs */}
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="affiliate" className="flex items-center gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Affiliate URLs
+            </TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Searches
-              </CardTitle>
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalSearches}</div>
-              <p className="text-xs text-muted-foreground">Across all users</p>
-            </CardContent>
-          </Card>
+          <TabsContent value="users" className="space-y-6">
+            {/* Statistics Cards */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalUsers}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {adminUsers} admin{adminUsers !== 1 ? "s" : ""}
+                  </p>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Avg. Searches/User
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {totalUsers > 0 ? Math.round(totalSearches / totalUsers) : 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Per registered user
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Total Searches
+                  </CardTitle>
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalSearches}</div>
+                  <p className="text-xs text-muted-foreground">Across all users</p>
+                </CardContent>
+              </Card>
 
-        {/* Users Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Registered Users</CardTitle>
-            <CardDescription>
-              All users registered in the system
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {users.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No users found
-                </p>
-              ) : (
-                users.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{user.email}</span>
-                        {user.isAdmin && (
-                          <Badge variant="secondary">Admin</Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Joined {new Date(user.createdAt).toLocaleDateString()} •{" "}
-                        {user.searchCount} searches
-                      </div>
-                    </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      ID: {user.id.slice(0, 8)}...
-                    </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Avg. Searches/User
+                  </CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {totalUsers > 0 ? Math.round(totalSearches / totalUsers) : 0}
                   </div>
-                ))
-              )}
+                  <p className="text-xs text-muted-foreground">
+                    Per registered user
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Users Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Registered Users</CardTitle>
+                <CardDescription>
+                  All users registered in the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {users.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No users found
+                    </p>
+                  ) : (
+                    users.map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{user.email}</span>
+                            {user.isAdmin && (
+                              <Badge variant="secondary">Admin</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Joined {new Date(user.createdAt).toLocaleDateString()} •{" "}
+                            {user.searchCount} searches
+                          </div>
+                        </div>
+                        <div className="text-right text-sm text-muted-foreground">
+                          ID: {user.id.toString().slice(0, 8)}...
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="affiliate">
+            <AffiliateManager />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

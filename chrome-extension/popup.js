@@ -60,6 +60,22 @@ class PriceHuntPopup {
       chrome.tabs.create({ url: "https://pavlo4.netlify.app/history" });
     });
 
+    // Clear cache button (if exists)
+    const clearCacheBtn = document.getElementById("clearCache");
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener("click", () => {
+        this.clearCache();
+      });
+    }
+
+    // Keyboard shortcut for cache clearing (Ctrl+Shift+C)
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "C") {
+        e.preventDefault();
+        this.clearCache();
+      }
+    });
+
     // Settings link
     document.getElementById("settingsLink").addEventListener("click", (e) => {
       e.preventDefault();
@@ -290,6 +306,100 @@ class PriceHuntPopup {
       currentPage.style.height = "auto";
       currentPage.style.overflow = "visible";
     }
+  }
+
+  async clearCache() {
+    try {
+      // Show loading state on button
+      const clearCacheBtn = document.getElementById("clearCache");
+      const originalText = clearCacheBtn.innerHTML;
+      clearCacheBtn.innerHTML = '<span class="action-icon">⏳</span><span>Clearing...</span>';
+      clearCacheBtn.disabled = true;
+      
+      // Show loading message
+      this.showMessage("Clearing cache...", "info");
+      
+      // Use background script to clear cache comprehensively
+      const response = await chrome.runtime.sendMessage({ action: "clearCache" });
+      
+      if (response.success) {
+        // Reset extension state
+        this.productInfo = null;
+        this.currentTab = null;
+        
+        // Clear any displayed results
+        const resultsList = document.getElementById("resultsList");
+        const similarResultsList = document.getElementById("similarResultsList");
+        if (resultsList) resultsList.innerHTML = "";
+        if (similarResultsList) similarResultsList.innerHTML = "";
+        
+        // Hide results sections
+        const resultsSection = document.getElementById("results");
+        const similarResultsSection = document.getElementById("similarResults");
+        if (resultsSection) resultsSection.classList.add("hidden");
+        if (similarResultsSection) similarResultsSection.classList.add("hidden");
+        
+        // Reset page title and URL
+        const pageTitle = document.getElementById("pageTitle");
+        const pageUrl = document.getElementById("pageUrl");
+        if (pageTitle) pageTitle.textContent = "Detecting product...";
+        if (pageUrl && this.currentTab) pageUrl.textContent = this.currentTab.url;
+        
+        // Disable buttons
+        const searchBtn = document.getElementById("searchBtn");
+        const similarBtn = document.getElementById("similarBtn");
+        if (searchBtn) searchBtn.disabled = true;
+        if (similarBtn) similarBtn.disabled = true;
+        
+        // Show success message
+        this.showMessage("Cache cleared successfully!", "success");
+        
+        // Re-detect product
+        await this.detectProduct();
+      } else {
+        throw new Error(response.error || "Failed to clear cache");
+      }
+      
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      this.showMessage("Failed to clear cache", "error");
+    } finally {
+      // Reset button state
+      if (clearCacheBtn) {
+        clearCacheBtn.innerHTML = originalText;
+        clearCacheBtn.disabled = false;
+      }
+    }
+  }
+
+  showMessage(message, type = "info") {
+    // Create or update message element
+    let messageEl = document.getElementById("message");
+    if (!messageEl) {
+      messageEl = document.createElement("div");
+      messageEl.id = "message";
+      messageEl.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        padding: 10px 15px;
+        border-radius: 5px;
+        color: white;
+        font-size: 12px;
+        z-index: 1000;
+        transition: opacity 0.3s;
+      `;
+      document.body.appendChild(messageEl);
+    }
+    
+    messageEl.textContent = message;
+    messageEl.style.backgroundColor = type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#3b82f6";
+    messageEl.style.opacity = "1";
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      messageEl.style.opacity = "0";
+    }, 3000);
   }
 
   async searchPrices() {
