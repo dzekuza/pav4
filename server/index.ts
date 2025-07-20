@@ -65,10 +65,20 @@ export function createServer() {
   app.post("/api/auth/login", login);
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
+  
+  // TestSprite compatibility routes (redirects)
+  app.post("/api/register", register);
+  app.post("/api/login", login);
+  app.post("/api/logout", logout);
+  app.get("/api/user/me", getCurrentUser);
 
   // Protected routes - require authentication
   app.post("/api/search-history", requireAuth, addToSearchHistory);
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
+  
+  // TestSprite compatibility routes
+  app.post("/api/user/search-history", requireAuth, addToSearchHistory);
+  app.get("/api/user/search-history", requireAuth, getUserSearchHistory);
 
   // Legacy search history (for backward compatibility)
   app.post("/api/legacy/search-history", saveSearchHistory);
@@ -76,6 +86,19 @@ export function createServer() {
 
   // Admin routes
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
+  
+  // TestSprite compatibility routes
+  app.post("/api/scrape-product", optionalAuth, (req, res) => {
+    // Redirect to the n8n webhook scraping endpoint
+    req.url = '/n8n-scrape';
+    n8nScrapeRouter(req, res, () => {});
+  });
+  app.post("/api/n8n-webhook-scrape", optionalAuth, (req, res) => {
+    // Redirect to the n8n webhook scraping endpoint
+    req.url = '/n8n-scrape';
+    n8nScrapeRouter(req, res, () => {});
+  });
+  app.get("/api/location-info", getLocationHandler);
 
   // Health check route
   app.get("/api/health", healthCheckHandler);

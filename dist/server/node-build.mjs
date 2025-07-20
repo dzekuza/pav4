@@ -2975,11 +2975,28 @@ function createServer() {
   app2.post("/api/auth/login", login);
   app2.post("/api/auth/logout", logout);
   app2.get("/api/auth/me", getCurrentUser);
+  app2.post("/api/register", register);
+  app2.post("/api/login", login);
+  app2.post("/api/logout", logout);
+  app2.get("/api/user/me", getCurrentUser);
   app2.post("/api/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/search-history", requireAuth, getUserSearchHistory);
+  app2.post("/api/user/search-history", requireAuth, addToSearchHistory);
+  app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);
   app2.post("/api/legacy/search-history", saveSearchHistory);
   app2.get("/api/legacy/search-history", getSearchHistory);
   app2.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
+  app2.post("/api/scrape-product", optionalAuth, (req, res) => {
+    req.url = "/n8n-scrape";
+    router(req, res, () => {
+    });
+  });
+  app2.post("/api/n8n-webhook-scrape", optionalAuth, (req, res) => {
+    req.url = "/n8n-scrape";
+    router(req, res, () => {
+    });
+  });
+  app2.get("/api/location-info", getLocationHandler);
   app2.get("/api/health", healthCheckHandler);
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully");
