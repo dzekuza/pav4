@@ -87,6 +87,7 @@ body {
   gap: 8px;
 }
 
+.detect-btn,
 .search-btn,
 .similar-btn {
   flex: 1;
@@ -109,6 +110,7 @@ body {
   background: linear-gradient(135deg, #059669 0%, #10b981 100%);
 }
 
+.detect-btn:hover:not(:disabled),
 .search-btn:hover:not(:disabled),
 .similar-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -136,11 +138,13 @@ body {
   display: none;
 }
 
+.detect-btn.loading .detect-text,
 .search-btn.loading .search-text,
 .similar-btn.loading .similar-text {
   display: none;
 }
 
+.detect-btn.loading .loader,
 .search-btn.loading .loader,
 .similar-btn.loading .loader {
   display: block;

@@ -74,7 +74,7 @@ export function createServer() {
   // Admin authentication routes
   app.post("/api/admin/auth/login", adminLogin);
   app.post("/api/admin/auth/logout", adminLogout);
-  app.get("/api/admin/auth/me", getCurrentAdmin);
+  app.get("/api/admin/auth/me", requireAdminAuth, getCurrentAdmin);
   app.post("/api/admin/auth/create", createAdmin); // For initial setup
   
   // TestSprite compatibility routes (redirects)

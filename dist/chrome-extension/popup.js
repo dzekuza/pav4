@@ -21,6 +21,11 @@ class PriceHuntPopup {
   }
 
   setupEventListeners() {
+    // Detect URL button
+    document.getElementById("detectBtn").addEventListener("click", () => {
+      this.detectUrl();
+    });
+
     // Search button
     document.getElementById("searchBtn").addEventListener("click", () => {
       this.searchPrices();
@@ -54,17 +59,107 @@ class PriceHuntPopup {
     });
   }
 
+  async detectUrl() {
+    if (!this.currentTab) {
+      console.log("No current tab available");
+      return;
+    }
+
+    const detectBtn = document.getElementById("detectBtn");
+    const detectLoader = document.getElementById("detectLoader");
+
+    // Show loading state
+    detectBtn.classList.add("loading");
+    detectBtn.disabled = true;
+
+    try {
+      console.log("Manually detecting product on:", this.currentTab.url);
+      
+      // Always show the current page URL
+      document.getElementById("pageTitle").textContent = "Detecting product...";
+      document.getElementById("pageUrl").textContent = this.currentTab.url;
+
+      // Check if site is supported
+      if (!this.isSupportedSite(this.currentTab.url)) {
+        console.log("Site not supported:", this.currentTab.url);
+        this.showNoProduct();
+        return;
+      }
+
+      // Send message to content script to detect product
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: "detectProduct",
+      });
+
+      console.log("Content script response:", response);
+
+      if (response && response.product) {
+        this.productInfo = response.product;
+        console.log("Product detected:", this.productInfo);
+        this.showProductDetected();
+      } else {
+        console.log("No product detected in response");
+        this.showNoProduct();
+      }
+    } catch (error) {
+      console.error("Error detecting product:", error);
+      // Try to inject content script if it's not already loaded
+      try {
+        console.log("Attempting to inject content script...");
+        await chrome.scripting.executeScript({
+          target: { tabId: this.currentTab.id },
+          files: ["content.js"],
+        });
+
+        // Retry detection after a short delay
+        setTimeout(async () => {
+          try {
+            const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+              action: "detectProduct",
+            });
+
+            if (response && response.product) {
+              this.productInfo = response.product;
+              console.log("Product detected after injection:", this.productInfo);
+              this.showProductDetected();
+            } else {
+              console.log("No product detected after injection");
+              this.showNoProduct();
+            }
+          } catch (retryError) {
+            console.error("Error in retry detection:", retryError);
+            this.showNoProduct();
+          }
+        }, 1000);
+      } catch (injectError) {
+        console.error("Error injecting content script:", injectError);
+        this.showNoProduct();
+      }
+    } finally {
+      // Remove loading state
+      detectBtn.classList.remove("loading");
+      detectBtn.disabled = false;
+    }
+  }
+
   async detectProduct() {
-    if (!this.currentTab || !this.isSupportedSite(this.currentTab.url)) {
-      console.log("Site not supported or no current tab:", this.currentTab?.url);
+    if (!this.currentTab) {
+      console.log("No current tab available");
       this.showNoProduct();
       return;
     }
 
-    // Update UI to show detection in progress
+    // Always show the current page URL
     document.getElementById("pageTitle").textContent = "Detecting product...";
     document.getElementById("pageUrl").textContent = this.currentTab.url;
     console.log("Attempting to detect product on:", this.currentTab.url);
+
+    // Check if site is supported
+    if (!this.isSupportedSite(this.currentTab.url)) {
+      console.log("Site not supported:", this.currentTab.url);
+      this.showNoProduct();
+      return;
+    }
 
     try {
       // Send message to content script to detect product
@@ -111,11 +206,38 @@ class PriceHuntPopup {
     similarBtn.disabled = false;
     searchBtn.textContent = "Compare Prices";
     similarBtn.textContent = "Find Similar";
+    
+    // Show current page section and hide others
+    document.getElementById("currentPage").classList.remove("hidden");
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("similarResults").classList.add("hidden");
+    document.getElementById("noProduct").classList.add("hidden");
+    
+    console.log("Product detected, buttons enabled");
   }
 
   showNoProduct() {
-    document.getElementById("currentPage").style.display = "none";
-    document.getElementById("noProduct").style.display = "block";
+    // Show current page URL even if no product is detected
+    const pageTitle = document.getElementById("pageTitle");
+    const pageUrl = document.getElementById("pageUrl");
+    
+    if (this.currentTab) {
+      pageTitle.textContent = "No product detected";
+      pageUrl.textContent = this.currentTab.url;
+    }
+    
+    // Disable buttons
+    const searchBtn = document.getElementById("searchBtn");
+    const similarBtn = document.getElementById("similarBtn");
+    
+    if (searchBtn) searchBtn.disabled = true;
+    if (similarBtn) similarBtn.disabled = true;
+    
+    // Show current page section and hide others
+    document.getElementById("currentPage").classList.remove("hidden");
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("similarResults").classList.add("hidden");
+    document.getElementById("noProduct").classList.add("hidden");
   }
 
   async searchPrices() {
@@ -218,7 +340,7 @@ class PriceHuntPopup {
     const resultsCount = document.getElementById("resultsCount");
 
     // Hide similar results if they're showing
-    document.getElementById("similarResults").style.display = "none";
+    document.getElementById("similarResults").classList.add("hidden");
 
     // Show results section
     resultsSection.style.display = "block";
@@ -247,7 +369,7 @@ class PriceHuntPopup {
     const similarResultsCount = document.getElementById("similarResultsCount");
 
     // Hide price comparison results if they're showing
-    document.getElementById("results").style.display = "none";
+    document.getElementById("results").classList.add("hidden");
 
     // Show similar results section
     similarResultsSection.style.display = "block";

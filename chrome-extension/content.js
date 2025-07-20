@@ -101,32 +101,30 @@ class PriceHuntContentScript {
         console.log("Content script: Using Sonos detection");
         product = this.detectSonosProduct();
       } else {
+        // Generic detection for other e-commerce sites
         console.log("Content script: Using generic detection");
         product = this.detectGenericProduct();
       }
 
       console.log("Content script: Product detection result:", product);
 
-      if (product) {
+      if (product && product.title) {
         this.productInfo = {
           ...product,
           url: window.location.href,
           timestamp: Date.now(),
           source: hostname,
         };
-
-        console.log("Content script: Final product info:", this.productInfo);
-
-        // Notify background script
-        chrome.runtime.sendMessage({
-          action: "productDetected",
-          product: this.productInfo,
-        });
+        console.log("Content script: Product detected successfully:", this.productInfo);
+      } else {
+        console.log("Content script: No product detected or incomplete product info");
+        this.productInfo = null;
       }
 
       return this.productInfo;
     } catch (error) {
-      console.error("Content script: Error detecting product:", error);
+      console.error("Content script: Error during product detection:", error);
+      this.productInfo = null;
       return null;
     } finally {
       this.isDetecting = false;
@@ -246,14 +244,65 @@ class PriceHuntContentScript {
 
   detectLarqProduct() {
     const selectors = {
-      title: 'h1, .product-title, .product-name, [data-testid="product-title"]',
-      price: '.price, .cost, .amount, [data-testid="price"], .product-price',
-      image: '.product-image img, .main-image img, [data-testid="product-image"]',
-      rating: '.rating, .stars, .review-rating, [data-testid="rating"]',
-      availability: '.availability, .stock, .in-stock, [data-testid="availability"]',
+      title: [
+        'h1', 
+        '.product-title', 
+        '.product-name', 
+        '[data-testid="product-title"]',
+        '.product-details h1',
+        '.product-info h1',
+        '.product-header h1',
+        '.pdp-title',
+        '.product__title'
+      ],
+      price: [
+        '.price', 
+        '.cost', 
+        '.amount', 
+        '[data-testid="price"]', 
+        '.product-price',
+        '.price-current',
+        '.price__current',
+        '.product__price',
+        '.pdp-price',
+        '.price-display',
+        '[data-testid="price-amount"]',
+        '.product-price .amount'
+      ],
+      image: [
+        '.product-image img', 
+        '.main-image img', 
+        '[data-testid="product-image"]',
+        '.product__image img',
+        '.pdp-image img',
+        '.product-gallery img',
+        '.hero-image img',
+        '.product-hero img',
+        '.product-image-container img'
+      ],
+      rating: [
+        '.rating', 
+        '.stars', 
+        '.review-rating', 
+        '[data-testid="rating"]',
+        '.product-rating',
+        '.reviews-rating',
+        '.star-rating',
+        '.rating-stars'
+      ],
+      availability: [
+        '.availability', 
+        '.stock', 
+        '.in-stock', 
+        '[data-testid="availability"]',
+        '.product-availability',
+        '.stock-status',
+        '.inventory-status',
+        '.add-to-cart'
+      ],
     };
 
-    return this.extractProductInfo(selectors);
+    return this.extractProductInfoEnhanced(selectors);
   }
 
   detectSonosProduct() {
