@@ -3702,7 +3702,7 @@ function createServer() {
   app2.get("/api/auth/me", getCurrentUser);
   app2.post("/api/admin/auth/login", adminLogin);
   app2.post("/api/admin/auth/logout", adminLogout);
-  app2.get("/api/admin/auth/me", getCurrentAdmin);
+  app2.get("/api/admin/auth/me", requireAdminAuth, getCurrentAdmin);
   app2.post("/api/admin/auth/create", createAdmin);
   app2.post("/api/register", register);
   app2.post("/api/login", login);

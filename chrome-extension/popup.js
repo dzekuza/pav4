@@ -21,6 +21,11 @@ class PriceHuntPopup {
   }
 
   setupEventListeners() {
+    // Detect URL button
+    document.getElementById("detectBtn").addEventListener("click", () => {
+      this.detectUrl();
+    });
+
     // Search button
     document.getElementById("searchBtn").addEventListener("click", () => {
       this.searchPrices();
@@ -52,6 +57,89 @@ class PriceHuntPopup {
       e.preventDefault();
       chrome.tabs.create({ url: "https://pavlo4.netlify.app" });
     });
+  }
+
+  async detectUrl() {
+    if (!this.currentTab) {
+      console.log("No current tab available");
+      return;
+    }
+
+    const detectBtn = document.getElementById("detectBtn");
+    const detectLoader = document.getElementById("detectLoader");
+
+    // Show loading state
+    detectBtn.classList.add("loading");
+    detectBtn.disabled = true;
+
+    try {
+      console.log("Manually detecting product on:", this.currentTab.url);
+      
+      // Always show the current page URL
+      document.getElementById("pageTitle").textContent = "Detecting product...";
+      document.getElementById("pageUrl").textContent = this.currentTab.url;
+
+      // Check if site is supported
+      if (!this.isSupportedSite(this.currentTab.url)) {
+        console.log("Site not supported:", this.currentTab.url);
+        this.showNoProduct();
+        return;
+      }
+
+      // Send message to content script to detect product
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: "detectProduct",
+      });
+
+      console.log("Content script response:", response);
+
+      if (response && response.product) {
+        this.productInfo = response.product;
+        console.log("Product detected:", this.productInfo);
+        this.showProductDetected();
+      } else {
+        console.log("No product detected in response");
+        this.showNoProduct();
+      }
+    } catch (error) {
+      console.error("Error detecting product:", error);
+      // Try to inject content script if it's not already loaded
+      try {
+        console.log("Attempting to inject content script...");
+        await chrome.scripting.executeScript({
+          target: { tabId: this.currentTab.id },
+          files: ["content.js"],
+        });
+
+        // Retry detection after a short delay
+        setTimeout(async () => {
+          try {
+            const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+              action: "detectProduct",
+            });
+
+            if (response && response.product) {
+              this.productInfo = response.product;
+              console.log("Product detected after injection:", this.productInfo);
+              this.showProductDetected();
+            } else {
+              console.log("No product detected after injection");
+              this.showNoProduct();
+            }
+          } catch (retryError) {
+            console.error("Error in retry detection:", retryError);
+            this.showNoProduct();
+          }
+        }, 1000);
+      } catch (injectError) {
+        console.error("Error injecting content script:", injectError);
+        this.showNoProduct();
+      }
+    } finally {
+      // Remove loading state
+      detectBtn.classList.remove("loading");
+      detectBtn.disabled = false;
+    }
   }
 
   async detectProduct() {

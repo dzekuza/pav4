@@ -23,6 +23,10 @@
           <div class="page-url" id="pageUrl"></div>
         </div>
         <div class="button-group">
+          <button class="detect-btn" id="detectBtn">
+            <span class="detect-text">Detect URL</span>
+            <span class="loader" id="detectLoader"></span>
+          </button>
           <button class="search-btn" id="searchBtn" disabled>
             <span class="search-text">Search Prices</span>
             <span class="loader" id="loader"></span>
@@ -47,7 +51,7 @@
       </div>
 
       <!-- Results Section -->
-      <div class="results" id="results" style="display: none">
+      <div class="results hidden" id="results">
         <div class="results-header">
           <span class="results-title">Price Comparison</span>
           <span class="results-count" id="resultsCount">0 results</span>
@@ -58,7 +62,7 @@
       </div>
 
       <!-- Similar Products Results -->
-      <div class="similar-results" id="similarResults" style="display: none">
+      <div class="similar-results hidden" id="similarResults">
         <div class="results-header">
           <span class="results-title">Similar Products</span>
           <span class="results-count" id="similarResultsCount">0 results</span>
@@ -69,7 +73,7 @@
       </div>
 
       <!-- No Product Detected -->
-      <div class="no-product" id="noProduct" style="display: none">
+      <div class="no-product hidden" id="noProduct">
         <div class="no-product-icon">🛍️</div>
         <div class="no-product-text">
           <strong>No product detected</strong>

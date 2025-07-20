@@ -39,10 +39,23 @@
         "https://*.apple.com/*",
         "https://*.playstation.com/*",
         "https://*.newegg.com/*",
-        "https://*.costco.com/*"
+        "https://*.costco.com/*",
+        "https://*.larq.com/*",
+        "https://*.livelarq.com/*",
+        "https://*.sonos.com/*",
+        "https://*.shopify.com/*",
+        "https://*.etsy.com/*",
+        "https://*.aliexpress.com/*",
+        "https://*.banggood.com/*",
+        "https://*.gearbest.com/*"
       ],
       "js": ["content.js"],
       "css": ["content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
