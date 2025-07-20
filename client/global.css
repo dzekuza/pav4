@@ -98,66 +98,150 @@
     --brand-secondary: 220 85% 65%;
     --brand-gradient-from: 260 85% 60%;
     --brand-gradient-to: 220 85% 65%;
-    --success: 142 76% 50%;
-    --warning: 38 92% 60%;
-    --info: 210 100% 65%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --success: 142 76% 40%;
+    --warning: 38 92% 55%;
+    --info: 210 100% 60%;
+    --sidebar-background: 220 25% 8%;
+
+    --sidebar-foreground: 220 15% 95%;
+
+    --sidebar-primary: 220 15% 95%;
+
+    --sidebar-primary-foreground: 220 25% 8%;
+
+    --sidebar-accent: 220 15% 15%;
+
+    --sidebar-accent-foreground: 220 15% 95%;
+
+    --sidebar-border: 220 15% 20%;
+
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-}
 
-@layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-}
 
-@layer components {
   .bg-brand-gradient {
-    background: linear-gradient(135deg, hsl(var(--brand-gradient-from)) 0%, hsl(var(--brand-gradient-to)) 100%);
+    background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
   }
 
   .progress-bar {
-    width: attr(data-progress-width);
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
   }
 
-  /* Sidebar custom properties */
   .sidebar-wrapper {
-    --sidebar-width: 280px;
-    --sidebar-width-icon: 60px;
+    background: hsl(var(--sidebar-background));
   }
 
   .sidebar-mobile {
-    --sidebar-width: 280px;
+    background: hsl(var(--sidebar-background));
   }
 
-  /* Skeleton width */
   .skeleton-width {
-    max-width: attr(data-skeleton-width);
+    width: calc(100% - 2rem);
   }
 
-  /* Progress indicator */
   .progress-indicator {
-    transform: translateX(calc(-100% + attr(data-progress-value) * 1%));
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.6));
   }
 
-  /* Chart components */
   .chart-indicator {
-    --color-bg: attr(data-color-bg);
-    --color-border: attr(data-color-border);
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
   }
 
   .chart-legend-item {
-    background-color: attr(data-background-color);
+    background: hsl(var(--muted));
+  }
+
+  /* Mobile-specific styles */
+  @media (max-width: 640px) {
+    .mobile-padding {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    .mobile-text-sm {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+    }
+    
+    .mobile-text-xs {
+      font-size: 0.75rem;
+      line-height: 1rem;
+    }
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  /* Improved loading animations */
+  .loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .loading-bounce {
+    animation: bounce 1s infinite;
+  }
+
+  .loading-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Stock status styling */
+  .stock-in {
+    color: hsl(var(--success));
+  }
+
+  .stock-out {
+    color: hsl(var(--warning));
+  }
+
+  .stock-unknown {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Mobile card improvements */
+  @media (max-width: 640px) {
+    .mobile-card {
+      margin-bottom: 0.75rem;
+    }
+    
+    .mobile-card-content {
+      padding: 0.75rem;
+    }
+    
+    .mobile-flex-col {
+      flex-direction: column;
+    }
+    
+    .mobile-space-y {
+      margin-top: 0.5rem;
+    }
   }
 }

@@ -5,12 +5,12 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
-import { ArrowLeft, RefreshCw, ExternalLink, Star, AlertCircle, Heart, Search, Package, Truck, Shield } from "lucide-react";
+import { ArrowLeft, RefreshCw, ExternalLink, Star, AlertCircle, Heart, Search, Package, Truck, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { SearchHeader } from "../components/SearchHeader";
 import { SearchInput } from "../components/SearchInput";
-import { LoadingSkeleton } from "../components/LoadingSkeleton";
+import { LoadingSkeleton, SearchLoadingState } from "../components/LoadingSkeleton";
 import { useFavorites } from "../hooks/use-favorites";
 
 // Helper functions
@@ -308,18 +308,7 @@ const NewSearchResults = () => {
   }, [suggestions, checkFavorite]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Analyzing product and finding best prices...
-            </h2>
-          </div>
-        </div>
-      </div>
-    );
+    return <SearchLoadingState />;
   }
 
   if (error) {
@@ -398,7 +387,7 @@ const NewSearchResults = () => {
           </CardContent>
         </Card>
 
-        {/* Main Product */}
+        {/* Main Product - Mobile Responsive */}
         {mainProduct && (
           <Card className="mb-8">
             <CardHeader>
@@ -408,19 +397,24 @@ const NewSearchResults = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center space-x-4">
-                <img 
-                  src={mainProduct.image && !mainProduct.image.includes('placeholder') && !mainProduct.image.includes('fallback') ? mainProduct.image : getFaviconUrl(mainProduct.url)} 
-                  alt={mainProduct.title}
-                  className="w-24 h-24 object-cover rounded-lg"
-                  onError={(e) => {
-                    // Fallback to favicon if the image fails to load
-                    e.currentTarget.src = getFaviconUrl(mainProduct.url);
-                  }}
-                />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{mainProduct.title}</h3>
-                  <p className="text-2xl font-bold text-green-600">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                {/* Product Image */}
+                <div className="flex-shrink-0">
+                  <img 
+                    src={mainProduct.image && !mainProduct.image.includes('placeholder') && !mainProduct.image.includes('fallback') ? mainProduct.image : getFaviconUrl(mainProduct.url)} 
+                    alt={mainProduct.title}
+                    className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg"
+                    onError={(e) => {
+                      // Fallback to favicon if the image fails to load
+                      e.currentTarget.src = getFaviconUrl(mainProduct.url);
+                    }}
+                  />
+                </div>
+                
+                {/* Product Details */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold line-clamp-2">{mainProduct.title}</h3>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
                     {mainProduct.currency}{mainProduct.price}
                   </p>
                   <div className="flex items-center mt-2">
@@ -428,18 +422,22 @@ const NewSearchResults = () => {
                     <span className="ml-1 text-sm text-gray-600">Original Price</span>
                   </div>
                 </div>
+                
+                {/* View Product Button */}
                 {mainProduct.url && (
-                  <Button asChild>
-                    <a 
-                      href={mainProduct.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      aria-label="View original product details"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      View Product
-                    </a>
-                  </Button>
+                  <div className="flex-shrink-0 w-full sm:w-auto">
+                    <Button asChild className="w-full sm:w-auto">
+                      <a 
+                        href={mainProduct.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        aria-label="View original product details"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Product
+                      </a>
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -449,11 +447,11 @@ const NewSearchResults = () => {
         {/* Suggestions */}
         {suggestions.length > 0 && (
           <>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Price Comparisons ({suggestions.filter((s: any) => extractPrice(s.standardPrice || s.discountPrice || '0') > 0).length})
               </h2>
-              <Button onClick={handleRefresh} variant="outline">
+              <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
               </Button>
@@ -506,31 +504,39 @@ const NewSearchResults = () => {
                           </h4>
                           
                           {/* Price - highlighted if it's the lowest */}
-                          <p className={`text-lg font-bold ${
-                            suggestion.extractedPrice > 0 && index === 0 
-                              ? 'text-green-600' 
-                              : 'text-gray-700'
-                          }`}>
-                            {suggestion.standardPrice || suggestion.discountPrice}
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className={`text-lg font-bold ${
+                              suggestion.extractedPrice > 0 && index === 0 
+                                ? 'text-green-600' 
+                                : 'text-gray-700'
+                            }`}>
+                              {suggestion.standardPrice || suggestion.discountPrice}
+                            </p>
                             {suggestion.extractedPrice > 0 && index === 0 && (
-                              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
                                 Best Price
-                              </span>
+                              </Badge>
                             )}
-                          </p>
+                          </div>
 
                           {/* Additional details */}
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
-                            {/* Stock status */}
+                          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+                            {/* Stock status with improved styling */}
                             {suggestion.stock && (
-                              <span className={`flex items-center gap-1 ${
+                              <div className={`flex items-center gap-1 ${
                                 suggestion.stock.toLowerCase().includes('in stock') 
                                   ? 'text-green-600' 
                                   : 'text-orange-600'
                               }`}>
-                                {suggestion.stock.toLowerCase().includes('in stock') ? '✅' : '⚠️'} 
-                                {suggestion.stock}
-                              </span>
+                                {suggestion.stock.toLowerCase().includes('in stock') ? (
+                                  <CheckCircle className="h-3 w-3 fill-current" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3" />
+                                )}
+                                <span className="font-medium">
+                                  {suggestion.stock}
+                                </span>
+                              </div>
                             )}
 
                             {/* Rating */}
@@ -548,23 +554,24 @@ const NewSearchResults = () => {
 
                             {/* Delivery price */}
                             {suggestion.deliveryPrice && (
-                              <span className="text-xs">
-                                🚚 {suggestion.deliveryPrice}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <Truck className="h-3 w-3" />
+                                <span>{suggestion.deliveryPrice}</span>
+                              </div>
                             )}
                           </div>
 
                           {/* Details */}
                           {suggestion.details && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                            <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
                               {suggestion.details}
                             </p>
                           )}
                         </div>
                         
-                        {/* External link button */}
+                        {/* Action buttons - Mobile responsive */}
                         {suggestion.link && (
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 flex-shrink-0">
                             <Button asChild size="sm" variant="outline" className="flex-shrink-0">
                               <a 
                                 href={suggestion.link} 

@@ -22,10 +22,16 @@
           <div class="page-title" id="pageTitle">Detecting product...</div>
           <div class="page-url" id="pageUrl"></div>
         </div>
-        <button class="search-btn" id="searchBtn" disabled>
-          <span class="search-text">Search Prices</span>
-          <span class="loader" id="loader"></span>
-        </button>
+        <div class="button-group">
+          <button class="search-btn" id="searchBtn" disabled>
+            <span class="search-text">Search Prices</span>
+            <span class="loader" id="loader"></span>
+          </button>
+          <button class="similar-btn" id="similarBtn" disabled>
+            <span class="similar-text">Find Similar Product</span>
+            <span class="loader" id="similarLoader"></span>
+          </button>
+        </div>
       </div>
 
       <!-- Quick Actions -->
@@ -48,6 +54,17 @@
         </div>
         <div class="results-list" id="resultsList">
           <!-- Results will be populated here -->
+        </div>
+      </div>
+
+      <!-- Similar Products Results -->
+      <div class="similar-results" id="similarResults" style="display: none">
+        <div class="results-header">
+          <span class="results-title">Similar Products</span>
+          <span class="results-count" id="similarResultsCount">0 results</span>
+        </div>
+        <div class="results-list" id="similarResultsList">
+          <!-- Similar products will be populated here -->
         </div>
       </div>
 
