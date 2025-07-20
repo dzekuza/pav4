@@ -69,8 +69,8 @@ function extractStoreName(link: string): string {
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes in this router
-router.use(requireAuth);
+// Remove authentication middleware from router - make search public
+// Authentication will only be applied when saving search history
 
 // SearchAPI configuration (Google Search API)
 const SEARCH_API_KEY = process.env.SEARCH_API_KEY || process.env.SERP_API_KEY;

@@ -50,12 +50,6 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
-  app.post("/api/scrape", requireAuth, (req, res) => {
-    // Redirect to the n8n webhook scraping endpoint
-    req.url = '/n8n-scrape';
-    n8nScrapeRouter(req, res, () => {});
-  });
-  app.use("/api", n8nScrapeRouter); // N8N scraping routes
   app.get("/api/location", getLocationHandler);
   app.post("/api/location", getLocationHandler);
   app.get("/api/supported-countries", (req, res) => {
@@ -91,16 +85,21 @@ export function createServer() {
   app.post("/api/legacy/search-history", saveSearchHistory);
   app.get("/api/legacy/search-history", getSearchHistory);
 
-  // Admin routes
-  app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
-  
-  // TestSprite compatibility routes
-  app.post("/api/scrape-product", requireAuth, (req, res) => {
+  // Public search routes (no authentication required)
+  app.post("/api/scrape", (req, res) => {
     // Redirect to the n8n webhook scraping endpoint
     req.url = '/n8n-scrape';
     n8nScrapeRouter(req, res, () => {});
   });
-  app.post("/api/n8n-webhook-scrape", requireAuth, (req, res) => {
+  app.use("/api", n8nScrapeRouter); // N8N scraping routes (public)
+  
+  // TestSprite compatibility routes (public)
+  app.post("/api/scrape-product", (req, res) => {
+    // Redirect to the n8n webhook scraping endpoint
+    req.url = '/n8n-scrape';
+    n8nScrapeRouter(req, res, () => {});
+  });
+  app.post("/api/n8n-webhook-scrape", (req, res) => {
     // Redirect to the n8n webhook scraping endpoint
     req.url = '/n8n-scrape';
     n8nScrapeRouter(req, res, () => {});

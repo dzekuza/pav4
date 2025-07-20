@@ -14,6 +14,159 @@ const handleDemo = (req, res) => {
   };
   res.status(200).json(response);
 };
+const prisma = globalThis.__prisma || new PrismaClient();
+const userService = {
+  async createUser(data) {
+    return prisma.user.create({
+      data: {
+        email: data.email,
+        password: data.password,
+        isAdmin: data.isAdmin || false
+      }
+    });
+  },
+  async findUserByEmail(email) {
+    return prisma.user.findUnique({
+      where: { email }
+    });
+  },
+  async findUserById(id) {
+    return prisma.user.findUnique({
+      where: { id }
+    });
+  },
+  async getAllUsers() {
+    return prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        isAdmin: true,
+        createdAt: true,
+        _count: {
+          select: {
+            searchHistory: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  },
+  async updateUser(id, data) {
+    return prisma.user.update({
+      where: { id },
+      data
+    });
+  },
+  async deleteUser(id) {
+    return prisma.user.delete({
+      where: { id }
+    });
+  }
+};
+const searchHistoryService = {
+  async addSearch(userId, data) {
+    return prisma.searchHistory.create({
+      data: {
+        userId,
+        url: data.url,
+        title: data.title,
+        requestId: data.requestId
+      }
+    });
+  },
+  async getUserSearchHistory(userId, limit = 20) {
+    return prisma.searchHistory.findMany({
+      where: { userId },
+      orderBy: { timestamp: "desc" },
+      take: limit
+    });
+  },
+  async deleteUserSearch(userId, searchId) {
+    return prisma.searchHistory.delete({
+      where: {
+        id: searchId,
+        userId
+        // Ensure user can only delete their own searches
+      }
+    });
+  },
+  async clearUserSearchHistory(userId) {
+    return prisma.searchHistory.deleteMany({
+      where: { userId }
+    });
+  },
+  // Clean up old search history (older than X days)
+  async cleanupOldSearches(daysToKeep = 90) {
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    return prisma.searchHistory.deleteMany({
+      where: {
+        timestamp: {
+          lt: cutoffDate
+        }
+      }
+    });
+  }
+};
+const legacySearchHistoryService = {
+  async addSearch(userKey, url) {
+    return prisma.legacySearchHistory.create({
+      data: {
+        userKey,
+        url
+      }
+    });
+  },
+  async getUserSearchHistory(userKey, limit = 10) {
+    return prisma.legacySearchHistory.findMany({
+      where: { userKey },
+      orderBy: { timestamp: "desc" },
+      take: limit
+    });
+  },
+  async cleanupOldLegacySearches(daysToKeep = 30) {
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    return prisma.legacySearchHistory.deleteMany({
+      where: {
+        timestamp: {
+          lt: cutoffDate
+        }
+      }
+    });
+  }
+};
+const healthCheck = {
+  async checkConnection() {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: "healthy", message: "Database connection successful" };
+    } catch (error) {
+      return {
+        status: "unhealthy",
+        message: "Database connection failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  },
+  async getStats() {
+    const [userCount, searchCount, legacySearchCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.searchHistory.count(),
+      prisma.legacySearchHistory.count()
+    ]);
+    return {
+      users: userCount,
+      searches: searchCount,
+      legacySearches: legacySearchCount
+    };
+  }
+};
+const gracefulShutdown = async () => {
+  await prisma.$disconnect();
+};
 function extractPrice(text) {
   const match = text.match(/(\d{1,4}[.,]?\d{2})/);
   return match ? parseFloat(match[1].replace(",", ".")) : null;
@@ -2111,7 +2264,7 @@ router$1.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
   try {
-    const { url, requestId, gl } = req.body;
+    const { url, requestId, gl, userCountry } = req.body;
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
     }
@@ -2121,6 +2274,19 @@ router$1.post("/n8n-scrape", async (req, res) => {
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
     console.log("Suggestions count:", result.suggestions?.length || 0);
+    try {
+      const userId = req.user?.id;
+      if (userId && result.mainProduct?.title) {
+        await searchHistoryService.addSearch(userId, {
+          url,
+          title: result.mainProduct.title,
+          requestId: requestId || `search_${Date.now()}`
+        });
+        console.log(`Search history saved for user ${userId}`);
+      }
+    } catch (historyError) {
+      console.error("Failed to save search history:", historyError);
+    }
     res.json(result);
   } catch (error) {
     console.error("n8n webhook scraping error:", error);
@@ -2148,166 +2314,13 @@ router$1.post("/n8n-scrape", async (req, res) => {
           discountPrice: "$95.99",
           site: "bestbuy.com",
           link: "https://bestbuy.com/product/sample",
-          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+          image: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAyAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         }
       ],
       error: errorMessage
     });
   }
 });
-const prisma = globalThis.__prisma || new PrismaClient();
-const userService = {
-  async createUser(data) {
-    return prisma.user.create({
-      data: {
-        email: data.email,
-        password: data.password,
-        isAdmin: data.isAdmin || false
-      }
-    });
-  },
-  async findUserByEmail(email) {
-    return prisma.user.findUnique({
-      where: { email }
-    });
-  },
-  async findUserById(id) {
-    return prisma.user.findUnique({
-      where: { id }
-    });
-  },
-  async getAllUsers() {
-    return prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        isAdmin: true,
-        createdAt: true,
-        _count: {
-          select: {
-            searchHistory: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-  },
-  async updateUser(id, data) {
-    return prisma.user.update({
-      where: { id },
-      data
-    });
-  },
-  async deleteUser(id) {
-    return prisma.user.delete({
-      where: { id }
-    });
-  }
-};
-const searchHistoryService = {
-  async addSearch(userId, data) {
-    return prisma.searchHistory.create({
-      data: {
-        userId,
-        url: data.url,
-        title: data.title,
-        requestId: data.requestId
-      }
-    });
-  },
-  async getUserSearchHistory(userId, limit = 20) {
-    return prisma.searchHistory.findMany({
-      where: { userId },
-      orderBy: { timestamp: "desc" },
-      take: limit
-    });
-  },
-  async deleteUserSearch(userId, searchId) {
-    return prisma.searchHistory.delete({
-      where: {
-        id: searchId,
-        userId
-        // Ensure user can only delete their own searches
-      }
-    });
-  },
-  async clearUserSearchHistory(userId) {
-    return prisma.searchHistory.deleteMany({
-      where: { userId }
-    });
-  },
-  // Clean up old search history (older than X days)
-  async cleanupOldSearches(daysToKeep = 90) {
-    const cutoffDate = /* @__PURE__ */ new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma.searchHistory.deleteMany({
-      where: {
-        timestamp: {
-          lt: cutoffDate
-        }
-      }
-    });
-  }
-};
-const legacySearchHistoryService = {
-  async addSearch(userKey, url) {
-    return prisma.legacySearchHistory.create({
-      data: {
-        userKey,
-        url
-      }
-    });
-  },
-  async getUserSearchHistory(userKey, limit = 10) {
-    return prisma.legacySearchHistory.findMany({
-      where: { userKey },
-      orderBy: { timestamp: "desc" },
-      take: limit
-    });
-  },
-  async cleanupOldLegacySearches(daysToKeep = 30) {
-    const cutoffDate = /* @__PURE__ */ new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma.legacySearchHistory.deleteMany({
-      where: {
-        timestamp: {
-          lt: cutoffDate
-        }
-      }
-    });
-  }
-};
-const healthCheck = {
-  async checkConnection() {
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      return { status: "healthy", message: "Database connection successful" };
-    } catch (error) {
-      return {
-        status: "unhealthy",
-        message: "Database connection failed",
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-  },
-  async getStats() {
-    const [userCount, searchCount, legacySearchCount] = await Promise.all([
-      prisma.user.count(),
-      prisma.searchHistory.count(),
-      prisma.legacySearchHistory.count()
-    ]);
-    return {
-      users: userCount,
-      searches: searchCount,
-      legacySearches: legacySearchCount
-    };
-  }
-};
-const gracefulShutdown = async () => {
-  await prisma.$disconnect();
-};
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 function generateToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
@@ -2520,51 +2533,6 @@ const getUserSearchHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to get search history" });
   }
 };
-const getAllUsers = async (req, res) => {
-  try {
-    let token = req.cookies.auth_token;
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-    if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-    const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
-    if (isNaN(userId)) {
-      return res.status(401).json({ error: "Invalid user ID in token" });
-    }
-    const user = await userService.findUserById(userId);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
-    if (!user.isAdmin) {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-    const users = await userService.getAllUsers();
-    res.json({
-      users: users.map((u) => ({
-        id: u.id,
-        email: u.email,
-        isAdmin: u.isAdmin,
-        createdAt: u.createdAt,
-        searchCount: u._count.searchHistory
-      }))
-    });
-  } catch (error) {
-    console.error("Error getting all users:", error);
-    res.json({
-      users: [],
-      error: "Failed to get users"
-    });
-  }
-};
 const requireAuth = async (req, res, next) => {
   try {
     let token = req.cookies.auth_token;
@@ -2603,50 +2571,6 @@ const requireAuth = async (req, res, next) => {
   } catch (error) {
     console.error("Auth middleware error:", error);
     return res.status(500).json({ error: "Authentication error" });
-  }
-};
-const requireAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (!req.user.isAdmin) {
-    return res.status(403).json({ error: "Admin privileges required" });
-  }
-  next();
-};
-const optionalAuth = async (req, res, next) => {
-  try {
-    let token = req.cookies.auth_token;
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-    if (token) {
-      const decoded = verifyToken(token);
-      if (decoded) {
-        try {
-          const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
-          if (!isNaN(userId)) {
-            const user = await userService.findUserById(userId);
-            if (user) {
-              req.user = {
-                id: user.id,
-                email: user.email,
-                isAdmin: user.isAdmin
-              };
-            }
-          }
-        } catch (dbError) {
-          console.warn("Database error in optionalAuth:", dbError);
-        }
-      }
-    }
-    next();
-  } catch (error) {
-    console.warn("Optional auth error:", error);
-    next();
   }
 };
 const router = express__default.Router();
@@ -3557,12 +3481,6 @@ function createServer() {
     res.json({ message: "Hello from Express server v2!" });
   });
   app2.get("/api/demo", handleDemo);
-  app2.post("/api/scrape", optionalAuth, (req, res) => {
-    req.url = "/n8n-scrape";
-    router$1(req, res, () => {
-    });
-  });
-  app2.use("/api", router$1);
   app2.get("/api/location", getLocationHandler);
   app2.post("/api/location", getLocationHandler);
   app2.get("/api/supported-countries", (req, res) => {
@@ -3585,13 +3503,18 @@ function createServer() {
   app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);
   app2.post("/api/legacy/search-history", saveSearchHistory);
   app2.get("/api/legacy/search-history", getSearchHistory);
-  app2.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
-  app2.post("/api/scrape-product", optionalAuth, (req, res) => {
+  app2.post("/api/scrape", (req, res) => {
     req.url = "/n8n-scrape";
     router$1(req, res, () => {
     });
   });
-  app2.post("/api/n8n-webhook-scrape", optionalAuth, (req, res) => {
+  app2.use("/api", router$1);
+  app2.post("/api/scrape-product", (req, res) => {
+    req.url = "/n8n-scrape";
+    router$1(req, res, () => {
+    });
+  });
+  app2.post("/api/n8n-webhook-scrape", (req, res) => {
     req.url = "/n8n-scrape";
     router$1(req, res, () => {
     });
