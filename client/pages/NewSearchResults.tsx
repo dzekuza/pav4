@@ -59,7 +59,25 @@ const NewSearchResults = () => {
       // Trigger the search immediately
       handleSearchFromState(location.state.searchUrl, location.state.userCountry, location.state.gl);
     } else {
-      // If no state, try to fetch the data (fallback)
+      // If no state, try to extract URL from slug and start search
+      const slug = location.pathname.split('/').pop();
+      if (slug && slug !== requestId) {
+        // Try to decode the slug as a URL
+        try {
+          const decodedSlug = decodeURIComponent(slug);
+          // Check if it looks like a URL
+          if (decodedSlug.includes('://') || decodedSlug.startsWith('www.')) {
+            console.log("Extracted URL from slug:", decodedSlug);
+            setOriginalUrl(decodedSlug);
+            handleSearchFromState(decodedSlug, "Germany", "de");
+            return;
+          }
+        } catch (error) {
+          console.log("Could not decode slug as URL:", slug);
+        }
+      }
+      
+      // If no URL found in slug, try to fetch the data (fallback)
       fetchSearchData();
     }
   }, [location.state, requestId]);
