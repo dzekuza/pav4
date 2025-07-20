@@ -2087,7 +2087,7 @@ router.post("/n8n-scrape", async (req, res) => {
   console.log("Request body:", req.body);
   
   try {
-    const { url, requestId, gl, userCountry } = req.body;
+    const { url, requestId, gl, userCountry, findSimilar } = req.body;
 
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
@@ -2095,6 +2095,7 @@ router.post("/n8n-scrape", async (req, res) => {
 
     console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
     console.log(`Request ID: ${requestId}`);
+    console.log(`Find Similar: ${findSimilar}`);
 
     // Call the n8n webhook with gl parameter
     const result = await scrapeWithN8nWebhook(url, gl);
@@ -2102,6 +2103,35 @@ router.post("/n8n-scrape", async (req, res) => {
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
     console.log("Suggestions count:", result.suggestions?.length || 0);
+
+    // If findSimilar is true, modify the search to focus on similar products
+    if (findSimilar && result.mainProduct) {
+      console.log("Processing similar products search...");
+      
+      // Extract product information for similar search
+      const productTitle = result.mainProduct.title;
+      const productBrand = extractBrandFromTitle(productTitle);
+      const productType = extractProductType(productTitle);
+      
+      // Create a search query for similar products
+      const similarSearchQuery = `${productBrand} ${productType}`;
+      console.log(`Similar products search query: ${similarSearchQuery}`);
+      
+      // For now, we'll use the same suggestions but mark them as similar products
+      // In a full implementation, you might want to make additional API calls
+      // to find truly similar products from different brands or categories
+      
+      if (result.suggestions && result.suggestions.length > 0) {
+        // Filter and enhance suggestions for similar products
+        result.suggestions = result.suggestions.map(suggestion => ({
+          ...suggestion,
+          isSimilar: true,
+          similarityReason: `Similar ${productType} from ${suggestion.merchant || suggestion.site || 'other retailers'}`
+        }));
+        
+        console.log(`Enhanced ${result.suggestions.length} suggestions for similar products`);
+      }
+    }
 
     // Save to search history if user is authenticated
     try {
@@ -2113,7 +2143,7 @@ router.post("/n8n-scrape", async (req, res) => {
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`,
         });
-        console.log(`Search history saved for user ${userId}`);
+        console.log(`Search history saved for user ${userId} (type: ${findSimilar ? 'similar' : 'price_comparison'})`);
       }
     } catch (historyError) {
       console.error("Failed to save search history:", historyError);
