@@ -572,6 +572,16 @@ export const businessService = {
       data: { adminCommissionRate: commissionRate },
     });
   },
+
+  async updateBusinessPassword(businessId: number, password: string) {
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    return prisma.business.update({
+      where: { id: businessId },
+      data: { password: hashedPassword },
+    });
+  },
 };
 
 // Graceful shutdown

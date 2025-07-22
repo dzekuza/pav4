@@ -200,6 +200,54 @@ export const updateBusinessCommission: RequestHandler = async (req, res) => {
   }
 };
 
+// Update business password (admin only)
+export const updateBusinessPassword: RequestHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Password is required" 
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Password must be at least 8 characters long" 
+      });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Password must contain uppercase, lowercase, and number" 
+      });
+    }
+
+    const business = await businessService.updateBusinessPassword(parseInt(id), password);
+    
+    if (!business) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Business not found" 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Business password updated successfully" 
+    });
+  } catch (error) {
+    console.error("Error updating business password:", error);
+    res.status(500).json({ success: false, error: "Failed to update business password" });
+  }
+};
+
 // Get detailed business statistics for admin
 export const getBusinessDetailedStats: RequestHandler = async (req, res) => {
   try {

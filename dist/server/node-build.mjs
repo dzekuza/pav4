@@ -4,10 +4,15 @@ import * as express from "express";
 import express__default from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import compression from "compression";
 import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
+import { body, validationResult } from "express-validator";
+import mcache from "memory-cache";
 const handleDemo = (req, res) => {
   const response = {
     message: "Hello from Express server"
@@ -434,6 +439,14 @@ const businessService = {
     return prisma.business.update({
       where: { id: businessId },
       data: { adminCommissionRate: commissionRate }
+    });
+  },
+  async updateBusinessPassword(businessId, password) {
+    const bcrypt2 = require("bcryptjs");
+    const hashedPassword = await bcrypt2.hash(password, 10);
+    return prisma.business.update({
+      where: { id: businessId },
+      data: { password: hashedPassword }
     });
   }
 };
@@ -4289,6 +4302,45 @@ const updateBusinessCommission = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to update commission rate" });
   }
 };
+const updateBusinessPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        error: "Password is required"
+      });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 8 characters long"
+      });
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must contain uppercase, lowercase, and number"
+      });
+    }
+    const business = await businessService.updateBusinessPassword(parseInt(id), password);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    res.json({
+      success: true,
+      message: "Business password updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating business password:", error);
+    res.status(500).json({ success: false, error: "Failed to update business password" });
+  }
+};
 const getBusinessDetailedStats = async (req, res) => {
   try {
     const { id } = req.params;
@@ -4540,6 +4592,170 @@ const getBusinessStats = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to get business statistics" });
   }
 };
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  max: 5,
+  // 5 attempts per window
+  message: { error: "Too many login attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true
+});
+const apiRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1e3,
+  // 1 minute
+  max: 100,
+  // 100 requests per minute
+  message: { error: "Too many requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+const businessRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  max: 10,
+  // 10 attempts per window
+  message: { error: "Too many business operations, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+const validateRegistration = [
+  body("email").isEmail().normalizeEmail().withMessage("Please provide a valid email address"),
+  body("password").isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("Password must be at least 8 characters with uppercase, lowercase, and number")
+];
+const validateBusinessRegistration = [
+  body("email").isEmail().normalizeEmail().withMessage("Please provide a valid email address"),
+  body("password").isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("Password must be at least 8 characters with uppercase, lowercase, and number"),
+  body("name").trim().isLength({ min: 2, max: 100 }).withMessage("Business name must be between 2 and 100 characters"),
+  body("domain").isFQDN().withMessage("Please provide a valid domain (e.g., example.com)"),
+  body("website").isURL().withMessage("Please provide a valid website URL")
+];
+const validateLogin = [
+  body("email").isEmail().normalizeEmail().withMessage("Please provide a valid email address"),
+  body("password").notEmpty().withMessage("Password is required")
+];
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      error: "Validation failed",
+      details: errors.array()
+    });
+  }
+  next();
+};
+const cache = (duration) => {
+  return (req, res, next) => {
+    const key = `__express__${req.originalUrl || req.url}`;
+    const cachedBody = mcache.get(key);
+    if (cachedBody) {
+      res.send(cachedBody);
+      return;
+    }
+    res.sendResponse = res.send;
+    res.send = (body2) => {
+      mcache.put(key, body2, duration * 1e3);
+      res.sendResponse(body2);
+    };
+    next();
+  };
+};
+const securityHeaders = (req, res, next) => {
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  next();
+};
+const requestLogger = (req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const logData = {
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      userAgent: req.get("User-Agent"),
+      ip: req.ip || req.connection.remoteAddress,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    if (res.statusCode === 401 || res.statusCode === 403) {
+      console.warn("Security event:", logData);
+    } else if (res.statusCode >= 400) {
+      console.error("Error event:", logData);
+    } else {
+      console.log("Request:", logData);
+    }
+  });
+  next();
+};
+const sanitizeInput = (req, res, next) => {
+  if (req.body) {
+    Object.keys(req.body).forEach((key) => {
+      if (typeof req.body[key] === "string") {
+        req.body[key] = req.body[key].trim();
+      }
+    });
+  }
+  if (req.query) {
+    Object.keys(req.query).forEach((key) => {
+      if (typeof req.query[key] === "string") {
+        req.query[key] = req.query[key].trim();
+      }
+    });
+  }
+  next();
+};
+const validateUrl = (req, res, next) => {
+  const url = req.body?.url || req.query?.url;
+  if (url) {
+    try {
+      const parsedUrl = new URL(url);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ error: "Invalid URL protocol" });
+      }
+      const allowedDomains = [
+        "amazon.com",
+        "amazon.co.uk",
+        "amazon.de",
+        "amazon.fr",
+        "amazon.it",
+        "amazon.es",
+        "ebay.com",
+        "ebay.co.uk",
+        "ebay.de",
+        "ebay.fr",
+        "ebay.it",
+        "ebay.es",
+        "walmart.com",
+        "bestbuy.com",
+        "target.com",
+        "apple.com",
+        "playstation.com",
+        "newegg.com",
+        "costco.com",
+        "larq.com",
+        "livelarq.com",
+        "sonos.com",
+        "shopify.com",
+        "etsy.com",
+        "aliexpress.com",
+        "banggood.com",
+        "gearbest.com"
+      ];
+      const hostname = parsedUrl.hostname.toLowerCase().replace("www.", "");
+      if (!allowedDomains.some((domain) => hostname.includes(domain))) {
+        console.warn(`Attempted access to non-whitelisted domain: ${hostname}`);
+      }
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid URL format" });
+    }
+  }
+  next();
+};
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
@@ -4547,35 +4763,76 @@ async function createServer() {
   const dbStatus = await checkDatabaseConnection();
   console.log("Database status:", dbStatus.status, dbStatus.message);
   const app2 = express__default();
-  app2.use(
-    cors({
-      origin: [
-        process.env.FRONTEND_URL || "https://pavlo4.netlify.app",
-        "https://pavlo4.netlify.app",
-        "http://localhost:8080",
-        "http://localhost:3000"
-      ],
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-    })
-  );
+  app2.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://api.searchapi.io", "https://n8n.srv824584.hstgr.cloud"]
+      }
+    },
+    hsts: {
+      maxAge: 31536e3,
+      includeSubDomains: true,
+      preload: true
+    }
+  }));
+  app2.use(compression({
+    filter: (req, res) => {
+      if (req.headers["x-no-compression"]) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+    level: 6
+  }));
+  const allowedOrigins = [process.env.FRONTEND_URL || "https://pavlo4.netlify.app"];
+  app2.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"]
+  }));
   app2.use(express__default.json({ limit: "10mb" }));
   app2.use(express__default.urlencoded({ extended: true }));
   app2.use(cookieParser());
+  app2.use(securityHeaders);
+  app2.use(requestLogger);
+  app2.use(sanitizeInput);
   app2.get("/api/ping", (_req, res) => {
     res.json({ message: "Hello from Express server v2!" });
   });
-  app2.get("/api/demo", handleDemo);
-  app2.get("/api/location", getLocationHandler);
+  app2.get("/api/demo", cache(300), handleDemo);
+  app2.get("/api/location", cache(600), getLocationHandler);
   app2.post("/api/location", getLocationHandler);
-  app2.get("/api/supported-countries", (req, res) => {
+  app2.get("/api/supported-countries", cache(3600), (req, res) => {
     const { getSupportedCountries } = require("./services/location");
     const countries = getSupportedCountries();
     res.json({ countries });
   });
-  app2.post("/api/auth/register", register);
-  app2.post("/api/auth/login", login);
+  app2.post(
+    "/api/auth/register",
+    authRateLimit,
+    validateRegistration,
+    handleValidationErrors,
+    register
+  );
+  app2.post(
+    "/api/auth/login",
+    authRateLimit,
+    validateLogin,
+    handleValidationErrors,
+    login
+  );
   app2.post("/api/auth/logout", logout);
   app2.get("/api/auth/me", getCurrentUser);
   app2.post("/api/admin/auth/login", adminLogin);
@@ -4596,19 +4853,32 @@ async function createServer() {
   app2.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
   app2.get("/api/affiliate/click/:id", trackAffiliateClick);
   app2.post("/api/affiliate/conversion", trackAffiliateConversion);
-  app2.post("/api/business/auth/register", registerBusiness);
-  app2.post("/api/business/auth/login", loginBusiness);
+  app2.post(
+    "/api/business/auth/register",
+    businessRateLimit,
+    validateBusinessRegistration,
+    handleValidationErrors,
+    registerBusiness
+  );
+  app2.post(
+    "/api/business/auth/login",
+    businessRateLimit,
+    validateLogin,
+    handleValidationErrors,
+    loginBusiness
+  );
   app2.get("/api/business/auth/me", getCurrentBusiness);
   app2.post("/api/business/auth/logout", logoutBusiness);
   app2.get("/api/business/auth/stats", getBusinessStats);
   app2.post("/api/business/register", registerBusiness$1);
-  app2.get("/api/business/active", getActiveBusinesses);
-  app2.get("/api/business/domain/:domain", getBusinessByDomain);
+  app2.get("/api/business/active", cache(300), getActiveBusinesses);
+  app2.get("/api/business/domain/:domain", cache(600), getBusinessByDomain);
   app2.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
   app2.get("/api/admin/business/stats", requireAdminAuth, getBusinessStats$1);
   app2.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
   app2.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
   app2.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
+  app2.put("/api/admin/business/:id/password", requireAdminAuth, updateBusinessPassword);
   app2.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
   app2.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
   app2.use("/api/favorites", router);
@@ -4616,22 +4886,42 @@ async function createServer() {
   app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);
   app2.post("/api/legacy/search-history", saveSearchHistory);
   app2.get("/api/legacy/search-history", getSearchHistory);
-  app2.post("/api/scrape", (req, res) => {
-    req.url = "/n8n-scrape";
-    router$1(req, res, () => {
-    });
-  });
-  app2.use("/api", router$1);
-  app2.post("/api/scrape-product", (req, res) => {
-    req.url = "/n8n-scrape";
-    router$1(req, res, () => {
-    });
-  });
-  app2.post("/api/n8n-webhook-scrape", (req, res) => {
-    req.url = "/n8n-scrape";
-    router$1(req, res, () => {
-    });
-  });
+  app2.post(
+    "/api/scrape",
+    apiRateLimit,
+    validateUrl,
+    (req, res) => {
+      req.url = "/n8n-scrape";
+      router$1(req, res, () => {
+      });
+    }
+  );
+  app2.use(
+    "/api",
+    apiRateLimit,
+    validateUrl,
+    router$1
+  );
+  app2.post(
+    "/api/scrape-product",
+    apiRateLimit,
+    validateUrl,
+    (req, res) => {
+      req.url = "/n8n-scrape";
+      router$1(req, res, () => {
+      });
+    }
+  );
+  app2.post(
+    "/api/n8n-webhook-scrape",
+    apiRateLimit,
+    validateUrl,
+    (req, res) => {
+      req.url = "/n8n-scrape";
+      router$1(req, res, () => {
+      });
+    }
+  );
   app2.get("/api/location-info", getLocationHandler);
   app2.get("/api/health", healthCheckHandler);
   process.on("SIGTERM", async () => {
