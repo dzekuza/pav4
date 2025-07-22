@@ -48,6 +48,7 @@ import {
   getBusinessStats,
   updateBusinessCommission,
   getBusinessDetailedStats,
+  updateBusinessPassword,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -229,6 +230,7 @@ export async function createServer() {
   app.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
   app.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
   app.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
+  app.put("/api/admin/business/:id/password", requireAdminAuth, updateBusinessPassword);
   app.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
   app.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
   

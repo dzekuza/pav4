@@ -4,6 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { useToast } from '../hooks/use-toast';
 import { BusinessStatsModal } from '../components/BusinessStatsModal';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Lock, Eye, EyeOff, Globe } from 'lucide-react';
 
 interface Business {
   id: number;
@@ -39,7 +43,12 @@ export function BusinessManagement() {
   const [stats, setStats] = useState<BusinessStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
-  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -242,6 +251,88 @@ export function BusinessManagement() {
     }
   };
 
+  const handleUpdatePassword = async () => {
+    if (!selectedBusiness) return;
+
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for password complexity
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    if (!passwordRegex.test(newPassword)) {
+      toast({
+        title: "Weak Password",
+        description: "Password must contain uppercase, lowercase, and number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+
+    try {
+      const response = await fetch(`/api/admin/business/${selectedBusiness.id}/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Business password updated successfully",
+        });
+        setShowPasswordModal(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        setSelectedBusiness(null);
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Network Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -428,10 +519,22 @@ export function BusinessManagement() {
                     size="sm"
                     onClick={() => {
                       setSelectedBusiness(business);
-                      setIsStatsModalOpen(true);
+                      setShowStatsModal(true);
                     }}
                   >
                     View Stats
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedBusiness(business);
+                      setShowPasswordModal(true);
+                    }}
+                  >
+                    <Lock className="h-4 w-4 mr-1" />
+                    Update Password
                   </Button>
                   
                   <Button
@@ -449,27 +552,80 @@ export function BusinessManagement() {
       </div>
 
       {/* Business Stats Modal */}
-      {selectedBusiness && (
+      {selectedBusiness && showStatsModal && (
         <BusinessStatsModal
-          business={{
-            id: selectedBusiness.id,
-            name: selectedBusiness.name,
-            domain: selectedBusiness.domain,
-            website: selectedBusiness.website,
-            totalVisits: selectedBusiness.totalVisits,
-            totalPurchases: selectedBusiness.totalPurchases,
-            totalRevenue: selectedBusiness.totalRevenue,
-            adminCommissionRate: selectedBusiness.adminCommissionRate,
-            projectedFee: (selectedBusiness.totalRevenue * selectedBusiness.adminCommissionRate) / 100,
-            averageOrderValue: selectedBusiness.totalPurchases > 0 ? selectedBusiness.totalRevenue / selectedBusiness.totalPurchases : 0,
-            conversionRate: selectedBusiness.totalVisits > 0 ? (selectedBusiness.totalPurchases / selectedBusiness.totalVisits) * 100 : 0,
-          }}
-          isOpen={isStatsModalOpen}
+          business={selectedBusiness}
           onClose={() => {
-            setIsStatsModalOpen(false);
+            setShowStatsModal(false);
             setSelectedBusiness(null);
           }}
         />
+      )}
+
+      {/* Password Update Modal */}
+      {selectedBusiness && showPasswordModal && (
+        <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Password for {selectedBusiness.name}</DialogTitle>
+              <DialogDescription>
+                Set a new password for this business account. The password must be at least 8 characters long and contain uppercase, lowercase, and a number.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setSelectedBusiness(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdatePassword}
+                  disabled={isUpdatingPassword}
+                >
+                  {isUpdatingPassword ? "Updating..." : "Update Password"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
