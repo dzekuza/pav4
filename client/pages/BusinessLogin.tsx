@@ -75,8 +75,12 @@ export default function BusinessLogin() {
     });
   };
 
+  // Debug logging
+  console.log('BusinessLogin render - showRegistrationWizard:', showRegistrationWizard);
+
   // Show registration wizard if requested
   if (showRegistrationWizard) {
+    console.log('Rendering BusinessRegistrationWizard');
     return (
       <div className="min-h-screen bg-background">
         <SearchHeader showBackButton={false} />
@@ -139,7 +143,10 @@ export default function BusinessLogin() {
               <div className="mt-6 text-center">
                 <Button
                   variant="link"
-                  onClick={() => setShowRegistrationWizard(true)}
+                  onClick={() => {
+                    console.log('Register button clicked, setting showRegistrationWizard to true');
+                    setShowRegistrationWizard(true);
+                  }}
                   className="text-sm"
                 >
                   Don't have an account? Register

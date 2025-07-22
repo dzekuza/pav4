@@ -19,95 +19,143 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .url-link {
-            color: #007bff;
-            text-decoration: none;
+        .step {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
         }
-        .url-link:hover {
-            text-decoration: underline;
+        .expected {
+            background: #f3e5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #9c27b0;
         }
-        .feature-list {
-            list-style: none;
-            padding: 0;
+        .url {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
         }
-        .feature-list li {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .feature-list li:before {
-            content: "✅ ";
-            margin-right: 8px;
+        .warning {
+            background: #fff3e0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #ff9800;
         }
     </style>
 </head>
 <body>
-    <h1>🎉 Multi-Step Business Registration Implementation Complete!</h1>
+    <h1>🔧 Business Registration Test</h1>
     
     <div class="test-section">
-        <h2>📋 What's Been Implemented</h2>
-        <ul class="feature-list">
-            <li><strong>Step 1 - Account Setup:</strong> Email address and password creation with validation</li>
-            <li><strong>Step 2 - Business Information:</strong> Complete business details form with validation</li>
-            <li><strong>Progress Indicator:</strong> Visual progress bar showing current step</li>
-            <li><strong>Form Validation:</strong> Real-time validation for email, password, domain, and website</li>
-            <li><strong>Navigation:</strong> Back/Next buttons with proper state management</li>
-            <li><strong>Error Handling:</strong> Comprehensive error messages and toast notifications</li>
-            <li><strong>Responsive Design:</strong> Works on desktop and mobile devices</li>
+        <h2>✅ Multi-Step Business Registration Verification</h2>
+        
+        <div class="step">
+            <h3>Step 1: Access Business Login</h3>
+            <p>Navigate to the business login page:</p>
+            <div class="url">http://localhost:8083/business-login</div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Click Register Button</h3>
+            <p>On the business login page, click the "Don't have an account? Register" button</p>
+        </div>
+
+        <div class="expected">
+            <h3>Expected Result: Step 1 - Account Setup</h3>
+            <p>You should see a form with:</p>
+            <ul>
+                <li>✅ Email Address field</li>
+                <li>✅ Password field</li>
+                <li>✅ Confirm Password field</li>
+                <li>✅ Progress indicator showing "Step 1 of 2"</li>
+                <li>✅ "Next Step" button</li>
+            </ul>
+        </div>
+
+        <div class="expected">
+            <h3>Expected Result: Step 2 - Business Information</h3>
+            <p>After clicking "Next Step", you should see:</p>
+            <ul>
+                <li>✅ Business Name field</li>
+                <li>✅ Domain field</li>
+                <li>✅ Website URL field</li>
+                <li>✅ Business Description field</li>
+                <li>✅ Category dropdown</li>
+                <li>✅ Country dropdown</li>
+                <li>✅ Contact Email field</li>
+                <li>✅ Contact Phone field</li>
+                <li>✅ Business Address field</li>
+                <li>✅ "Previous Step" and "Create Business Account" buttons</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Troubleshooting</h2>
+        
+        <div class="warning">
+            <h3>If you don't see the email/password fields:</h3>
+            <ol>
+                <li>Make sure you clicked "Don't have an account? Register"</li>
+                <li>Check the browser console for any JavaScript errors</li>
+                <li>Verify the server is running on port 8081</li>
+                <li>Try refreshing the page</li>
+            </ol>
+        </div>
+
+        <div class="warning">
+            <h3>If the registration wizard doesn't appear:</h3>
+            <ol>
+                <li>Check that the BusinessRegistrationWizard component is properly imported</li>
+                <li>Verify the showRegistrationWizard state is being set to true</li>
+                <li>Check for any React component errors in the console</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Test Checklist</h2>
+        <ul>
+            <li>☐ Can access business login page</li>
+            <li>☐ Can click register button</li>
+            <li>☐ Step 1 shows email/password fields</li>
+            <li>☐ Step 1 validation works (password requirements)</li>
+            <li>☐ Can navigate to Step 2</li>
+            <li>☐ Step 2 shows business information fields</li>
+            <li>☐ Can navigate back to Step 1</li>
+            <li>☐ Can submit registration</li>
+            <li>☐ Registration creates business account</li>
+            <li>☐ Can login with created account</li>
         </ul>
     </div>
 
     <div class="test-section">
-        <h2>🔗 Test URLs</h2>
-        <p><strong>Business Login Page:</strong> <a href="http://localhost:8081/business-login" class="url-link" target="_blank">http://localhost:8081/business-login</a></p>
-        <p><strong>Admin Dashboard:</strong> <a href="http://localhost:8081/admin-dashboard" class="url-link" target="_blank">http://localhost:8081/admin-dashboard</a></p>
-        <p><strong>Business Dashboard:</strong> <a href="http://localhost:8081/business/dashboard" class="url-link" target="_blank">http://localhost:8081/business/dashboard</a></p>
+        <h2>🔗 Direct Links</h2>
+        <p><strong>Business Login:</strong> <a href="http://localhost:8083/business-login" target="_blank">http://localhost:8083/business-login</a></p>
+        <p><strong>Admin Dashboard:</strong> <a href="http://localhost:8083/admin" target="_blank">http://localhost:8083/admin</a></p>
+        <p><strong>Main App:</strong> <a href="http://localhost:8083/" target="_blank">http://localhost:8083/</a></p>
     </div>
 
-    <div class="test-section">
-        <h2>🧪 How to Test</h2>
-        <ol>
-            <li><strong>Access Business Login:</strong> Go to <a href="http://localhost:8081/business-login" class="url-link" target="_blank">Business Login Page</a></li>
-            <li><strong>Start Registration:</strong> Click "Don't have an account? Register"</li>
-            <li><strong>Step 1:</strong> Enter email and password, then click "Next Step"</li>
-            <li><strong>Step 2:</strong> Fill in business information and click "Create Business Account"</li>
-            <li><strong>Login:</strong> Use the created credentials to log in</li>
-            <li><strong>View Dashboard:</strong> Check the business dashboard for statistics</li>
-        </ol>
-    </div>
-
-    <div class="test-section">
-        <h2>📊 Admin Dashboard Features</h2>
-        <ul class="feature-list">
-            <li><strong>Business URL Display:</strong> Shows domain and website for each business</li>
-            <li><strong>Visit Tracking:</strong> Displays total visits, purchases, and revenue</li>
-            <li><strong>Commission Management:</strong> Set custom commission rates for each business</li>
-            <li><strong>Detailed Statistics:</strong> Click "View Stats" for comprehensive analytics</li>
-            <li><strong>Performance Metrics:</strong> Conversion rates and projected fees</li>
-        </ul>
-    </div>
-
-    <div class="test-section">
-        <h2>🎯 Key Features</h2>
-        <ul class="feature-list">
-            <li><strong>Multi-Step Form:</strong> Clean, guided registration process</li>
-            <li><strong>Real-time Validation:</strong> Immediate feedback on form errors</li>
-            <li><strong>Progress Tracking:</strong> Visual indicator of registration progress</li>
-            <li><strong>Business URL Integration:</strong> Domain and website tracking in admin dashboard</li>
-            <li><strong>Visit Statistics:</strong> Automatic tracking when businesses appear in suggestions</li>
-            <li><strong>Commission Management:</strong> Admin can set custom rates for each business</li>
-        </ul>
-    </div>
-
-    <div class="test-section">
-        <h2>🚀 Ready to Test!</h2>
-        <p>The multi-step business registration is now fully implemented and ready for testing. The system includes:</p>
-        <ul class="feature-list">
-            <li>Step 1: Email and password setup with validation</li>
-            <li>Step 2: Complete business information with domain/website validation</li>
-            <li>Admin dashboard with URL tracking and statistics</li>
-            <li>Business dashboard with performance metrics</li>
-            <li>Commission management system</li>
-        </ul>
-    </div>
+    <script>
+        // Simple test to verify the page loads
+        console.log('Business Registration Test Page Loaded');
+        
+        // Check if we can access the business login endpoint
+        fetch('http://localhost:8083/api/ping')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Server is running:', data);
+            })
+            .catch(error => {
+                console.error('❌ Server connection failed:', error);
+            });
+    </script>
 </body>
 </html> 
