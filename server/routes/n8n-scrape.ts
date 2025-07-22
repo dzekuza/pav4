@@ -5,7 +5,7 @@ import express from "express";
 import axios from "axios";
 import { ProductData, PriceComparison } from "../../shared/api";
 import { Request, Response } from "express";
-import { searchHistoryService } from "../services/database";
+import { searchHistoryService, businessService } from "../services/database";
 import { requireAuth } from "../middleware/auth";
 
 // --- Product patterns for better product parsing ---
@@ -2024,6 +2024,81 @@ function extractCurrency(priceString: string): string {
   return '€'; // Default to Euro
 }
 
+// Filter suggestions based on registered businesses
+async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Promise<any[]> {
+  try {
+    // Get all active registered businesses
+    const registeredBusinesses = await businessService.getActiveBusinesses();
+    
+    if (registeredBusinesses.length === 0) {
+      // If no businesses are registered, return all suggestions
+      return suggestions;
+    }
+
+    // Create a set of registered domains for faster lookup
+    const registeredDomains = new Set(
+      registeredBusinesses.map(business => business.domain.toLowerCase())
+    );
+
+    // Filter suggestions to only include registered businesses
+    const filteredSuggestions = suggestions.filter(suggestion => {
+      if (!suggestion.url) return false;
+      
+      try {
+        const url = new URL(suggestion.url);
+        const domain = url.hostname.toLowerCase().replace('www.', '');
+        return registeredDomains.has(domain);
+      } catch {
+        return false;
+      }
+    });
+
+    // If no suggestions match registered businesses, return empty array
+    if (filteredSuggestions.length === 0) {
+      console.log("No suggestions match registered businesses");
+      return [];
+    }
+
+    console.log(`Filtered ${suggestions.length} suggestions to ${filteredSuggestions.length} from registered businesses`);
+    return filteredSuggestions;
+  } catch (error) {
+    console.error("Error filtering suggestions by registered businesses:", error);
+    // Return original suggestions if filtering fails
+    return suggestions;
+  }
+}
+
+// Track visits for businesses that appear in suggestions
+async function trackBusinessVisits(suggestions: any[]): Promise<void> {
+  try {
+    const visitedDomains = new Set<string>();
+    
+    // Extract unique domains from suggestions
+    for (const suggestion of suggestions) {
+      if (suggestion.url) {
+        try {
+          const url = new URL(suggestion.url);
+          const domain = url.hostname.toLowerCase().replace('www.', '');
+          visitedDomains.add(domain);
+        } catch {
+          // Skip invalid URLs
+        }
+      }
+    }
+    
+    // Increment visit count for each business
+    for (const domain of visitedDomains) {
+      const business = await businessService.findBusinessByDomain(domain);
+      if (business) {
+        await businessService.incrementBusinessVisits(business.id);
+        console.log(`Tracked visit for business: ${business.name} (${domain})`);
+      }
+    }
+  } catch (error) {
+    console.error("Error tracking business visits:", error);
+  }
+}
+
 // New route for n8n webhook scraping
 router.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
@@ -2045,7 +2120,16 @@ router.post("/n8n-scrape", async (req, res) => {
 
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
-    console.log("Suggestions count:", result.suggestions?.length || 0);
+    console.log("Original suggestions count:", result.suggestions?.length || 0);
+
+    // Filter suggestions based on registered businesses and track visits
+    if (result.suggestions && result.suggestions.length > 0) {
+      result.suggestions = await filterSuggestionsByRegisteredBusinesses(result.suggestions);
+      console.log("Filtered suggestions count:", result.suggestions.length);
+      
+      // Track visits for each business that appears in suggestions
+      await trackBusinessVisits(result.suggestions);
+    }
 
     // If findSimilar is true, modify the search to focus on similar products
     if (findSimilar && result.mainProduct) {
