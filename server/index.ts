@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import compression from "compression";
 import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
 import favoritesRouter from "./routes/favorites";
@@ -54,6 +56,20 @@ import {
   logoutBusiness,
   getBusinessStats as getBusinessAuthStats,
 } from "./routes/business-auth";
+import {
+  authRateLimit,
+  apiRateLimit,
+  businessRateLimit,
+  validateRegistration,
+  validateBusinessRegistration,
+  validateLogin,
+  handleValidationErrors,
+  cache,
+  securityHeaders,
+  requestLogger,
+  sanitizeInput,
+  validateUrl,
+} from "./middleware/security";
 
 // Load environment variables
 dotenv.config();
@@ -69,43 +85,89 @@ export async function createServer() {
   
   const app = express();
 
-  // Middleware
-  app.use(
-    cors({
-      origin: process.env.NODE_ENV === "production"
-        ? [
-            process.env.FRONTEND_URL || "https://pavlo4.netlify.app",
-            "https://pavlo4.netlify.app",
-            "http://localhost:8080",
-            "http://localhost:3000"
-          ]
-        : "http://localhost:8080",
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-    }),
-  );
+  // Security middleware
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://api.searchapi.io", "https://n8n.srv824584.hstgr.cloud"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
+  }));
+
+  // Compression middleware
+  app.use(compression({
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+    level: 6,
+  }));
+
+  // CORS configuration
+  const allowedOrigins = process.env.NODE_ENV === "production"
+    ? [process.env.FRONTEND_URL || "https://pavlo4.netlify.app"]
+    : ["http://localhost:8080", "http://localhost:3000"];
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'],
+  }));
+
+  // Additional middleware
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+  app.use(securityHeaders);
+  app.use(requestLogger);
+  app.use(sanitizeInput);
 
-  // Public API routes
+  // Public API routes with caching
   app.get("/api/ping", (_req, res) => {
     res.json({ message: "Hello from Express server v2!" });
   });
 
-  app.get("/api/demo", handleDemo);
-  app.get("/api/location", getLocationHandler);
+  app.get("/api/demo", cache(300), handleDemo); // Cache for 5 minutes
+  app.get("/api/location", cache(600), getLocationHandler); // Cache for 10 minutes
   app.post("/api/location", getLocationHandler);
-  app.get("/api/supported-countries", (req, res) => {
+  app.get("/api/supported-countries", cache(3600), (req, res) => { // Cache for 1 hour
     const { getSupportedCountries } = require("./services/location");
     const countries = getSupportedCountries();
     res.json({ countries });
   });
 
-  // Authentication routes
-  app.post("/api/auth/register", register);
-  app.post("/api/auth/login", login);
+  // Authentication routes with rate limiting and validation
+  app.post("/api/auth/register", 
+    authRateLimit,
+    validateRegistration,
+    handleValidationErrors,
+    register
+  );
+  app.post("/api/auth/login", 
+    authRateLimit,
+    validateLogin,
+    handleValidationErrors,
+    login
+  );
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
   
@@ -139,17 +201,27 @@ export async function createServer() {
   app.get("/api/affiliate/click/:id", trackAffiliateClick);
   app.post("/api/affiliate/conversion", trackAffiliateConversion);
   
-  // Business authentication routes
-  app.post("/api/business/auth/register", registerBusinessAuth);
-  app.post("/api/business/auth/login", loginBusiness);
+  // Business authentication routes with rate limiting and validation
+  app.post("/api/business/auth/register", 
+    businessRateLimit,
+    validateBusinessRegistration,
+    handleValidationErrors,
+    registerBusinessAuth
+  );
+  app.post("/api/business/auth/login", 
+    businessRateLimit,
+    validateLogin,
+    handleValidationErrors,
+    loginBusiness
+  );
   app.get("/api/business/auth/me", getCurrentBusiness);
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", getBusinessAuthStats);
   
-  // Business routes
+  // Business routes with caching and validation
   app.post("/api/business/register", registerBusiness);
-  app.get("/api/business/active", getActiveBusinesses);
-  app.get("/api/business/domain/:domain", getBusinessByDomain);
+  app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
+  app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
   
   // Admin business routes
   app.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
@@ -171,25 +243,41 @@ export async function createServer() {
   app.post("/api/legacy/search-history", saveSearchHistory);
   app.get("/api/legacy/search-history", getSearchHistory);
 
-  // Public search routes (no authentication required)
-  app.post("/api/scrape", (req, res) => {
-    // Redirect to the n8n webhook scraping endpoint
-    req.url = '/n8n-scrape';
-    n8nScrapeRouter(req, res, () => {});
-  });
-  app.use("/api", n8nScrapeRouter); // N8N scraping routes (public)
+  // Public search routes with rate limiting and validation
+  app.post("/api/scrape", 
+    apiRateLimit,
+    validateUrl,
+    (req, res) => {
+      // Redirect to the n8n webhook scraping endpoint
+      req.url = '/n8n-scrape';
+      n8nScrapeRouter(req, res, () => {});
+    }
+  );
+  app.use("/api", 
+    apiRateLimit,
+    validateUrl,
+    n8nScrapeRouter
+  ); // N8N scraping routes (public)
   
-  // TestSprite compatibility routes (public)
-  app.post("/api/scrape-product", (req, res) => {
-    // Redirect to the n8n webhook scraping endpoint
-    req.url = '/n8n-scrape';
-    n8nScrapeRouter(req, res, () => {});
-  });
-  app.post("/api/n8n-webhook-scrape", (req, res) => {
-    // Redirect to the n8n webhook scraping endpoint
-    req.url = '/n8n-scrape';
-    n8nScrapeRouter(req, res, () => {});
-  });
+  // TestSprite compatibility routes with rate limiting and validation
+  app.post("/api/scrape-product", 
+    apiRateLimit,
+    validateUrl,
+    (req, res) => {
+      // Redirect to the n8n webhook scraping endpoint
+      req.url = '/n8n-scrape';
+      n8nScrapeRouter(req, res, () => {});
+    }
+  );
+  app.post("/api/n8n-webhook-scrape", 
+    apiRateLimit,
+    validateUrl,
+    (req, res) => {
+      // Redirect to the n8n webhook scraping endpoint
+      req.url = '/n8n-scrape';
+      n8nScrapeRouter(req, res, () => {});
+    }
+  );
   app.get("/api/location-info", getLocationHandler);
 
   // Health check route
