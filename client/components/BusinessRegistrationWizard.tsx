@@ -75,10 +75,21 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
       return false;
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       toast({
         title: "Weak Password",
-        description: "Password must be at least 6 characters long",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check for password complexity
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    if (!passwordRegex.test(formData.password)) {
+      toast({
+        title: "Weak Password",
+        description: "Password must contain uppercase, lowercase, and number",
         variant: "destructive",
       });
       return false;

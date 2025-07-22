@@ -2523,6 +2523,30 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions) {
     return suggestions;
   }
 }
+async function trackBusinessVisits(suggestions) {
+  try {
+    const visitedDomains = /* @__PURE__ */ new Set();
+    for (const suggestion of suggestions) {
+      if (suggestion.url) {
+        try {
+          const url = new URL(suggestion.url);
+          const domain = url.hostname.toLowerCase().replace("www.", "");
+          visitedDomains.add(domain);
+        } catch {
+        }
+      }
+    }
+    for (const domain of visitedDomains) {
+      const business = await businessService.findBusinessByDomain(domain);
+      if (business) {
+        await businessService.incrementBusinessVisits(business.id);
+        console.log(`Tracked visit for business: ${business.name} (${domain})`);
+      }
+    }
+  } catch (error) {
+    console.error("Error tracking business visits:", error);
+  }
+}
 router$1.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
@@ -2541,6 +2565,7 @@ router$1.post("/n8n-scrape", async (req, res) => {
     if (result.suggestions && result.suggestions.length > 0) {
       result.suggestions = await filterSuggestionsByRegisteredBusinesses(result.suggestions);
       console.log("Filtered suggestions count:", result.suggestions.length);
+      await trackBusinessVisits(result.suggestions);
     }
     if (findSimilar && result.mainProduct) {
       console.log("Processing similar products search...");
