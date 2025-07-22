@@ -16,6 +16,10 @@ import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
 import NewSearchResults from "./pages/NewSearchResults";
+import { BusinessRegistration } from "./components/BusinessRegistration";
+import { BusinessManagement } from "./pages/BusinessManagement";
+import BusinessLogin from "./pages/BusinessLogin";
+import BusinessDashboard from "./pages/BusinessDashboard";
 // import NewLanding from "./pages/NewLanding";
 // import NewSearch from "./pages/NewSearch";
 
@@ -43,6 +47,10 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-dashboard" element={<Admin />} />
+            <Route path="/business/register" element={<BusinessRegistration />} />
+            <Route path="/admin/business" element={<BusinessManagement />} />
+            <Route path="/business-login" element={<BusinessLogin />} />
+            <Route path="/business/dashboard" element={<BusinessDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

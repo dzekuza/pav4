@@ -85,6 +85,33 @@ model LegacySearchHistory {
   @@map("legacy_search_history")
 }
 
+model Business {
+  id                  Int      @id @default(autoincrement())
+  name                String
+  domain              String   @unique
+  website             String
+  description         String?
+  logo                String?
+  isActive            Boolean  @default(true)
+  isVerified          Boolean  @default(false)
+  contactEmail        String?
+  contactPhone        String?
+  address             String?
+  country             String?
+  category            String?
+  commission          Float    @default(0)
+  email               String   @unique
+  password            String
+  totalVisits         Int      @default(0)
+  totalPurchases      Int      @default(0)
+  totalRevenue        Float    @default(0)
+  adminCommissionRate Float    @default(5.0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("businesses")
+}
+
 model AffiliateUrl {
   id          Int      @id @default(autoincrement())
   name        String

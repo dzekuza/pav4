@@ -35,6 +35,25 @@ import {
   trackAffiliateClick,
   trackAffiliateConversion,
 } from "./routes/affiliate";
+import {
+  registerBusiness,
+  getAllBusinesses,
+  getActiveBusinesses,
+  getBusinessByDomain,
+  updateBusiness,
+  deleteBusiness,
+  verifyBusiness,
+  getBusinessStats,
+  updateBusinessCommission,
+  getBusinessDetailedStats,
+} from "./routes/business";
+import {
+  registerBusiness as registerBusinessAuth,
+  loginBusiness,
+  getCurrentBusiness,
+  logoutBusiness,
+  getBusinessStats as getBusinessAuthStats,
+} from "./routes/business-auth";
 
 // Load environment variables
 dotenv.config();
@@ -119,6 +138,27 @@ export async function createServer() {
   // Public affiliate tracking endpoints
   app.get("/api/affiliate/click/:id", trackAffiliateClick);
   app.post("/api/affiliate/conversion", trackAffiliateConversion);
+  
+  // Business authentication routes
+  app.post("/api/business/auth/register", registerBusinessAuth);
+  app.post("/api/business/auth/login", loginBusiness);
+  app.get("/api/business/auth/me", getCurrentBusiness);
+  app.post("/api/business/auth/logout", logoutBusiness);
+  app.get("/api/business/auth/stats", getBusinessAuthStats);
+  
+  // Business routes
+  app.post("/api/business/register", registerBusiness);
+  app.get("/api/business/active", getActiveBusinesses);
+  app.get("/api/business/domain/:domain", getBusinessByDomain);
+  
+  // Admin business routes
+  app.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
+  app.get("/api/admin/business/stats", requireAdminAuth, getBusinessStats);
+  app.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
+  app.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
+  app.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
+  app.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
+  app.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
   
   // Favorites routes
   app.use("/api/favorites", favoritesRouter);

@@ -379,6 +379,201 @@ export const affiliateService = {
   },
 };
 
+// Business operations
+export const businessService = {
+  async createBusiness(data: {
+    name: string;
+    domain: string;
+    website: string;
+    description?: string;
+    logo?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    address?: string;
+    country?: string;
+    category?: string;
+    commission?: number;
+    email: string;
+    password: string;
+  }) {
+    return prisma.business.create({
+      data: {
+        name: data.name,
+        domain: data.domain.toLowerCase(),
+        website: data.website,
+        description: data.description,
+        logo: data.logo,
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone,
+        address: data.address,
+        country: data.country,
+        category: data.category,
+        commission: data.commission || 0,
+        email: data.email,
+        password: data.password,
+      },
+    });
+  },
+
+  async findBusinessByDomain(domain: string) {
+    return prisma.business.findUnique({
+      where: { domain: domain.toLowerCase() },
+    });
+  },
+
+  async getAllBusinesses() {
+    return prisma.business.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  },
+
+  async getActiveBusinesses() {
+    return prisma.business.findMany({
+      where: { isActive: true },
+      orderBy: {
+        name: "asc",
+      },
+    });
+  },
+
+  async updateBusiness(
+    id: number,
+    data: Partial<{
+      name: string;
+      domain: string;
+      website: string;
+      description: string;
+      logo: string;
+      isActive: boolean;
+      isVerified: boolean;
+      contactEmail: string;
+      contactPhone: string;
+      address: string;
+      country: string;
+      category: string;
+      commission: number;
+    }>,
+  ) {
+    return prisma.business.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async deleteBusiness(id: number) {
+    return prisma.business.delete({
+      where: { id },
+    });
+  },
+
+  async verifyBusiness(id: number) {
+    return prisma.business.update({
+      where: { id },
+      data: { isVerified: true },
+    });
+  },
+
+  async getBusinessStats() {
+    const [totalBusinesses, activeBusinesses, verifiedBusinesses] = await Promise.all([
+      prisma.business.count(),
+      prisma.business.count({ where: { isActive: true } }),
+      prisma.business.count({ where: { isVerified: true } }),
+    ]);
+
+    return {
+      totalBusinesses,
+      activeBusinesses,
+      verifiedBusinesses,
+    };
+  },
+
+  // Business authentication
+  async findBusinessByEmail(email: string) {
+    return prisma.business.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+  },
+
+  async findBusinessById(id: number) {
+    return prisma.business.findUnique({
+      where: { id },
+    });
+  },
+
+  // Business statistics
+  async updateBusinessStats(businessId: number, data: {
+    totalVisits?: number;
+    totalPurchases?: number;
+    totalRevenue?: number;
+  }) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data,
+    });
+  },
+
+  async incrementBusinessVisits(businessId: number) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: {
+        totalVisits: {
+          increment: 1,
+        },
+      },
+    });
+  },
+
+  async incrementBusinessPurchases(businessId: number, revenue: number) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: {
+        totalPurchases: {
+          increment: 1,
+        },
+        totalRevenue: {
+          increment: revenue,
+        },
+      },
+    });
+  },
+
+  async getBusinessStatistics(businessId: number) {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        totalVisits: true,
+        totalPurchases: true,
+        totalRevenue: true,
+        adminCommissionRate: true,
+      },
+    });
+
+    if (!business) return null;
+
+    const projectedFee = (business.totalRevenue * business.adminCommissionRate) / 100;
+    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+
+    return {
+      ...business,
+      projectedFee,
+      averageOrderValue,
+      conversionRate: business.totalVisits > 0 ? (business.totalPurchases / business.totalVisits) * 100 : 0,
+    };
+  },
+
+  async updateAdminCommissionRate(businessId: number, commissionRate: number) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: { adminCommissionRate: commissionRate },
+    });
+  },
+};
+
 // Graceful shutdown
 export const gracefulShutdown = async () => {
   try {

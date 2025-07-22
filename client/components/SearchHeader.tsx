@@ -1,4 +1,4 @@
-import { ArrowLeft, TrendingUp, User, LogOut, Shield } from "lucide-react";
+import { ArrowLeft, TrendingUp, User, LogOut, Shield, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -88,6 +88,30 @@ export function SearchHeader({
           </div>
 
           <nav className="flex items-center space-x-4">
+            {/* Business Links - Always visible */}
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/business/register">
+                <Building2 className="mr-2 h-4 w-4" />
+                Register Business
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="hidden md:flex"
+            >
+              <Link to="/business-login">
+                <Building2 className="mr-2 h-4 w-4" />
+                Business Login
+              </Link>
+            </Button>
+
             {/* Show navigation links only when authenticated */}
             {isAuthenticated && (
               <>
@@ -159,6 +183,18 @@ export function SearchHeader({
                       )}
                     </div>
                   </div>
+                  <DropdownMenuItem asChild className="md:hidden">
+                    <Link to="/business/register">
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Register Business
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="md:hidden">
+                    <Link to="/business-login">
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Business Login
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="md:hidden">
                     <Link to="/history">

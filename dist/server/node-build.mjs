@@ -297,6 +297,146 @@ const affiliateService = {
     };
   }
 };
+const businessService = {
+  async createBusiness(data) {
+    return prisma.business.create({
+      data: {
+        name: data.name,
+        domain: data.domain.toLowerCase(),
+        website: data.website,
+        description: data.description,
+        logo: data.logo,
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone,
+        address: data.address,
+        country: data.country,
+        category: data.category,
+        commission: data.commission || 0,
+        email: data.email,
+        password: data.password
+      }
+    });
+  },
+  async findBusinessByDomain(domain) {
+    return prisma.business.findUnique({
+      where: { domain: domain.toLowerCase() }
+    });
+  },
+  async getAllBusinesses() {
+    return prisma.business.findMany({
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  },
+  async getActiveBusinesses() {
+    return prisma.business.findMany({
+      where: { isActive: true },
+      orderBy: {
+        name: "asc"
+      }
+    });
+  },
+  async updateBusiness(id, data) {
+    return prisma.business.update({
+      where: { id },
+      data
+    });
+  },
+  async deleteBusiness(id) {
+    return prisma.business.delete({
+      where: { id }
+    });
+  },
+  async verifyBusiness(id) {
+    return prisma.business.update({
+      where: { id },
+      data: { isVerified: true }
+    });
+  },
+  async getBusinessStats() {
+    const [totalBusinesses, activeBusinesses, verifiedBusinesses] = await Promise.all([
+      prisma.business.count(),
+      prisma.business.count({ where: { isActive: true } }),
+      prisma.business.count({ where: { isVerified: true } })
+    ]);
+    return {
+      totalBusinesses,
+      activeBusinesses,
+      verifiedBusinesses
+    };
+  },
+  // Business authentication
+  async findBusinessByEmail(email) {
+    return prisma.business.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+  },
+  async findBusinessById(id) {
+    return prisma.business.findUnique({
+      where: { id }
+    });
+  },
+  // Business statistics
+  async updateBusinessStats(businessId, data) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data
+    });
+  },
+  async incrementBusinessVisits(businessId) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: {
+        totalVisits: {
+          increment: 1
+        }
+      }
+    });
+  },
+  async incrementBusinessPurchases(businessId, revenue) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: {
+        totalPurchases: {
+          increment: 1
+        },
+        totalRevenue: {
+          increment: revenue
+        }
+      }
+    });
+  },
+  async getBusinessStatistics(businessId) {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        totalVisits: true,
+        totalPurchases: true,
+        totalRevenue: true,
+        adminCommissionRate: true
+      }
+    });
+    if (!business) return null;
+    const projectedFee = business.totalRevenue * business.adminCommissionRate / 100;
+    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+    return {
+      ...business,
+      projectedFee,
+      averageOrderValue,
+      conversionRate: business.totalVisits > 0 ? business.totalPurchases / business.totalVisits * 100 : 0
+    };
+  },
+  async updateAdminCommissionRate(businessId, commissionRate) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: { adminCommissionRate: commissionRate }
+    });
+  }
+};
 const gracefulShutdown = async () => {
   try {
     await prisma.$disconnect();
@@ -2353,6 +2493,36 @@ function extractCurrency(priceString) {
   if (priceString.includes("£")) return "£";
   return "€";
 }
+async function filterSuggestionsByRegisteredBusinesses(suggestions) {
+  try {
+    const registeredBusinesses = await businessService.getActiveBusinesses();
+    if (registeredBusinesses.length === 0) {
+      return suggestions;
+    }
+    const registeredDomains = new Set(
+      registeredBusinesses.map((business) => business.domain.toLowerCase())
+    );
+    const filteredSuggestions = suggestions.filter((suggestion) => {
+      if (!suggestion.url) return false;
+      try {
+        const url = new URL(suggestion.url);
+        const domain = url.hostname.toLowerCase().replace("www.", "");
+        return registeredDomains.has(domain);
+      } catch {
+        return false;
+      }
+    });
+    if (filteredSuggestions.length === 0) {
+      console.log("No suggestions match registered businesses");
+      return [];
+    }
+    console.log(`Filtered ${suggestions.length} suggestions to ${filteredSuggestions.length} from registered businesses`);
+    return filteredSuggestions;
+  } catch (error) {
+    console.error("Error filtering suggestions by registered businesses:", error);
+    return suggestions;
+  }
+}
 router$1.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
@@ -2367,7 +2537,11 @@ router$1.post("/n8n-scrape", async (req, res) => {
     const result = await scrapeWithN8nWebhook(url, gl);
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
-    console.log("Suggestions count:", result.suggestions?.length || 0);
+    console.log("Original suggestions count:", result.suggestions?.length || 0);
+    if (result.suggestions && result.suggestions.length > 0) {
+      result.suggestions = await filterSuggestionsByRegisteredBusinesses(result.suggestions);
+      console.log("Filtered suggestions count:", result.suggestions.length);
+    }
     if (findSimilar && result.mainProduct) {
       console.log("Processing similar products search...");
       const productTitle = result.mainProduct.title;
@@ -2393,6 +2567,8 @@ router$1.post("/n8n-scrape", async (req, res) => {
           requestId: requestId || `search_${Date.now()}`
         });
         console.log(`Search history saved for user ${userId} (type: ${findSimilar ? "similar" : "price_comparison"})`);
+      } else {
+        console.log("No user authentication found, skipping search history save");
       }
     } catch (historyError) {
       console.error("Failed to save search history:", historyError);
@@ -2410,13 +2586,13 @@ router$1.post("/n8n-scrape", async (req, res) => {
     });
   }
 });
-const JWT_SECRET$2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const JWT_SECRET$3 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 function generateToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET$2, { expiresIn: "7d" });
+  return jwt.sign({ userId }, JWT_SECRET$3, { expiresIn: "7d" });
 }
 function verifyToken(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET$2);
+    const decoded = jwt.verify(token, JWT_SECRET$3);
     return decoded;
   } catch {
     return null;
@@ -2516,30 +2692,46 @@ const getCurrentUser = async (req, res) => {
       }
     }
     if (!token) {
-      return res.status(401).json({ error: "Not authenticated" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
     const decoded = verifyToken(token);
     if (!decoded) {
-      return res.status(401).json({ error: "Invalid token" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
     const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
     if (isNaN(userId)) {
-      return res.status(401).json({ error: "Invalid user ID in token" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
     const user = await userService.findUserById(userId);
     if (!user) {
-      return res.status(401).json({ error: "User not found" });
+      return res.json({
+        user: null,
+        authenticated: false
+      });
     }
     res.json({
       user: {
         id: user.id,
         email: user.email,
         isAdmin: user.isAdmin
-      }
+      },
+      authenticated: true
     });
   } catch (error) {
     console.error("Get current user error:", error);
-    res.status(500).json({ error: "Failed to get user info" });
+    res.json({
+      user: null,
+      authenticated: false
+    });
   }
 };
 const addToSearchHistory = async (req, res) => {
@@ -2823,7 +3015,7 @@ const getSearchHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to get search history" });
   }
 };
-const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET$2 = process.env.JWT_SECRET || "your-secret-key";
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -2860,7 +3052,7 @@ const adminLogin = async (req, res) => {
         role: admin.role,
         type: "admin"
       },
-      JWT_SECRET$1,
+      JWT_SECRET$2,
       { expiresIn: "24h" }
     );
     res.cookie("adminToken", token, {
@@ -2982,7 +3174,7 @@ const createAdmin = async (req, res) => {
     });
   }
 };
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key";
 const requireAdminAuth = async (req, res, next) => {
   try {
     const token = req.cookies.adminToken;
@@ -2992,7 +3184,7 @@ const requireAdminAuth = async (req, res, next) => {
         message: "Admin authentication required"
       });
     }
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET$1);
     if (decoded.type !== "admin") {
       return res.status(401).json({
         success: false,
@@ -3905,6 +4097,424 @@ const trackAffiliateConversion = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to track conversion" });
   }
 };
+const registerBusiness$1 = async (req, res) => {
+  try {
+    const {
+      name,
+      domain,
+      website,
+      description,
+      logo,
+      contactEmail,
+      contactPhone,
+      address,
+      country,
+      category,
+      commission
+    } = req.body;
+    if (!name || !domain || !website) {
+      return res.status(400).json({
+        success: false,
+        error: "Name, domain, and website are required"
+      });
+    }
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid domain format"
+      });
+    }
+    const existingBusiness = await businessService.findBusinessByDomain(domain);
+    if (existingBusiness) {
+      return res.status(400).json({
+        success: false,
+        error: "A business with this domain already exists"
+      });
+    }
+    const business = await businessService.createBusiness({
+      name,
+      domain,
+      website,
+      description,
+      logo,
+      contactEmail,
+      contactPhone,
+      address,
+      country,
+      category,
+      commission: commission ? parseFloat(commission) : 0,
+      email: contactEmail || `${domain}@example.com`,
+      password: "defaultpassword123"
+      // This will be hashed in the service
+    });
+    res.status(201).json({
+      success: true,
+      business,
+      message: "Business registered successfully"
+    });
+  } catch (error) {
+    console.error("Error registering business:", error);
+    res.status(500).json({ success: false, error: "Failed to register business" });
+  }
+};
+const getAllBusinesses = async (req, res) => {
+  try {
+    const businesses = await businessService.getAllBusinesses();
+    res.json({ success: true, businesses });
+  } catch (error) {
+    console.error("Error fetching businesses:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch businesses" });
+  }
+};
+const getActiveBusinesses = async (req, res) => {
+  try {
+    const businesses = await businessService.getActiveBusinesses();
+    res.json({ success: true, businesses });
+  } catch (error) {
+    console.error("Error fetching active businesses:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch businesses" });
+  }
+};
+const getBusinessByDomain = async (req, res) => {
+  try {
+    const { domain } = req.params;
+    const business = await businessService.findBusinessByDomain(domain);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    res.json({ success: true, business });
+  } catch (error) {
+    console.error("Error fetching business:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch business" });
+  }
+};
+const updateBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const business = await businessService.updateBusiness(parseInt(id), updateData);
+    res.json({
+      success: true,
+      business,
+      message: "Business updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating business:", error);
+    res.status(500).json({ success: false, error: "Failed to update business" });
+  }
+};
+const deleteBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await businessService.deleteBusiness(parseInt(id));
+    res.json({
+      success: true,
+      message: "Business deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting business:", error);
+    res.status(500).json({ success: false, error: "Failed to delete business" });
+  }
+};
+const verifyBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const business = await businessService.verifyBusiness(parseInt(id));
+    res.json({
+      success: true,
+      business,
+      message: "Business verified successfully"
+    });
+  } catch (error) {
+    console.error("Error verifying business:", error);
+    res.status(500).json({ success: false, error: "Failed to verify business" });
+  }
+};
+const getBusinessStats$1 = async (req, res) => {
+  try {
+    const stats = await businessService.getBusinessStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error("Error fetching business stats:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch business stats" });
+  }
+};
+const updateBusinessCommission = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminCommissionRate } = req.body;
+    if (typeof adminCommissionRate !== "number" || adminCommissionRate < 0 || adminCommissionRate > 100) {
+      return res.status(400).json({
+        success: false,
+        error: "Commission rate must be a number between 0 and 100"
+      });
+    }
+    const business = await businessService.updateAdminCommissionRate(parseInt(id), adminCommissionRate);
+    res.json({
+      success: true,
+      business,
+      message: "Commission rate updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating business commission:", error);
+    res.status(500).json({ success: false, error: "Failed to update commission rate" });
+  }
+};
+const getBusinessDetailedStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const stats = await businessService.getBusinessStatistics(parseInt(id));
+    if (!stats) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error("Error fetching business detailed stats:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch business statistics" });
+  }
+};
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+function generateBusinessToken(businessId, email) {
+  return jwt.sign(
+    { businessId, email, type: "business" },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+function verifyBusinessToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
+const registerBusiness = async (req, res) => {
+  try {
+    const {
+      name,
+      domain,
+      website,
+      description,
+      logo,
+      contactEmail,
+      contactPhone,
+      address,
+      country,
+      category,
+      commission,
+      email,
+      password
+    } = req.body;
+    if (!name || !domain || !website || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Name, domain, website, email, and password are required"
+      });
+    }
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid domain format"
+      });
+    }
+    const existingBusinessByDomain = await businessService.findBusinessByDomain(domain);
+    if (existingBusinessByDomain) {
+      return res.status(400).json({
+        success: false,
+        error: "A business with this domain already exists"
+      });
+    }
+    const existingBusinessByEmail = await businessService.findBusinessByEmail(email);
+    if (existingBusinessByEmail) {
+      return res.status(400).json({
+        success: false,
+        error: "A business with this email already exists"
+      });
+    }
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const business = await businessService.createBusiness({
+      name,
+      domain,
+      website,
+      description,
+      logo,
+      contactEmail,
+      contactPhone,
+      address,
+      country,
+      category,
+      commission: commission ? parseFloat(commission) : 0,
+      email,
+      password: hashedPassword
+    });
+    const token = generateBusinessToken(business.id, business.email);
+    res.cookie("business_token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1e3
+      // 7 days
+    });
+    res.status(201).json({
+      success: true,
+      business: {
+        id: business.id,
+        name: business.name,
+        domain: business.domain,
+        email: business.email
+      },
+      message: "Business registered successfully"
+    });
+  } catch (error) {
+    console.error("Error registering business:", error);
+    res.status(500).json({ success: false, error: "Failed to register business" });
+  }
+};
+const loginBusiness = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Email and password are required"
+      });
+    }
+    const business = await businessService.findBusinessByEmail(email);
+    if (!business) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid email or password"
+      });
+    }
+    if (!business.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: "Business account is deactivated"
+      });
+    }
+    const isPasswordValid = await bcrypt.compare(password, business.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid email or password"
+      });
+    }
+    const token = generateBusinessToken(business.id, business.email);
+    res.cookie("business_token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1e3
+      // 7 days
+    });
+    res.json({
+      success: true,
+      business: {
+        id: business.id,
+        name: business.name,
+        domain: business.domain,
+        email: business.email
+      },
+      message: "Business login successful"
+    });
+  } catch (error) {
+    console.error("Error logging in business:", error);
+    res.status(500).json({ success: false, error: "Failed to login" });
+  }
+};
+const getCurrentBusiness = async (req, res) => {
+  try {
+    let token = req.cookies.business_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.json({
+        business: null,
+        authenticated: false
+      });
+    }
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.json({
+        business: null,
+        authenticated: false
+      });
+    }
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.json({
+        business: null,
+        authenticated: false
+      });
+    }
+    res.json({
+      business: {
+        id: business.id,
+        name: business.name,
+        domain: business.domain,
+        email: business.email
+      },
+      authenticated: true
+    });
+  } catch (error) {
+    console.error("Error getting current business:", error);
+    res.json({
+      business: null,
+      authenticated: false
+    });
+  }
+};
+const logoutBusiness = async (req, res) => {
+  res.clearCookie("business_token");
+  res.json({ success: true, message: "Business logged out successfully" });
+};
+const getBusinessStats = async (req, res) => {
+  try {
+    let token = req.cookies.business_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated"
+      });
+    }
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token"
+      });
+    }
+    const stats = await businessService.getBusinessStatistics(decoded.businessId);
+    if (!stats) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error("Error getting business stats:", error);
+    res.status(500).json({ success: false, error: "Failed to get business statistics" });
+  }
+};
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
@@ -3914,8 +4524,15 @@ async function createServer() {
   const app2 = express__default();
   app2.use(
     cors({
-      origin: process.env.FRONTEND_URL || "http://localhost:8080",
-      credentials: true
+      origin: [
+        process.env.FRONTEND_URL || "https://pavlo4.netlify.app",
+        "https://pavlo4.netlify.app",
+        "http://localhost:8080",
+        "http://localhost:3000"
+      ],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
     })
   );
   app2.use(express__default.json({ limit: "10mb" }));
@@ -3954,6 +4571,21 @@ async function createServer() {
   app2.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
   app2.get("/api/affiliate/click/:id", trackAffiliateClick);
   app2.post("/api/affiliate/conversion", trackAffiliateConversion);
+  app2.post("/api/business/auth/register", registerBusiness);
+  app2.post("/api/business/auth/login", loginBusiness);
+  app2.get("/api/business/auth/me", getCurrentBusiness);
+  app2.post("/api/business/auth/logout", logoutBusiness);
+  app2.get("/api/business/auth/stats", getBusinessStats);
+  app2.post("/api/business/register", registerBusiness$1);
+  app2.get("/api/business/active", getActiveBusinesses);
+  app2.get("/api/business/domain/:domain", getBusinessByDomain);
+  app2.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
+  app2.get("/api/admin/business/stats", requireAdminAuth, getBusinessStats$1);
+  app2.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
+  app2.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
+  app2.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
+  app2.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
+  app2.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
   app2.use("/api/favorites", router);
   app2.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);
