@@ -118,15 +118,53 @@ export async function createServer() {
   // CORS configuration
   const allowedOrigins = process.env.NODE_ENV === "production"
     ? [process.env.FRONTEND_URL || "https://pavlo4.netlify.app"]
-    : ["http://localhost:8080", "http://localhost:3000"];
+    : [
+        "http://localhost:8080", 
+        "http://localhost:3000", 
+        "http://localhost:8081",
+        "http://localhost:8082", 
+        "http://localhost:8083",
+        "http://localhost:8084",
+        "http://localhost:8085",
+        "http://localhost:8086",
+        "http://localhost:8087",
+        "http://localhost:8088",
+        "http://localhost:8089",
+        "http://localhost:8090",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8081",
+        "http://127.0.0.1:8082",
+        "http://127.0.0.1:8083",
+        "http://127.0.0.1:8084",
+        "http://127.0.0.1:8085",
+        "http://127.0.0.1:8086",
+        "http://127.0.0.1:8087",
+        "http://127.0.0.1:8088",
+        "http://127.0.0.1:8089",
+        "http://127.0.0.1:8090"
+      ];
 
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
       }
+      
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // For development, also allow any localhost origin
+      if (process.env.NODE_ENV === "development" && 
+          (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))) {
+        return callback(null, true);
+      }
+      
+      console.log(`CORS blocked origin: ${origin}`);
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
