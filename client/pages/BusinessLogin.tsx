@@ -112,9 +112,9 @@ export default function BusinessLogin() {
                   <Input
                     id="email"
                     type="email"
+                    placeholder="contact@amazon.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="business@example.com"
                     required
                   />
                 </div>

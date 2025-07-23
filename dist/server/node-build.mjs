@@ -4182,7 +4182,7 @@ const registerBusiness$1 = async (req, res) => {
       country,
       category,
       commission: commission ? parseFloat(commission) : 0,
-      email: contactEmail || `${domain}@example.com`,
+      email: contactEmail || `contact@${domain}`,
       password: "defaultpassword123"
       // This will be hashed in the service
     });
@@ -4791,11 +4791,14 @@ async function createServer() {
   const allowedOrigins = [process.env.FRONTEND_URL || "https://pavlo4.netlify.app"];
   app2.use(cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      if (!origin) {
+        return callback(null, true);
       }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      console.log(`CORS blocked origin: ${origin}`);
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

@@ -284,7 +284,7 @@ export function SearchInput({
                   variant="outline"
                   role="combobox"
                   aria-expanded={openCountrySelect}
-                  className="w-32 h-12 justify-between border-0 focus-visible:ring-0"
+                  className="w-full sm:w-32 h-12 justify-between border-0 focus-visible:ring-0"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{selectedCountryData?.flag}</span>
@@ -343,7 +343,7 @@ export function SearchInput({
             type="submit"
             size="lg"
             disabled={isLoading}
-            className="bg-brand-gradient hover:bg-brand-gradient-reverse transition-all duration-300 h-12 px-8"
+            className="bg-brand-gradient hover:bg-brand-gradient-reverse transition-all duration-300 h-12 px-8 w-full sm:w-auto"
           >
             {isLoading ? "Searching..." : "Compare Prices"}
             <ArrowRight className="ml-2 h-5 w-5" />

@@ -20,6 +20,7 @@ interface BusinessRegistrationData {
   domain: string;
   website: string;
   description: string;
+  logo: string;
   category: string;
   country: string;
   contactEmail: string;
@@ -43,6 +44,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
     domain: '',
     website: '',
     description: '',
+    logo: '',
     category: '',
     country: '',
     contactEmail: '',
@@ -324,134 +326,139 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
           ) : (
             // Step 2: Business Information
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Business Name *</Label>
-                  <Input
-                    id="name"
-                    placeholder="Your Business Name"
-                    value={formData.name}
-                    onChange={(e) => updateFormData('name', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="domain" className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Domain * (e.g., amazon.com)
-                  </Label>
-                  <Input
-                    id="domain"
-                    placeholder="yourdomain.com"
-                    value={formData.domain}
-                    onChange={(e) => updateFormData('domain', e.target.value)}
-                    required
-                  />
-                </div>
+              <div>
+                <Label htmlFor="name">Business Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Amazon, Best Buy, Walmart"
+                />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="website" className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  Website URL *
-                </Label>
+              <div>
+                <Label htmlFor="domain">Domain</Label>
+                <Input
+                  id="domain"
+                  value={formData.domain}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  placeholder="amazon.com, bestbuy.com, walmart.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="website">Website URL</Label>
                 <Input
                   id="website"
-                  type="url"
-                  placeholder="https://yourdomain.com"
                   value={formData.website}
-                  onChange={(e) => updateFormData('website', e.target.value)}
-                  required
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://amazon.com, https://bestbuy.com"
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Business Description</Label>
+              <div>
+                <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe your business and what you offer..."
                   value={formData.description}
-                  onChange={(e) => updateFormData('description', e.target.value)}
-                  rows={3}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe your business and what you offer..."
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => updateFormData('category', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Select value={formData.country} onValueChange={(value) => updateFormData('country', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label htmlFor="logo">Logo URL (Optional)</Label>
+                <Input
+                  id="logo"
+                  value={formData.logo}
+                  onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                  placeholder="https://yourdomain.com/logo.png"
+                />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contactEmail" className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Contact Email
-                  </Label>
-                  <Input
-                    id="contactEmail"
-                    type="email"
-                    placeholder="contact@yourdomain.com"
-                    value={formData.contactEmail}
-                    onChange={(e) => updateFormData('contactEmail', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contactPhone" className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    Contact Phone
-                  </Label>
-                  <Input
-                    id="contactPhone"
-                    type="tel"
-                    placeholder="+1 (555) 123-4567"
-                    value={formData.contactPhone}
-                    onChange={(e) => updateFormData('contactPhone', e.target.value)}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Electronics">Electronics</SelectItem>
+                    <SelectItem value="Fashion">Fashion</SelectItem>
+                    <SelectItem value="Home & Garden">Home & Garden</SelectItem>
+                    <SelectItem value="Sports">Sports</SelectItem>
+                    <SelectItem value="Books">Books</SelectItem>
+                    <SelectItem value="Automotive">Automotive</SelectItem>
+                    <SelectItem value="Health & Beauty">Health & Beauty</SelectItem>
+                    <SelectItem value="Toys & Games">Toys & Games</SelectItem>
+                    <SelectItem value="Food & Beverages">Food & Beverages</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Business Address
-                </Label>
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Select value={formData.country} onValueChange={(value) => setFormData({ ...formData, country: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="United States">United States</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                    <SelectItem value="Germany">Germany</SelectItem>
+                    <SelectItem value="France">France</SelectItem>
+                    <SelectItem value="Spain">Spain</SelectItem>
+                    <SelectItem value="Italy">Italy</SelectItem>
+                    <SelectItem value="Netherlands">Netherlands</SelectItem>
+                    <SelectItem value="Belgium">Belgium</SelectItem>
+                    <SelectItem value="Switzerland">Switzerland</SelectItem>
+                    <SelectItem value="Austria">Austria</SelectItem>
+                    <SelectItem value="Sweden">Sweden</SelectItem>
+                    <SelectItem value="Norway">Norway</SelectItem>
+                    <SelectItem value="Denmark">Denmark</SelectItem>
+                    <SelectItem value="Finland">Finland</SelectItem>
+                    <SelectItem value="Poland">Poland</SelectItem>
+                    <SelectItem value="Czech Republic">Czech Republic</SelectItem>
+                    <SelectItem value="Hungary">Hungary</SelectItem>
+                    <SelectItem value="Slovakia">Slovakia</SelectItem>
+                    <SelectItem value="Slovenia">Slovenia</SelectItem>
+                    <SelectItem value="Croatia">Croatia</SelectItem>
+                    <SelectItem value="Bulgaria">Bulgaria</SelectItem>
+                    <SelectItem value="Romania">Romania</SelectItem>
+                    <SelectItem value="Greece">Greece</SelectItem>
+                    <SelectItem value="Portugal">Portugal</SelectItem>
+                    <SelectItem value="Ireland">Ireland</SelectItem>
+                    <SelectItem value="Luxembourg">Luxembourg</SelectItem>
+                    <SelectItem value="Malta">Malta</SelectItem>
+                    <SelectItem value="Cyprus">Cyprus</SelectItem>
+                    <SelectItem value="Estonia">Estonia</SelectItem>
+                    <SelectItem value="Latvia">Latvia</SelectItem>
+                    <SelectItem value="Lithuania">Lithuania</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Input
+                  id="contactEmail"
+                  value={formData.contactEmail}
+                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  placeholder="contact@yourdomain.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contactPhone">Contact Phone</Label>
+                <Input
+                  id="contactPhone"
+                  value={formData.contactPhone}
+                  onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+              <div>
+                <Label htmlFor="address">Address</Label>
                 <Textarea
                   id="address"
-                  placeholder="Enter your business address..."
                   value={formData.address}
-                  onChange={(e) => updateFormData('address', e.target.value)}
-                  rows={2}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Enter your business address..."
                 />
               </div>
             </div>

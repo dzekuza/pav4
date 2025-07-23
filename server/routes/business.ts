@@ -56,7 +56,7 @@ export const registerBusiness: RequestHandler = async (req, res) => {
       country,
       category,
       commission: commission ? parseFloat(commission) : 0,
-      email: contactEmail || `${domain}@example.com`,
+      email: contactEmail || `contact@${domain}`,
       password: "defaultpassword123", // This will be hashed in the service
     });
 
