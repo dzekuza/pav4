@@ -12,7 +12,6 @@ import History from "./pages/History";
 import Favorites from "./pages/Favorites";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
-import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
 import NewSearchResults from "./pages/NewSearchResults";
@@ -45,8 +44,7 @@ const App = () => (
             <Route path="/history" element={<History />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/admin-dashboard" element={<Admin />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/business/register" element={<BusinessRegistration />} />
             <Route path="/admin/business" element={<BusinessManagement />} />
             <Route path="/business-login" element={<BusinessLogin />} />
