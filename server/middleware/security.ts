@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import mcache from 'memory-cache';
 
@@ -11,14 +11,6 @@ export const authRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
-  keyGenerator: (req) => {
-    if (req.ip) return req.ip;
-    const xff = req.headers['x-forwarded-for'];
-    if (typeof xff === 'string') return xff;
-    if (Array.isArray(xff)) return xff[0];
-    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
-    return 'unknown';
-  },
 });
 
 export const apiRateLimit = rateLimit({
@@ -27,14 +19,6 @@ export const apiRateLimit = rateLimit({
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    if (req.ip) return req.ip;
-    const xff = req.headers['x-forwarded-for'];
-    if (typeof xff === 'string') return xff;
-    if (Array.isArray(xff)) return xff[0];
-    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
-    return 'unknown';
-  },
 });
 
 export const businessRateLimit = rateLimit({
@@ -43,14 +27,6 @@ export const businessRateLimit = rateLimit({
   message: { error: 'Too many business operations, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    if (req.ip) return req.ip;
-    const xff = req.headers['x-forwarded-for'];
-    if (typeof xff === 'string') return xff;
-    if (Array.isArray(xff)) return xff[0];
-    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
-    return 'unknown';
-  },
 });
 
 // Input validation middleware
