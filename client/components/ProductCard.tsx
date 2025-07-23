@@ -20,6 +20,8 @@ interface ProductCardProps {
   isLocal?: boolean;
   distance?: string;
   className?: string;
+  affiliateId?: string; // Add affiliateId prop
+  productId?: string;   // Add productId prop
 }
 
 export function ProductCard({
@@ -39,7 +41,14 @@ export function ProductCard({
   isLocal = false,
   distance,
   className = "",
+  affiliateId,
+  productId,
 }: ProductCardProps) {
+  // Build the /go/ route if affiliateId and productId are available
+  let goUrl = url;
+  if (affiliateId && productId) {
+    goUrl = `/go/${affiliateId}/${productId}`;
+  }
   return (
     <Card
       className={`transition-all hover:shadow-md ${
@@ -112,7 +121,7 @@ export function ProductCard({
           </div>
           <div className="flex flex-col gap-2">
             <Button
-              onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+              onClick={() => window.open(goUrl, "_blank", "noopener,noreferrer")}
               className="w-full"
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
@@ -121,7 +130,7 @@ export function ProductCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+              onClick={() => window.open(goUrl, "_blank", "noopener,noreferrer")}
               className="w-full"
             >
               <ExternalLink className="mr-2 h-3 w-3" />

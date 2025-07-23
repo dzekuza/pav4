@@ -584,6 +584,55 @@ export const businessService = {
   },
 };
 
+// Click log operations
+export const clickLogService = {
+  async logClick(data: {
+    affiliateId: string;
+    productId: string;
+    userId?: number;
+    userAgent?: string;
+    referrer?: string;
+    ip?: string;
+  }) {
+    return prisma.clickLog.create({
+      data: {
+        affiliateId: data.affiliateId,
+        productId: data.productId,
+        userId: data.userId,
+        userAgent: data.userAgent,
+        referrer: data.referrer,
+        ip: data.ip,
+      },
+    });
+  },
+
+  // TODO: Implement real product/business lookup
+  async getProductUrlByAffiliateAndProductId(affiliateId: string, productId: string): Promise<string | null> {
+    // Try to find the affiliate by id (as int) or name
+    let affiliate: any = null;
+    const idNum = parseInt(affiliateId, 10);
+    if (!isNaN(idNum)) {
+      affiliate = await prisma.affiliateUrl.findUnique({ where: { id: idNum } });
+    }
+    if (!affiliate) {
+      affiliate = await prisma.affiliateUrl.findFirst({ where: { name: affiliateId } });
+    }
+    if (!affiliate) return null;
+    // If the affiliate url contains a placeholder for productId, replace it
+    if (affiliate.url.includes('{productId}')) {
+      return affiliate.url.replace('{productId}', productId);
+    }
+    // Otherwise, append productId as a slug or query param
+    if (affiliate.url.endsWith('/')) {
+      return affiliate.url + productId;
+    }
+    if (affiliate.url.includes('?')) {
+      return affiliate.url + '&product=' + productId;
+    }
+    return affiliate.url + '/' + productId;
+  },
+};
+
 // Graceful shutdown
 export const gracefulShutdown = async () => {
   try {

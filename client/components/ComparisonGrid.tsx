@@ -55,6 +55,16 @@ export function ComparisonGrid({
   const localDealers = products.filter((p) => p.isLocal);
   const globalDealers = products.filter((p) => !p.isLocal);
 
+  function extractProductId(url: string): string {
+    try {
+      const u = new URL(url);
+      const parts = u.pathname.split('/').filter(Boolean);
+      return parts[parts.length - 1] || url;
+    } catch {
+      return url;
+    }
+  }
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Local Dealers Section */}
@@ -93,6 +103,8 @@ export function ComparisonGrid({
                   savings={savings}
                   isLocal={product.isLocal}
                   distance={product.distance}
+                  affiliateId={product.store}
+                  productId={extractProductId(product.url)}
                 />
               );
             })}
@@ -138,6 +150,8 @@ export function ComparisonGrid({
                   condition={product.condition}
                   isBestPrice={isBestPrice}
                   savings={savings}
+                  affiliateId={product.store}
+                  productId={extractProductId(product.url)}
                 />
               );
             })}
