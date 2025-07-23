@@ -11,6 +11,14 @@ export const authRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  keyGenerator: (req) => {
+    if (req.ip) return req.ip;
+    const xff = req.headers['x-forwarded-for'];
+    if (typeof xff === 'string') return xff;
+    if (Array.isArray(xff)) return xff[0];
+    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
+    return 'unknown';
+  },
 });
 
 export const apiRateLimit = rateLimit({
@@ -19,6 +27,14 @@ export const apiRateLimit = rateLimit({
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.ip) return req.ip;
+    const xff = req.headers['x-forwarded-for'];
+    if (typeof xff === 'string') return xff;
+    if (Array.isArray(xff)) return xff[0];
+    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
+    return 'unknown';
+  },
 });
 
 export const businessRateLimit = rateLimit({
@@ -27,6 +43,14 @@ export const businessRateLimit = rateLimit({
   message: { error: 'Too many business operations, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.ip) return req.ip;
+    const xff = req.headers['x-forwarded-for'];
+    if (typeof xff === 'string') return xff;
+    if (Array.isArray(xff)) return xff[0];
+    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
+    return 'unknown';
+  },
 });
 
 // Input validation middleware
@@ -58,8 +82,17 @@ export const validateBusinessRegistration = [
     .isFQDN()
     .withMessage('Please provide a valid domain (e.g., example.com)'),
   body('website')
-    .isURL()
-    .withMessage('Please provide a valid website URL'),
+    .custom((value) => {
+      // Accept if it's a valid URL (with protocol)
+      try {
+        new URL(value);
+        return true;
+      } catch {}
+      // Accept if it's a valid FQDN (plain domain)
+      const fqdnRegex = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.[A-Za-z]{2,}$/;
+      if (fqdnRegex.test(value)) return true;
+      throw new Error('Please provide a valid website URL or domain (e.g., example.com or https://example.com)');
+    }),
 ];
 
 export const validateLogin = [
