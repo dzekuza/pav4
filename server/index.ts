@@ -159,15 +159,13 @@ export async function createServer() {
     res.json({ countries });
   });
 
-  // Authentication routes with rate limiting and validation
+  // Authentication routes without rate limiting
   app.post("/api/auth/register", 
-    authRateLimit,
     validateRegistration,
     handleValidationErrors,
     register
   );
   app.post("/api/auth/login", 
-    authRateLimit,
     validateLogin,
     handleValidationErrors,
     login
@@ -199,15 +197,13 @@ export async function createServer() {
   app.get("/api/affiliate/click/:id", trackAffiliateClick);
   app.post("/api/affiliate/conversion", trackAffiliateConversion);
   
-  // Business authentication routes with rate limiting and validation
+  // Business authentication routes without rate limiting
   app.post("/api/business/auth/register", 
-    businessRateLimit,
     validateBusinessRegistration,
     handleValidationErrors,
     registerBusinessAuth
   );
   app.post("/api/business/auth/login", 
-    businessRateLimit,
     validateLogin,
     handleValidationErrors,
     loginBusiness
@@ -242,37 +238,30 @@ export async function createServer() {
   app.post("/api/legacy/search-history", saveSearchHistory);
   app.get("/api/legacy/search-history", getSearchHistory);
 
-  // Public search routes with rate limiting and validation
+  // Public search routes without rate limiting
   app.post("/api/scrape", 
-    apiRateLimit,
     validateUrl,
     (req, res) => {
-      // Redirect to the n8n webhook scraping endpoint
       req.url = '/n8n-scrape';
       n8nScrapeRouter(req, res, () => {});
     }
   );
   app.use("/api", 
-    apiRateLimit,
     validateUrl,
     n8nScrapeRouter
   ); // N8N scraping routes (public)
   
   // TestSprite compatibility routes with rate limiting and validation
   app.post("/api/scrape-product", 
-    apiRateLimit,
     validateUrl,
     (req, res) => {
-      // Redirect to the n8n webhook scraping endpoint
       req.url = '/n8n-scrape';
       n8nScrapeRouter(req, res, () => {});
     }
   );
   app.post("/api/n8n-webhook-scrape", 
-    apiRateLimit,
     validateUrl,
     (req, res) => {
-      // Redirect to the n8n webhook scraping endpoint
       req.url = '/n8n-scrape';
       n8nScrapeRouter(req, res, () => {});
     }
