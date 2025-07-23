@@ -4763,6 +4763,7 @@ async function createServer() {
   const dbStatus = await checkDatabaseConnection();
   console.log("Database status:", dbStatus.status, dbStatus.message);
   const app = express__default();
+  app.set("trust proxy", 1);
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
