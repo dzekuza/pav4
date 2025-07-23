@@ -150,7 +150,6 @@ export default function Index() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       {/* Loading Overlay */}
       <SearchLoadingOverlay isVisible={isLoading} />
-      
       {/* Location Permission Modal */}
       {showLocationPermission && (
         <LocationPermission
@@ -158,10 +157,8 @@ export default function Index() {
           onSkip={handleLocationSkip}
         />
       )}
-
       {/* Header */}
       <SearchHeader showBackButton={false} />
-
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="text-center max-w-4xl mx-auto">
@@ -177,7 +174,6 @@ export default function Index() {
             across hundreds of retailers. Save money on every purchase with
             AI-powered price comparison.
           </p>
-
           {/* Search Form */}
           <div className="mb-12">
             <SearchInput
@@ -188,14 +184,12 @@ export default function Index() {
               selectedCountry={selectedCountry}
               onCountryChange={setSelectedCountry}
             />
-            
             {error && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg max-w-md mx-auto">
                 <p className="text-red-700 text-sm">{error}</p>
               </div>
             )}
           </div>
-
           {/* Popular Stores */}
           <div className="mb-16">
             <p className="text-sm text-muted-foreground mb-4">
@@ -215,7 +209,6 @@ export default function Index() {
           </div>
         </div>
       </section>
-
       {/* Features Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -246,7 +239,6 @@ export default function Index() {
           </div>
         </div>
       </section>
-
       {/* Recent Searches */}
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -276,7 +268,6 @@ export default function Index() {
           </div>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="border-t bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-8">

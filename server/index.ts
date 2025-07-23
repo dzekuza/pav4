@@ -116,6 +116,10 @@ export async function createServer() {
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:8080",
+    "http://localhost:8081",
+    "http://localhost:8082",
+    "http://localhost:8083",
+    "http://localhost:8084",
     "https://pavlo4.netlify.app",
     "https://app.pavlo.com" // Assuming this is your custom domain
   ];
