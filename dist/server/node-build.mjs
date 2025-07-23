@@ -4762,8 +4762,8 @@ console.log("NODE_ENV:", "production");
 async function createServer() {
   const dbStatus = await checkDatabaseConnection();
   console.log("Database status:", dbStatus.status, dbStatus.message);
-  const app2 = express__default();
-  app2.use(helmet({
+  const app = express__default();
+  app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -4779,7 +4779,7 @@ async function createServer() {
       preload: true
     }
   }));
-  app2.use(compression({
+  app.use(compression({
     filter: (req, res) => {
       if (req.headers["x-no-compression"]) {
         return false;
@@ -4788,108 +4788,113 @@ async function createServer() {
     },
     level: 6
   }));
-  const allowedOrigins = [process.env.FRONTEND_URL || "https://pavlo4.netlify.app"];
-  app2.use(cors({
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "https://pavlo4.netlify.app",
+    "https://app.pavlo.com"
+    // Assuming this is your custom domain
+  ];
+  const corsOptions = {
     origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
+      if (!origin || allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
+        callback(null, true);
+      } else {
+        console.error(`CORS error: Origin ${origin} not allowed`);
+        callback(new Error("Not allowed by CORS"));
       }
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      console.log(`CORS blocked origin: ${origin}`);
-      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     exposedHeaders: ["Set-Cookie"]
-  }));
-  app2.use(express__default.json({ limit: "10mb" }));
-  app2.use(express__default.urlencoded({ extended: true }));
-  app2.use(cookieParser());
-  app2.use(securityHeaders);
-  app2.use(requestLogger);
-  app2.use(sanitizeInput);
-  app2.get("/api/ping", (_req, res) => {
+  };
+  app.use(cors(corsOptions));
+  app.use(express__default.json({ limit: "10mb" }));
+  app.use(express__default.urlencoded({ extended: true }));
+  app.use(cookieParser());
+  app.use(securityHeaders);
+  app.use(requestLogger);
+  app.use(sanitizeInput);
+  app.get("/api/ping", (_req, res) => {
     res.json({ message: "Hello from Express server v2!" });
   });
-  app2.get("/api/demo", cache(300), handleDemo);
-  app2.get("/api/location", cache(600), getLocationHandler);
-  app2.post("/api/location", getLocationHandler);
-  app2.get("/api/supported-countries", cache(3600), (req, res) => {
+  app.get("/api/demo", cache(300), handleDemo);
+  app.get("/api/location", cache(600), getLocationHandler);
+  app.post("/api/location", getLocationHandler);
+  app.get("/api/supported-countries", cache(3600), (req, res) => {
     const { getSupportedCountries } = require("./services/location");
     const countries = getSupportedCountries();
     res.json({ countries });
   });
-  app2.post(
+  app.post(
     "/api/auth/register",
     authRateLimit,
     validateRegistration,
     handleValidationErrors,
     register
   );
-  app2.post(
+  app.post(
     "/api/auth/login",
     authRateLimit,
     validateLogin,
     handleValidationErrors,
     login
   );
-  app2.post("/api/auth/logout", logout);
-  app2.get("/api/auth/me", getCurrentUser);
-  app2.post("/api/admin/auth/login", adminLogin);
-  app2.post("/api/admin/auth/logout", adminLogout);
-  app2.get("/api/admin/auth/me", requireAdminAuth, getCurrentAdmin);
-  app2.post("/api/admin/auth/create", createAdmin);
-  app2.post("/api/register", register);
-  app2.post("/api/login", login);
-  app2.post("/api/logout", logout);
-  app2.get("/api/user/me", getCurrentUser);
-  app2.post("/api/search-history", requireAuth, addToSearchHistory);
-  app2.get("/api/search-history", requireAuth, getUserSearchHistory);
-  app2.get("/api/admin/users", requireAdminAuth, getAllUsers);
-  app2.get("/api/admin/affiliate/urls", requireAdminAuth, getAllAffiliateUrls);
-  app2.get("/api/admin/affiliate/stats", requireAdminAuth, getAffiliateStats);
-  app2.post("/api/admin/affiliate/urls", requireAdminAuth, createAffiliateUrl);
-  app2.put("/api/admin/affiliate/urls/:id", requireAdminAuth, updateAffiliateUrl);
-  app2.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
-  app2.get("/api/affiliate/click/:id", trackAffiliateClick);
-  app2.post("/api/affiliate/conversion", trackAffiliateConversion);
-  app2.post(
+  app.post("/api/auth/logout", logout);
+  app.get("/api/auth/me", getCurrentUser);
+  app.post("/api/admin/auth/login", adminLogin);
+  app.post("/api/admin/auth/logout", adminLogout);
+  app.get("/api/admin/auth/me", requireAdminAuth, getCurrentAdmin);
+  app.post("/api/admin/auth/create", createAdmin);
+  app.post("/api/register", register);
+  app.post("/api/login", login);
+  app.post("/api/logout", logout);
+  app.get("/api/user/me", getCurrentUser);
+  app.post("/api/search-history", requireAuth, addToSearchHistory);
+  app.get("/api/search-history", requireAuth, getUserSearchHistory);
+  app.get("/api/admin/users", requireAdminAuth, getAllUsers);
+  app.get("/api/admin/affiliate/urls", requireAdminAuth, getAllAffiliateUrls);
+  app.get("/api/admin/affiliate/stats", requireAdminAuth, getAffiliateStats);
+  app.post("/api/admin/affiliate/urls", requireAdminAuth, createAffiliateUrl);
+  app.put("/api/admin/affiliate/urls/:id", requireAdminAuth, updateAffiliateUrl);
+  app.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
+  app.get("/api/affiliate/click/:id", trackAffiliateClick);
+  app.post("/api/affiliate/conversion", trackAffiliateConversion);
+  app.post(
     "/api/business/auth/register",
     businessRateLimit,
     validateBusinessRegistration,
     handleValidationErrors,
     registerBusiness
   );
-  app2.post(
+  app.post(
     "/api/business/auth/login",
     businessRateLimit,
     validateLogin,
     handleValidationErrors,
     loginBusiness
   );
-  app2.get("/api/business/auth/me", getCurrentBusiness);
-  app2.post("/api/business/auth/logout", logoutBusiness);
-  app2.get("/api/business/auth/stats", getBusinessStats);
-  app2.post("/api/business/register", registerBusiness$1);
-  app2.get("/api/business/active", cache(300), getActiveBusinesses);
-  app2.get("/api/business/domain/:domain", cache(600), getBusinessByDomain);
-  app2.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
-  app2.get("/api/admin/business/stats", requireAdminAuth, getBusinessStats$1);
-  app2.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
-  app2.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
-  app2.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
-  app2.put("/api/admin/business/:id/password", requireAdminAuth, updateBusinessPassword);
-  app2.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
-  app2.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
-  app2.use("/api/favorites", router);
-  app2.post("/api/user/search-history", requireAuth, addToSearchHistory);
-  app2.get("/api/user/search-history", requireAuth, getUserSearchHistory);
-  app2.post("/api/legacy/search-history", saveSearchHistory);
-  app2.get("/api/legacy/search-history", getSearchHistory);
-  app2.post(
+  app.get("/api/business/auth/me", getCurrentBusiness);
+  app.post("/api/business/auth/logout", logoutBusiness);
+  app.get("/api/business/auth/stats", getBusinessStats);
+  app.post("/api/business/register", registerBusiness$1);
+  app.get("/api/business/active", cache(300), getActiveBusinesses);
+  app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain);
+  app.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
+  app.get("/api/admin/business/stats", requireAdminAuth, getBusinessStats$1);
+  app.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
+  app.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
+  app.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
+  app.put("/api/admin/business/:id/password", requireAdminAuth, updateBusinessPassword);
+  app.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
+  app.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
+  app.use("/api/favorites", router);
+  app.post("/api/user/search-history", requireAuth, addToSearchHistory);
+  app.get("/api/user/search-history", requireAuth, getUserSearchHistory);
+  app.post("/api/legacy/search-history", saveSearchHistory);
+  app.get("/api/legacy/search-history", getSearchHistory);
+  app.post(
     "/api/scrape",
     apiRateLimit,
     validateUrl,
@@ -4899,13 +4904,13 @@ async function createServer() {
       });
     }
   );
-  app2.use(
+  app.use(
     "/api",
     apiRateLimit,
     validateUrl,
     router$1
   );
-  app2.post(
+  app.post(
     "/api/scrape-product",
     apiRateLimit,
     validateUrl,
@@ -4915,7 +4920,7 @@ async function createServer() {
       });
     }
   );
-  app2.post(
+  app.post(
     "/api/n8n-webhook-scrape",
     apiRateLimit,
     validateUrl,
@@ -4925,8 +4930,8 @@ async function createServer() {
       });
     }
   );
-  app2.get("/api/location-info", getLocationHandler);
-  app2.get("/api/health", healthCheckHandler);
+  app.get("/api/location-info", getLocationHandler);
+  app.get("/api/health", healthCheckHandler);
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully");
     await gracefulShutdown();
@@ -4937,24 +4942,26 @@ async function createServer() {
     await gracefulShutdown();
     process.exit(0);
   });
-  return app2;
+  return app;
 }
-const app = createServer();
-const port = process.env.PORT || 3e3;
-const __dirname = import.meta.dirname;
-const distPath = path.join(__dirname, "../spa");
-app.use(express.static(distPath));
-app.get("*", (req, res) => {
-  if (req.path.startsWith("/api/") || req.path.startsWith("/health")) {
-    return res.status(404).json({ error: "API endpoint not found" });
-  }
-  res.sendFile(path.join(distPath, "index.html"));
-});
-app.listen(port, () => {
-  console.log(`🚀 Fusion Starter server running on port ${port}`);
-  console.log(`📱 Frontend: http://localhost:${port}`);
-  console.log(`🔧 API: http://localhost:${port}/api`);
-});
+(async () => {
+  const app = await createServer();
+  const port = process.env.PORT || 3e3;
+  const __dirname = import.meta.dirname;
+  const distPath = path.join(__dirname, "../spa");
+  app.use(express.static(distPath));
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/health")) {
+      return res.status(404).json({ error: "API endpoint not found" });
+    }
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+  app.listen(port, () => {
+    console.log(`🚀 Fusion Starter server running on port ${port}`);
+    console.log(`📱 Frontend: http://localhost:${port}`);
+    console.log(`🔧 API: http://localhost:${port}/api`);
+  });
+})();
 process.on("SIGTERM", () => {
   console.log("🛑 Received SIGTERM, shutting down gracefully");
   process.exit(0);
