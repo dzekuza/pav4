@@ -275,75 +275,76 @@ export function SearchInput({
   return (
     <div className={`relative w-full ${align === 'left' ? '' : 'mx-auto'}`}>
       <form onSubmit={handleSubmit}>
-        <div className="flex flex-col sm:flex-row gap-3 p-2 bg-background border rounded-xl shadow-lg">
-          {/* Searchable Country Selector */}
-          <div className="flex-shrink-0">
-            <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openCountrySelect}
-                  className="w-full sm:w-32 h-12 justify-between border-0 focus-visible:ring-0"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{selectedCountryData?.flag}</span>
-                    <span className="text-sm font-medium">{selectedCountryData?.code}</span>
-                  </div>
-                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0">
-                <Command>
-                  <CommandInput placeholder="Search country..." />
-                  <CommandList>
-                    <CommandEmpty>No country found.</CommandEmpty>
-                    <CommandGroup>
-                      {countries.map((country) => (
-                        <CommandItem
-                          key={country.code}
-                          value={`${country.name} ${country.code}`}
-                          onSelect={() => {
-                            onCountryChange?.(country.code);
-                            setOpenCountrySelect(false);
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{country.flag}</span>
-                            <span>{country.name}</span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              type="url"
-              placeholder={placeholder}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onFocus={() => {
-                if (isLocalSearchHistoryEnabled && suggestions.length > 0) {
-                  setShowSuggestions(true);
-                }
-              }}
-              onKeyDown={handleKeyDown}
-              className="pl-10 border-0 focus-visible:ring-0 h-12 text-base"
-              disabled={isLoading}
-            />
+        <div className="p-2 bg-background border rounded-xl shadow-lg">
+          <div className="flex flex-row gap-3 w-full">
+            {/* Searchable Country Selector */}
+            <div className="flex-shrink-0 w-28">
+              <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCountrySelect}
+                    className="w-full h-12 justify-between border-0 focus-visible:ring-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{selectedCountryData?.flag}</span>
+                      <span className="text-sm font-medium">{selectedCountryData?.code}</span>
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0">
+                  <Command>
+                    <CommandInput placeholder="Search country..." />
+                    <CommandList>
+                      <CommandEmpty>No country found.</CommandEmpty>
+                      <CommandGroup>
+                        {countries.map((country) => (
+                          <CommandItem
+                            key={country.code}
+                            value={`${country.name} ${country.code}`}
+                            onSelect={() => {
+                              onCountryChange?.(country.code);
+                              setOpenCountrySelect(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{country.flag}</span>
+                              <span>{country.name}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                ref={inputRef}
+                type="url"
+                placeholder={placeholder}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onFocus={() => {
+                  if (isLocalSearchHistoryEnabled && suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                onKeyDown={handleKeyDown}
+                className="pl-10 border-0 focus-visible:ring-0 h-12 text-base"
+                disabled={isLoading}
+              />
+            </div>
           </div>
           <Button
             type="submit"
             size="lg"
             disabled={isLoading}
-            className="bg-brand-gradient hover:bg-brand-gradient-reverse transition-all duration-300 h-12 px-8 w-full sm:w-auto"
+            className="bg-brand-gradient hover:bg-brand-gradient-reverse transition-all duration-300 h-12 px-8 w-full mt-3 sm:mt-0 sm:w-auto sm:ml-3 sm:inline-block"
           >
             {isLoading ? "Searching..." : "Compare Prices"}
             <ArrowRight className="ml-2 h-5 w-5" />
