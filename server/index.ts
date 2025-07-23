@@ -21,7 +21,7 @@ import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
-import { gracefulShutdown, checkDatabaseConnection } from "./services/database";
+import { gracefulShutdown, checkDatabaseConnection, clickLogService } from "./services/database";
 import {
   getAllAffiliateUrls,
   getAffiliateStats,
@@ -270,6 +270,34 @@ export async function createServer() {
 
   // Health check route
   app.get("/api/health", healthCheckHandler);
+
+  // Affiliate/product redirect route for tracking
+  app.get('/go/:affiliateId/:productId', async (req, res) => {
+    const { affiliateId, productId } = req.params;
+    // Look up the real product URL
+    const productUrl = await clickLogService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
+    if (!productUrl) {
+      return res.status(404).send('Product not found');
+    }
+    // Log the click
+    await clickLogService.logClick({
+      affiliateId,
+      productId,
+      userId: req.user?.id,
+      userAgent: req.get('User-Agent'),
+      referrer: req.get('Referer'),
+      ip: req.ip,
+    });
+    // Build redirect URL with UTM parameters and a unique token
+    const utmParams = new URLSearchParams({
+      utm_source: 'pavlo4',
+      utm_medium: 'affiliate',
+      utm_campaign: 'product_suggestion',
+      aff_token: Math.random().toString(36).slice(2, 12),
+    });
+    const redirectUrl = productUrl + (productUrl.includes('?') ? '&' : '?') + utmParams.toString();
+    return res.redirect(302, redirectUrl);
+  });
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {

@@ -126,3 +126,14 @@ model AffiliateUrl {
 
   @@map("affiliate_urls")
 }
+
+model ClickLog {
+  id          Int      @id @default(autoincrement())
+  affiliateId String
+  productId   String
+  userId      Int?
+  timestamp   DateTime @default(now())
+  userAgent   String?
+  referrer    String?
+  ip          String?
+}

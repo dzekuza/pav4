@@ -402,6 +402,24 @@ const businessService = {
     });
   }
 };
+const clickLogService = {
+  async logClick(data) {
+    return prisma.clickLog.create({
+      data: {
+        affiliateId: data.affiliateId,
+        productId: data.productId,
+        userId: data.userId,
+        userAgent: data.userAgent,
+        referrer: data.referrer,
+        ip: data.ip
+      }
+    });
+  },
+  // TODO: Implement real product/business lookup
+  async getProductUrlByAffiliateAndProductId(affiliateId, productId) {
+    return `https://example.com/product/${productId}`;
+  }
+};
 const gracefulShutdown = async () => {
   try {
     await prisma.$disconnect();
@@ -4690,6 +4708,29 @@ async function createServer() {
   );
   app.get("/api/location-info", getLocationHandler);
   app.get("/api/health", healthCheckHandler);
+  app.get("/go/:affiliateId/:productId", async (req, res) => {
+    const { affiliateId, productId } = req.params;
+    const productUrl = await clickLogService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
+    if (!productUrl) {
+      return res.status(404).send("Product not found");
+    }
+    await clickLogService.logClick({
+      affiliateId,
+      productId,
+      userId: req.user?.id,
+      userAgent: req.get("User-Agent"),
+      referrer: req.get("Referer"),
+      ip: req.ip
+    });
+    const utmParams = new URLSearchParams({
+      utm_source: "pavlo4",
+      utm_medium: "affiliate",
+      utm_campaign: "product_suggestion",
+      aff_token: Math.random().toString(36).slice(2, 12)
+    });
+    const redirectUrl = productUrl + (productUrl.includes("?") ? "&" : "?") + utmParams.toString();
+    return res.redirect(302, redirectUrl);
+  });
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully");
     await gracefulShutdown();
