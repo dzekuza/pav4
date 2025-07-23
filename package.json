@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "npx prisma generate && vite build",
+    "build:client": "vite build",
     "build:server": "npx prisma generate && vite build --config vite.config.server.ts",
     "build:extension": "node build-extension.js",
     "start": "node dist/server/node-build.mjs",
