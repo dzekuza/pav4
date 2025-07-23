@@ -4360,7 +4360,15 @@ const authRateLimit = rateLimit({
   message: { error: "Too many login attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => {
+    if (req.ip) return req.ip;
+    const xff = req.headers["x-forwarded-for"];
+    if (typeof xff === "string") return xff;
+    if (Array.isArray(xff)) return xff[0];
+    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
+    return "unknown";
+  }
 });
 const apiRateLimit = rateLimit({
   windowMs: 1 * 60 * 1e3,
@@ -4369,7 +4377,15 @@ const apiRateLimit = rateLimit({
   // 100 requests per minute
   message: { error: "Too many requests, please try again later" },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.ip) return req.ip;
+    const xff = req.headers["x-forwarded-for"];
+    if (typeof xff === "string") return xff;
+    if (Array.isArray(xff)) return xff[0];
+    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
+    return "unknown";
+  }
 });
 const businessRateLimit = rateLimit({
   windowMs: 15 * 60 * 1e3,
@@ -4378,7 +4394,15 @@ const businessRateLimit = rateLimit({
   // 10 attempts per window
   message: { error: "Too many business operations, please try again later" },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    if (req.ip) return req.ip;
+    const xff = req.headers["x-forwarded-for"];
+    if (typeof xff === "string") return xff;
+    if (Array.isArray(xff)) return xff[0];
+    if (req.connection?.remoteAddress) return req.connection.remoteAddress;
+    return "unknown";
+  }
 });
 const validateRegistration = [
   body("email").isEmail().normalizeEmail().withMessage("Please provide a valid email address"),
@@ -4389,7 +4413,16 @@ const validateBusinessRegistration = [
   body("password").isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage("Password must be at least 8 characters with uppercase, lowercase, and number"),
   body("name").trim().isLength({ min: 2, max: 100 }).withMessage("Business name must be between 2 and 100 characters"),
   body("domain").isFQDN().withMessage("Please provide a valid domain (e.g., example.com)"),
-  body("website").isURL().withMessage("Please provide a valid website URL")
+  body("website").custom((value) => {
+    try {
+      new URL(value);
+      return true;
+    } catch {
+    }
+    const fqdnRegex = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.[A-Za-z]{2,}$/;
+    if (fqdnRegex.test(value)) return true;
+    throw new Error("Please provide a valid website URL or domain (e.g., example.com or https://example.com)");
+  })
 ];
 const validateLogin = [
   body("email").isEmail().normalizeEmail().withMessage("Please provide a valid email address"),
