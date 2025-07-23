@@ -4352,7 +4352,7 @@ const getBusinessStats = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to get business statistics" });
   }
 };
-const authRateLimit = rateLimit({
+rateLimit({
   windowMs: 15 * 60 * 1e3,
   // 15 minutes
   max: 5,
@@ -4362,7 +4362,7 @@ const authRateLimit = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true
 });
-const apiRateLimit = rateLimit({
+rateLimit({
   windowMs: 1 * 60 * 1e3,
   // 1 minute
   max: 100,
@@ -4371,7 +4371,7 @@ const apiRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
-const businessRateLimit = rateLimit({
+rateLimit({
   windowMs: 15 * 60 * 1e3,
   // 15 minutes
   max: 10,
@@ -4599,14 +4599,12 @@ async function createServer() {
   });
   app.post(
     "/api/auth/register",
-    authRateLimit,
     validateRegistration,
     handleValidationErrors,
     register
   );
   app.post(
     "/api/auth/login",
-    authRateLimit,
     validateLogin,
     handleValidationErrors,
     login
@@ -4629,14 +4627,12 @@ async function createServer() {
   app.post("/api/affiliate/conversion", trackAffiliateConversion);
   app.post(
     "/api/business/auth/register",
-    businessRateLimit,
     validateBusinessRegistration,
     handleValidationErrors,
     registerBusiness
   );
   app.post(
     "/api/business/auth/login",
-    businessRateLimit,
     validateLogin,
     handleValidationErrors,
     loginBusiness
@@ -4662,7 +4658,6 @@ async function createServer() {
   app.get("/api/legacy/search-history", getSearchHistory);
   app.post(
     "/api/scrape",
-    apiRateLimit,
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
@@ -4672,13 +4667,11 @@ async function createServer() {
   );
   app.use(
     "/api",
-    apiRateLimit,
     validateUrl,
     router$1
   );
   app.post(
     "/api/scrape-product",
-    apiRateLimit,
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
@@ -4688,7 +4681,6 @@ async function createServer() {
   );
   app.post(
     "/api/n8n-webhook-scrape",
-    apiRateLimit,
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
