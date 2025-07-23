@@ -35,28 +35,27 @@ export default function Admin() {
   const [admin, setAdmin] = useState<AdminAuthResponse["admin"] | null>(null);
 
   useEffect(() => {
-    checkAdminAuth();
+    checkAuth();
   }, []);
 
-  const checkAdminAuth = async () => {
+  const checkAuth = async () => {
     try {
-      const response = await fetch("/api/admin/auth/me", {
+      const response = await fetch("/api/auth/me", {
         credentials: "include",
       });
-
       if (response.ok) {
-        const data: AdminAuthResponse = await response.json();
-        if (data.success && data.admin) {
-          setAdmin(data.admin);
+        const data = await response.json();
+        if (data.user && data.user.isAdmin) {
+          setAdmin(data.user);
           fetchUsers();
         } else {
-          navigate("/admin-login");
+          navigate("/login");
         }
       } else {
-        navigate("/admin-login");
+        navigate("/login");
       }
     } catch (err) {
-      navigate("/admin-login");
+      navigate("/login");
     } finally {
       setIsLoading(false);
     }
@@ -64,11 +63,11 @@ export default function Admin() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/admin/auth/logout", {
+      await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
-      navigate("/admin-login");
+      navigate("/login");
     } catch (err) {
       console.error("Logout error:", err);
     }
