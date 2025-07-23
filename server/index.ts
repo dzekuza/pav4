@@ -17,12 +17,6 @@ import {
   getUserSearchHistory,
   getAllUsers,
 } from "./routes/auth";
-import {
-  adminLogin,
-  adminLogout,
-  getCurrentAdmin,
-  createAdmin,
-} from "./routes/admin-auth";
 import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
@@ -181,12 +175,6 @@ export async function createServer() {
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
   
-  // Admin authentication routes
-  app.post("/api/admin/auth/login", adminLogin);
-  app.post("/api/admin/auth/logout", adminLogout);
-  app.get("/api/admin/auth/me", requireAdminAuth, getCurrentAdmin);
-  app.post("/api/admin/auth/create", createAdmin); // For initial setup
-  
   // TestSprite compatibility routes (redirects)
   app.post("/api/register", register);
   app.post("/api/login", login);
@@ -198,14 +186,14 @@ export async function createServer() {
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
   
   // Admin routes
-  app.get("/api/admin/users", requireAdminAuth, getAllUsers);
+  app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
   
   // Affiliate routes
-  app.get("/api/admin/affiliate/urls", requireAdminAuth, getAllAffiliateUrls);
-  app.get("/api/admin/affiliate/stats", requireAdminAuth, getAffiliateStats);
-  app.post("/api/admin/affiliate/urls", requireAdminAuth, createAffiliateUrl);
-  app.put("/api/admin/affiliate/urls/:id", requireAdminAuth, updateAffiliateUrl);
-  app.delete("/api/admin/affiliate/urls/:id", requireAdminAuth, deleteAffiliateUrl);
+  app.get("/api/admin/affiliate/urls", requireAuth, requireAdmin, getAllAffiliateUrls);
+  app.get("/api/admin/affiliate/stats", requireAuth, requireAdmin, getAffiliateStats);
+  app.post("/api/admin/affiliate/urls", requireAuth, requireAdmin, createAffiliateUrl);
+  app.put("/api/admin/affiliate/urls/:id", requireAuth, requireAdmin, updateAffiliateUrl);
+  app.delete("/api/admin/affiliate/urls/:id", requireAuth, requireAdmin, deleteAffiliateUrl);
   
   // Public affiliate tracking endpoints
   app.get("/api/affiliate/click/:id", trackAffiliateClick);
@@ -234,14 +222,14 @@ export async function createServer() {
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
   
   // Admin business routes
-  app.get("/api/admin/business", requireAdminAuth, getAllBusinesses);
-  app.get("/api/admin/business/stats", requireAdminAuth, getBusinessStats);
-  app.get("/api/admin/business/:id/stats", requireAdminAuth, getBusinessDetailedStats);
-  app.put("/api/admin/business/:id", requireAdminAuth, updateBusiness);
-  app.put("/api/admin/business/:id/commission", requireAdminAuth, updateBusinessCommission);
-  app.put("/api/admin/business/:id/password", requireAdminAuth, updateBusinessPassword);
-  app.delete("/api/admin/business/:id", requireAdminAuth, deleteBusiness);
-  app.post("/api/admin/business/:id/verify", requireAdminAuth, verifyBusiness);
+  app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);
+  app.get("/api/admin/business/stats", requireAuth, requireAdmin, getBusinessStats);
+  app.get("/api/admin/business/:id/stats", requireAuth, requireAdmin, getBusinessDetailedStats);
+  app.put("/api/admin/business/:id", requireAuth, requireAdmin, updateBusiness);
+  app.put("/api/admin/business/:id/commission", requireAuth, requireAdmin, updateBusinessCommission);
+  app.put("/api/admin/business/:id/password", requireAuth, requireAdmin, updateBusinessPassword);
+  app.delete("/api/admin/business/:id", requireAuth, requireAdmin, deleteBusiness);
+  app.post("/api/admin/business/:id/verify", requireAuth, requireAdmin, verifyBusiness);
   
   // Favorites routes
   app.use("/api/favorites", favoritesRouter);

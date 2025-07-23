@@ -148,7 +148,7 @@ export function SearchHeader({
                     asChild
                     className="hidden md:flex"
                   >
-                    <Link to="/admin-login">
+                    <Link to="/admin">
                       <Shield className="mr-2 h-4 w-4" />
                       Admin
                     </Link>
@@ -218,7 +218,7 @@ export function SearchHeader({
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild className="md:hidden">
-                      <Link to="/admin-login">
+                      <Link to="/admin">
                         <Shield className="mr-2 h-4 w-4" />
                         Admin
                       </Link>
