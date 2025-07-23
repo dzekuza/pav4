@@ -487,11 +487,12 @@ export function BusinessManagement() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-wrap gap-2 pt-4">
                   <Button
                     variant={business.isActive ? "destructive" : "default"}
                     size="sm"
                     onClick={() => handleToggleActive(business.id, business.isActive)}
+                    className="flex-1 sm:flex-none"
                   >
                     {business.isActive ? "Deactivate" : "Activate"}
                   </Button>
@@ -501,6 +502,7 @@ export function BusinessManagement() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleVerify(business.id)}
+                      className="flex-1 sm:flex-none"
                     >
                       Verify
                     </Button>
@@ -510,6 +512,7 @@ export function BusinessManagement() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleUpdateCommission(business.id, business.adminCommissionRate)}
+                    className="flex-1 sm:flex-none"
                   >
                     Set Commission
                   </Button>
@@ -521,6 +524,7 @@ export function BusinessManagement() {
                       setSelectedBusiness(business);
                       setShowStatsModal(true);
                     }}
+                    className="flex-1 sm:flex-none"
                   >
                     View Stats
                   </Button>
@@ -532,6 +536,7 @@ export function BusinessManagement() {
                       setSelectedBusiness(business);
                       setShowPasswordModal(true);
                     }}
+                    className="flex-1 sm:flex-none"
                   >
                     <Lock className="h-4 w-4 mr-1" />
                     Update Password
@@ -541,6 +546,7 @@ export function BusinessManagement() {
                     variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(business.id)}
+                    className="flex-1 sm:flex-none"
                   >
                     Delete
                   </Button>

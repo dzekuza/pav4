@@ -123,7 +123,7 @@ const NewSearch = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Input
                 placeholder="Paste product URL here (e.g., https://www.amazon.com/product...)"
                 value={url}
@@ -135,7 +135,7 @@ const NewSearch = () => {
               <Button 
                 onClick={handleSearch} 
                 disabled={isLoading || !url.trim()}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 w-full sm:w-auto"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

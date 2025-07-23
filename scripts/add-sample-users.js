@@ -3,11 +3,22 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function addSampleUsers() {
+async function addRealUsers() {
   try {
-    console.log('Adding sample users...');
+    console.log('Adding real users with search history from registered businesses...');
 
-    const sampleUsers = [
+    // Get all active businesses from the database
+    const businesses = await prisma.business.findMany({
+      where: { isActive: true },
+      select: { name: true, domain: true, website: true }
+    });
+
+    if (businesses.length === 0) {
+      console.log('No active businesses found. Please register businesses first.');
+      return;
+    }
+
+    const realUsers = [
       {
         email: 'john.doe@example.com',
         password: 'password123',
@@ -40,47 +51,75 @@ async function addSampleUsers() {
       },
     ];
 
-    for (const userData of sampleUsers) {
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
+    // Generate realistic product URLs based on real businesses
+    const generateProductUrl = (business) => {
+      const products = [
+        'iphone-15-pro-max',
+        'samsung-galaxy-s24',
+        'sony-wh-1000xm5',
+        'macbook-pro-14',
+        'dell-xps-13',
+        'canon-eos-r5',
+        'nike-air-max',
+        'adidas-ultraboost',
+        'sonos-arc',
+        'lg-oled-c3'
+      ];
       
-      const user = await prisma.user.create({
-        data: {
-          email: userData.email,
-          password: hashedPassword,
-          isAdmin: userData.isAdmin,
-        },
+      const randomProduct = products[Math.floor(Math.random() * products.length)];
+      return `${business.website}/product/${randomProduct}`;
+    };
+
+    for (const userData of realUsers) {
+      // Check if user already exists
+      let user = await prisma.user.findUnique({
+        where: { email: userData.email }
       });
 
-      // Add some sample search history
-      const sampleSearches = [
-        'https://amazon.com/dp/B08N5WRWNW',
-        'https://bestbuy.com/site/apple-iphone-15-pro-max-256gb-natural-titanium-verizon/6534523.p',
-        'https://newegg.com/p/N82E16824012025',
-        'https://walmart.com/ip/Apple-iPhone-15-Pro-Max-256GB-Natural-Titanium-Verizon/1234567890',
-        'https://target.com/p/apple-iphone-15-pro-max-256gb-natural-titanium-verizon/-/A-1234567890',
-      ];
+      if (!user) {
+        const hashedPassword = await bcrypt.hash(userData.password, 10);
+        
+        user = await prisma.user.create({
+          data: {
+            email: userData.email,
+            password: hashedPassword,
+            isAdmin: userData.isAdmin,
+          },
+        });
+        console.log(`Created new user: ${userData.email}`);
+      } else {
+        console.log(`User already exists: ${userData.email}`);
+      }
 
+      // Clear existing search history for this user
+      await prisma.searchHistory.deleteMany({
+        where: { userId: user.id }
+      });
+
+      // Add search history using real business URLs
       for (let i = 0; i < userData.searchCount; i++) {
-        const randomSearch = sampleSearches[Math.floor(Math.random() * sampleSearches.length)];
+        const randomBusiness = businesses[Math.floor(Math.random() * businesses.length)];
+        const productUrl = generateProductUrl(randomBusiness);
+        
         await prisma.searchHistory.create({
           data: {
             userId: user.id,
-            url: randomSearch,
-            title: `Product Search ${i + 1}`,
+            url: productUrl,
+            title: `Product Search ${i + 1} - ${randomBusiness.name}`,
             requestId: `req_${user.id}_${i + 1}`,
           },
         });
       }
 
-      console.log(`Added user: ${userData.email} with ${userData.searchCount} searches`);
+      console.log(`Updated user: ${userData.email} with ${userData.searchCount} searches from real businesses`);
     }
 
-    console.log('✅ Sample users added successfully!');
+    console.log('✅ Real users updated successfully!');
   } catch (error) {
-    console.error('❌ Error adding sample users:', error);
+    console.error('❌ Error updating real users:', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-addSampleUsers(); 
+addRealUsers(); 
