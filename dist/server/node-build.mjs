@@ -417,7 +417,25 @@ const clickLogService = {
   },
   // TODO: Implement real product/business lookup
   async getProductUrlByAffiliateAndProductId(affiliateId, productId) {
-    return `https://example.com/product/${productId}`;
+    let affiliate = null;
+    const idNum = parseInt(affiliateId, 10);
+    if (!isNaN(idNum)) {
+      affiliate = await prisma.affiliateUrl.findUnique({ where: { id: idNum } });
+    }
+    if (!affiliate) {
+      affiliate = await prisma.affiliateUrl.findFirst({ where: { name: affiliateId } });
+    }
+    if (!affiliate) return null;
+    if (affiliate.url.includes("{productId}")) {
+      return affiliate.url.replace("{productId}", productId);
+    }
+    if (affiliate.url.endsWith("/")) {
+      return affiliate.url + productId;
+    }
+    if (affiliate.url.includes("?")) {
+      return affiliate.url + "&product=" + productId;
+    }
+    return affiliate.url + "/" + productId;
   }
 };
 const gracefulShutdown = async () => {
@@ -4579,6 +4597,10 @@ async function createServer() {
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:8080",
+    "http://localhost:8081",
+    "http://localhost:8082",
+    "http://localhost:8083",
+    "http://localhost:8084",
     "https://pavlo4.netlify.app",
     "https://app.pavlo.com"
     // Assuming this is your custom domain

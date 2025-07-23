@@ -64,20 +64,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        black: '#000',
+        white: '#fff',
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      backgroundImage: {
-        "brand-gradient":
-          "linear-gradient(135deg, hsl(var(--brand-gradient-from)) 0%, hsl(var(--brand-gradient-to)) 100%)",
-        "brand-gradient-reverse":
-          "linear-gradient(135deg, hsl(var(--brand-gradient-to)) 0%, hsl(var(--brand-gradient-from)) 100%)",
-      },
       fontFamily: {
-        brand: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: ['Inter', 'Space Grotesk', 'Arial', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {
