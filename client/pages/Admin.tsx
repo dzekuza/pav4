@@ -15,6 +15,7 @@ import { Users, Search, Shield, Calendar, LogOut, ExternalLink } from "lucide-re
 import { AdminUsersResponse } from "@shared/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AffiliateManager } from "@/components/AffiliateManager";
+import { Switch } from "@/components/ui/switch";
 
 interface AdminAuthResponse {
   success: boolean;
@@ -33,9 +34,13 @@ export default function Admin() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [admin, setAdmin] = useState<AdminAuthResponse["admin"] | null>(null);
+  const [filterEnabled, setFilterEnabled] = useState<boolean | null>(null);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [filterError, setFilterError] = useState("");
 
   useEffect(() => {
     checkAuth();
+    fetchFilterState();
   }, []);
 
   const checkAuth = async () => {
@@ -92,6 +97,46 @@ export default function Admin() {
     }
   };
 
+  const fetchFilterState = async () => {
+    setFilterLoading(true);
+    setFilterError("");
+    try {
+      const res = await fetch("/api/admin/settings/suggestion-filter", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setFilterEnabled(data.enabled);
+      } else {
+        setFilterError("Failed to fetch filter state");
+      }
+    } catch {
+      setFilterError("Network error fetching filter state");
+    } finally {
+      setFilterLoading(false);
+    }
+  };
+
+  const handleToggleFilter = async (checked: boolean) => {
+    setFilterLoading(true);
+    setFilterError("");
+    try {
+      const res = await fetch("/api/admin/settings/suggestion-filter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ enabled: checked }),
+      });
+      if (res.ok) {
+        setFilterEnabled(checked);
+      } else {
+        setFilterError("Failed to update filter state");
+      }
+    } catch {
+      setFilterError("Network error updating filter state");
+    } finally {
+      setFilterLoading(false);
+    }
+  };
+
   if (isLoading || loadingUsers) {
     return (
       <div className="min-h-screen bg-background">
@@ -141,6 +186,19 @@ export default function Admin() {
                 Logged in as: {admin.email}
               </p>
             )}
+            <div className="mt-4 flex items-center gap-3">
+              <Switch
+                checked={!!filterEnabled}
+                disabled={filterLoading || filterEnabled === null}
+                onCheckedChange={handleToggleFilter}
+                id="suggestion-filter-toggle"
+              />
+              <label htmlFor="suggestion-filter-toggle" className="text-sm">
+                Show only suggestions from registered businesses
+              </label>
+              {filterLoading && <span className="text-xs ml-2">Saving...</span>}
+              {filterError && <span className="text-xs text-red-500 ml-2">{filterError}</span>}
+            </div>
           </div>
           <Button
             variant="outline"

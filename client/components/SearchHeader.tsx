@@ -1,4 +1,4 @@
-import { ArrowLeft, TrendingUp, User, LogOut, Shield, Building2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, User, LogOut, Shield, Building2, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -78,12 +78,7 @@ export function SearchHeader({
               </span>
             </Link>
             {showBackButton && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  New Search
-                </Link>
-              </Button>
+              <></>
             )}
           </div>
 
@@ -114,47 +109,7 @@ export function SearchHeader({
 
             {/* Show navigation links only when authenticated */}
             {isAuthenticated && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="hidden md:flex"
-                >
-                  <Link to="/history">History</Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="hidden md:flex relative"
-                >
-                  <Link to="/favorites">
-                    Favorites
-                    {favorites.length > 0 && (
-                      <Badge 
-                        variant="secondary" 
-                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs font-medium"
-                      >
-                        {favorites.length > 99 ? '99+' : favorites.length}
-                      </Badge>
-                    )}
-                  </Link>
-                </Button>
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    asChild
-                    className="hidden md:flex"
-                  >
-                    <Link to="/admin">
-                      <Shield className="mr-2 h-4 w-4" />
-                      Admin
-                    </Link>
-                  </Button>
-                )}
-              </>
+              <></>
             )}
 
             {/* User Profile Dropdown or Sign In Button */}
@@ -183,28 +138,24 @@ export function SearchHeader({
                       )}
                     </div>
                   </div>
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link to="/business/register">
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Register Business
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden">
+                  {/* Business page */}
+                  <DropdownMenuItem asChild>
                     <Link to="/business-login">
                       <Building2 className="mr-2 h-4 w-4" />
-                      Business Login
+                      Business page
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="md:hidden">
+                  {/* History */}
+                  <DropdownMenuItem asChild>
                     <Link to="/history">
                       <User className="mr-2 h-4 w-4" />
                       History
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden relative">
-                    <Link to="/favorites">
-                      <User className="mr-2 h-4 w-4" />
+                  {/* Favorites with heart icon */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/favorites" className="relative flex items-center">
+                      <Heart className="mr-2 h-4 w-4" />
                       Favorites
                       {favorites.length > 0 && (
                         <Badge 
@@ -216,8 +167,9 @@ export function SearchHeader({
                       )}
                     </Link>
                   </DropdownMenuItem>
+                  {/* Admin */}
                   {isAdmin && (
-                    <DropdownMenuItem asChild className="md:hidden">
+                    <DropdownMenuItem asChild>
                       <Link to="/admin">
                         <Shield className="mr-2 h-4 w-4" />
                         Admin

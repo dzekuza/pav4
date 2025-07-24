@@ -21,7 +21,7 @@ import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
-import { gracefulShutdown, checkDatabaseConnection, clickLogService } from "./services/database";
+import { gracefulShutdown, checkDatabaseConnection, clickLogService, settingsService, businessService } from "./services/database";
 import {
   getAllAffiliateUrls,
   getAffiliateStats,
@@ -65,6 +65,7 @@ import {
   sanitizeInput,
   validateUrl,
 } from "./middleware/security";
+import { requireBusinessAuth } from "./middleware/business-auth";
 
 // Load environment variables
 dotenv.config();
@@ -301,6 +302,42 @@ export async function createServer() {
     });
     const redirectUrl = productUrl + (productUrl.includes('?') ? '&' : '?') + utmParams.toString();
     return res.redirect(302, redirectUrl);
+  });
+
+  // Admin: Get suggestion filter state
+  app.get("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const enabled = await settingsService.getSuggestionFilterEnabled();
+      res.json({ enabled });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to get suggestion filter state" });
+    }
+  });
+
+  // Admin: Set suggestion filter state
+  app.post("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, express.json(), async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== "boolean") {
+        return res.status(400).json({ error: "'enabled' must be a boolean" });
+      }
+      await settingsService.setSuggestionFilterEnabled(enabled);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to set suggestion filter state" });
+    }
+  });
+
+  // Business: Get user activity (click logs)
+  app.get("/api/business/activity", requireBusinessAuth, async (req, res) => {
+    try {
+      const businessId = (req as any).business?.id;
+      if (!businessId) return res.status(401).json({ error: "Not authenticated as business" });
+      const logs = await businessService.getBusinessClickLogs(businessId);
+      res.json({ logs });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch business activity logs" });
+    }
   });
 
   // Graceful shutdown handler

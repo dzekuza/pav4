@@ -14,6 +14,7 @@ import { LoadingSkeleton, SearchLoadingState } from "../components/LoadingSkelet
 import { useFavorites } from "../hooks/use-favorites";
 import { useAuthModal } from '../hooks/use-auth-modal';
 import { AuthModal } from '../components/AuthModal';
+import { useAuth } from "@/hooks/use-auth";
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -42,6 +43,7 @@ const NewSearchResults = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { favorites, addFavorite, removeFavorite, checkFavorite } = useFavorites();
+  const { isAuthenticated } = useAuth();
   
   const { handleProtectedAction, modalProps } = useAuthModal({
     title: "Sign in to save favorites",
@@ -78,10 +80,14 @@ const NewSearchResults = () => {
       setSearchData(location.state.searchData);
       setOriginalUrl(location.state.originalUrl || "");
     } else if (location.state?.searchUrl) {
-      // Handle state from Index.tsx navigation or fresh search
       setOriginalUrl(location.state.searchUrl);
-      // Trigger the search immediately
-      handleSearchFromState(location.state.searchUrl, location.state.userCountry, location.state.gl);
+      // If keyword search, skip URL validation and call keyword search API
+      if (location.state.isKeywordSearch) {
+        handleKeywordSearch(location.state.searchUrl, location.state.userCountry, location.state.gl);
+      } else {
+        // Trigger the search immediately (URL flow)
+        handleSearchFromState(location.state.searchUrl, location.state.userCountry, location.state.gl);
+      }
     } else {
       // If no state, try to extract URL from slug and start search
       const slug = location.pathname.split('/').pop();
@@ -224,22 +230,29 @@ const NewSearchResults = () => {
 
   const handleNewSearch = async (url: string) => {
     if (!url.trim()) return;
-    
+    // Detect if input is a URL
+    let isUrl = false;
+    try {
+      const u = new URL(url.trim());
+      isUrl = !!u.protocol && !!u.host;
+    } catch {
+      isUrl = false;
+    }
     // Clear all current search data
     setSearchData(null);
     setOriginalUrl("");
     setError(null);
     setIsLoading(true);
     setNewSearchUrl("");
-    
     // Navigate to new search with fresh state
     const newRequestId = Date.now().toString();
-    navigate(`/new-search/${newRequestId}/${encodeURIComponent(url.trim())}`, {
+    navigate(`/new-search/${newRequestId}/search`, {
       replace: true,
       state: {
         searchUrl: url.trim(),
         userCountry: "Germany",
-        gl: "de"
+        gl: "de",
+        isKeywordSearch: !isUrl,
       }
     });
   };
@@ -305,28 +318,79 @@ const NewSearchResults = () => {
     handleProtectedAction(performToggle);
   };
 
-  const suggestions = searchData?.suggestions || [];
+  // Determine if searchData is an array (keyword search) or object (URL search)
+  const isArrayResponse = Array.isArray(searchData);
+  // Always treat suggestions as an array for rendering
+  const suggestions = isArrayResponse ? searchData : (searchData?.suggestions ? Array.isArray(searchData.suggestions) ? searchData.suggestions : [searchData.suggestions] : []);
+  const mainProduct = !isArrayResponse ? searchData?.mainProduct : null;
 
-  // Check favorite status for all suggestions
+  // Prevent repeated fetches: Only fetch if searchData is null and not already loading
   useEffect(() => {
-    const checkFavorites = async () => {
-      if (!suggestions.length) return;
-      
-      for (const suggestion of suggestions) {
-        const itemKey = `${suggestion.site}-${suggestion.title}`;
-        if (!favoriteStates.has(itemKey)) {
-          const status = await checkFavorite(suggestion.link);
-          setFavoriteStates(prev => {
-            const newMap = new Map(prev);
-            newMap.set(itemKey, status);
-            return newMap;
-          });
-        }
+    let didFetch = false;
+    if (!searchData && !isLoading && location.state?.searchUrl) {
+      didFetch = true;
+      setIsLoading(true);
+      setError(null);
+      if (location.state.isKeywordSearch) {
+        handleKeywordSearch(location.state.searchUrl, location.state.userCountry, location.state.gl);
+      } else {
+        handleSearchFromState(location.state.searchUrl, location.state.userCountry, location.state.gl);
       }
-    };
-    
-    checkFavorites();
-  }, [suggestions, checkFavorite]);
+    }
+    // Cleanup: avoid memory leaks
+    return () => { didFetch = false; };
+  }, [location.state, requestId, location.pathname]);
+
+  // Add a new handler for keyword search
+  const handleKeywordSearch = async (keywords: string, userCountry: string, gl?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Call the keyword search API endpoint (assume /api/n8n-scrape for now)
+      const response = await fetch("/api/n8n-scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keywords,
+          requestId: requestId,
+          userLocation: { country: userCountry },
+          gl: gl
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch search data");
+      }
+      const data = await response.json();
+      setSearchData(data);
+      setIsLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load search results");
+      setIsLoading(false);
+    }
+  };
+
+  // Save search to DB after successful search
+  useEffect(() => {
+    if (!isAuthenticated || !searchData || !originalUrl || !requestId) return;
+    // Only save if we have a main product or suggestions
+    const title = searchData.mainProduct?.title || searchData[0]?.title || originalUrl;
+    // Prevent duplicate saves by using a ref
+    let didSave = false;
+    if (!didSave && title && requestId) {
+      didSave = true;
+      fetch("/api/search-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          url: originalUrl,
+          title,
+          requestId,
+        }),
+      });
+    }
+  }, [isAuthenticated, searchData, originalUrl, requestId]);
 
   if (isLoading) {
     return <SearchLoadingState />;
@@ -373,8 +437,6 @@ const NewSearchResults = () => {
     );
   }
 
-  const mainProduct = searchData?.mainProduct;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <SearchHeader />
@@ -398,7 +460,7 @@ const NewSearchResults = () => {
         </div>
 
         {/* Main Product - Mobile Responsive */}
-        {mainProduct && (
+        {mainProduct && !isArrayResponse && !location.state?.isKeywordSearch && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -459,7 +521,7 @@ const NewSearchResults = () => {
           <>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                Price Comparisons ({suggestions.filter((s: any) => extractPrice(s.standardPrice || s.discountPrice || '0') > 0).length})
+                Results ({suggestions.length})
               </h2>
               <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto">
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -468,32 +530,18 @@ const NewSearchResults = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {suggestions
-                .map((suggestion: any, index: number) => {
-                  // Extract price for sorting
-                  const price = extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0');
-                  const currency = extractCurrency(suggestion.standardPrice || suggestion.discountPrice || '');
-                  
-                  return {
-                    ...suggestion,
-                    extractedPrice: price,
-                    extractedCurrency: currency,
-                    originalIndex: index
-                  };
-                })
-                .filter((suggestion: any) => suggestion.extractedPrice > 0) // Only show items with available prices
-                .sort((a, b) => {
-                  // Sort by price (lowest first), then by original index for stability
-                  return a.extractedPrice - b.extractedPrice;
-                })
-                .map((suggestion: any, index: number) => (
-                  <Card key={suggestion.originalIndex} className="hover:shadow-lg transition-shadow">
+              {suggestions.map((suggestion: any, index: number) => {
+                // Extract price for sorting (handle nulls)
+                const price = extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0');
+                const currency = extractCurrency(suggestion.standardPrice || suggestion.discountPrice || '');
+                return (
+                  <Card key={index} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-start space-x-3">
                         {/* Small favicon image */}
                         <div className="flex-shrink-0">
                           <img 
-                            src={suggestion.image} 
+                            src={suggestion.image || "/placeholder.svg"} 
                             alt={suggestion.site || 'Store'}
                             className="w-8 h-8 object-cover rounded border"
                             onError={(e) => {
@@ -501,37 +549,26 @@ const NewSearchResults = () => {
                             }}
                           />
                         </div>
-                        
                         <div className="flex-1 min-w-0">
                           {/* Reseller name above product name */}
                           <p className="text-xs font-medium text-blue-600 mb-1 capitalize">
                             {suggestion.merchant || suggestion.site || 'Unknown Store'}
                           </p>
-                          
                           {/* Product name */}
                           <h4 className="font-medium text-sm line-clamp-2 mb-2">
                             {suggestion.title}
                           </h4>
-                          
-                          {/* Price - highlighted if it's the lowest */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className={`text-lg font-bold ${
-                              suggestion.extractedPrice > 0 && index === 0 
-                                ? 'text-green-600' 
-                                : 'text-gray-700'
-                            }`}>
-                              {suggestion.standardPrice || suggestion.discountPrice}
-                            </p>
-                            {suggestion.extractedPrice > 0 && index === 0 && (
-                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
-                                Best Price
-                              </Badge>
-                            )}
-                          </div>
-
+                          {/* Price */}
+                          {(suggestion.standardPrice || suggestion.discountPrice) && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="text-lg font-bold text-gray-700">
+                                {suggestion.standardPrice || suggestion.discountPrice}
+                              </p>
+                            </div>
+                          )}
                           {/* Additional details */}
                           <div className="flex flex-col gap-2 text-xs text-muted-foreground">
-                            {/* Stock status with improved styling */}
+                            {/* Stock status */}
                             {suggestion.stock && (
                               <div className={`flex items-center gap-1 ${
                                 suggestion.stock.toLowerCase().includes('in stock') 
@@ -548,7 +585,6 @@ const NewSearchResults = () => {
                                 </span>
                               </div>
                             )}
-
                             {/* Rating */}
                             {suggestion.rating && (
                               <div className="flex items-center gap-1">
@@ -561,7 +597,6 @@ const NewSearchResults = () => {
                                 )}
                               </div>
                             )}
-
                             {/* Delivery price */}
                             {suggestion.deliveryPrice && (
                               <div className="flex items-center gap-1">
@@ -570,7 +605,6 @@ const NewSearchResults = () => {
                               </div>
                             )}
                           </div>
-
                           {/* Details */}
                           {suggestion.details && (
                             <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
@@ -578,7 +612,6 @@ const NewSearchResults = () => {
                             </p>
                           )}
                         </div>
-                        
                         {/* Action buttons - Mobile responsive */}
                         {suggestion.link && (
                           <div className="flex flex-col gap-2 flex-shrink-0">
@@ -614,7 +647,8 @@ const NewSearchResults = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                );
+              })}
             </div>
           </>
         )}

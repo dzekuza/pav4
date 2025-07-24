@@ -582,6 +582,25 @@ export const businessService = {
       data: { password: hashedPassword },
     });
   },
+
+  async getBusinessClickLogs(businessId: number) {
+    // Get the business and its domain(s)
+    const business = await prisma.business.findUnique({ where: { id: businessId } });
+    if (!business || !business.domain) return [];
+    const domains = [business.domain.toLowerCase().replace(/^www\./, "")];
+    // Find all ClickLog entries where the url domain matches the business domain
+    const logs = await prisma.clickLog.findMany();
+    return logs.filter(log => {
+      if (!log.productId) return false;
+      try {
+        const url = new URL(log.productId);
+        const domain = url.hostname.toLowerCase().replace(/^www\./, "");
+        return domains.includes(domain);
+      } catch {
+        return false;
+      }
+    });
+  },
 };
 
 // Click log operations
@@ -630,6 +649,21 @@ export const clickLogService = {
       return affiliate.url + '&product=' + productId;
     }
     return affiliate.url + '/' + productId;
+  },
+};
+
+// Settings operations
+export const settingsService = {
+  async getSuggestionFilterEnabled(): Promise<boolean> {
+    const setting = await prisma.settings.findUnique({ where: { key: 'suggestionFilterEnabled' } });
+    return setting ? setting.value === 'true' : true; // Default: enabled
+  },
+  async setSuggestionFilterEnabled(enabled: boolean): Promise<void> {
+    await prisma.settings.upsert({
+      where: { key: 'suggestionFilterEnabled' },
+      update: { value: enabled ? 'true' : 'false' },
+      create: { key: 'suggestionFilterEnabled', value: enabled ? 'true' : 'false' },
+    });
   },
 };
 

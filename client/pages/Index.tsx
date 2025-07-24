@@ -83,27 +83,33 @@ export default function Index() {
     return countryMap[countryCode] || 'Germany';
   };
 
-  const handleSearch = (url: string) => {
-    if (!url.trim()) {
-      setError("Please enter a product URL");
+  const handleSearch = (input: string) => {
+    if (!input.trim()) {
+      setError("Please enter a product URL or keywords");
       return;
     }
-    
     setIsLoading(true);
     setError(null);
-
     const userCountry = getCountryName(selectedCountry);
     const requestId = Date.now().toString();
-    const searchQuery = "product-search"; // Generic slug
-
-    // Navigate to the new search results page with the URL, country, and gl parameter
+    const searchQuery = "product-search";
+    // Detect if input is a URL
+    let isUrl = false;
+    try {
+      const u = new URL(input.trim());
+      isUrl = !!u.protocol && !!u.host;
+    } catch {
+      isUrl = false;
+    }
+    // Navigate to the new search results page with the input, country, and gl parameter
     const resultsUrl = `/new-search/${requestId}/${searchQuery}`;
     navigate(resultsUrl, {
       state: {
-        searchUrl: url.trim(),
+        searchUrl: input.trim(),
         userCountry,
-        gl: selectedCountry, // Pass the gl parameter
+        gl: selectedCountry,
         requestId,
+        isKeywordSearch: !isUrl,
       },
     });
   };
@@ -183,6 +189,7 @@ export default function Index() {
               isLoading={isLoading}
               selectedCountry={selectedCountry}
               onCountryChange={setSelectedCountry}
+              placeholder="Paste a product URL or enter keywords (e.g., iPhone 16 Pro Max, Amazon, etc.)"
             />
             {error && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg max-w-md mx-auto">
