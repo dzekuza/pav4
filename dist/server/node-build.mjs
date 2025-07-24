@@ -2400,7 +2400,7 @@ async function scrapeWithN8nWebhook(url, gl) {
           title: data.mainProduct.title,
           price: data.mainProduct.price,
           image: data.mainProduct.image,
-          url: data.mainProduct.url
+          url: addUtmToUrl(data.mainProduct.url)
         },
         suggestions: data.suggestions,
         comparisons
@@ -2439,7 +2439,7 @@ async function scrapeWithN8nWebhook(url, gl) {
           title: mainProduct.title,
           price: mainProduct.price,
           image: mainProduct.image,
-          url: mainProduct.url
+          url: addUtmToUrl(mainProduct.url)
         },
         suggestions: firstItem.suggestions,
         comparisons
@@ -2451,7 +2451,7 @@ async function scrapeWithN8nWebhook(url, gl) {
         title: data.title,
         price: data.standardPrice || data.discountPrice || "Price not available",
         image: data.image,
-        url: data.link
+        url: addUtmToUrl(data.link)
       };
       const suggestion = {
         title: data.title,

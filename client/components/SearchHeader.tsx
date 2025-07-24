@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useFavorites } from "@/hooks/use-favorites";
+import { useBusinessAuth } from "@/hooks/use-auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ export function SearchHeader({
   title = "PriceHunt",
 }: SearchHeaderProps) {
   const { isAuthenticated, user, logout, isAdmin, isLoading } = useAuth();
+  const { isBusiness, business, isBusinessLoading, logoutBusiness } = useBusinessAuth();
   const { favorites } = useFavorites();
   const navigate = useNavigate();
 
@@ -32,7 +34,7 @@ export function SearchHeader({
   };
 
   // Show loading state while checking authentication
-  if (isLoading) {
+  if (isLoading || isBusinessLoading) {
     return (
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -58,6 +60,43 @@ export function SearchHeader({
             <div className="flex items-center space-x-4">
               <div className="w-8 h-8 bg-muted rounded-full animate-pulse"></div>
             </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Render business navigation if logged in as business
+  if (isBusiness && business) {
+    return (
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/business/dashboard" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-brand-gradient rounded-lg flex items-center justify-center">
+                  <Building2 className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-xl font-bold bg-brand-gradient bg-clip-text text-transparent">
+                  {business.name}
+                </span>
+              </Link>
+            </div>
+            <nav className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/business/dashboard">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/business-activity">Activity</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/business-integrate">Integrate</Link>
+              </Button>
+              <Button variant="outline" size="sm" onClick={logoutBusiness}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </nav>
           </div>
         </div>
       </header>

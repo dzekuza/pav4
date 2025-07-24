@@ -1880,7 +1880,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
           title: data.mainProduct.title,
           price: data.mainProduct.price,
           image: data.mainProduct.image,
-          url: data.mainProduct.url
+          url: addUtmToUrl(data.mainProduct.url)
         },
         suggestions: data.suggestions,
         comparisons: comparisons
@@ -1926,7 +1926,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
           title: mainProduct.title,
           price: mainProduct.price,
           image: mainProduct.image,
-          url: mainProduct.url
+          url: addUtmToUrl(mainProduct.url)
         },
         suggestions: firstItem.suggestions,
         comparisons: comparisons
@@ -1942,7 +1942,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         title: data.title,
         price: data.standardPrice || data.discountPrice || "Price not available",
         image: data.image,
-        url: data.link
+        url: addUtmToUrl(data.link)
       };
 
       const suggestion = {
@@ -2195,7 +2195,7 @@ router.post("/n8n-scrape", async (req, res) => {
       const userId = (req as any).user?.id;
       if (userId && result.mainProduct?.title) {
         await searchHistoryService.addSearch(userId, {
-          url: url,
+          url: addUtmToUrl(url),
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`,
         });

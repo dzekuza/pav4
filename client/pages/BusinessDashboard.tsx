@@ -124,6 +124,9 @@ export default function BusinessDashboard() {
             <Button variant="outline" onClick={() => navigate('/business-activity')}>
               User Activity
             </Button>
+            <Button variant="outline" onClick={() => navigate('/business-integrate')}>
+              Integrate
+            </Button>
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Logout

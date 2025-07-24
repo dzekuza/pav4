@@ -143,3 +143,12 @@ model Settings {
   key       String @unique
   value     String
 }
+
+model Conversion {
+  id        Int      @id @default(autoincrement())
+  user      String
+  orderId   String
+  amount    Float
+  domain    String
+  timestamp DateTime @default(now())
+}
