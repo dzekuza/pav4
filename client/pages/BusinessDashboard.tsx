@@ -120,10 +120,15 @@ export default function BusinessDashboard() {
             <h1 className="text-3xl font-bold">{stats.name}</h1>
             <p className="text-muted-foreground">{stats.domain}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/business-activity')}>
+              User Activity
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Statistics Cards */}

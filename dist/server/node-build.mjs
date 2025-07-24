@@ -400,6 +400,22 @@ const businessService = {
       where: { id: businessId },
       data: { password: hashedPassword }
     });
+  },
+  async getBusinessClickLogs(businessId) {
+    const business = await prisma.business.findUnique({ where: { id: businessId } });
+    if (!business || !business.domain) return [];
+    const domains = [business.domain.toLowerCase().replace(/^www\./, "")];
+    const logs = await prisma.clickLog.findMany();
+    return logs.filter((log) => {
+      if (!log.productId) return false;
+      try {
+        const url = new URL(log.productId);
+        const domain = url.hostname.toLowerCase().replace(/^www\./, "");
+        return domains.includes(domain);
+      } catch {
+        return false;
+      }
+    });
   }
 };
 const clickLogService = {
@@ -436,6 +452,19 @@ const clickLogService = {
       return affiliate.url + "&product=" + productId;
     }
     return affiliate.url + "/" + productId;
+  }
+};
+const settingsService = {
+  async getSuggestionFilterEnabled() {
+    const setting = await prisma.settings.findUnique({ where: { key: "suggestionFilterEnabled" } });
+    return setting ? setting.value === "true" : true;
+  },
+  async setSuggestionFilterEnabled(enabled) {
+    await prisma.settings.upsert({
+      where: { key: "suggestionFilterEnabled" },
+      update: { value: enabled ? "true" : "false" },
+      create: { key: "suggestionFilterEnabled", value: enabled ? "true" : "false" }
+    });
   }
 };
 const gracefulShutdown = async () => {
@@ -2355,7 +2384,7 @@ async function scrapeWithN8nWebhook(url, gl) {
         store: suggestion.site || "unknown",
         price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || "0"),
         currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ""),
-        url: suggestion.link,
+        url: addUtmToUrl(suggestion.link),
         image: suggestion.image,
         condition: "New",
         assessment: {
@@ -2365,6 +2394,7 @@ async function scrapeWithN8nWebhook(url, gl) {
           description: `Found on ${suggestion.site || "unknown"}`
         }
       }));
+      data.suggestions = data.suggestions.map((s) => ({ ...s, link: addUtmToUrl(s.link) }));
       return {
         mainProduct: {
           title: data.mainProduct.title,
@@ -2385,7 +2415,7 @@ async function scrapeWithN8nWebhook(url, gl) {
         store: suggestion.site || "unknown",
         price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || "0"),
         currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ""),
-        url: suggestion.link,
+        url: addUtmToUrl(suggestion.link),
         image: suggestion.image,
         condition: "New",
         // New fields
@@ -2403,6 +2433,7 @@ async function scrapeWithN8nWebhook(url, gl) {
           description: `Found on ${suggestion.site || "unknown"}`
         }
       }));
+      firstItem.suggestions = firstItem.suggestions.map((s) => ({ ...s, link: addUtmToUrl(s.link) }));
       return {
         mainProduct: {
           title: mainProduct.title,
@@ -2427,7 +2458,7 @@ async function scrapeWithN8nWebhook(url, gl) {
         standardPrice: data.standardPrice,
         discountPrice: data.discountPrice,
         site: data.site,
-        link: data.link,
+        link: addUtmToUrl(data.link),
         image: data.image,
         // New fields
         merchant: data.merchant,
@@ -2443,7 +2474,7 @@ async function scrapeWithN8nWebhook(url, gl) {
         store: data.site || "unknown",
         price: extractPrice(data.standardPrice || data.discountPrice || "0"),
         currency: extractCurrency(data.standardPrice || data.discountPrice || ""),
-        url: data.link,
+        url: addUtmToUrl(data.link),
         image: data.image,
         condition: "New",
         // New fields
@@ -2466,6 +2497,12 @@ async function scrapeWithN8nWebhook(url, gl) {
         suggestions: [suggestion],
         comparisons: [comparison]
       };
+    }
+    if (data && typeof data === "object" && !Array.isArray(data) && !data.mainProduct && data.title && data.link) {
+      return [data];
+    }
+    if (Array.isArray(data)) {
+      return data;
     }
     if (!data || Object.keys(data).length === 0) {
       console.log("n8n webhook returned empty data");
@@ -2496,6 +2533,10 @@ function extractCurrency(priceString) {
 }
 async function filterSuggestionsByRegisteredBusinesses(suggestions) {
   try {
+    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
+    if (!filterEnabled) {
+      return suggestions;
+    }
     const registeredBusinesses = await businessService.getActiveBusinesses();
     if (registeredBusinesses.length === 0) {
       return suggestions;
@@ -2552,14 +2593,24 @@ router$1.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
   try {
-    const { url, requestId, gl, userCountry, findSimilar } = req.body;
-    if (!url) {
-      return res.status(400).json({ error: "URL is required" });
+    const { url, keywords, requestId, gl, userCountry, findSimilar } = req.body;
+    if (!url && !keywords) {
+      return res.status(400).json({ error: "URL or keywords is required" });
     }
-    console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
-    console.log(`Request ID: ${requestId}`);
-    console.log(`Find Similar: ${findSimilar}`);
-    const result = await scrapeWithN8nWebhook(url, gl);
+    let result;
+    if (url) {
+      console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
+      result = await scrapeWithN8nWebhook(url, gl);
+    } else if (keywords) {
+      console.log(`n8n webhook scraping request for keywords: ${keywords}, GL: ${gl}`);
+      result = await scrapeWithN8nWebhook(keywords, gl);
+    }
+    if (Array.isArray(result)) {
+      return res.json(result);
+    }
+    if (result && result.suggestions && !Array.isArray(result.suggestions)) {
+      result.suggestions = [result.suggestions];
+    }
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
     console.log("Original suggestions count:", result.suggestions?.length || 0);
@@ -2612,13 +2663,24 @@ router$1.post("/n8n-scrape", async (req, res) => {
     });
   }
 });
-const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+function addUtmToUrl(url) {
+  try {
+    const u = new URL(url);
+    u.searchParams.set("utm_source", "pavlo4");
+    u.searchParams.set("utm_medium", "suggestion");
+    u.searchParams.set("utm_campaign", "business_tracking");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+const JWT_SECRET$2 = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 function generateToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET$1, { expiresIn: "7d" });
+  return jwt.sign({ userId }, JWT_SECRET$2, { expiresIn: "7d" });
 }
 function verifyToken(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET$1);
+    const decoded = jwt.verify(token, JWT_SECRET$2);
     return decoded;
   } catch {
     return null;
@@ -4153,17 +4215,17 @@ const getBusinessDetailedStats = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch business statistics" });
   }
 };
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key";
 function generateBusinessToken(businessId, email) {
   return jwt.sign(
     { businessId, email, type: "business" },
-    JWT_SECRET,
+    JWT_SECRET$1,
     { expiresIn: "7d" }
   );
 }
-function verifyBusinessToken(token) {
+function verifyBusinessToken$1(token) {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET$1);
   } catch (error) {
     return null;
   }
@@ -4318,7 +4380,7 @@ const getCurrentBusiness = async (req, res) => {
         authenticated: false
       });
     }
-    const decoded = verifyBusinessToken(token);
+    const decoded = verifyBusinessToken$1(token);
     if (!decoded || decoded.type !== "business") {
       return res.json({
         business: null,
@@ -4368,7 +4430,7 @@ const getBusinessStats = async (req, res) => {
         error: "Not authenticated"
       });
     }
-    const decoded = verifyBusinessToken(token);
+    const decoded = verifyBusinessToken$1(token);
     if (!decoded || decoded.type !== "business") {
       return res.status(401).json({
         success: false,
@@ -4561,6 +4623,64 @@ const validateUrl = (req, res, next) => {
   }
   next();
 };
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+function verifyBusinessToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
+const requireBusinessAuth = async (req, res, next) => {
+  try {
+    let token = req.cookies.business_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required"
+      });
+    }
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token"
+      });
+    }
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(401).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    if (!business.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: "Business account is deactivated"
+      });
+    }
+    req.business = {
+      id: business.id,
+      name: business.name,
+      domain: business.domain,
+      email: business.email
+    };
+    next();
+  } catch (error) {
+    console.error("Business auth error:", error);
+    res.status(401).json({
+      success: false,
+      error: "Authentication failed"
+    });
+  }
+};
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
@@ -4752,6 +4872,36 @@ async function createServer() {
     });
     const redirectUrl = productUrl + (productUrl.includes("?") ? "&" : "?") + utmParams.toString();
     return res.redirect(302, redirectUrl);
+  });
+  app.get("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const enabled = await settingsService.getSuggestionFilterEnabled();
+      res.json({ enabled });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to get suggestion filter state" });
+    }
+  });
+  app.post("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, express__default.json(), async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      if (typeof enabled !== "boolean") {
+        return res.status(400).json({ error: "'enabled' must be a boolean" });
+      }
+      await settingsService.setSuggestionFilterEnabled(enabled);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to set suggestion filter state" });
+    }
+  });
+  app.get("/api/business/activity", requireBusinessAuth, async (req, res) => {
+    try {
+      const businessId = req.business?.id;
+      if (!businessId) return res.status(401).json({ error: "Not authenticated as business" });
+      const logs = await businessService.getBusinessClickLogs(businessId);
+      res.json({ logs });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch business activity logs" });
+    }
   });
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully");

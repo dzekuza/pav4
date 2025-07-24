@@ -5,7 +5,7 @@ import express from "express";
 import axios from "axios";
 import { ProductData, PriceComparison } from "../../shared/api";
 import { Request, Response } from "express";
-import { searchHistoryService, businessService } from "../services/database";
+import { searchHistoryService, businessService, settingsService } from "../services/database";
 import { requireAuth } from "../middleware/auth";
 
 // --- Product patterns for better product parsing ---
@@ -1862,7 +1862,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         store: suggestion.site || 'unknown',
         price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
         currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
-        url: suggestion.link,
+        url: addUtmToUrl(suggestion.link),
         image: suggestion.image,
         condition: "New",
         assessment: {
@@ -1872,6 +1872,8 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
           description: `Found on ${suggestion.site || 'unknown'}`
         }
       }));
+      // Also update suggestions array
+      data.suggestions = data.suggestions.map((s: any) => ({ ...s, link: addUtmToUrl(s.link) }));
 
       return {
         mainProduct: {
@@ -1898,7 +1900,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         store: suggestion.site || 'unknown',
         price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
         currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
-        url: suggestion.link,
+        url: addUtmToUrl(suggestion.link),
         image: suggestion.image,
         condition: "New",
         // New fields
@@ -1916,6 +1918,8 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
           description: `Found on ${suggestion.site || 'unknown'}`
         }
       }));
+      // Also update suggestions array
+      firstItem.suggestions = firstItem.suggestions.map((s: any) => ({ ...s, link: addUtmToUrl(s.link) }));
 
       return {
         mainProduct: {
@@ -1946,7 +1950,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         standardPrice: data.standardPrice,
         discountPrice: data.discountPrice,
         site: data.site,
-        link: data.link,
+        link: addUtmToUrl(data.link),
         image: data.image,
         // New fields
         merchant: data.merchant,
@@ -1963,7 +1967,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         store: data.site || 'unknown',
         price: extractPrice(data.standardPrice || data.discountPrice || '0'),
         currency: extractCurrency(data.standardPrice || data.discountPrice || ''),
-        url: data.link,
+        url: addUtmToUrl(data.link),
         image: data.image,
         condition: "New",
         // New fields
@@ -1987,6 +1991,17 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         suggestions: [suggestion],
         comparisons: [comparison]
       };
+    }
+
+    // Handle new n8n response format (single object with all fields, keyword search)
+    if (data && typeof data === 'object' && !Array.isArray(data) && !data.mainProduct && data.title && data.link) {
+      // Wrap single object in array for keyword search
+      return [data];
+    }
+
+    // If response is an array, return as is
+    if (Array.isArray(data)) {
+      return data;
     }
 
     // If response is empty or invalid, throw an error instead of providing fallback data
@@ -2027,6 +2042,12 @@ function extractCurrency(priceString: string): string {
 // Filter suggestions based on registered businesses
 async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Promise<any[]> {
   try {
+    // Check if the filter is enabled
+    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
+    if (!filterEnabled) {
+      // If filter is disabled, return all suggestions
+      return suggestions;
+    }
     // Get all active registered businesses
     const registeredBusinesses = await businessService.getActiveBusinesses();
     
@@ -2103,20 +2124,28 @@ async function trackBusinessVisits(suggestions: any[]): Promise<void> {
 router.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
-  
   try {
-    const { url, requestId, gl, userCountry, findSimilar } = req.body;
-
-    if (!url) {
-      return res.status(400).json({ error: "URL is required" });
+    const { url, keywords, requestId, gl, userCountry, findSimilar } = req.body;
+    if (!url && !keywords) {
+      return res.status(400).json({ error: "URL or keywords is required" });
+    }
+    let result;
+    if (url) {
+      console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
+      result = await scrapeWithN8nWebhook(url, gl);
+    } else if (keywords) {
+      console.log(`n8n webhook scraping request for keywords: ${keywords}, GL: ${gl}`);
+      result = await scrapeWithN8nWebhook(keywords, gl);
+    }
+    // If result is an array (keyword search), send directly
+    if (Array.isArray(result)) {
+      return res.json(result);
     }
 
-    console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
-    console.log(`Request ID: ${requestId}`);
-    console.log(`Find Similar: ${findSimilar}`);
-
-    // Call the n8n webhook with gl parameter
-    const result = await scrapeWithN8nWebhook(url, gl);
+    // If result is a single object with a single suggestion, wrap it in an array for consistency
+    if (result && result.suggestions && !Array.isArray(result.suggestions)) {
+      result.suggestions = [result.suggestions];
+    }
 
     console.log("n8n webhook scraping successful");
     console.log("Main product:", result.mainProduct);
@@ -2195,5 +2224,18 @@ router.post("/n8n-scrape", async (req, res) => {
     });
   }
 });
+
+// Helper to add UTM params to a URL
+function addUtmToUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('utm_source', 'pavlo4');
+    u.searchParams.set('utm_medium', 'suggestion');
+    u.searchParams.set('utm_campaign', 'business_tracking');
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
 
 export default router; 
