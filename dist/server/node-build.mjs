@@ -514,7 +514,7 @@ function extractStoreName(link) {
     return "unknown";
   }
 }
-const router$1 = express__default.Router();
+const router$3 = express__default.Router();
 const SEARCH_API_KEY = process.env.SEARCH_API_KEY || process.env.SERP_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 console.log("SearchAPI Key loaded:", SEARCH_API_KEY ? "Yes" : "No");
@@ -2172,7 +2172,7 @@ Return ONLY a JSON array of cleaned and validated comparison products:`;
     throw new Error(`Gemini API request failed: ${error}`);
   }
 }
-router$1.post("/scrape-enhanced", async (req, res) => {
+router$3.post("/scrape-enhanced", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) {
@@ -2589,7 +2589,7 @@ async function trackBusinessVisits(suggestions) {
     console.error("Error tracking business visits:", error);
   }
 }
-router$1.post("/n8n-scrape", async (req, res) => {
+router$3.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
   try {
@@ -2639,7 +2639,7 @@ router$1.post("/n8n-scrape", async (req, res) => {
       const userId = req.user?.id;
       if (userId && result.mainProduct?.title) {
         await searchHistoryService.addSearch(userId, {
-          url,
+          url: addUtmToUrl(url),
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`
         });
@@ -2971,8 +2971,8 @@ const requireAdmin = (req, res, next) => {
   }
   next();
 };
-const router = express__default.Router();
-router.get("/", requireAuth, async (req, res) => {
+const router$2 = express__default.Router();
+router$2.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const favorites = await prisma.favorite.findMany({
@@ -2988,7 +2988,7 @@ router.get("/", requireAuth, async (req, res) => {
     });
   }
 });
-router.post("/", requireAuth, async (req, res) => {
+router$2.post("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const {
@@ -3044,7 +3044,7 @@ router.post("/", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to add favorite" });
   }
 });
-router.delete("/:id", requireAuth, async (req, res) => {
+router$2.delete("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const favoriteId = parseInt(req.params.id);
@@ -3066,7 +3066,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to remove favorite" });
   }
 });
-router.get("/check", requireAuth, async (req, res) => {
+router$2.get("/check", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const { url } = req.query;
@@ -4681,6 +4681,50 @@ const requireBusinessAuth = async (req, res, next) => {
     });
   }
 };
+const router$1 = express__default.Router();
+router$1.get("/redirect", async (req, res) => {
+  const { to, user_id, reseller_id } = req.query;
+  if (!to || typeof to !== "string") {
+    return res.status(400).json({ error: "Missing destination URL" });
+  }
+  let url;
+  try {
+    url = new URL(to);
+  } catch {
+    return res.status(400).json({ error: "Invalid destination URL" });
+  }
+  if (user_id) url.searchParams.set("track_user", String(user_id));
+  if (reseller_id) url.searchParams.set("aff_id", String(reseller_id));
+  url.searchParams.set("utm_source", "pavlo4");
+  console.log("Redirecting user:", {
+    user_id,
+    reseller_id,
+    destination: url.toString(),
+    timestamp: (/* @__PURE__ */ new Date()).toISOString()
+  });
+  res.redirect(302, url.toString());
+});
+const router = express__default.Router();
+router.post("/track-sale", async (req, res) => {
+  const { user, orderId, amount, domain } = req.body;
+  if (!user || !orderId || !amount || !domain) {
+    return res.status(400).json({ error: "Missing data" });
+  }
+  try {
+    await prisma.conversion.create({
+      data: {
+        user,
+        orderId,
+        amount: parseFloat(amount),
+        domain
+      }
+    });
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Failed to save conversion:", err);
+    res.status(500).json({ error: "Failed to save conversion" });
+  }
+});
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
@@ -4811,7 +4855,7 @@ async function createServer() {
   app.put("/api/admin/business/:id/password", requireAuth, requireAdmin, updateBusinessPassword);
   app.delete("/api/admin/business/:id", requireAuth, requireAdmin, deleteBusiness);
   app.post("/api/admin/business/:id/verify", requireAuth, requireAdmin, verifyBusiness);
-  app.use("/api/favorites", router);
+  app.use("/api/favorites", router$2);
   app.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app.get("/api/user/search-history", requireAuth, getUserSearchHistory);
   app.post("/api/legacy/search-history", saveSearchHistory);
@@ -4821,21 +4865,21 @@ async function createServer() {
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
-      router$1(req, res, () => {
+      router$3(req, res, () => {
       });
     }
   );
   app.use(
     "/api",
     validateUrl,
-    router$1
+    router$3
   );
   app.post(
     "/api/scrape-product",
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
-      router$1(req, res, () => {
+      router$3(req, res, () => {
       });
     }
   );
@@ -4844,7 +4888,7 @@ async function createServer() {
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
-      router$1(req, res, () => {
+      router$3(req, res, () => {
       });
     }
   );
@@ -4903,6 +4947,8 @@ async function createServer() {
       res.status(500).json({ error: "Failed to fetch business activity logs" });
     }
   });
+  app.use("/api", router$1);
+  app.use("/api", router);
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully");
     await gracefulShutdown();
