@@ -144,12 +144,12 @@ export default function History() {
               {history.map((item, index) => (
                 <Card key={index} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0">
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-lg mb-2 line-clamp-2">
                           {item.title}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
                           <div className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
                             {formatDate(item.timestamp)}
@@ -158,18 +158,18 @@ export default function History() {
                             ID: {item.requestId.slice(0, 8)}...
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ExternalLink className="h-4 w-4" />
-                          <span className="truncate max-w-md">{item.url}</span>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground break-all max-w-full">
+                          <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate max-w-full md:max-w-md">{item.url}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 ml-4">
-                        <Button asChild size="sm">
+                      <div className="flex flex-col gap-2 w-full md:w-auto">
+                        <Button asChild size="sm" className="w-full md:w-auto">
                           <Link to={`/new-search/${item.requestId}/results`}>
                             View Results
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="sm" asChild className="w-full md:w-auto">
                           <a
                             href={item.url}
                             target="_blank"

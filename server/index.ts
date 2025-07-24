@@ -66,6 +66,8 @@ import {
   validateUrl,
 } from "./middleware/security";
 import { requireBusinessAuth } from "./middleware/business-auth";
+import redirectRouter from "./routes/redirect";
+import trackSaleRouter from "./routes/track-sale";
 
 // Load environment variables
 dotenv.config();
@@ -339,6 +341,10 @@ export async function createServer() {
       res.status(500).json({ error: "Failed to fetch business activity logs" });
     }
   });
+
+  // Redirect routes
+  app.use("/api", redirectRouter);
+  app.use("/api", trackSaleRouter);
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {
