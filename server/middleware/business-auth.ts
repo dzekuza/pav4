@@ -5,7 +5,7 @@ import { businessService } from "../services/database";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // Helper function to verify business token
-function verifyBusinessToken(token: string) {
+export function verifyBusinessToken(token: string) {
   try {
     return jwt.verify(token, JWT_SECRET) as any;
   } catch (error) {
