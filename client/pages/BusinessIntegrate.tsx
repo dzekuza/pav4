@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Copy } from "lucide-react";
+import { useBusinessAuth } from "@/hooks/use-auth";
+import { SearchHeader } from "@/components/SearchHeader";
 
 const SCRIPTS = {
   shopify: {
@@ -10,13 +12,13 @@ const SCRIPTS = {
     code: `<!-- Start Affiliate script -->
 <script>
 const params = new URLSearchParams(window.location.search);
-const trackUser = params.get("track_user");
-if (trackUser) {
-  fetch("https://pavlo4.netlify.app/api/track-sale", {
+const redirectApp = params.get("redirect_app");
+if (redirectApp) {
+  fetch(window.location.origin + "/api/track-sale", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      user: trackUser,
+      businessId: redirectApp,
       domain: location.hostname,
       orderId: Shopify.checkout?.order_id,
       amount: Shopify.checkout?.total_price
@@ -29,19 +31,19 @@ if (trackUser) {
   woocommerce: {
     label: "WooCommerce (WordPress)",
     code: `<!-- Start Affiliate script -->
-add_action('woocommerce_thankyou', 'track_user_purchase', 10, 1);
-function track_user_purchase($order_id) {
+add_action('woocommerce_thankyou', 'track_business_purchase', 10, 1);
+function track_business_purchase($order_id) {
   $order = wc_get_order($order_id);
-  $track_user = $_COOKIE['track_user'] ?? $_GET['track_user'] ?? null;
+  $redirectApp = $_COOKIE['redirect_app'] ?? $_GET['redirect_app'] ?? null;
 
-  if ($track_user) {
-    wp_remote_post('https://pavlo4.netlify.app/api/track-sale', [
+  if ($redirectApp) {
+    wp_remote_post($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/api/track-sale', [
       'method' => 'POST',
       'body'   => json_encode([
-        'user'    => $track_user,
-        'orderId' => $order_id,
-        'amount'  => $order->get_total(),
-        'domain'  => $_SERVER['HTTP_HOST']
+        'businessId' => $redirectApp,
+        'orderId'    => $order_id,
+        'amount'     => $order->get_total(),
+        'domain'     => $_SERVER['HTTP_HOST']
       ]),
       'headers' => ['Content-Type' => 'application/json']
     ]);
@@ -54,15 +56,15 @@ function track_user_purchase($order_id) {
     code: `<!-- Start Affiliate script -->
 <script>
 (function() {
-  const trackUser = new URLSearchParams(window.location.search).get("track_user") || localStorage.getItem("track_user");
-  if (trackUser) localStorage.setItem("track_user", trackUser);
+  const redirectApp = new URLSearchParams(window.location.search).get("redirect_app") || localStorage.getItem("redirect_app");
+  if (redirectApp) localStorage.setItem("redirect_app", redirectApp);
 
   if (window.location.href.includes("thank-you")) {
-    fetch("https://pavlo4.netlify.app/api/track-sale", {
+    fetch(window.location.origin + "/api/track-sale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user: trackUser,
+        businessId: redirectApp,
         orderId: window.orderId || 'custom-id',
         amount: window.orderAmount || '0.00',
         domain: window.location.hostname
@@ -81,23 +83,27 @@ const TUTORIALS = {
     "Navigate to Online Store > Themes > Actions > Edit Code.",
     "Open the 'Checkout' or 'Additional Scripts' section (or add to your thank you page template).",
     "Paste the script below just before </body> or in the custom scripts area.",
-    "Save and publish your changes."
+    "Save and publish your changes.",
+    "Your affiliate ID will be automatically included in product URLs from our platform."
   ],
   woocommerce: [
     "Log in to your WordPress admin dashboard.",
     "Go to Appearance > Theme File Editor or use a custom plugin for code snippets.",
     "Paste the PHP code below into your theme's functions.php or a custom plugin.",
-    "Save the file and test a purchase to ensure tracking works."
+    "Save the file and test a purchase to ensure tracking works.",
+    "Your affiliate ID will be automatically included in product URLs from our platform."
   ],
   custom: [
     "Copy the script below.",
     "Paste it into your thank you or order confirmation page, just before </body>.",
     "Make sure your page exposes orderId and orderAmount as global JS variables if possible.",
-    "Test a purchase to ensure tracking works."
+    "Test a purchase to ensure tracking works.",
+    "Your affiliate ID will be automatically included in product URLs from our platform."
   ]
 };
 
 export default function BusinessIntegrate() {
+  const { business } = useBusinessAuth();
   const [selected, setSelected] = useState<"shopify" | "woocommerce" | "custom">("shopify");
   const [copied, setCopied] = useState(false);
   const [testResult, setTestResult] = useState<null | { success: boolean; message: string }>(null);
@@ -113,18 +119,31 @@ export default function BusinessIntegrate() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch("https://pavlo4.netlify.app/api/track-sale", {
+      const res = await fetch("/api/track-sale", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user: "test-user",
-          orderId: "test-order-" + Math.floor(Math.random() * 10000),
-          amount: "1.23",
-          domain: window.location.hostname
+          businessId: business?.affiliateId || "PAV00000001",
+          orderId: "order-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+          amount: (Math.random() * 100 + 10).toFixed(2), // Random realistic amount between $10-$110
+          domain: business?.domain || window.location.hostname,
+          customerId: "test-customer-" + Math.floor(Math.random() * 1000) // Optional customer ID
         })
       });
       if (res.ok) {
-        setTestResult({ success: true, message: "Test successful! Tracking endpoint is working." });
+        const data = await res.json();
+        setTestResult({ success: true, message: `Test successful! Sale tracked for ${data.business}.` });
+        
+        // Mark tracking as verified if test was successful
+        try {
+          await fetch('/api/business/verify-tracking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+          });
+        } catch (error) {
+          console.error('Failed to mark tracking as verified:', error);
+        }
       } else {
         setTestResult({ success: false, message: "Test failed. Please check your integration or contact support." });
       }
@@ -135,40 +154,49 @@ export default function BusinessIntegrate() {
     }
   };
 
+
+
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Integrate Affiliate Tracking</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4 text-muted-foreground">
-            Select your platform and follow the step-by-step instructions to add affiliate/sale tracking to your store. If you need help, contact support.
-          </p>
-          <Tabs value={selected} onValueChange={v => setSelected(v as any)}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="shopify">Shopify</TabsTrigger>
-              <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
-              <TabsTrigger value="custom">Custom</TabsTrigger>
-            </TabsList>
-            <TabsContent value="shopify">
-              <TutorialSteps steps={TUTORIALS.shopify} />
-              <IntegrationCode code={SCRIPTS.shopify.code} copied={copied && selected === "shopify"} onCopy={handleCopy} />
-              <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
-            </TabsContent>
-            <TabsContent value="woocommerce">
-              <TutorialSteps steps={TUTORIALS.woocommerce} />
-              <IntegrationCode code={SCRIPTS.woocommerce.code} copied={copied && selected === "woocommerce"} onCopy={handleCopy} />
-              <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
-            </TabsContent>
-            <TabsContent value="custom">
-              <TutorialSteps steps={TUTORIALS.custom} />
-              <IntegrationCode code={SCRIPTS.custom.code} copied={copied && selected === "custom"} onCopy={handleCopy} />
-              <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-background">
+      <SearchHeader showBackButton={false} />
+      
+      <div className="container mx-auto px-4 py-8">
+        {/* Integration Content */}
+        <div className="max-w-4xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Integrate Affiliate Tracking</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-muted-foreground">
+                Select your platform and follow the step-by-step instructions to add affiliate/sale tracking to your store. If you need help, contact support.
+              </p>
+              <Tabs value={selected} onValueChange={v => setSelected(v as any)}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="shopify">Shopify</TabsTrigger>
+                  <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
+                  <TabsTrigger value="custom">Custom</TabsTrigger>
+                </TabsList>
+                <TabsContent value="shopify">
+                  <TutorialSteps steps={TUTORIALS.shopify} />
+                  <IntegrationCode code={SCRIPTS.shopify.code} copied={copied && selected === "shopify"} onCopy={handleCopy} />
+                  <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
+                </TabsContent>
+                <TabsContent value="woocommerce">
+                  <TutorialSteps steps={TUTORIALS.woocommerce} />
+                  <IntegrationCode code={SCRIPTS.woocommerce.code} copied={copied && selected === "woocommerce"} onCopy={handleCopy} />
+                  <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
+                </TabsContent>
+                <TabsContent value="custom">
+                  <TutorialSteps steps={TUTORIALS.custom} />
+                  <IntegrationCode code={SCRIPTS.custom.code} copied={copied && selected === "custom"} onCopy={handleCopy} />
+                  <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -198,8 +226,18 @@ function IntegrationCode({ code, copied, onCopy }: { code: string; copied: boole
 }
 
 function TestConnectionButton({ onTest, result, testing }: { onTest: () => void; result: any; testing: boolean }) {
+  const { business } = useBusinessAuth();
+  
   return (
     <div className="mt-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium">Connection Status</span>
+        {business?.trackingVerified && (
+          <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
+            ✓ Verified
+          </Badge>
+        )}
+      </div>
       <Button size="sm" variant="secondary" onClick={onTest} disabled={testing}>
         {testing ? "Testing..." : "Test Connection"}
       </Button>

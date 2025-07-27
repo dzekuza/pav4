@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
 import Index from "./pages/Index";
@@ -23,10 +23,146 @@ import BusinessDashboard from "./pages/BusinessDashboard";
 import { StagewiseToolbar } from '@stagewise/toolbar-react';
 import ReactPlugin from '@stagewise-plugins/react';
 import BusinessIntegrate from "./pages/BusinessIntegrate";
+import BusinessActivity from "./pages/BusinessActivity";
 // import NewLanding from "./pages/NewLanding";
 // import NewSearch from "./pages/NewSearch";
 
 const queryClient = new QueryClient();
+
+// Create router with future flags to suppress warnings
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <Index />
+      </>
+    ),
+  },
+  {
+    path: "/search/:requestId/:slug",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <SearchResults />
+      </>
+    ),
+  },
+  {
+    path: "/new-search/:requestId/:slug",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <NewSearchResults />
+      </>
+    ),
+  },
+  {
+    path: "/history",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <History />
+      </>
+    ),
+  },
+  {
+    path: "/favorites",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <Favorites />
+      </>
+    ),
+  },
+  {
+    path: "/login",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <Login />
+      </>
+    ),
+  },
+  {
+    path: "/admin",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <Admin />
+      </>
+    ),
+  },
+  {
+    path: "/business/register",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <BusinessRegistration />
+      </>
+    ),
+  },
+  {
+    path: "/admin/business",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <BusinessManagement />
+      </>
+    ),
+  },
+  {
+    path: "/business-login",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <BusinessLogin />
+      </>
+    ),
+  },
+  {
+    path: "/business/dashboard",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <BusinessDashboard />
+      </>
+    ),
+  },
+  {
+    path: "/business-integrate",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <BusinessIntegrate />
+      </>
+    ),
+  },
+  {
+    path: "/business-activity",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <BusinessActivity />
+      </>
+    ),
+  },
+  {
+    path: "*",
+    element: (
+      <>
+        <UrlRedirectHandler />
+        <NotFound />
+      </>
+    ),
+  },
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  } as any,
+});
 
 const App = () => (
   <>
@@ -37,30 +173,7 @@ const App = () => (
           <BusinessAuthProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
-              <UrlRedirectHandler />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                {/* <Route path="/new-landing" element={<NewLanding />} />
-                <Route path="/new-search" element={<NewSearch />} /> */}
-                <Route
-                  path="/search/:requestId/:slug"
-                  element={<SearchResults />}
-                />
-                <Route path="/new-search/:requestId/:slug" element={<NewSearchResults />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/favorites" element={<Favorites />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/business/register" element={<BusinessRegistration />} />
-                <Route path="/admin/business" element={<BusinessManagement />} />
-                <Route path="/business-login" element={<BusinessLogin />} />
-                <Route path="/business/dashboard" element={<BusinessDashboard />} />
-                <Route path="/business-integrate" element={<BusinessIntegrate />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <RouterProvider router={router} />
           </BusinessAuthProvider>
         </AuthProvider>
       </TooltipProvider>

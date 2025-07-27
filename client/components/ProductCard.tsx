@@ -22,6 +22,7 @@ interface ProductCardProps {
   className?: string;
   affiliateId?: string; // Add affiliateId prop
   productId?: string;   // Add productId prop
+  isVerified?: boolean; // Add verified prop
 }
 
 export function ProductCard({
@@ -43,6 +44,7 @@ export function ProductCard({
   className = "",
   affiliateId,
   productId,
+  isVerified = false,
 }: ProductCardProps) {
   // Build the /go/ route if affiliateId and productId are available
   let goUrl = url;
@@ -78,6 +80,11 @@ export function ProductCard({
                 <Badge variant="outline" className="text-success">
                   Save {currency}
                   {savings.toFixed(2)}
+                </Badge>
+              )}
+              {isVerified && (
+                <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+                  ✓ Verified
                 </Badge>
               )}
             </div>

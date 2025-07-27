@@ -440,9 +440,16 @@ const SearchResults = () => {
                         
                         <div className="flex-1 min-w-0">
                           {/* Reseller name above product name */}
-                          <p className="text-xs font-medium text-blue-600 mb-1 capitalize">
-                            {comparison.merchant || comparison.store || 'Unknown Store'}
-                          </p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-xs font-medium text-blue-600 capitalize">
+                              {comparison.merchant || comparison.store || 'Unknown Store'}
+                            </p>
+                            {comparison.isVerified && (
+                              <Badge className="bg-blue-100 text-blue-800 border-blue-300 text-xs">
+                                ✓ Verified
+                              </Badge>
+                            )}
+                          </div>
                           
                           {/* Product name */}
                           <h4 className="font-medium text-sm line-clamp-2 mb-2">

@@ -42,7 +42,6 @@ export function UrlRedirectHandler() {
 
   useEffect(() => {
     const fullPath = location.pathname + location.search;
-    console.log("UrlRedirectHandler checking path:", fullPath);
 
     // Check if the path starts with /https:// or /http://
     if (
