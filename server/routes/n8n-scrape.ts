@@ -2042,17 +2042,15 @@ function extractCurrency(priceString: string): string {
 // Filter suggestions based on registered businesses
 async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Promise<any[]> {
   try {
-    // Check if the filter is enabled
-    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
-    if (!filterEnabled) {
-      // If filter is disabled, return all suggestions
-      return suggestions;
-    }
-    // Get all active registered businesses
+    console.log(`🔍 Processing ${suggestions.length} suggestions for verified badges`);
+    
+    // Get all active registered businesses (always check for verified badges)
     const registeredBusinesses = await businessService.getActiveBusinesses();
+    console.log(`🏢 Found ${registeredBusinesses.length} registered businesses:`, registeredBusinesses.map(b => `${b.name} (${b.domain}) - verified: ${b.trackingVerified}`));
     
     if (registeredBusinesses.length === 0) {
-      // If no businesses are registered, return all suggestions
+      // If no businesses are registered, return all suggestions without badges
+      console.log(`❌ No registered businesses found, returning all ${suggestions.length} suggestions without badges`);
       return suggestions;
     }
 
@@ -2060,52 +2058,88 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Prom
     const registeredDomains = new Set(
       registeredBusinesses.map(business => business.domain.toLowerCase())
     );
+    console.log(`📋 Registered domains:`, Array.from(registeredDomains));
 
-    // Filter suggestions to only include registered businesses and add verification status
-    const filteredSuggestions = suggestions.filter(suggestion => {
-      if (!suggestion.url) return false;
-      
-      try {
-        const url = new URL(suggestion.url);
-        const domain = url.hostname.toLowerCase().replace('www.', '');
-        return registeredDomains.has(domain);
-      } catch {
-        return false;
-      }
-    });
+    // Create a map of domain to business for verification status
+    const businessMap = new Map(
+      registeredBusinesses.map(business => [business.domain.toLowerCase(), business])
+    );
 
-    // Add verification status to each suggestion
-    const suggestionsWithVerification = await Promise.all(
-      filteredSuggestions.map(async (suggestion) => {
-        try {
-          const url = new URL(suggestion.url);
-          const domain = url.hostname.toLowerCase().replace('www.', '');
-          const business = registeredBusinesses.find(b => b.domain.toLowerCase() === domain);
-          
-          return {
-            ...suggestion,
-            isVerified: business?.trackingVerified || false
-          };
-        } catch {
+    // Add verification status to ALL suggestions (regardless of filter setting)
+    const processedSuggestions = await Promise.all(
+      suggestions.map(async (suggestion) => {
+        // Extract domain from site field first, then fallback to URL
+        let domain = '';
+        
+        if (suggestion.site) {
+          // Use the site field directly (e.g., "godislove.lt")
+          domain = suggestion.site.toLowerCase().replace('www.', '');
+        } else if (suggestion.url) {
+          // Fallback to extracting from URL
+          try {
+            const url = new URL(suggestion.url);
+            domain = url.hostname.toLowerCase().replace('www.', '');
+          } catch {
+            domain = '';
+          }
+        }
+        
+        if (!domain) {
           return {
             ...suggestion,
             isVerified: false
           };
         }
+        
+        const business = businessMap.get(domain);
+        const isVerified = business?.trackingVerified || false;
+        
+        console.log(`🔍 Suggestion domain: ${domain}, registered: ${!!business}, verified: ${isVerified}`);
+        
+        return {
+          ...suggestion,
+          isVerified
+        };
       })
     );
-
-    // If no suggestions match registered businesses, return empty array
-    if (filteredSuggestions.length === 0) {
-      console.log("No suggestions match registered businesses");
-      return [];
+    
+    // Check if the filter is enabled
+    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
+    console.log(`🔧 Filter enabled: ${filterEnabled}`);
+    
+    if (!filterEnabled) {
+      // If filter is disabled, return all suggestions with badges
+      console.log(`✅ Filter disabled, returning all ${processedSuggestions.length} suggestions with badges`);
+      return processedSuggestions;
     }
-
-    console.log(`Filtered ${suggestions.length} suggestions to ${suggestionsWithVerification.length} from registered businesses`);
-    return suggestionsWithVerification;
+    
+    // If filter is enabled, only return suggestions from registered businesses
+    const filteredSuggestions = processedSuggestions.filter(suggestion => {
+      // Extract domain from site field first, then fallback to URL
+      let domain = '';
+      
+      if (suggestion.site) {
+        // Use the site field directly (e.g., "godislove.lt")
+        domain = suggestion.site.toLowerCase().replace('www.', '');
+      } else if (suggestion.url) {
+        // Fallback to extracting from URL
+        try {
+          const url = new URL(suggestion.url);
+          domain = url.hostname.toLowerCase().replace('www.', '');
+        } catch {
+          return false;
+        }
+      }
+      
+      if (!domain) return false;
+      
+      return registeredDomains.has(domain);
+    });
+    
+    console.log(`✅ Filter enabled, returning ${filteredSuggestions.length} filtered suggestions with badges`);
+    return filteredSuggestions;
   } catch (error) {
-    console.error("Error filtering suggestions by registered businesses:", error);
-    // Return original suggestions if filtering fails
+    console.error("Error processing suggestions for verified badges:", error);
     return suggestions;
   }
 }
