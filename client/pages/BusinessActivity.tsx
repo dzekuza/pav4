@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { SearchHeader } from '../components/SearchHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SearchHeader } from '@/components/SearchHeader';
+import { Eye, ShoppingCart, DollarSign, Calendar, Filter } from 'lucide-react';
+import { useBusinessAuth } from '@/hooks/use-auth';
 
-interface ClickLog {
-  id: number;
-  affiliateId: string;
-  productId: string;
-  userId?: number;
+interface ActivityItem {
+  id: string;
+  type: 'click' | 'purchase';
+  productName: string;
+  productUrl: string;
+  status: 'browsed' | 'purchased' | 'abandoned';
+  amount?: number;
   timestamp: string;
   userAgent?: string;
   referrer?: string;
@@ -16,94 +22,323 @@ interface ClickLog {
 }
 
 export default function BusinessActivity() {
-  const [logs, setLogs] = useState<ClickLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { business } = useBusinessAuth();
   const navigate = useNavigate();
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'clicks' | 'purchases'>('all');
+  const [stats, setStats] = useState({
+    totalClicks: 0,
+    totalPurchases: 0,
+    totalRevenue: 0,
+    conversionRate: 0
+  });
 
   useEffect(() => {
-    fetchLogs();
+    fetchActivity();
   }, []);
 
-  const fetchLogs = async () => {
-    setLoading(true);
-    setError('');
+  const fetchActivity = async () => {
     try {
-      const res = await fetch('/api/business/activity', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.logs || []);
-      } else if (res.status === 401) {
-        navigate('/business-login');
-      } else {
-        setError('Failed to fetch activity logs');
-      }
-    } catch {
-      setError('Network error fetching activity logs');
+      setIsLoading(true);
+      
+      // Fetch both click logs and conversions
+      const [clicksResponse, conversionsResponse] = await Promise.all([
+        fetch('/api/business/activity/clicks', { credentials: 'include' }),
+        fetch('/api/business/activity/conversions', { credentials: 'include' })
+      ]);
+
+      const clicks = clicksResponse.ok ? await clicksResponse.json() : [];
+      const conversions = conversionsResponse.ok ? await conversionsResponse.json() : [];
+
+      // Combine and format the data
+      const combinedActivities: ActivityItem[] = [
+        ...clicks.map((click: any) => ({
+          id: `click-${click.id}`,
+          type: 'click' as const,
+          productName: extractProductName(click.productId),
+          productUrl: click.productId,
+          status: 'browsed' as const,
+          timestamp: click.timestamp,
+          userAgent: click.userAgent,
+          referrer: click.referrer,
+          ip: click.ip
+        })),
+        ...conversions.map((conversion: any) => ({
+          id: `purchase-${conversion.id}`,
+          type: 'purchase' as const,
+          productName: `Order ${conversion.orderId}`,
+          productUrl: conversion.domain,
+          status: 'purchased' as const,
+          amount: conversion.amount,
+          timestamp: conversion.timestamp,
+          customerId: conversion.customerId
+        }))
+      ];
+
+      // Sort by timestamp (newest first)
+      combinedActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      setActivities(combinedActivities);
+
+      // Calculate stats
+      const totalClicks = clicks.length;
+      const totalPurchases = conversions.length;
+      const totalRevenue = conversions.reduce((sum: number, conv: any) => sum + conv.amount, 0);
+      const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+
+      setStats({
+        totalClicks,
+        totalPurchases,
+        totalRevenue,
+        conversionRate
+      });
+
+    } catch (error) {
+      console.error('Error fetching activity:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  const extractProductName = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+      const lastPart = pathParts[pathParts.length - 1];
+      return lastPart ? lastPart.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Product';
+    } catch {
+      return 'Product';
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'purchased':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Purchased</Badge>;
+      case 'browsed':
+        return <Badge variant="secondary">Browsed</Badge>;
+      case 'abandoned':
+        return <Badge variant="destructive">Abandoned</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'click':
+        return <Eye className="h-4 w-4 text-blue-500" />;
+      case 'purchase':
+        return <ShoppingCart className="h-4 w-4 text-green-500" />;
+      default:
+        return <Eye className="h-4 w-4" />;
+    }
+  };
+
+  const filteredActivities = activities.filter(activity => {
+    if (filter === 'all') return true;
+    if (filter === 'clicks') return activity.type === 'click';
+    if (filter === 'purchases') return activity.type === 'purchase';
+    return true;
+  });
+
+
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SearchHeader showBackButton={false} />
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="h-96 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <SearchHeader showBackButton={true} />
+      <SearchHeader showBackButton={false} />
+      
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">User Activity</h1>
-          <Button variant="outline" onClick={() => navigate('/business-dashboard')}>Back to Dashboard</Button>
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">User Activity</h1>
+          <p className="text-muted-foreground">
+            Track user interactions and purchases for {business?.name || 'your business'}
+          </p>
         </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                Product page visits
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                Successful conversions
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                Total sales revenue
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">
+                Click to purchase ratio
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-2">
+            <Button 
+              variant={filter === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setFilter('all')}
+            >
+              All Activity
+            </Button>
+            <Button 
+              variant={filter === 'clicks' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setFilter('clicks')}
+            >
+              Clicks Only
+            </Button>
+            <Button 
+              variant={filter === 'purchases' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => setFilter('purchases')}
+            >
+              Purchases Only
+            </Button>
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchActivity}>
+            <Filter className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Activity Table */}
         <Card>
           <CardHeader>
-            <CardTitle>User Visits to Your Product URLs</CardTitle>
+            <CardTitle>Activity Log</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="py-8 text-center">Loading...</div>
-            ) : error ? (
-              <div className="py-8 text-center text-red-500">{error}</div>
-            ) : logs.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">No activity found.</div>
+            {filteredActivities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No activity found</p>
+                <p className="text-sm">User activity will appear here once customers start browsing your products</p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="px-2 py-2 text-left">Date</th>
-                      <th className="px-2 py-2 text-left">Product URL</th>
-                      <th className="px-2 py-2 text-left">User ID</th>
-                      <th className="px-2 py-2 text-left">Referrer</th>
-                      <th className="px-2 py-2 text-left">UTM Params</th>
-                      <th className="px-2 py-2 text-left">IP</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.map(log => {
-                      let utm = '';
-                      try {
-                        const u = new URL(log.productId);
-                        utm = Array.from(u.searchParams.entries())
-                          .filter(([k]) => k.startsWith('utm_'))
-                          .map(([k, v]) => `${k}=${v}`)
-                          .join('&');
-                      } catch {}
-                      return (
-                        <tr key={log.id} className="border-b last:border-0">
-                          <td className="px-2 py-2 whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
-                          <td className="px-2 py-2 max-w-xs truncate">
-                            <a href={log.productId} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                              {log.productId}
-                            </a>
-                          </td>
-                          <td className="px-2 py-2">{log.userId || '-'}</td>
-                          <td className="px-2 py-2 max-w-xs truncate">{log.referrer || '-'}</td>
-                          <td className="px-2 py-2 max-w-xs truncate">{utm || '-'}</td>
-                          <td className="px-2 py-2">{log.ip || '-'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredActivities.map((activity) => (
+                      <TableRow key={activity.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getTypeIcon(activity.type)}
+                            <span className="capitalize">{activity.type}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-xs truncate">
+                            <div className="font-medium">{activity.productName}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {activity.productUrl}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(activity.status)}
+                        </TableCell>
+                        <TableCell>
+                          {activity.amount ? (
+                            <span className="font-medium text-green-600">
+                              ${activity.amount.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {new Date(activity.timestamp).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(activity.timestamp).toLocaleTimeString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs text-muted-foreground">
+                            {activity.customerId && (
+                              <div>Customer: {activity.customerId}</div>
+                            )}
+                            {activity.ip && (
+                              <div>IP: {activity.ip}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

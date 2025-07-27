@@ -2061,7 +2061,7 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Prom
       registeredBusinesses.map(business => business.domain.toLowerCase())
     );
 
-    // Filter suggestions to only include registered businesses
+    // Filter suggestions to only include registered businesses and add verification status
     const filteredSuggestions = suggestions.filter(suggestion => {
       if (!suggestion.url) return false;
       
@@ -2074,14 +2074,35 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Prom
       }
     });
 
+    // Add verification status to each suggestion
+    const suggestionsWithVerification = await Promise.all(
+      filteredSuggestions.map(async (suggestion) => {
+        try {
+          const url = new URL(suggestion.url);
+          const domain = url.hostname.toLowerCase().replace('www.', '');
+          const business = registeredBusinesses.find(b => b.domain.toLowerCase() === domain);
+          
+          return {
+            ...suggestion,
+            isVerified: business?.trackingVerified || false
+          };
+        } catch {
+          return {
+            ...suggestion,
+            isVerified: false
+          };
+        }
+      })
+    );
+
     // If no suggestions match registered businesses, return empty array
     if (filteredSuggestions.length === 0) {
       console.log("No suggestions match registered businesses");
       return [];
     }
 
-    console.log(`Filtered ${suggestions.length} suggestions to ${filteredSuggestions.length} from registered businesses`);
-    return filteredSuggestions;
+    console.log(`Filtered ${suggestions.length} suggestions to ${suggestionsWithVerification.length} from registered businesses`);
+    return suggestionsWithVerification;
   } catch (error) {
     console.error("Error filtering suggestions by registered businesses:", error);
     // Return original suggestions if filtering fails

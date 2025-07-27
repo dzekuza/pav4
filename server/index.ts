@@ -43,6 +43,8 @@ import {
   updateBusinessCommission,
   getBusinessDetailedStats,
   updateBusinessPassword,
+  getBusinessClicks,
+  getBusinessConversions,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -50,6 +52,7 @@ import {
   getCurrentBusiness,
   logoutBusiness,
   getBusinessStats as getBusinessAuthStats,
+  verifyBusinessTracking,
 } from "./routes/business-auth";
 import {
   authRateLimit,
@@ -68,6 +71,7 @@ import {
 import { requireBusinessAuth } from "./middleware/business-auth";
 import redirectRouter from "./routes/redirect";
 import trackSaleRouter from "./routes/track-sale";
+import trackProductVisitRouter from "./routes/track-product-visit";
 
 // Load environment variables
 dotenv.config();
@@ -91,10 +95,24 @@ export async function createServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://api.searchapi.io", "https://n8n.srv824584.hstgr.cloud"],
+        connectSrc: [
+          "'self'", 
+          "https://api.searchapi.io", 
+          "https://n8n.srv824584.hstgr.cloud",
+          "https://pavlo4.netlify.app",
+          "http://localhost:5746",
+          "http://localhost:5747", 
+          "http://localhost:8082",
+          "http://localhost:8083",
+          "ws://localhost:5746",
+          "ws://localhost:5747",
+          "ws://localhost:8082",
+          "ws://localhost:8083"
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://rsms.me"],
       },
     },
     hsts: {
@@ -124,7 +142,9 @@ export async function createServer() {
     "http://localhost:8083",
     "http://localhost:8084",
     "https://pavlo4.netlify.app",
-    "https://app.pavlo.com" // Assuming this is your custom domain
+    "https://app.pavlo.com", // Assuming this is your custom domain
+    "http://127.0.0.1:8083",
+    "http://[::1]:8083"
   ];
 
   const corsOptions = {
@@ -218,6 +238,7 @@ export async function createServer() {
   app.get("/api/business/auth/me", getCurrentBusiness);
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", getBusinessAuthStats);
+  app.post("/api/business/verify-tracking", verifyBusinessTracking);
   
   // Business routes with caching and validation
   app.post("/api/business/register", registerBusiness);
@@ -342,9 +363,16 @@ export async function createServer() {
     }
   });
 
+  // Business: Get clicks activity
+  app.get("/api/business/activity/clicks", getBusinessClicks);
+
+  // Business: Get conversions activity
+  app.get("/api/business/activity/conversions", getBusinessConversions);
+
   // Redirect routes
   app.use("/api", redirectRouter);
   app.use("/api", trackSaleRouter);
+  app.use("/api", trackProductVisitRouter);
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {

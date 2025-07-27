@@ -108,6 +108,8 @@ model Business {
   adminCommissionRate Float    @default(5.0)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  affiliateId         String   @unique @default(cuid())
+  trackingVerified    Boolean  @default(false)
 
   @@map("businesses")
 }
@@ -139,16 +141,20 @@ model ClickLog {
 }
 
 model Settings {
-  id        Int    @id @default(autoincrement())
-  key       String @unique
-  value     String
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
 }
 
 model Conversion {
-  id        Int      @id @default(autoincrement())
-  user      String
-  orderId   String
-  amount    Float
-  domain    String
-  timestamp DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  orderId    String
+  amount     Float
+  domain     String
+  timestamp  DateTime @default(now())
+  businessId String
+  customerId String?
+
+  @@index([businessId])
+  @@index([timestamp])
 }

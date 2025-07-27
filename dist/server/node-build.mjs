@@ -4721,8 +4721,9 @@ router.post("/track-sale", async (req, res) => {
     });
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error("Failed to save conversion:", err);
-    res.status(500).json({ error: "Failed to save conversion" });
+    const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
+    console.error("Failed to save conversion:", errorMsg);
+    res.status(500).json({ error: "Failed to save conversion", details: errorMsg });
   }
 });
 dotenv.config();

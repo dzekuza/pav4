@@ -7,12 +7,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8083,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8081',
-        changeOrigin: true,
-        secure: false,
-      },
+    headers: {
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Content-Security-Policy': "frame-ancestors 'self'",
     },
   },
   build: {

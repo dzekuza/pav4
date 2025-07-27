@@ -118,14 +118,9 @@ export function SearchLoadingState() {
 }
 
 export function SearchLoadingOverlay({ isVisible }: { isVisible: boolean }) {
-  console.log("SearchLoadingOverlay render - isVisible:", isVisible);
-  
   if (!isVisible) {
-    console.log("SearchLoadingOverlay not visible, returning null");
     return null;
   }
-
-  console.log("SearchLoadingOverlay visible, rendering overlay");
   
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">

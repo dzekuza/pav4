@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
-import { businessService } from "../services/database";
+import { businessService, prisma } from "../services/database";
 import { requireAdminAuth } from "../middleware/admin-auth";
+import { verifyBusinessToken } from "../middleware/business-auth";
 
 // Register a new business
 export const registerBusiness: RequestHandler = async (req, res) => {
@@ -265,5 +266,101 @@ export const getBusinessDetailedStats: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Error fetching business detailed stats:", error);
     res.status(500).json({ success: false, error: "Failed to fetch business statistics" });
+  }
+}; 
+
+// Get business activity - clicks
+export const getBusinessClicks: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+    
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        error: "Not authenticated" 
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({ 
+        success: false, 
+        error: "Invalid token" 
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Business not found" 
+      });
+    }
+
+    // Get click logs for this business
+    const clicks = await businessService.getBusinessClickLogs(decoded.businessId);
+    
+    res.json({ success: true, clicks });
+  } catch (error) {
+    console.error("Error getting business clicks:", error);
+    res.status(500).json({ success: false, error: "Failed to get business clicks" });
+  }
+};
+
+// Get business activity - conversions
+export const getBusinessConversions: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+    
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        error: "Not authenticated" 
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({ 
+        success: false, 
+        error: "Invalid token" 
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Business not found" 
+      });
+    }
+
+    // Get conversions for this business
+    const conversions = await prisma.conversion.findMany({
+      where: { businessId: business.affiliateId },
+      orderBy: { timestamp: 'desc' },
+      take: 100 // Limit to last 100 conversions
+    });
+    
+    res.json({ success: true, conversions });
+  } catch (error) {
+    console.error("Error getting business conversions:", error);
+    res.status(500).json({ success: false, error: "Failed to get business conversions" });
   }
 }; 

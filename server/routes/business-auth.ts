@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { businessService } from "../services/database";
+import { businessService, prisma } from "../services/database";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -226,6 +226,8 @@ export const getCurrentBusiness: RequestHandler = async (req, res) => {
         name: business.name,
         domain: business.domain,
         email: business.email,
+        affiliateId: business.affiliateId,
+        trackingVerified: business.trackingVerified,
       },
       authenticated: true 
     });
@@ -284,5 +286,65 @@ export const getBusinessStats: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Error getting business stats:", error);
     res.status(500).json({ success: false, error: "Failed to get business statistics" });
+  }
+}; 
+
+// Verify business tracking
+export const verifyBusinessTracking: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+    
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        error: "Not authenticated" 
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({ 
+        success: false, 
+        error: "Invalid token" 
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Business not found" 
+      });
+    }
+
+    // Mark tracking as verified
+    await prisma.business.update({
+      where: { id: business.id },
+      data: { trackingVerified: true }
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Tracking verified successfully",
+      business: {
+        id: business.id,
+        name: business.name,
+        domain: business.domain,
+        email: business.email,
+        affiliateId: business.affiliateId,
+        trackingVerified: true
+      }
+    });
+  } catch (error) {
+    console.error("Error verifying business tracking:", error);
+    res.status(500).json({ success: false, error: "Failed to verify tracking" });
   }
 }; 
