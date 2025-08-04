@@ -19,7 +19,8 @@
     "start": "node dist/server/node-build.mjs",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "migrate-to-cloud": "node scripts/migrate-to-cloud.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

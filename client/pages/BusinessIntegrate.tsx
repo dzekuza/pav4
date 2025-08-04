@@ -1,249 +1,356 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy } from "lucide-react";
-import { useBusinessAuth } from "@/hooks/use-auth";
-import { SearchHeader } from "@/components/SearchHeader";
-
-const SCRIPTS = {
-  shopify: {
-    label: "Shopify",
-    code: `<!-- Start Affiliate script -->
-<script>
-const params = new URLSearchParams(window.location.search);
-const redirectApp = params.get("redirect_app");
-if (redirectApp) {
-  fetch(window.location.origin + "/api/track-sale", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      businessId: redirectApp,
-      domain: location.hostname,
-      orderId: Shopify.checkout?.order_id,
-      amount: Shopify.checkout?.total_price
-    })
-  });
-}
-</script>
-<!-- End Affiliate script -->`
-  },
-  woocommerce: {
-    label: "WooCommerce (WordPress)",
-    code: `<!-- Start Affiliate script -->
-add_action('woocommerce_thankyou', 'track_business_purchase', 10, 1);
-function track_business_purchase($order_id) {
-  $order = wc_get_order($order_id);
-  $redirectApp = $_COOKIE['redirect_app'] ?? $_GET['redirect_app'] ?? null;
-
-  if ($redirectApp) {
-    wp_remote_post($_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/api/track-sale', [
-      'method' => 'POST',
-      'body'   => json_encode([
-        'businessId' => $redirectApp,
-        'orderId'    => $order_id,
-        'amount'     => $order->get_total(),
-        'domain'     => $_SERVER['HTTP_HOST']
-      ]),
-      'headers' => ['Content-Type' => 'application/json']
-    ]);
-  }
-}
-<!-- End Affiliate script -->`
-  },
-  custom: {
-    label: "Custom/Other",
-    code: `<!-- Start Affiliate script -->
-<script>
-(function() {
-  const redirectApp = new URLSearchParams(window.location.search).get("redirect_app") || localStorage.getItem("redirect_app");
-  if (redirectApp) localStorage.setItem("redirect_app", redirectApp);
-
-  if (window.location.href.includes("thank-you")) {
-    fetch(window.location.origin + "/api/track-sale", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        businessId: redirectApp,
-        orderId: window.orderId || 'custom-id',
-        amount: window.orderAmount || '0.00',
-        domain: window.location.hostname
-      })
-    });
-  }
-})();
-</script>
-<!-- End Affiliate script -->`
-  }
-};
-
-const TUTORIALS = {
-  shopify: [
-    "Go to your Shopify admin panel.",
-    "Navigate to Online Store > Themes > Actions > Edit Code.",
-    "Open the 'Checkout' or 'Additional Scripts' section (or add to your thank you page template).",
-    "Paste the script below just before </body> or in the custom scripts area.",
-    "Save and publish your changes.",
-    "Your affiliate ID will be automatically included in product URLs from our platform."
-  ],
-  woocommerce: [
-    "Log in to your WordPress admin dashboard.",
-    "Go to Appearance > Theme File Editor or use a custom plugin for code snippets.",
-    "Paste the PHP code below into your theme's functions.php or a custom plugin.",
-    "Save the file and test a purchase to ensure tracking works.",
-    "Your affiliate ID will be automatically included in product URLs from our platform."
-  ],
-  custom: [
-    "Copy the script below.",
-    "Paste it into your thank you or order confirmation page, just before </body>.",
-    "Make sure your page exposes orderId and orderAmount as global JS variables if possible.",
-    "Test a purchase to ensure tracking works.",
-    "Your affiliate ID will be automatically included in product URLs from our platform."
-  ]
-};
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useBusinessAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Code, 
+  Settings, 
+  Link, 
+  Copy, 
+  CheckCircle, 
+  AlertCircle,
+  ExternalLink,
+  Download,
+  Search
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function BusinessIntegrate() {
-  const { business } = useBusinessAuth();
-  const [selected, setSelected] = useState<"shopify" | "woocommerce" | "custom">("shopify");
-  const [copied, setCopied] = useState(false);
-  const [testResult, setTestResult] = useState<null | { success: boolean; message: string }>(null);
-  const [testing, setTesting] = useState(false);
+  const navigate = useNavigate();
+  const { business, isBusinessLoading, isBusiness } = useBusinessAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [scripts, setScripts] = useState([
+    {
+      id: 1,
+      name: 'Basic Tracking Script',
+      description: 'Simple script to track page visits and conversions',
+      code: `<script src="https://yourdomain.com/tracker.js"></script>`,
+      installed: false
+    },
+    {
+      id: 2,
+      name: 'Advanced E-commerce Tracking',
+      description: 'Enhanced script for e-commerce conversion tracking',
+      code: `<script src="https://yourdomain.com/ecommerce-tracker.js"></script>`,
+      installed: false
+    },
+    {
+      id: 3,
+      name: 'Custom Event Tracking',
+      description: 'Track custom events and user interactions',
+      code: `<script src="https://yourdomain.com/event-tracker.js"></script>`,
+      installed: false
+    }
+  ]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(SCRIPTS[selected].code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  // Redirect to business login if not authenticated
+  useEffect(() => {
+    if (!isBusinessLoading && !isBusiness) {
+      navigate('/business-login');
+    }
+  }, [isBusinessLoading, isBusiness, navigate]);
 
-  const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
+  // Show loading while checking authentication
+  if (isBusinessLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isBusiness) {
+    return null;
+  }
+
+  const copyToClipboard = async (text: string, scriptName: string) => {
     try {
-      const res = await fetch("/api/track-sale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          businessId: business?.affiliateId || "PAV00000001",
-          orderId: "order-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-          amount: (Math.random() * 100 + 10).toFixed(2), // Random realistic amount between $10-$110
-          domain: business?.domain || window.location.hostname,
-          customerId: "test-customer-" + Math.floor(Math.random() * 1000) // Optional customer ID
-        })
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: `${scriptName} code copied to clipboard`,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setTestResult({ success: true, message: `Test successful! Sale tracked for ${data.business}.` });
-        
-        // Mark tracking as verified if test was successful
-        try {
-          await fetch('/api/business/verify-tracking', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include'
-          });
-        } catch (error) {
-          console.error('Failed to mark tracking as verified:', error);
-        }
-      } else {
-        setTestResult({ success: false, message: "Test failed. Please check your integration or contact support." });
-      }
-    } catch (e) {
-      setTestResult({ success: false, message: "Network error. Please try again or contact support." });
-    } finally {
-      setTesting(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
     }
   };
 
+  const installScript = (scriptId: number) => {
+    setScripts(scripts.map(script => 
+      script.id === scriptId ? { ...script, installed: true } : script
+    ));
+    toast({
+      title: "Script Installed",
+      description: "The script has been marked as installed",
+    });
+  };
 
+  const connectToNewPage = () => {
+    navigate('/business/connect');
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <SearchHeader showBackButton={false} />
-      
-      <div className="container mx-auto px-4 py-8">
-        {/* Integration Content */}
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Integrate Affiliate Tracking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">
-                Select your platform and follow the step-by-step instructions to add affiliate/sale tracking to your store. If you need help, contact support.
-              </p>
-              <Tabs value={selected} onValueChange={v => setSelected(v as any)}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="shopify">Shopify</TabsTrigger>
-                  <TabsTrigger value="woocommerce">WooCommerce</TabsTrigger>
-                  <TabsTrigger value="custom">Custom</TabsTrigger>
-                </TabsList>
-                <TabsContent value="shopify">
-                  <TutorialSteps steps={TUTORIALS.shopify} />
-                  <IntegrationCode code={SCRIPTS.shopify.code} copied={copied && selected === "shopify"} onCopy={handleCopy} />
-                  <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
-                </TabsContent>
-                <TabsContent value="woocommerce">
-                  <TutorialSteps steps={TUTORIALS.woocommerce} />
-                  <IntegrationCode code={SCRIPTS.woocommerce.code} copied={copied && selected === "woocommerce"} onCopy={handleCopy} />
-                  <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
-                </TabsContent>
-                <TabsContent value="custom">
-                  <TutorialSteps steps={TUTORIALS.custom} />
-                  <IntegrationCode code={SCRIPTS.custom.code} copied={copied && selected === "custom"} onCopy={handleCopy} />
-                  <TestConnectionButton onTest={handleTest} result={testResult} testing={testing} />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Business Integration
+          </h1>
+          <p className="text-gray-600">
+            Add tracking scripts to your website to track sales and commissions
+          </p>
         </div>
+
+        {/* Business Info Card */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Business Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-medium text-gray-900">Business ID</h3>
+                <p className="text-sm text-gray-600">{business?.id || 'N/A'}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Business Name</h3>
+                <p className="text-sm text-gray-600">{business?.name || 'N/A'}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Domain</h3>
+                <p className="text-sm text-gray-600">{business?.domain || 'N/A'}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Status</h3>
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Active
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="scripts">Scripts</TabsTrigger>
+            <TabsTrigger value="connect">Connect</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Integration Overview</CardTitle>
+                <CardDescription>
+                  Track your integration progress and performance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">3</div>
+                    <div className="text-sm text-gray-600">Available Scripts</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">0</div>
+                    <div className="text-sm text-gray-600">Installed Scripts</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">0</div>
+                    <div className="text-sm text-gray-600">Connected Pages</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Scripts Tab */}
+          <TabsContent value="scripts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="h-5 w-5" />
+                  Available Scripts
+                </CardTitle>
+                <CardDescription>
+                  Find and install tracking scripts for your website
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {scripts.map((script) => (
+                    <div key={script.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900">{script.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{script.description}</p>
+                          <div className="mt-3 p-3 bg-gray-100 rounded text-sm font-mono">
+                            {script.code}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(script.code, script.name)}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={script.installed ? "default" : "outline"}
+                            onClick={() => installScript(script.id)}
+                            disabled={script.installed}
+                          >
+                            {script.installed ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Installed
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4 mr-1" />
+                                Install
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Connect Tab */}
+          <TabsContent value="connect" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link className="h-5 w-5" />
+                  Connect New Page
+                </CardTitle>
+                <CardDescription>
+                  Connect additional pages or domains to your business account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                    <Link className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Connect New Page
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Add tracking to additional pages or domains
+                    </p>
+                    <Button onClick={connectToNewPage} className="gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Connect Page
+                    </Button>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-2">Connected Pages</h3>
+                    <div className="text-sm text-gray-600">
+                      No pages connected yet. Use the button above to add your first page.
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Integration Settings</CardTitle>
+                <CardDescription>
+                  Configure your integration preferences and tracking options
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-2">Tracking Configuration</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Enable conversion tracking</span>
+                        <Badge variant="secondary">Enabled</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Enable click tracking</span>
+                        <Badge variant="secondary">Enabled</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Enable analytics</span>
+                        <Badge variant="secondary">Enabled</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-2">Commission Settings</h3>
+                    <div className="text-sm text-gray-600">
+                      Current commission rate: <span className="font-medium">5%</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Quick Links */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Quick Links</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <a href="/business/dashboard" className="block text-blue-600 hover:text-blue-800">
+                → Business Dashboard
+              </a>
+              <a href="/business/activity" className="block text-blue-600 hover:text-blue-800">
+                → Business Activity
+              </a>
+              <a href="/" className="block text-blue-600 hover:text-blue-800">
+                → Home Page
+              </a>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
-  );
-}
-
-function TutorialSteps({ steps }: { steps: string[] }) {
-  return (
-    <ol className="mb-4 list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-      {steps.map((step, i) => (
-        <li key={i}>{step}</li>
-      ))}
-    </ol>
-  );
-}
-
-function IntegrationCode({ code, copied, onCopy }: { code: string; copied: boolean; onCopy: () => void }) {
-  return (
-    <div className="relative">
-      <pre className="bg-muted rounded p-4 text-xs overflow-x-auto whitespace-pre-wrap mb-2">
-        {code}
-      </pre>
-      <Button size="sm" variant="outline" onClick={onCopy} className="absolute top-2 right-2">
-        <Copy className="h-4 w-4 mr-1" />
-        {copied ? "Copied!" : "Copy"}
-      </Button>
-    </div>
-  );
-}
-
-function TestConnectionButton({ onTest, result, testing }: { onTest: () => void; result: any; testing: boolean }) {
-  const { business } = useBusinessAuth();
-  
-  return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium">Connection Status</span>
-        {business?.trackingVerified && (
-          <Badge className="bg-green-100 text-green-800 border-green-300 text-xs">
-            ✓ Verified
-          </Badge>
-        )}
-      </div>
-      <Button size="sm" variant="secondary" onClick={onTest} disabled={testing}>
-        {testing ? "Testing..." : "Test Connection"}
-      </Button>
-      {result && (
-        <div className={`mt-2 text-sm ${result.success ? "text-green-600" : "text-red-600"}`}>{result.message}</div>
-      )}
     </div>
   );
 } 

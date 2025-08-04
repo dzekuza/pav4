@@ -14,6 +14,8 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { useFavorites } from '../hooks/use-favorites';
 import { useAuthModal } from '../hooks/use-auth-modal';
 import { AuthModal } from '../components/AuthModal';
+import { trackProductSearch, trackPriceComparison, getStoredUtmParameters } from "@/lib/tracking";
+import { ComparisonGrid } from "@/components/ComparisonGrid";
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -44,8 +46,9 @@ const SearchResults = () => {
   const [newSearchUrl, setNewSearchUrl] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("de");
   const [favoriteStates, setFavoriteStates] = useState<Map<string, { isFavorited: boolean; favoriteId?: number }>>(new Map());
-
-  const { favorites, addFavorite, removeFavorite, checkFavorite } = useFavorites();
+  const [favorites, setFavorites] = useState<string[]>([]);
+  
+  const { favorites: favoritesFromHook, addFavorite, removeFavorite, checkFavorite } = useFavorites();
   
   const { handleProtectedAction, modalProps } = useAuthModal({
     title: "Sign in to save favorites",
@@ -135,12 +138,39 @@ const SearchResults = () => {
 
         setOriginalProduct(mainProduct);
         setComparisons(comparisons);
+
+        // Track product search
+        const utmParams = getStoredUtmParameters();
+        trackProductSearch({
+          productUrl: searchUrl,
+          sessionId: sessionStorage.getItem('pricehunt_session_id') || undefined,
+          referrer: document.referrer,
+          utmSource: utmParams.utm_source,
+          utmMedium: utmParams.utm_medium,
+          utmCampaign: utmParams.utm_campaign,
+        });
+
+        // Track price comparison
+        if (comparisons.length > 0) {
+          trackPriceComparison({
+            productUrl: searchUrl,
+            productTitle: mainProduct.title,
+            productPrice: mainProduct.price.toString(),
+            sessionId: sessionStorage.getItem('pricehunt_session_id') || undefined,
+            referrer: document.referrer,
+            utmSource: utmParams.utm_source,
+            utmMedium: utmParams.utm_medium,
+            utmCampaign: utmParams.utm_campaign,
+            alternatives: comparisons,
+          });
+        }
+
       } else if (data.product && data.comparisons) {
         // Handle legacy format
         setOriginalProduct(data.product);
         setComparisons(data.comparisons);
       } else {
-        throw new Error("Invalid response format from server");
+        setError("No product data found");
       }
       
       setLoadingStep(0);
@@ -444,11 +474,6 @@ const SearchResults = () => {
                             <p className="text-xs font-medium text-blue-600 capitalize">
                               {comparison.merchant || comparison.store || 'Unknown Store'}
                             </p>
-                            {comparison.isVerified && (
-                              <Badge className="bg-blue-100 text-blue-800 border-blue-300 text-xs">
-                                ✓ Verified
-                              </Badge>
-                            )}
                           </div>
                           
                           {/* Product name */}

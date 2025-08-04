@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>God is Love - Test Product</title>
+
+    <!-- PriceHunt Sales Tracking Script -->
+    <script src="/tracker.js"></script>
+    <script>
+        window.trackerInit({
+            storeId: 1, // God is Love business ID
+            userSessionId: 'test-session-123',
+            productId: 'test-product-456',
+            debug: true // Enable debug mode to see tracking logs
+        });
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .product {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .price {
+            font-size: 24px;
+            color: #e53e3e;
+            font-weight: bold;
+        }
+
+        .button {
+            background: #3182ce;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .button:hover {
+            background: #2c5aa0;
+        }
+
+        .form {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .form input {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .console {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>God is Love - Test Product Page</h1>
+    <p>This is a test page to demonstrate the PriceHunt sales tracking script.</p>
+
+    <div class="product">
+        <h2>Test Product</h2>
+        <p>A wonderful test product for demonstration purposes.</p>
+        <div class="price">€29.99</div>
+
+        <!-- Purchase buttons - will be automatically tracked -->
+        <button class="button" onclick="addToCart()">Add to Cart</button>
+        <button class="button" onclick="buyNow()">Buy Now</button>
+    </div>
+
+    <!-- Checkout form - will be automatically tracked -->
+    <div class="form">
+        <h3>Checkout Form</h3>
+        <form action="/thank-you" method="POST" onsubmit="handleCheckout(event)">
+            <input type="text" name="email" placeholder="Email" required>
+            <input type="text" name="card" placeholder="Card Number" required>
+            <input type="text" name="name" placeholder="Full Name" required>
+            <button type="submit" class="button">Complete Purchase</button>
+        </form>
+    </div>
+
+    <!-- Manual tracking test -->
+    <div class="form">
+        <h3>Manual Tracking Test</h3>
+        <button class="button" onclick="testManualTracking()">Test Manual Sale Tracking</button>
+        <button class="button" onclick="simulatePurchaseConfirmation()">Simulate Purchase Confirmation Page</button>
+    </div>
+
+    <!-- Console output -->
+    <div>
+        <h3>Tracking Console</h3>
+        <div id="console" class="console"></div>
+    </div>
+
+    <script>
+        // Override console.log to show in our console div
+        const originalLog = console.log;
+        const consoleDiv = document.getElementById('console');
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg =>
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleDiv.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        function addToCart() {
+            console.log('Add to Cart clicked');
+            alert('Product added to cart!');
+        }
+
+        function buyNow() {
+            console.log('Buy Now clicked');
+            alert('Proceeding to checkout...');
+        }
+
+        function handleCheckout(event) {
+            event.preventDefault();
+            console.log('Checkout form submitted');
+
+            // Simulate successful purchase
+            const formData = new FormData(event.target);
+            const orderData = Object.fromEntries(formData);
+
+            console.log('Order data:', orderData);
+
+            // Store order data in localStorage (will trigger tracking)
+            localStorage.setItem('order', JSON.stringify({
+                orderId: 'ORDER-' + Date.now(),
+                amount: 29.99,
+                currency: 'EUR',
+                productId: 'test-product-456',
+                productName: 'Test Product'
+            }));
+
+            // Redirect to thank you page
+            window.location.href = '/thank-you.html';
+        }
+
+        function testManualTracking() {
+            console.log('Testing manual sale tracking...');
+
+            // Call the tracking API directly
+            fetch('/api/sales/track', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    orderId: 'MANUAL-TEST-' + Date.now(),
+                    businessId: 1,
+                    productUrl: window.location.href,
+                    productTitle: 'Test Product from God is Love',
+                    productPrice: 29.99,
+                    retailer: 'godislove.lt',
+                    sessionId: 'test-session-123',
+                    utmSource: 'pricehunt',
+                    utmMedium: 'affiliate',
+                    utmCampaign: 'test-campaign'
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Manual test sale tracked:', data);
+                    alert('Manual test sale tracked successfully!');
+                })
+                .catch(error => {
+                    console.error('Manual test failed:', error);
+                    alert('Manual test failed. Check console for details.');
+                });
+        }
+
+        function simulatePurchaseConfirmation() {
+            console.log('Simulating purchase confirmation page...');
+
+            // Change the page content to look like a thank you page
+            document.body.innerHTML = `
+                <div style="text-align: center; padding: 50px;">
+                    <h1>Thank You for Your Purchase!</h1>
+                    <p>Your order has been confirmed.</p>
+                    <div class="success">
+                        <strong>Order #ORDER-${Date.now()}</strong><br>
+                        Amount: €29.99<br>
+                        Status: Payment Successful
+                    </div>
+                    <p>The tracking script should detect this confirmation page and send the sale data.</p>
+                    <button onclick="location.reload()" class="button">Back to Product</button>
+                </div>
+            `;
+        }
+
+        // Log when page loads
+        console.log('Test page loaded. Tracking script is active.');
+        console.log('Try clicking the buttons or filling out the form to see tracking in action.');
+    </script>
+</body>
+
+</html>

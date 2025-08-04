@@ -7,9 +7,10 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
 import axios from "axios";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, SaleStatus, CommissionStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import rateLimit from "express-rate-limit";
 import { body, validationResult } from "express-validator";
 import mcache from "memory-cache";
@@ -24,10 +25,18 @@ const createPrismaClient = () => {
     log: ["error"]
   });
 };
-const prisma = globalThis.__prisma || createPrismaClient();
+const prisma$3 = globalThis.__prisma || createPrismaClient();
+async function setUserContext(userId, userEmail) {
+  if (userId || userEmail) {
+    await prisma$3.$executeRaw`SELECT set_user_context(${userEmail || null}, ${userId || null})`;
+  }
+}
+async function clearUserContext() {
+  await prisma$3.$executeRaw`SELECT set_user_context(null, null)`;
+}
 const userService = {
   async createUser(data) {
-    return prisma.user.create({
+    return prisma$3.user.create({
       data: {
         email: data.email,
         password: data.password,
@@ -36,17 +45,17 @@ const userService = {
     });
   },
   async findUserByEmail(email) {
-    return prisma.user.findUnique({
+    return prisma$3.user.findUnique({
       where: { email }
     });
   },
   async findUserById(id) {
-    return prisma.user.findUnique({
+    return prisma$3.user.findUnique({
       where: { id }
     });
   },
   async getAllUsers() {
-    return prisma.user.findMany({
+    return prisma$3.user.findMany({
       select: {
         id: true,
         email: true,
@@ -64,20 +73,20 @@ const userService = {
     });
   },
   async updateUser(id, data) {
-    return prisma.user.update({
+    return prisma$3.user.update({
       where: { id },
       data
     });
   },
   async deleteUser(id) {
-    return prisma.user.delete({
+    return prisma$3.user.delete({
       where: { id }
     });
   }
 };
 const searchHistoryService = {
   async addSearch(userId, data) {
-    return prisma.searchHistory.create({
+    return prisma$3.searchHistory.create({
       data: {
         userId,
         url: data.url,
@@ -87,14 +96,14 @@ const searchHistoryService = {
     });
   },
   async getUserSearchHistory(userId, limit = 20) {
-    return prisma.searchHistory.findMany({
+    return prisma$3.searchHistory.findMany({
       where: { userId },
       orderBy: { timestamp: "desc" },
       take: limit
     });
   },
   async deleteUserSearch(userId, searchId) {
-    return prisma.searchHistory.delete({
+    return prisma$3.searchHistory.delete({
       where: {
         id: searchId,
         userId
@@ -103,7 +112,7 @@ const searchHistoryService = {
     });
   },
   async clearUserSearchHistory(userId) {
-    return prisma.searchHistory.deleteMany({
+    return prisma$3.searchHistory.deleteMany({
       where: { userId }
     });
   },
@@ -111,7 +120,7 @@ const searchHistoryService = {
   async cleanupOldSearches(daysToKeep = 90) {
     const cutoffDate = /* @__PURE__ */ new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma.searchHistory.deleteMany({
+    return prisma$3.searchHistory.deleteMany({
       where: {
         timestamp: {
           lt: cutoffDate
@@ -122,7 +131,7 @@ const searchHistoryService = {
 };
 const legacySearchHistoryService = {
   async addSearch(userKey, url) {
-    return prisma.legacySearchHistory.create({
+    return prisma$3.legacySearchHistory.create({
       data: {
         userKey,
         url
@@ -130,7 +139,7 @@ const legacySearchHistoryService = {
     });
   },
   async getUserSearchHistory(userKey, limit = 10) {
-    return prisma.legacySearchHistory.findMany({
+    return prisma$3.legacySearchHistory.findMany({
       where: { userKey },
       orderBy: { timestamp: "desc" },
       take: limit
@@ -139,7 +148,7 @@ const legacySearchHistoryService = {
   async cleanupOldLegacySearches(daysToKeep = 30) {
     const cutoffDate = /* @__PURE__ */ new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma.legacySearchHistory.deleteMany({
+    return prisma$3.legacySearchHistory.deleteMany({
       where: {
         timestamp: {
           lt: cutoffDate
@@ -151,7 +160,7 @@ const legacySearchHistoryService = {
 const healthCheck = {
   async checkConnection() {
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      await prisma$3.$queryRaw`SELECT 1`;
       return { status: "healthy", message: "Database connection successful" };
     } catch (error) {
       return {
@@ -163,9 +172,9 @@ const healthCheck = {
   },
   async getStats() {
     const [userCount, searchCount, legacySearchCount] = await Promise.all([
-      prisma.user.count(),
-      prisma.searchHistory.count(),
-      prisma.legacySearchHistory.count()
+      prisma$3.user.count(),
+      prisma$3.searchHistory.count(),
+      prisma$3.legacySearchHistory.count()
     ]);
     return {
       users: userCount,
@@ -174,89 +183,9 @@ const healthCheck = {
     };
   }
 };
-const affiliateService = {
-  async createAffiliateUrl(data) {
-    return prisma.affiliateUrl.create({
-      data: {
-        name: data.name,
-        url: data.url,
-        description: data.description,
-        isActive: data.isActive ?? true
-      }
-    });
-  },
-  async getAllAffiliateUrls() {
-    return prisma.affiliateUrl.findMany({
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-  },
-  async getAffiliateUrlById(id) {
-    return prisma.affiliateUrl.findUnique({
-      where: { id }
-    });
-  },
-  async updateAffiliateUrl(id, data) {
-    return prisma.affiliateUrl.update({
-      where: { id },
-      data
-    });
-  },
-  async deleteAffiliateUrl(id) {
-    return prisma.affiliateUrl.delete({
-      where: { id }
-    });
-  },
-  async incrementClicks(id) {
-    return prisma.affiliateUrl.update({
-      where: { id },
-      data: {
-        clicks: {
-          increment: 1
-        }
-      }
-    });
-  },
-  async addConversion(id, revenue = 0) {
-    return prisma.affiliateUrl.update({
-      where: { id },
-      data: {
-        conversions: {
-          increment: 1
-        },
-        revenue: {
-          increment: revenue
-        }
-      }
-    });
-  },
-  async getAffiliateStats() {
-    const [totalUrls, activeUrls, totalClicks, totalConversions, totalRevenue] = await Promise.all([
-      prisma.affiliateUrl.count(),
-      prisma.affiliateUrl.count({ where: { isActive: true } }),
-      prisma.affiliateUrl.aggregate({
-        _sum: { clicks: true }
-      }),
-      prisma.affiliateUrl.aggregate({
-        _sum: { conversions: true }
-      }),
-      prisma.affiliateUrl.aggregate({
-        _sum: { revenue: true }
-      })
-    ]);
-    return {
-      totalUrls,
-      activeUrls,
-      totalClicks: totalClicks._sum.clicks || 0,
-      totalConversions: totalConversions._sum.conversions || 0,
-      totalRevenue: totalRevenue._sum.revenue || 0
-    };
-  }
-};
 const businessService = {
   async createBusiness(data) {
-    return prisma.business.create({
+    return prisma$3.business.create({
       data: {
         name: data.name,
         domain: data.domain.toLowerCase(),
@@ -275,19 +204,19 @@ const businessService = {
     });
   },
   async findBusinessByDomain(domain) {
-    return prisma.business.findUnique({
+    return prisma$3.business.findUnique({
       where: { domain: domain.toLowerCase() }
     });
   },
   async getAllBusinesses() {
-    return prisma.business.findMany({
+    return prisma$3.business.findMany({
       orderBy: {
         createdAt: "desc"
       }
     });
   },
   async getActiveBusinesses() {
-    return prisma.business.findMany({
+    return prisma$3.business.findMany({
       where: { isActive: true },
       orderBy: {
         name: "asc"
@@ -295,27 +224,27 @@ const businessService = {
     });
   },
   async updateBusiness(id, data) {
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id },
       data
     });
   },
   async deleteBusiness(id) {
-    return prisma.business.delete({
+    return prisma$3.business.delete({
       where: { id }
     });
   },
   async verifyBusiness(id) {
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id },
       data: { isVerified: true }
     });
   },
   async getBusinessStats() {
     const [totalBusinesses, activeBusinesses, verifiedBusinesses] = await Promise.all([
-      prisma.business.count(),
-      prisma.business.count({ where: { isActive: true } }),
-      prisma.business.count({ where: { isVerified: true } })
+      prisma$3.business.count(),
+      prisma$3.business.count({ where: { isActive: true } }),
+      prisma$3.business.count({ where: { isVerified: true } })
     ]);
     return {
       totalBusinesses,
@@ -325,24 +254,24 @@ const businessService = {
   },
   // Business authentication
   async findBusinessByEmail(email) {
-    return prisma.business.findUnique({
+    return prisma$3.business.findUnique({
       where: { email: email.toLowerCase() }
     });
   },
   async findBusinessById(id) {
-    return prisma.business.findUnique({
+    return prisma$3.business.findUnique({
       where: { id }
     });
   },
   // Business statistics
   async updateBusinessStats(businessId, data) {
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id: businessId },
       data
     });
   },
   async incrementBusinessVisits(businessId) {
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id: businessId },
       data: {
         totalVisits: {
@@ -352,7 +281,7 @@ const businessService = {
     });
   },
   async incrementBusinessPurchases(businessId, revenue) {
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id: businessId },
       data: {
         totalPurchases: {
@@ -365,7 +294,7 @@ const businessService = {
     });
   },
   async getBusinessStatistics(businessId) {
-    const business = await prisma.business.findUnique({
+    const business = await prisma$3.business.findUnique({
       where: { id: businessId },
       select: {
         id: true,
@@ -388,7 +317,7 @@ const businessService = {
     };
   },
   async updateAdminCommissionRate(businessId, commissionRate) {
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id: businessId },
       data: { adminCommissionRate: commissionRate }
     });
@@ -396,16 +325,16 @@ const businessService = {
   async updateBusinessPassword(businessId, password) {
     const bcrypt2 = require("bcryptjs");
     const hashedPassword = await bcrypt2.hash(password, 10);
-    return prisma.business.update({
+    return prisma$3.business.update({
       where: { id: businessId },
       data: { password: hashedPassword }
     });
   },
   async getBusinessClickLogs(businessId) {
-    const business = await prisma.business.findUnique({ where: { id: businessId } });
+    const business = await prisma$3.business.findUnique({ where: { id: businessId } });
     if (!business || !business.domain) return [];
     const domains = [business.domain.toLowerCase().replace(/^www\./, "")];
-    const logs = await prisma.clickLog.findMany();
+    const logs = await prisma$3.clickLog.findMany();
     return logs.filter((log) => {
       if (!log.productId) return false;
       try {
@@ -420,7 +349,7 @@ const businessService = {
 };
 const clickLogService = {
   async logClick(data) {
-    return prisma.clickLog.create({
+    return prisma$3.clickLog.create({
       data: {
         affiliateId: data.affiliateId,
         productId: data.productId,
@@ -436,10 +365,10 @@ const clickLogService = {
     let affiliate = null;
     const idNum = parseInt(affiliateId, 10);
     if (!isNaN(idNum)) {
-      affiliate = await prisma.affiliateUrl.findUnique({ where: { id: idNum } });
+      affiliate = await prisma$3.affiliateUrl.findUnique({ where: { id: idNum } });
     }
     if (!affiliate) {
-      affiliate = await prisma.affiliateUrl.findFirst({ where: { name: affiliateId } });
+      affiliate = await prisma$3.affiliateUrl.findFirst({ where: { name: affiliateId } });
     }
     if (!affiliate) return null;
     if (affiliate.url.includes("{productId}")) {
@@ -456,11 +385,11 @@ const clickLogService = {
 };
 const settingsService = {
   async getSuggestionFilterEnabled() {
-    const setting = await prisma.settings.findUnique({ where: { key: "suggestionFilterEnabled" } });
+    const setting = await prisma$3.settings.findUnique({ where: { key: "suggestionFilterEnabled" } });
     return setting ? setting.value === "true" : true;
   },
   async setSuggestionFilterEnabled(enabled) {
-    await prisma.settings.upsert({
+    await prisma$3.settings.upsert({
       where: { key: "suggestionFilterEnabled" },
       update: { value: enabled ? "true" : "false" },
       create: { key: "suggestionFilterEnabled", value: enabled ? "true" : "false" }
@@ -469,7 +398,7 @@ const settingsService = {
 };
 const gracefulShutdown = async () => {
   try {
-    await prisma.$disconnect();
+    await prisma$3.$disconnect();
     console.log("Database connection closed gracefully");
   } catch (error) {
     console.error("Error during database shutdown:", error);
@@ -477,7 +406,7 @@ const gracefulShutdown = async () => {
 };
 const checkDatabaseConnection = async () => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma$3.$queryRaw`SELECT 1`;
     return { status: "connected", message: "Database connection successful" };
   } catch (error) {
     return {
@@ -514,7 +443,7 @@ function extractStoreName(link) {
     return "unknown";
   }
 }
-const router$4 = express__default.Router();
+const router$6 = express__default.Router();
 const SEARCH_API_KEY = process.env.SEARCH_API_KEY || process.env.SERP_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 console.log("SearchAPI Key loaded:", SEARCH_API_KEY ? "Yes" : "No");
@@ -2172,7 +2101,7 @@ Return ONLY a JSON array of cleaned and validated comparison products:`;
     throw new Error(`Gemini API request failed: ${error}`);
   }
 }
-router$4.post("/scrape-enhanced", async (req, res) => {
+router$6.post("/scrape-enhanced", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) {
@@ -2533,53 +2462,73 @@ function extractCurrency(priceString) {
 }
 async function filterSuggestionsByRegisteredBusinesses(suggestions) {
   try {
-    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
-    if (!filterEnabled) {
-      return suggestions;
-    }
+    console.log(`🔍 Processing ${suggestions.length} suggestions for verified badges`);
     const registeredBusinesses = await businessService.getActiveBusinesses();
+    console.log(`🏢 Found ${registeredBusinesses.length} registered businesses:`, registeredBusinesses.map((b) => `${b.name} (${b.domain}) - verified: ${b.trackingVerified}`));
     if (registeredBusinesses.length === 0) {
+      console.log(`❌ No registered businesses found, returning all ${suggestions.length} suggestions without badges`);
       return suggestions;
     }
     const registeredDomains = new Set(
       registeredBusinesses.map((business) => business.domain.toLowerCase())
     );
-    const filteredSuggestions = suggestions.filter((suggestion) => {
-      if (!suggestion.url) return false;
-      try {
-        const url = new URL(suggestion.url);
-        const domain = url.hostname.toLowerCase().replace("www.", "");
-        return registeredDomains.has(domain);
-      } catch {
-        return false;
-      }
-    });
-    const suggestionsWithVerification = await Promise.all(
-      filteredSuggestions.map(async (suggestion) => {
-        try {
-          const url = new URL(suggestion.url);
-          const domain = url.hostname.toLowerCase().replace("www.", "");
-          const business = registeredBusinesses.find((b) => b.domain.toLowerCase() === domain);
-          return {
-            ...suggestion,
-            isVerified: business?.trackingVerified || false
-          };
-        } catch {
+    console.log(`📋 Registered domains:`, Array.from(registeredDomains));
+    const businessMap = new Map(
+      registeredBusinesses.map((business) => [business.domain.toLowerCase(), business])
+    );
+    const processedSuggestions = await Promise.all(
+      suggestions.map(async (suggestion) => {
+        let domain = "";
+        if (suggestion.site) {
+          domain = suggestion.site.toLowerCase().replace("www.", "");
+        } else if (suggestion.url) {
+          try {
+            const url = new URL(suggestion.url);
+            domain = url.hostname.toLowerCase().replace("www.", "");
+          } catch {
+            domain = "";
+          }
+        }
+        if (!domain) {
           return {
             ...suggestion,
             isVerified: false
           };
         }
+        const business = businessMap.get(domain);
+        const isVerified = business?.trackingVerified || false;
+        console.log(`🔍 Suggestion domain: ${domain}, registered: ${!!business}, verified: ${isVerified}`);
+        return {
+          ...suggestion,
+          isVerified
+        };
       })
     );
-    if (filteredSuggestions.length === 0) {
-      console.log("No suggestions match registered businesses");
-      return [];
+    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
+    console.log(`🔧 Filter enabled: ${filterEnabled}`);
+    if (!filterEnabled) {
+      console.log(`✅ Filter disabled, returning all ${processedSuggestions.length} suggestions with badges`);
+      return processedSuggestions;
     }
-    console.log(`Filtered ${suggestions.length} suggestions to ${suggestionsWithVerification.length} from registered businesses`);
-    return suggestionsWithVerification;
+    const filteredSuggestions = processedSuggestions.filter((suggestion) => {
+      let domain = "";
+      if (suggestion.site) {
+        domain = suggestion.site.toLowerCase().replace("www.", "");
+      } else if (suggestion.url) {
+        try {
+          const url = new URL(suggestion.url);
+          domain = url.hostname.toLowerCase().replace("www.", "");
+        } catch {
+          return false;
+        }
+      }
+      if (!domain) return false;
+      return registeredDomains.has(domain);
+    });
+    console.log(`✅ Filter enabled, returning ${filteredSuggestions.length} filtered suggestions with badges`);
+    return filteredSuggestions;
   } catch (error) {
-    console.error("Error filtering suggestions by registered businesses:", error);
+    console.error("Error processing suggestions for verified badges:", error);
     return suggestions;
   }
 }
@@ -2607,7 +2556,7 @@ async function trackBusinessVisits(suggestions) {
     console.error("Error tracking business visits:", error);
   }
 }
-router$4.post("/n8n-scrape", async (req, res) => {
+router$6.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
   console.log("Request body:", req.body);
   try {
@@ -2970,6 +2919,7 @@ const requireAuth = async (req, res, next) => {
         email: user.email,
         isAdmin: user.isAdmin
       };
+      await setUserContext(user.id, user.email);
       next();
     } catch (dbError) {
       console.error("Database error in requireAuth:", dbError);
@@ -2989,11 +2939,21 @@ const requireAdmin = (req, res, next) => {
   }
   next();
 };
-const router$3 = express__default.Router();
-router$3.get("/", requireAuth, async (req, res) => {
+const clearRLSContext = async (req, res, next) => {
+  res.on("finish", async () => {
+    try {
+      await clearUserContext();
+    } catch (error) {
+      console.warn("Error clearing RLS context:", error);
+    }
+  });
+  next();
+};
+const router$5 = express__default.Router();
+router$5.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const favorites = await prisma.favorite.findMany({
+    const favorites = await prisma$3.favorite.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" }
     });
@@ -3006,7 +2966,7 @@ router$3.get("/", requireAuth, async (req, res) => {
     });
   }
 });
-router$3.post("/", requireAuth, async (req, res) => {
+router$5.post("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const {
@@ -3028,7 +2988,7 @@ router$3.post("/", requireAuth, async (req, res) => {
     if (!title || !url) {
       return res.status(400).json({ error: "Title and URL are required" });
     }
-    const existingFavorite = await prisma.favorite.findFirst({
+    const existingFavorite = await prisma$3.favorite.findFirst({
       where: {
         userId,
         url
@@ -3037,7 +2997,7 @@ router$3.post("/", requireAuth, async (req, res) => {
     if (existingFavorite) {
       return res.status(400).json({ error: "Product already in favorites" });
     }
-    const favorite = await prisma.favorite.create({
+    const favorite = await prisma$3.favorite.create({
       data: {
         userId,
         title,
@@ -3062,11 +3022,11 @@ router$3.post("/", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to add favorite" });
   }
 });
-router$3.delete("/:id", requireAuth, async (req, res) => {
+router$5.delete("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const favoriteId = parseInt(req.params.id);
-    const favorite = await prisma.favorite.findFirst({
+    const favorite = await prisma$3.favorite.findFirst({
       where: {
         id: favoriteId,
         userId
@@ -3075,7 +3035,7 @@ router$3.delete("/:id", requireAuth, async (req, res) => {
     if (!favorite) {
       return res.status(404).json({ error: "Favorite not found" });
     }
-    await prisma.favorite.delete({
+    await prisma$3.favorite.delete({
       where: { id: favoriteId }
     });
     res.json({ message: "Favorite removed successfully" });
@@ -3084,14 +3044,14 @@ router$3.delete("/:id", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to remove favorite" });
   }
 });
-router$3.get("/check", requireAuth, async (req, res) => {
+router$5.get("/check", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const { url } = req.query;
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
     }
-    const favorite = await prisma.favorite.findFirst({
+    const favorite = await prisma$3.favorite.findFirst({
       where: {
         userId,
         url
@@ -3101,6 +3061,915 @@ router$3.get("/check", requireAuth, async (req, res) => {
   } catch (error) {
     console.error("Error checking favorite status:", error);
     res.status(500).json({ error: "Failed to check favorite status" });
+  }
+});
+const router$4 = express__default.Router();
+const prisma$2 = new PrismaClient();
+router$4.post("/click", async (req, res) => {
+  try {
+    const {
+      productUrl,
+      productTitle,
+      productPrice,
+      retailer,
+      userId,
+      sessionId,
+      referrer,
+      utmSource,
+      utmMedium,
+      utmCampaign
+    } = req.body;
+    const clickData = await prisma$2.affiliateClick.create({
+      data: {
+        productUrl,
+        productTitle: productTitle || "Unknown Product",
+        productPrice: productPrice || "0",
+        retailer: retailer || "unknown",
+        userId: userId || null,
+        sessionId: sessionId || "unknown",
+        referrer: referrer || "",
+        utmSource: utmSource || null,
+        utmMedium: utmMedium || null,
+        utmCampaign: utmCampaign || null,
+        ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+        userAgent: req.get("User-Agent") || "unknown",
+        timestamp: /* @__PURE__ */ new Date()
+      }
+    });
+    console.log("Affiliate click tracked:", {
+      productUrl,
+      retailer,
+      sessionId,
+      utmSource,
+      utmMedium,
+      utmCampaign
+    });
+    res.status(200).json({ success: true, clickId: clickData.id });
+  } catch (error) {
+    console.error("Error tracking affiliate click:", error);
+    res.status(500).json({ success: false, error: "Failed to track click" });
+  }
+});
+router$4.post("/conversion", async (req, res) => {
+  try {
+    const {
+      productUrl,
+      productTitle,
+      productPrice,
+      retailer,
+      userId,
+      sessionId,
+      referrer,
+      utmSource,
+      utmMedium,
+      utmCampaign
+    } = req.body;
+    const conversionData = await prisma$2.affiliateConversion.create({
+      data: {
+        productUrl,
+        productTitle: productTitle || "Unknown Product",
+        productPrice: productPrice || "0",
+        retailer: retailer || "unknown",
+        userId: userId || null,
+        sessionId: sessionId || "unknown",
+        referrer: referrer || "",
+        utmSource: utmSource || null,
+        utmMedium: utmMedium || null,
+        utmCampaign: utmCampaign || null,
+        ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+        userAgent: req.get("User-Agent") || "unknown",
+        timestamp: /* @__PURE__ */ new Date()
+      }
+    });
+    console.log("Affiliate conversion tracked:", {
+      productUrl,
+      retailer,
+      sessionId,
+      utmSource,
+      utmMedium,
+      utmCampaign
+    });
+    res.status(200).json({ success: true, conversionId: conversionData.id });
+  } catch (error) {
+    console.error("Error tracking affiliate conversion:", error);
+    res.status(500).json({ success: false, error: "Failed to track conversion" });
+  }
+});
+router$4.get("/stats", async (req, res) => {
+  try {
+    const { startDate, endDate, retailer } = req.query;
+    const whereClause = {};
+    if (startDate && endDate) {
+      whereClause.timestamp = {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      };
+    }
+    if (retailer) {
+      whereClause.retailer = retailer;
+    }
+    const clickStats = await prisma$2.affiliateClick.groupBy({
+      by: ["retailer"],
+      where: whereClause,
+      _count: {
+        id: true
+      },
+      _sum: {
+        productPrice: true
+      }
+    });
+    const conversionStats = await prisma$2.affiliateConversion.groupBy({
+      by: ["retailer"],
+      where: whereClause,
+      _count: {
+        id: true
+      },
+      _sum: {
+        productPrice: true
+      }
+    });
+    const stats = clickStats.map((clickStat) => {
+      const conversionStat = conversionStats.find(
+        (conv) => conv.retailer === clickStat.retailer
+      );
+      const conversionRate = conversionStat ? conversionStat._count.id / clickStat._count.id * 100 : 0;
+      return {
+        retailer: clickStat.retailer,
+        clicks: clickStat._count.id,
+        conversions: conversionStat?._count.id || 0,
+        conversionRate: Math.round(conversionRate * 100) / 100,
+        totalRevenue: conversionStat?._sum.productPrice || 0
+      };
+    });
+    res.status(200).json({ success: true, stats });
+  } catch (error) {
+    console.error("Error getting affiliate stats:", error);
+    res.status(500).json({ success: false, error: "Failed to get stats" });
+  }
+});
+router$4.get("/utm-stats", async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const whereClause = {};
+    if (startDate && endDate) {
+      whereClause.timestamp = {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      };
+    }
+    const utmStats = await prisma$2.affiliateClick.groupBy({
+      by: ["utmSource", "utmMedium", "utmCampaign"],
+      where: whereClause,
+      _count: {
+        id: true
+      }
+    });
+    const utmConversionStats = await prisma$2.affiliateConversion.groupBy({
+      by: ["utmSource", "utmMedium", "utmCampaign"],
+      where: whereClause,
+      _count: {
+        id: true
+      }
+    });
+    const stats = utmStats.map((utmStat) => {
+      const conversionStat = utmConversionStats.find(
+        (conv) => conv.utmSource === utmStat.utmSource && conv.utmMedium === utmStat.utmMedium && conv.utmCampaign === utmStat.utmCampaign
+      );
+      const conversionRate = conversionStat ? conversionStat._count.id / utmStat._count.id * 100 : 0;
+      return {
+        utmSource: utmStat.utmSource,
+        utmMedium: utmStat.utmMedium,
+        utmCampaign: utmStat.utmCampaign,
+        clicks: utmStat._count.id,
+        conversions: conversionStat?._count.id || 0,
+        conversionRate: Math.round(conversionRate * 100) / 100
+      };
+    });
+    res.status(200).json({ success: true, stats });
+  } catch (error) {
+    console.error("Error getting UTM stats:", error);
+    res.status(500).json({ success: false, error: "Failed to get UTM stats" });
+  }
+});
+const prisma$1 = new PrismaClient();
+class SalesTrackingService {
+  // Track a new sale
+  static async trackSale(saleData) {
+    try {
+      const existingSale = await prisma$1.sale.findUnique({
+        where: { orderId: saleData.orderId }
+      });
+      if (existingSale) {
+        console.log(`Sale with orderId ${saleData.orderId} already exists`);
+        return existingSale;
+      }
+      const commissionRate = await prisma$1.commissionRate.findUnique({
+        where: {
+          businessId_retailer: {
+            businessId: saleData.businessId,
+            retailer: saleData.retailer
+          }
+        }
+      });
+      const rate = commissionRate?.rate || 0;
+      const commissionAmount = saleData.productPrice * rate / 100;
+      const sale = await prisma$1.sale.create({
+        data: {
+          orderId: saleData.orderId,
+          businessId: saleData.businessId,
+          userId: saleData.userId,
+          productUrl: saleData.productUrl,
+          productTitle: saleData.productTitle,
+          productPrice: saleData.productPrice,
+          currency: saleData.currency || "USD",
+          retailer: saleData.retailer,
+          sessionId: saleData.sessionId,
+          referrer: saleData.referrer,
+          utmSource: saleData.utmSource,
+          utmMedium: saleData.utmMedium,
+          utmCampaign: saleData.utmCampaign,
+          ipAddress: saleData.ipAddress,
+          userAgent: saleData.userAgent,
+          commissionAmount,
+          commissionRate: rate,
+          status: SaleStatus.PENDING
+        }
+      });
+      if (saleData.userId) {
+        await prisma$1.commission.create({
+          data: {
+            saleId: sale.id,
+            userId: saleData.userId,
+            amount: commissionAmount,
+            rate,
+            status: CommissionStatus.PENDING
+          }
+        });
+      }
+      await this.triggerWebhooks(sale.id, "sale.created", sale);
+      console.log(`Sale tracked: ${saleData.orderId} for business ${saleData.businessId}`);
+      return sale;
+    } catch (error) {
+      console.error("Error tracking sale:", error);
+      throw error;
+    }
+  }
+  // Update sale status (e.g., when payment is confirmed)
+  static async updateSaleStatus(orderId, status) {
+    try {
+      const sale = await prisma$1.sale.update({
+        where: { orderId },
+        data: {
+          status,
+          updatedAt: /* @__PURE__ */ new Date()
+        },
+        include: {
+          commissions: true
+        }
+      });
+      if (status === SaleStatus.CONFIRMED) {
+        await prisma$1.commission.updateMany({
+          where: { saleId: sale.id },
+          data: { status: CommissionStatus.APPROVED }
+        });
+      } else if (status === SaleStatus.CANCELLED || status === SaleStatus.REFUNDED) {
+        await prisma$1.commission.updateMany({
+          where: { saleId: sale.id },
+          data: { status: CommissionStatus.CANCELLED }
+        });
+      }
+      await this.triggerWebhooks(sale.id, "sale.status_updated", sale);
+      return sale;
+    } catch (error) {
+      console.error("Error updating sale status:", error);
+      throw error;
+    }
+  }
+  // Mark commission as paid
+  static async markCommissionPaid(saleId) {
+    try {
+      const sale = await prisma$1.sale.update({
+        where: { id: saleId },
+        data: {
+          commissionPaid: true,
+          commissionPaidAt: /* @__PURE__ */ new Date()
+        }
+      });
+      await prisma$1.commission.updateMany({
+        where: { saleId },
+        data: {
+          status: CommissionStatus.PAID,
+          paidAt: /* @__PURE__ */ new Date()
+        }
+      });
+      await this.triggerWebhooks(saleId, "commission.paid", sale);
+      return sale;
+    } catch (error) {
+      console.error("Error marking commission paid:", error);
+      throw error;
+    }
+  }
+  // Get sales statistics for a business
+  static async getBusinessSalesStats(businessId, startDate, endDate) {
+    try {
+      const whereClause = { businessId };
+      if (startDate && endDate) {
+        whereClause.createdAt = {
+          gte: startDate,
+          lte: endDate
+        };
+      }
+      const sales = await prisma$1.sale.findMany({
+        where: whereClause,
+        include: {
+          commissions: true
+        }
+      });
+      const totalSales = sales.length;
+      const totalRevenue = sales.reduce((sum, sale) => sum + sale.productPrice, 0);
+      const totalCommission = sales.reduce((sum, sale) => sum + (sale.commissionAmount || 0), 0);
+      const confirmedSales = sales.filter((sale) => sale.status === SaleStatus.CONFIRMED).length;
+      const pendingSales = sales.filter((sale) => sale.status === SaleStatus.PENDING).length;
+      return {
+        totalSales,
+        totalRevenue,
+        totalCommission,
+        confirmedSales,
+        pendingSales,
+        conversionRate: totalSales > 0 ? confirmedSales / totalSales * 100 : 0
+      };
+    } catch (error) {
+      console.error("Error getting business sales stats:", error);
+      throw error;
+    }
+  }
+  // Get user commission statistics
+  static async getUserCommissionStats(userId, startDate, endDate) {
+    try {
+      const whereClause = { userId };
+      if (startDate && endDate) {
+        whereClause.createdAt = {
+          gte: startDate,
+          lte: endDate
+        };
+      }
+      const commissions = await prisma$1.commission.findMany({
+        where: whereClause,
+        include: {
+          sale: true
+        }
+      });
+      const totalCommissions = commissions.length;
+      const totalAmount = commissions.reduce((sum, commission) => sum + commission.amount, 0);
+      const paidCommissions = commissions.filter((commission) => commission.status === CommissionStatus.PAID).length;
+      const pendingCommissions = commissions.filter((commission) => commission.status === CommissionStatus.PENDING).length;
+      return {
+        totalCommissions,
+        totalAmount,
+        paidCommissions,
+        pendingCommissions,
+        averageCommission: totalCommissions > 0 ? totalAmount / totalCommissions : 0
+      };
+    } catch (error) {
+      console.error("Error getting user commission stats:", error);
+      throw error;
+    }
+  }
+  // Trigger webhooks for events
+  static async triggerWebhooks(saleId, eventType, payload) {
+    try {
+      const sale = await prisma$1.sale.findUnique({
+        where: { id: saleId },
+        include: { business: true }
+      });
+      if (!sale) return;
+      const webhooks = await prisma$1.webhook.findMany({
+        where: {
+          businessId: sale.businessId,
+          isActive: true,
+          events: {
+            has: eventType
+          }
+        }
+      });
+      for (const webhook of webhooks) {
+        await this.sendWebhook(webhook, eventType, payload);
+      }
+    } catch (error) {
+      console.error("Error triggering webhooks:", error);
+    }
+  }
+  // Send webhook to external URL
+  static async sendWebhook(webhook, eventType, payload) {
+    try {
+      const webhookPayload = {
+        event: eventType,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        data: payload
+      };
+      const signature = crypto.createHmac("sha256", webhook.secret).update(JSON.stringify(webhookPayload)).digest("hex");
+      const response = await axios.post(webhook.url, webhookPayload, {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Webhook-Signature": signature,
+          "User-Agent": "PriceHunt-Sales-Tracker/1.0"
+        },
+        timeout: 1e4
+      });
+      await prisma$1.webhookEvent.create({
+        data: {
+          webhookId: webhook.id,
+          eventType,
+          payload: JSON.stringify(webhookPayload),
+          status: "SENT",
+          responseCode: response.status,
+          responseBody: JSON.stringify(response.data)
+        }
+      });
+      await prisma$1.webhook.update({
+        where: { id: webhook.id },
+        data: { lastTriggered: /* @__PURE__ */ new Date() }
+      });
+      console.log(`Webhook sent successfully to ${webhook.url}`);
+    } catch (error) {
+      console.error(`Webhook failed for ${webhook.url}:`, error);
+      await prisma$1.webhookEvent.create({
+        data: {
+          webhookId: webhook.id,
+          eventType,
+          payload: JSON.stringify(payload),
+          status: "FAILED",
+          responseCode: error.response?.status,
+          responseBody: error.message,
+          retryCount: 0,
+          nextRetryAt: new Date(Date.now() + 5 * 60 * 1e3)
+          // Retry in 5 minutes
+        }
+      });
+    }
+  }
+  // Retry failed webhooks
+  static async retryFailedWebhooks() {
+    try {
+      const failedEvents = await prisma$1.webhookEvent.findMany({
+        where: {
+          status: "FAILED",
+          retryCount: { lt: 3 },
+          nextRetryAt: { lte: /* @__PURE__ */ new Date() }
+        },
+        include: {
+          webhook: true
+        }
+      });
+      for (const event of failedEvents) {
+        try {
+          const payload = JSON.parse(event.payload);
+          const signature = crypto.createHmac("sha256", event.webhook.secret).update(event.payload).digest("hex");
+          const response = await axios.post(event.webhook.url, payload, {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Webhook-Signature": signature,
+              "User-Agent": "PriceHunt-Sales-Tracker/1.0"
+            },
+            timeout: 1e4
+          });
+          await prisma$1.webhookEvent.update({
+            where: { id: event.id },
+            data: {
+              status: "SENT",
+              responseCode: response.status,
+              responseBody: JSON.stringify(response.data)
+            }
+          });
+          console.log(`Retry successful for webhook event ${event.id}`);
+        } catch (error) {
+          const newRetryCount = event.retryCount + 1;
+          const nextRetryDelay = Math.pow(2, newRetryCount) * 5 * 60 * 1e3;
+          await prisma$1.webhookEvent.update({
+            where: { id: event.id },
+            data: {
+              retryCount: newRetryCount,
+              nextRetryAt: new Date(Date.now() + nextRetryDelay),
+              responseCode: error.response?.status,
+              responseBody: error.message
+            }
+          });
+          console.log(`Retry failed for webhook event ${event.id}, attempt ${newRetryCount}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error retrying failed webhooks:", error);
+    }
+  }
+}
+const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key";
+function verifyBusinessToken$1(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET$1);
+  } catch (error) {
+    return null;
+  }
+}
+const requireBusinessAuth = async (req, res, next) => {
+  try {
+    let token = req.cookies.business_token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required"
+      });
+    }
+    const decoded = verifyBusinessToken$1(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token"
+      });
+    }
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(401).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    if (!business.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: "Business account is deactivated"
+      });
+    }
+    req.business = {
+      id: business.id,
+      name: business.name,
+      domain: business.domain,
+      email: business.email
+    };
+    next();
+  } catch (error) {
+    console.error("Business auth error:", error);
+    res.status(401).json({
+      success: false,
+      error: "Authentication failed"
+    });
+  }
+};
+const router$3 = express__default.Router();
+const prisma = new PrismaClient();
+router$3.post("/track", async (req, res) => {
+  try {
+    const saleData = req.body;
+    if (!saleData.orderId || !saleData.businessId || !saleData.productUrl || !saleData.productPrice) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: orderId, businessId, productUrl, productPrice"
+      });
+    }
+    const sale = await SalesTrackingService.trackSale(saleData);
+    res.status(200).json({
+      success: true,
+      saleId: sale.id,
+      orderId: sale.orderId,
+      commissionAmount: sale.commissionAmount
+    });
+  } catch (error) {
+    console.error("Error tracking sale:", error);
+    res.status(500).json({ success: false, error: "Failed to track sale" });
+  }
+});
+router$3.put("/status/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    if (!status || !Object.values(SaleStatus).includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid status. Must be one of: PENDING, CONFIRMED, CANCELLED, REFUNDED"
+      });
+    }
+    const sale = await SalesTrackingService.updateSaleStatus(orderId, status);
+    res.status(200).json({
+      success: true,
+      orderId: sale.orderId,
+      status: sale.status
+    });
+  } catch (error) {
+    console.error("Error updating sale status:", error);
+    res.status(500).json({ success: false, error: "Failed to update sale status" });
+  }
+});
+router$3.put("/commission/paid/:saleId", requireAuth, async (req, res) => {
+  try {
+    const { saleId } = req.params;
+    const saleIdNum = parseInt(saleId);
+    if (isNaN(saleIdNum)) {
+      return res.status(400).json({ success: false, error: "Invalid sale ID" });
+    }
+    const sale = await SalesTrackingService.markCommissionPaid(saleIdNum);
+    res.status(200).json({
+      success: true,
+      saleId: sale.id,
+      commissionPaid: sale.commissionPaid
+    });
+  } catch (error) {
+    console.error("Error marking commission paid:", error);
+    res.status(500).json({ success: false, error: "Failed to mark commission paid" });
+  }
+});
+router$3.get("/stats/business/:businessId", requireBusinessAuth, async (req, res) => {
+  try {
+    const { businessId } = req.params;
+    const { startDate, endDate } = req.query;
+    const businessIdNum = parseInt(businessId);
+    if (isNaN(businessIdNum)) {
+      return res.status(400).json({ success: false, error: "Invalid business ID" });
+    }
+    const start = startDate ? new Date(startDate) : void 0;
+    const end = endDate ? new Date(endDate) : void 0;
+    const stats = await SalesTrackingService.getBusinessSalesStats(businessIdNum, start, end);
+    res.status(200).json({ success: true, stats });
+  } catch (error) {
+    console.error("Error getting business sales stats:", error);
+    res.status(500).json({ success: false, error: "Failed to get sales statistics" });
+  }
+});
+router$3.get("/stats/commissions", requireAuth, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const userId = req.user.id;
+    const start = startDate ? new Date(startDate) : void 0;
+    const end = endDate ? new Date(endDate) : void 0;
+    const stats = await SalesTrackingService.getUserCommissionStats(userId, start, end);
+    res.status(200).json({ success: true, stats });
+  } catch (error) {
+    console.error("Error getting user commission stats:", error);
+    res.status(500).json({ success: false, error: "Failed to get commission statistics" });
+  }
+});
+router$3.get("/business/:businessId", requireBusinessAuth, async (req, res) => {
+  try {
+    const { businessId } = req.params;
+    const { page = 1, limit = 20, status } = req.query;
+    const businessIdNum = parseInt(businessId);
+    if (isNaN(businessIdNum)) {
+      return res.status(400).json({ success: false, error: "Invalid business ID" });
+    }
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+    const whereClause = { businessId };
+    if (status && Object.values(SaleStatus).includes(status)) {
+      whereClause.status = status;
+    }
+    const [sales, total] = await Promise.all([
+      prisma.sale.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: { id: true, email: true }
+          },
+          commissions: true
+        },
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limitNum
+      }),
+      prisma.sale.count({ where: whereClause })
+    ]);
+    res.status(200).json({
+      success: true,
+      sales,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (error) {
+    console.error("Error getting business sales:", error);
+    res.status(500).json({ success: false, error: "Failed to get sales" });
+  }
+});
+router$3.get("/commissions", requireAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const userId = req.user.id;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+    const whereClause = { userId };
+    if (status && Object.values(CommissionStatus).includes(status)) {
+      whereClause.status = status;
+    }
+    const [commissions, total] = await Promise.all([
+      prisma.commission.findMany({
+        where: whereClause,
+        include: {
+          sale: {
+            include: {
+              business: {
+                select: { name: true, domain: true }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limitNum
+      }),
+      prisma.commission.count({ where: whereClause })
+    ]);
+    res.status(200).json({
+      success: true,
+      commissions,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (error) {
+    console.error("Error getting user commissions:", error);
+    res.status(500).json({ success: false, error: "Failed to get commissions" });
+  }
+});
+router$3.post("/webhooks", requireBusinessAuth, async (req, res) => {
+  try {
+    const { url, secret, events } = req.body;
+    const businessId = req.business.id;
+    if (!url || !secret || !events || !Array.isArray(events)) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: url, secret, events (array)"
+      });
+    }
+    const webhook = await prisma.webhook.create({
+      data: {
+        businessId,
+        url,
+        secret,
+        events
+      }
+    });
+    res.status(201).json({ success: true, webhook });
+  } catch (error) {
+    console.error("Error creating webhook:", error);
+    res.status(500).json({ success: false, error: "Failed to create webhook" });
+  }
+});
+router$3.get("/webhooks", requireBusinessAuth, async (req, res) => {
+  try {
+    const businessId = req.business.id;
+    const webhooks = await prisma.webhook.findMany({
+      where: { businessId },
+      orderBy: { createdAt: "desc" }
+    });
+    res.status(200).json({ success: true, webhooks });
+  } catch (error) {
+    console.error("Error getting webhooks:", error);
+    res.status(500).json({ success: false, error: "Failed to get webhooks" });
+  }
+});
+router$3.put("/webhooks/:id", requireBusinessAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { url, secret, events, isActive } = req.body;
+    const businessId = req.business.id;
+    const webhook = await prisma.webhook.update({
+      where: {
+        id: parseInt(id),
+        businessId
+        // Ensure business owns this webhook
+      },
+      data: {
+        url,
+        secret,
+        events,
+        isActive
+      }
+    });
+    res.status(200).json({ success: true, webhook });
+  } catch (error) {
+    console.error("Error updating webhook:", error);
+    res.status(500).json({ success: false, error: "Failed to update webhook" });
+  }
+});
+router$3.delete("/webhooks/:id", requireBusinessAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const businessId = req.business.id;
+    await prisma.webhook.delete({
+      where: {
+        id: parseInt(id),
+        businessId
+        // Ensure business owns this webhook
+      }
+    });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error deleting webhook:", error);
+    res.status(500).json({ success: false, error: "Failed to delete webhook" });
+  }
+});
+router$3.post("/commission-rates", requireBusinessAuth, async (req, res) => {
+  try {
+    const { retailer, rate } = req.body;
+    const businessId = req.business.id;
+    if (!retailer || typeof rate !== "number") {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: retailer, rate"
+      });
+    }
+    const commissionRate = await prisma.commissionRate.upsert({
+      where: {
+        businessId_retailer: {
+          businessId,
+          retailer
+        }
+      },
+      update: { rate },
+      create: {
+        businessId,
+        retailer,
+        rate
+      }
+    });
+    res.status(200).json({ success: true, commissionRate });
+  } catch (error) {
+    console.error("Error setting commission rate:", error);
+    res.status(500).json({ success: false, error: "Failed to set commission rate" });
+  }
+});
+router$3.get("/commission-rates", requireBusinessAuth, async (req, res) => {
+  try {
+    const businessId = req.business.id;
+    const commissionRates = await prisma.commissionRate.findMany({
+      where: { businessId },
+      orderBy: { retailer: "asc" }
+    });
+    res.status(200).json({ success: true, commissionRates });
+  } catch (error) {
+    console.error("Error getting commission rates:", error);
+    res.status(500).json({ success: false, error: "Failed to get commission rates" });
+  }
+});
+router$3.get("/admin/all-sales", requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, businessId, status } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+    const whereClause = {};
+    if (businessId) whereClause.businessId = parseInt(businessId);
+    if (status) whereClause.status = status;
+    const [sales, total] = await Promise.all([
+      prisma.sale.findMany({
+        where: whereClause,
+        include: {
+          business: {
+            select: { name: true, domain: true }
+          },
+          user: {
+            select: { id: true, email: true }
+          }
+        },
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limitNum
+      }),
+      prisma.sale.count({ where: whereClause })
+    ]);
+    res.status(200).json({
+      success: true,
+      sales,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (error) {
+    console.error("Error getting all sales:", error);
+    res.status(500).json({ success: false, error: "Failed to get sales" });
+  }
+});
+router$3.post("/admin/retry-webhooks", requireAdmin, async (req, res) => {
+  try {
+    await SalesTrackingService.retryFailedWebhooks();
+    res.status(200).json({ success: true, message: "Webhook retry process completed" });
+  } catch (error) {
+    console.error("Error retrying webhooks:", error);
+    res.status(500).json({ success: false, error: "Failed to retry webhooks" });
   }
 });
 const saveSearchHistory = async (req, res) => {
@@ -3879,196 +4748,6 @@ const getLocationHandler = async (req, res) => {
     });
   }
 };
-const getAllAffiliateUrls = async (req, res) => {
-  try {
-    const urls = await affiliateService.getAllAffiliateUrls();
-    res.json({ success: true, urls });
-  } catch (error) {
-    console.error("Error fetching affiliate URLs:", error);
-    res.status(500).json({ success: false, error: "Failed to fetch affiliate URLs" });
-  }
-};
-const getAffiliateStats = async (req, res) => {
-  try {
-    const stats = await affiliateService.getAffiliateStats();
-    res.json({ success: true, stats });
-  } catch (error) {
-    console.error("Error fetching affiliate stats:", error);
-    res.status(500).json({ success: false, error: "Failed to fetch affiliate stats" });
-  }
-};
-const createAffiliateUrl = async (req, res) => {
-  try {
-    const { name, url, description, isActive } = req.body;
-    if (!name || !url) {
-      return res.status(400).json({
-        success: false,
-        error: "Name and URL are required"
-      });
-    }
-    try {
-      new URL(url);
-    } catch {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid URL format"
-      });
-    }
-    const affiliateUrl = await affiliateService.createAffiliateUrl({
-      name,
-      url,
-      description,
-      isActive
-    });
-    res.status(201).json({
-      success: true,
-      affiliateUrl,
-      message: "Affiliate URL created successfully"
-    });
-  } catch (error) {
-    console.error("Error creating affiliate URL:", error);
-    res.status(500).json({ success: false, error: "Failed to create affiliate URL" });
-  }
-};
-const updateAffiliateUrl = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, url, description, isActive } = req.body;
-    if (!name || !url) {
-      return res.status(400).json({
-        success: false,
-        error: "Name and URL are required"
-      });
-    }
-    try {
-      new URL(url);
-    } catch {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid URL format"
-      });
-    }
-    const affiliateUrl = await affiliateService.updateAffiliateUrl(parseInt(id), {
-      name,
-      url,
-      description,
-      isActive
-    });
-    res.json({
-      success: true,
-      affiliateUrl,
-      message: "Affiliate URL updated successfully"
-    });
-  } catch (error) {
-    console.error("Error updating affiliate URL:", error);
-    res.status(500).json({ success: false, error: "Failed to update affiliate URL" });
-  }
-};
-const deleteAffiliateUrl = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await affiliateService.deleteAffiliateUrl(parseInt(id));
-    res.json({
-      success: true,
-      message: "Affiliate URL deleted successfully"
-    });
-  } catch (error) {
-    console.error("Error deleting affiliate URL:", error);
-    res.status(500).json({ success: false, error: "Failed to delete affiliate URL" });
-  }
-};
-const trackAffiliateClick = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await affiliateService.incrementClicks(parseInt(id));
-    const affiliateUrl = await affiliateService.getAffiliateUrlById(parseInt(id));
-    if (affiliateUrl && affiliateUrl.isActive) {
-      res.redirect(affiliateUrl.url);
-    } else {
-      res.status(404).json({ success: false, error: "Affiliate URL not found or inactive" });
-    }
-  } catch (error) {
-    console.error("Error tracking affiliate click:", error);
-    res.status(500).json({ success: false, error: "Failed to track click" });
-  }
-};
-const trackAffiliateConversion = async (req, res) => {
-  try {
-    const { id, revenue = 0 } = req.body;
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: "Affiliate URL ID is required"
-      });
-    }
-    await affiliateService.addConversion(parseInt(id), parseFloat(revenue));
-    res.json({
-      success: true,
-      message: "Conversion tracked successfully"
-    });
-  } catch (error) {
-    console.error("Error tracking affiliate conversion:", error);
-    res.status(500).json({ success: false, error: "Failed to track conversion" });
-  }
-};
-const JWT_SECRET$1 = process.env.JWT_SECRET || "your-secret-key";
-function verifyBusinessToken$1(token) {
-  try {
-    return jwt.verify(token, JWT_SECRET$1);
-  } catch (error) {
-    return null;
-  }
-}
-const requireBusinessAuth = async (req, res, next) => {
-  try {
-    let token = req.cookies.business_token;
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: "Authentication required"
-      });
-    }
-    const decoded = verifyBusinessToken$1(token);
-    if (!decoded || decoded.type !== "business") {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid token"
-      });
-    }
-    const business = await businessService.findBusinessById(decoded.businessId);
-    if (!business) {
-      return res.status(401).json({
-        success: false,
-        error: "Business not found"
-      });
-    }
-    if (!business.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: "Business account is deactivated"
-      });
-    }
-    req.business = {
-      id: business.id,
-      name: business.name,
-      domain: business.domain,
-      email: business.email
-    };
-    next();
-  } catch (error) {
-    console.error("Business auth error:", error);
-    res.status(401).json({
-      success: false,
-      error: "Authentication failed"
-    });
-  }
-};
 const registerBusiness$1 = async (req, res) => {
   try {
     const {
@@ -4356,7 +5035,7 @@ const getBusinessConversions = async (req, res) => {
         error: "Business not found"
       });
     }
-    const conversions = await prisma.conversion.findMany({
+    const conversions = await prisma$3.conversion.findMany({
       where: { businessId: business.affiliateId },
       orderBy: { timestamp: "desc" },
       take: 100
@@ -4634,7 +5313,7 @@ const verifyBusinessTracking = async (req, res) => {
         error: "Business not found"
       });
     }
-    await prisma.business.update({
+    await prisma$3.business.update({
       where: { id: business.id },
       data: { trackingVerified: true }
     });
@@ -4858,14 +5537,14 @@ router$1.post("/track-sale", async (req, res) => {
     return res.status(400).json({ error: "Missing required data: businessId, orderId, amount, domain" });
   }
   try {
-    const business = await prisma.business.findUnique({
+    const business = await prisma$3.business.findUnique({
       where: { affiliateId: businessId },
       select: { id: true, name: true, affiliateId: true }
     });
     if (!business) {
       return res.status(400).json({ error: "Invalid business affiliate ID" });
     }
-    await prisma.conversion.create({
+    await prisma$3.conversion.create({
       data: {
         businessId,
         orderId,
@@ -4875,7 +5554,7 @@ router$1.post("/track-sale", async (req, res) => {
         // Optional customer ID for authenticated users
       }
     });
-    await prisma.business.update({
+    await prisma$3.business.update({
       where: { affiliateId: businessId },
       data: {
         totalPurchases: { increment: 1 },
@@ -4918,15 +5597,15 @@ router.post("/track-product-visit", async (req, res) => {
     }
     let business = null;
     if (businessId) {
-      business = await prisma.business.findUnique({
+      business = await prisma$3.business.findUnique({
         where: { affiliateId: businessId }
       });
     } else {
-      business = await prisma.business.findFirst({
+      business = await prisma$3.business.findFirst({
         where: { domain }
       });
     }
-    await prisma.clickLog.create({
+    await prisma$3.clickLog.create({
       data: {
         affiliateId: business?.affiliateId || "unknown",
         productId: productUrl,
@@ -4939,7 +5618,7 @@ router.post("/track-product-visit", async (req, res) => {
       }
     });
     if (business) {
-      await prisma.business.update({
+      await prisma$3.business.update({
         where: { id: business.id },
         data: {
           totalVisits: { increment: 1 }
@@ -5038,6 +5717,7 @@ async function createServer() {
   app.use(securityHeaders);
   app.use(requestLogger);
   app.use(sanitizeInput);
+  app.use(clearRLSContext);
   app.get("/api/ping", (_req, res) => {
     res.json({ message: "Hello from Express server v2!" });
   });
@@ -5070,13 +5750,8 @@ async function createServer() {
   app.post("/api/search-history", requireAuth, addToSearchHistory);
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
-  app.get("/api/admin/affiliate/urls", requireAuth, requireAdmin, getAllAffiliateUrls);
-  app.get("/api/admin/affiliate/stats", requireAuth, requireAdmin, getAffiliateStats);
-  app.post("/api/admin/affiliate/urls", requireAuth, requireAdmin, createAffiliateUrl);
-  app.put("/api/admin/affiliate/urls/:id", requireAuth, requireAdmin, updateAffiliateUrl);
-  app.delete("/api/admin/affiliate/urls/:id", requireAuth, requireAdmin, deleteAffiliateUrl);
-  app.get("/api/affiliate/click/:id", trackAffiliateClick);
-  app.post("/api/affiliate/conversion", trackAffiliateConversion);
+  app.use("/api/affiliate", router$4);
+  app.use("/api/sales", router$3);
   app.post(
     "/api/business/auth/register",
     validateBusinessRegistration,
@@ -5104,7 +5779,7 @@ async function createServer() {
   app.put("/api/admin/business/:id/password", requireAuth, requireAdmin, updateBusinessPassword);
   app.delete("/api/admin/business/:id", requireAuth, requireAdmin, deleteBusiness);
   app.post("/api/admin/business/:id/verify", requireAuth, requireAdmin, verifyBusiness);
-  app.use("/api/favorites", router$3);
+  app.use("/api/favorites", router$5);
   app.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app.get("/api/user/search-history", requireAuth, getUserSearchHistory);
   app.post("/api/legacy/search-history", saveSearchHistory);
@@ -5114,21 +5789,21 @@ async function createServer() {
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
-      router$4(req, res, () => {
+      router$6(req, res, () => {
       });
     }
   );
   app.use(
     "/api",
     validateUrl,
-    router$4
+    router$6
   );
   app.post(
     "/api/scrape-product",
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
-      router$4(req, res, () => {
+      router$6(req, res, () => {
       });
     }
   );
@@ -5137,7 +5812,7 @@ async function createServer() {
     validateUrl,
     (req, res) => {
       req.url = "/n8n-scrape";
-      router$4(req, res, () => {
+      router$6(req, res, () => {
       });
     }
   );

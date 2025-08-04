@@ -18,6 +18,18 @@ if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
 }
 
+// Function to set user context for Row Level Security
+export async function setUserContext(userId?: number, userEmail?: string) {
+  if (userId || userEmail) {
+    await prisma.$executeRaw`SELECT set_user_context(${userEmail || null}, ${userId || null})`;
+  }
+}
+
+// Function to clear user context
+export async function clearUserContext() {
+  await prisma.$executeRaw`SELECT set_user_context(null, null)`;
+}
+
 // User operations
 export const userService = {
   async createUser(data: {

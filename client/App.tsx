@@ -24,10 +24,15 @@ import { StagewiseToolbar } from '@stagewise/toolbar-react';
 import ReactPlugin from '@stagewise-plugins/react';
 import BusinessIntegrate from "./pages/BusinessIntegrate";
 import BusinessActivity from "./pages/BusinessActivity";
+import BusinessConnect from "./pages/BusinessConnect";
+import { initializeTracking } from "@/lib/tracking";
 // import NewLanding from "./pages/NewLanding";
 // import NewSearch from "./pages/NewSearch";
 
 const queryClient = new QueryClient();
+
+// Initialize tracking on app load
+initializeTracking();
 
 // Create router with future flags to suppress warnings
 const router = createBrowserRouter([
@@ -60,102 +65,55 @@ const router = createBrowserRouter([
   },
   {
     path: "/history",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <History />
-      </>
-    ),
+    element: <History />,
   },
   {
     path: "/favorites",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <Favorites />
-      </>
-    ),
+    element: <Favorites />,
   },
   {
     path: "/login",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <Login />
-      </>
-    ),
+    element: <Login />,
   },
   {
     path: "/admin",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <Admin />
-      </>
-    ),
+    element: <Admin />,
   },
   {
     path: "/business/register",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <BusinessRegistration />
-      </>
-    ),
+    element: <BusinessRegistration />,
   },
   {
     path: "/admin/business",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <BusinessManagement />
-      </>
-    ),
+    element: <BusinessManagement />,
   },
   {
     path: "/business-login",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <BusinessLogin />
-      </>
-    ),
+    element: <BusinessLogin />,
   },
   {
     path: "/business/dashboard",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <BusinessDashboard />
-      </>
-    ),
+    element: <BusinessDashboard />,
+  },
+  {
+    path: "/business/integrate",
+    element: <BusinessIntegrate />,
   },
   {
     path: "/business-integrate",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <BusinessIntegrate />
-      </>
-    ),
+    element: <BusinessIntegrate />,
   },
   {
-    path: "/business-activity",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <BusinessActivity />
-      </>
-    ),
+    path: "/business/activity",
+    element: <BusinessActivity />,
+  },
+  {
+    path: "/business/connect",
+    element: <BusinessConnect />,
   },
   {
     path: "*",
-    element: (
-      <>
-        <UrlRedirectHandler />
-        <NotFound />
-      </>
-    ),
+    element: <NotFound />,
   },
 ], {
   future: {

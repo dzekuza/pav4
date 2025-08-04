@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { verifyToken, userService } from "../routes/auth";
+import { setUserContext, clearUserContext } from "../services/database";
 
 // Extend Express Request type to include user info
 declare global {
@@ -19,7 +20,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   try {
     // Check for token in cookies or Authorization header
     let token = req.cookies.auth_token;
-    
+
     if (!token) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -39,7 +40,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
     try {
       // Handle both string and number user IDs
       const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
-      
+
       if (isNaN(userId)) {
         return res.status(401).json({ error: "Invalid user ID in token" });
       }
@@ -55,6 +56,9 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
         email: user.email,
         isAdmin: user.isAdmin,
       };
+
+      // Set RLS context for this request
+      await setUserContext(user.id, user.email);
 
       next();
     } catch (dbError) {
@@ -85,7 +89,7 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
   try {
     // Check for token in cookies or Authorization header
     let token = req.cookies.auth_token;
-    
+
     if (!token) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -99,7 +103,7 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
         try {
           // Handle both string and number user IDs
           const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
-          
+
           if (!isNaN(userId)) {
             const user = await userService.findUserById(userId);
             if (user) {
@@ -108,6 +112,9 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
                 email: user.email,
                 isAdmin: user.isAdmin,
               };
+
+              // Set RLS context for this request
+              await setUserContext(user.id, user.email);
             }
           }
         } catch (dbError) {
@@ -124,4 +131,18 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
     console.warn("Optional auth error:", error);
     next();
   }
+};
+
+// Middleware to clear RLS context after request
+export const clearRLSContext: RequestHandler = async (req, res, next) => {
+  // Clear RLS context after the request is complete
+  res.on('finish', async () => {
+    try {
+      await clearUserContext();
+    } catch (error) {
+      console.warn("Error clearing RLS context:", error);
+    }
+  });
+
+  next();
 };

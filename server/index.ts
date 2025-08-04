@@ -7,6 +7,8 @@ import compression from "compression";
 import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
 import favoritesRouter from "./routes/favorites";
+import affiliateRouter from "./routes/affiliate";
+import salesRouter from "./routes/sales";
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import {
   register,
@@ -17,20 +19,11 @@ import {
   getUserSearchHistory,
   getAllUsers,
 } from "./routes/auth";
-import { requireAuth, requireAdmin, optionalAuth } from "./middleware/auth";
+import { requireAuth, requireAdmin, optionalAuth, clearRLSContext } from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
 import { gracefulShutdown, checkDatabaseConnection, clickLogService, settingsService, businessService } from "./services/database";
-import {
-  getAllAffiliateUrls,
-  getAffiliateStats,
-  createAffiliateUrl,
-  updateAffiliateUrl,
-  deleteAffiliateUrl,
-  trackAffiliateClick,
-  trackAffiliateConversion,
-} from "./routes/affiliate";
 import {
   registerBusiness,
   getAllBusinesses,
@@ -84,7 +77,7 @@ export async function createServer() {
   // Check database connection on startup
   const dbStatus = await checkDatabaseConnection();
   console.log('Database status:', dbStatus.status, dbStatus.message);
-  
+
   const app = express();
 
   // Trust Netlify/Heroku/Cloud proxy for correct req.ip and rate limiting
@@ -99,12 +92,12 @@ export async function createServer() {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: [
-          "'self'", 
-          "https://api.searchapi.io", 
+          "'self'",
+          "https://api.searchapi.io",
           "https://n8n.srv824584.hstgr.cloud",
           "https://pavlo4.netlify.app",
           "http://localhost:5746",
-          "http://localhost:5747", 
+          "http://localhost:5747",
           "http://localhost:8082",
           "http://localhost:8083",
           "ws://localhost:5746",
@@ -171,6 +164,7 @@ export async function createServer() {
   app.use(securityHeaders);
   app.use(requestLogger);
   app.use(sanitizeInput);
+  app.use(clearRLSContext); // Clear RLS context after each request
 
   // Public API routes with caching
   app.get("/api/ping", (_req, res) => {
@@ -187,19 +181,19 @@ export async function createServer() {
   });
 
   // Authentication routes without rate limiting
-  app.post("/api/auth/register", 
+  app.post("/api/auth/register",
     validateRegistration,
     handleValidationErrors,
     register
   );
-  app.post("/api/auth/login", 
+  app.post("/api/auth/login",
     validateLogin,
     handleValidationErrors,
     login
   );
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
-  
+
   // TestSprite compatibility routes (redirects)
   app.post("/api/register", register);
   app.post("/api/login", login);
@@ -209,28 +203,21 @@ export async function createServer() {
   // Protected routes - require authentication
   app.post("/api/search-history", requireAuth, addToSearchHistory);
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
-  
+
   // Admin routes
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
-  
+
   // Affiliate routes
-  app.get("/api/admin/affiliate/urls", requireAuth, requireAdmin, getAllAffiliateUrls);
-  app.get("/api/admin/affiliate/stats", requireAuth, requireAdmin, getAffiliateStats);
-  app.post("/api/admin/affiliate/urls", requireAuth, requireAdmin, createAffiliateUrl);
-  app.put("/api/admin/affiliate/urls/:id", requireAuth, requireAdmin, updateAffiliateUrl);
-  app.delete("/api/admin/affiliate/urls/:id", requireAuth, requireAdmin, deleteAffiliateUrl);
-  
-  // Public affiliate tracking endpoints
-  app.get("/api/affiliate/click/:id", trackAffiliateClick);
-  app.post("/api/affiliate/conversion", trackAffiliateConversion);
-  
+  app.use("/api/affiliate", affiliateRouter);
+  app.use("/api/sales", salesRouter);
+
   // Business authentication routes without rate limiting
-  app.post("/api/business/auth/register", 
+  app.post("/api/business/auth/register",
     validateBusinessRegistration,
     handleValidationErrors,
     registerBusinessAuth
   );
-  app.post("/api/business/auth/login", 
+  app.post("/api/business/auth/login",
     validateLogin,
     handleValidationErrors,
     loginBusiness
@@ -239,12 +226,12 @@ export async function createServer() {
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", getBusinessAuthStats);
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
-  
+
   // Business routes with caching and validation
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
-  
+
   // Admin business routes
   app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);
   app.get("/api/admin/business/stats", requireAuth, requireAdmin, getBusinessStats);
@@ -254,10 +241,10 @@ export async function createServer() {
   app.put("/api/admin/business/:id/password", requireAuth, requireAdmin, updateBusinessPassword);
   app.delete("/api/admin/business/:id", requireAuth, requireAdmin, deleteBusiness);
   app.post("/api/admin/business/:id/verify", requireAuth, requireAdmin, verifyBusiness);
-  
+
   // Favorites routes
   app.use("/api/favorites", favoritesRouter);
-  
+
   // TestSprite compatibility routes
   app.post("/api/user/search-history", requireAuth, addToSearchHistory);
   app.get("/api/user/search-history", requireAuth, getUserSearchHistory);
@@ -267,31 +254,31 @@ export async function createServer() {
   app.get("/api/legacy/search-history", getSearchHistory);
 
   // Public search routes without rate limiting
-  app.post("/api/scrape", 
+  app.post("/api/scrape",
     validateUrl,
     (req, res) => {
       req.url = '/n8n-scrape';
-      n8nScrapeRouter(req, res, () => {});
+      n8nScrapeRouter(req, res, () => { });
     }
   );
-  app.use("/api", 
+  app.use("/api",
     validateUrl,
     n8nScrapeRouter
   ); // N8N scraping routes (public)
-  
+
   // TestSprite compatibility routes with rate limiting and validation
-  app.post("/api/scrape-product", 
+  app.post("/api/scrape-product",
     validateUrl,
     (req, res) => {
       req.url = '/n8n-scrape';
-      n8nScrapeRouter(req, res, () => {});
+      n8nScrapeRouter(req, res, () => { });
     }
   );
-  app.post("/api/n8n-webhook-scrape", 
+  app.post("/api/n8n-webhook-scrape",
     validateUrl,
     (req, res) => {
       req.url = '/n8n-scrape';
-      n8nScrapeRouter(req, res, () => {});
+      n8nScrapeRouter(req, res, () => { });
     }
   );
   app.get("/api/location-info", getLocationHandler);

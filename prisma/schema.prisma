@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -9,14 +8,18 @@ datasource db {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
-  email         String          @unique
-  password      String
-  isAdmin       Boolean         @default(false)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  favorites     Favorite[]
-  searchHistory SearchHistory[]
+  id                   Int                   @id @default(autoincrement())
+  email                String                @unique
+  password             String
+  isAdmin              Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  favorites            favorites[]
+  searchHistory        SearchHistory[]
+  affiliateClicks      AffiliateClick[]
+  affiliateConversions AffiliateConversion[]
+  commissions          Commission[]
+  sales                Sale[]
 
   @@map("users")
 }
@@ -30,12 +33,111 @@ model SearchHistory {
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([timestamp])
+  @@index([userId])
   @@map("search_history")
 }
 
-model Favorite {
+model LegacySearchHistory {
+  id        Int      @id @default(autoincrement())
+  userKey   String
+  url       String
+  timestamp DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([userKey])
+  @@map("legacy_search_history")
+}
+
+model Settings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}
+
+model Business {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  domain              String               @unique
+  website             String
+  description         String?
+  logo                String?
+  isActive            Boolean              @default(true)
+  isVerified          Boolean              @default(false)
+  contactEmail        String?
+  contactPhone        String?
+  address             String?
+  country             String?
+  category            String?
+  commission          Float                @default(0)
+  email               String               @unique
+  password            String
+  totalVisits         Int                  @default(0)
+  totalPurchases      Int                  @default(0)
+  totalRevenue        Float                @default(0)
+  adminCommissionRate Float                @default(5.0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  affiliateId         String               @unique
+  trackingVerified    Boolean              @default(false)
+  clicks              BusinessClick[]
+  conversions         BusinessConversion[]
+  sales               Sale[]
+  webhooks            Webhook[]
+  commissionRates     CommissionRate[]
+
+  @@map("businesses")
+}
+
+model ClickLog {
+  id          Int      @id @default(autoincrement())
+  affiliateId String
+  productId   String
+  userId      Int?
+  timestamp   DateTime @default(now())
+  userAgent   String?
+  referrer    String?
+  ip          String?
+}
+
+model Conversion {
+  id         Int      @id @default(autoincrement())
+  orderId    String
+  amount     Float
+  domain     String
+  timestamp  DateTime @default(now())
+  businessId String
+  customerId String?
+
+  @@index([businessId])
+  @@index([timestamp])
+}
+
+model admins {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("admin")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model affiliate_urls {
+  id          Int      @id @default(autoincrement())
+  name        String
+  url         String
+  description String?
+  isActive    Boolean  @default(true)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  revenue     Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+}
+
+model favorites {
   id            Int      @id @default(autoincrement())
   userId        Int
   title         String
@@ -53,108 +155,215 @@ model Favorite {
   returnPolicy  String?
   condition     String   @default("New")
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime
+  users         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([createdAt])
-  @@map("favorites")
+  @@index([userId])
 }
 
-model Admin {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String?
-  role      String   @default("admin")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// New affiliate tracking models
+model AffiliateClick {
+  id           Int      @id @default(autoincrement())
+  productUrl   String
+  productTitle String?
+  productPrice String?
+  retailer     String?
+  userId       Int?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sessionId    String?
+  referrer     String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
 
-  @@map("admins")
+  @@map("affiliate_clicks")
 }
 
-model LegacySearchHistory {
-  id        Int      @id @default(autoincrement())
-  userKey   String
-  url       String
-  timestamp DateTime @default(now())
+model AffiliateConversion {
+  id           Int      @id @default(autoincrement())
+  productUrl   String
+  productTitle String?
+  productPrice String?
+  retailer     String?
+  userId       Int?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sessionId    String?
+  referrer     String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
 
-  @@index([userKey])
-  @@index([timestamp])
-  @@map("legacy_search_history")
+  @@map("affiliate_conversions")
 }
 
-model Business {
-  id                  Int      @id @default(autoincrement())
-  name                String
-  domain              String   @unique
-  website             String
-  description         String?
-  logo                String?
-  isActive            Boolean  @default(true)
-  isVerified          Boolean  @default(false)
-  contactEmail        String?
-  contactPhone        String?
-  address             String?
-  country             String?
-  category            String?
-  commission          Float    @default(0)
-  email               String   @unique
-  password            String
-  totalVisits         Int      @default(0)
-  totalPurchases      Int      @default(0)
-  totalRevenue        Float    @default(0)
-  adminCommissionRate Float    @default(5.0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  affiliateId         String   @unique @default(cuid())
-  trackingVerified    Boolean  @default(false)
+model BusinessClick {
+  id           Int      @id @default(autoincrement())
+  businessId   Int
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productUrl   String
+  productTitle String?
+  productPrice String?
+  retailer     String?
+  sessionId    String?
+  referrer     String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
 
-  @@map("businesses")
+  @@map("business_clicks")
 }
 
-model AffiliateUrl {
-  id          Int      @id @default(autoincrement())
-  name        String
-  url         String
-  description String?
-  isActive    Boolean  @default(true)
-  clicks      Int      @default(0)
-  conversions Int      @default(0)
-  revenue     Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model BusinessConversion {
+  id           Int      @id @default(autoincrement())
+  businessId   Int
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productUrl   String
+  productTitle String?
+  productPrice String?
+  retailer     String?
+  sessionId    String?
+  referrer     String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
 
-  @@map("affiliate_urls")
+  @@map("business_conversions")
 }
 
-model ClickLog {
-  id          Int      @id @default(autoincrement())
-  affiliateId String
-  productId   String
-  userId      Int?
-  timestamp   DateTime @default(now())
-  userAgent   String?
-  referrer    String?
-  ip          String?
-}
-
-model Settings {
-  id    Int    @id @default(autoincrement())
-  key   String @unique
-  value String
-}
-
-model Conversion {
-  id         Int      @id @default(autoincrement())
-  orderId    String
-  amount     Float
-  domain     String
-  timestamp  DateTime @default(now())
-  businessId String
-  customerId String?
+// New models for complete sales tracking
+model Sale {
+  id               Int          @id @default(autoincrement())
+  orderId          String       @unique
+  businessId       Int
+  business         Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId           Int?
+  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  productUrl       String
+  productTitle     String?
+  productPrice     Float
+  currency         String       @default("USD")
+  retailer         String
+  sessionId        String?
+  referrer         String?
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  ipAddress        String?
+  userAgent        String?
+  status           SaleStatus   @default(PENDING)
+  commissionAmount Float?
+  commissionRate   Float?
+  commissionPaid   Boolean      @default(false)
+  commissionPaidAt DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  commissions      Commission[]
 
   @@index([businessId])
-  @@index([timestamp])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model Commission {
+  id        Int              @id @default(autoincrement())
+  saleId    Int
+  sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  rate      Float
+  status    CommissionStatus @default(PENDING)
+  paidAt    DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("commissions")
+}
+
+model CommissionRate {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  retailer   String
+  rate       Float
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, retailer])
+  @@map("commission_rates")
+}
+
+model Webhook {
+  id            Int            @id @default(autoincrement())
+  businessId    Int
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  url           String
+  secret        String
+  events        String[] // Array of event types to listen for
+  isActive      Boolean        @default(true)
+  lastTriggered DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  webhookEvents WebhookEvent[]
+
+  @@map("webhooks")
+}
+
+model WebhookEvent {
+  id           Int           @id @default(autoincrement())
+  webhookId    Int
+  webhook      Webhook       @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  eventType    String
+  payload      String // JSON payload
+  status       WebhookStatus @default(PENDING)
+  responseCode Int?
+  responseBody String?
+  retryCount   Int           @default(0)
+  nextRetryAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([webhookId])
+  @@index([status])
+  @@map("webhook_events")
+}
+
+// Enums for status tracking
+enum SaleStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum WebhookStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRY
 }
