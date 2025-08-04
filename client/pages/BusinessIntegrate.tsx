@@ -6,16 +6,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Code, 
-  Settings, 
-  Link, 
-  Copy, 
-  CheckCircle, 
+import {
+  Code,
+  Settings,
+  Link,
+  Copy,
+  CheckCircle,
   AlertCircle,
   ExternalLink,
   Download,
-  Search
+  Search,
+  ShoppingCart,
+  Store
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,24 +29,112 @@ export default function BusinessIntegrate() {
   const [scripts, setScripts] = useState([
     {
       id: 1,
-      name: 'Basic Tracking Script',
-      description: 'Simple script to track page visits and conversions',
-      code: `<script src="https://yourdomain.com/tracker.js"></script>`,
-      installed: false
+      name: 'Universal Tracking Script',
+      description: 'Basic script to track page visits and user interactions across all platforms',
+      code: `<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://pavlo4.netlify.app/tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
+  script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
+  document.head.appendChild(script);
+})();
+</script>`,
+      installed: false,
+      platform: 'Universal'
     },
     {
       id: 2,
-      name: 'Advanced E-commerce Tracking',
-      description: 'Enhanced script for e-commerce conversion tracking',
-      code: `<script src="https://yourdomain.com/ecommerce-tracker.js"></script>`,
-      installed: false
+      name: 'Shopify Tracking Script',
+      description: 'Enhanced script for Shopify stores with purchase tracking and conversion monitoring',
+      code: `<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://pavlo4.netlify.app/shopify-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
+  script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
+  script.setAttribute('data-platform', 'shopify');
+  document.head.appendChild(script);
+})();
+</script>`,
+      installed: false,
+      platform: 'Shopify'
     },
     {
       id: 3,
+      name: 'WooCommerce Tracking Script',
+      description: 'WordPress WooCommerce integration for tracking purchases and user behavior',
+      code: `<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://pavlo4.netlify.app/woocommerce-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
+  script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
+  script.setAttribute('data-platform', 'woocommerce');
+  document.head.appendChild(script);
+})();
+</script>`,
+      installed: false,
+      platform: 'WooCommerce'
+    },
+    {
+      id: 4,
+      name: 'Magento Tracking Script',
+      description: 'Enterprise e-commerce tracking for Magento stores with advanced analytics',
+      code: `<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://pavlo4.netlify.app/magento-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
+  script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
+  script.setAttribute('data-platform', 'magento');
+  document.head.appendChild(script);
+})();
+</script>`,
+      installed: false,
+      platform: 'Magento'
+    },
+    {
+      id: 5,
       name: 'Custom Event Tracking',
-      description: 'Track custom events and user interactions',
-      code: `<script src="https://yourdomain.com/event-tracker.js"></script>`,
-      installed: false
+      description: 'Track custom events like "Buy Now" clicks, "View Product" actions, and conversions',
+      code: `<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://pavlo4.netlify.app/event-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
+  script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
+  document.head.appendChild(script);
+  
+  // Track "Buy Now" clicks
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-track="buy-now"], .buy-now, .add-to-cart')) {
+      window.trackEvent('purchase_click', {
+        product_id: e.target.getAttribute('data-product-id'),
+        product_name: e.target.getAttribute('data-product-name'),
+        price: e.target.getAttribute('data-price')
+      });
+    }
+  });
+  
+  // Track "View Product" clicks
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-track="view-product"], .product-link')) {
+      window.trackEvent('product_view', {
+        product_id: e.target.getAttribute('data-product-id'),
+        product_name: e.target.getAttribute('data-product-name')
+      });
+    }
+  });
+})();
+</script>`,
+      installed: false,
+      platform: 'Custom'
     }
   ]);
 
@@ -91,7 +181,7 @@ export default function BusinessIntegrate() {
   };
 
   const installScript = (scriptId: number) => {
-    setScripts(scripts.map(script => 
+    setScripts(scripts.map(script =>
       script.id === scriptId ? { ...script, installed: true } : script
     ));
     toast({
@@ -102,6 +192,36 @@ export default function BusinessIntegrate() {
 
   const connectToNewPage = () => {
     navigate('/business/connect');
+  };
+
+  const getPlatformIcon = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case 'shopify':
+        return <Store className="h-4 w-4" />;
+      case 'woocommerce':
+        return <ShoppingCart className="h-4 w-4" />;
+      case 'magento':
+        return <Store className="h-4 w-4" />;
+      default:
+        return <Code className="h-4 w-4" />;
+    }
+  };
+
+  const getPlatformBadge = (platform: string) => {
+    const colors = {
+      'shopify': 'bg-green-100 text-green-800',
+      'woocommerce': 'bg-blue-100 text-blue-800',
+      'magento': 'bg-orange-100 text-orange-800',
+      'universal': 'bg-purple-100 text-purple-800',
+      'custom': 'bg-gray-100 text-gray-800'
+    };
+
+    return (
+      <Badge variant="secondary" className={colors[platform.toLowerCase() as keyof typeof colors] || colors.custom}>
+        {getPlatformIcon(platform)}
+        <span className="ml-1">{platform}</span>
+      </Badge>
+    );
   };
 
   return (
@@ -140,6 +260,10 @@ export default function BusinessIntegrate() {
                 <p className="text-sm text-gray-600">{business?.domain || 'N/A'}</p>
               </div>
               <div>
+                <h3 className="font-medium text-gray-900">Affiliate ID</h3>
+                <p className="text-sm text-gray-600">{business?.affiliateId || 'N/A'}</p>
+              </div>
+              <div>
                 <h3 className="font-medium text-gray-900">Status</h3>
                 <Badge variant="default" className="bg-green-100 text-green-800">
                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -171,7 +295,7 @@ export default function BusinessIntegrate() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">3</div>
+                    <div className="text-2xl font-bold text-blue-600">5</div>
                     <div className="text-sm text-gray-600">Available Scripts</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
@@ -196,7 +320,7 @@ export default function BusinessIntegrate() {
                   Available Scripts
                 </CardTitle>
                 <CardDescription>
-                  Find and install tracking scripts for your website
+                  Find and install tracking scripts for your website. These scripts will track user interactions and send data to our platform when users click "Buy Now" or "View Product" buttons.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -205,10 +329,19 @@ export default function BusinessIntegrate() {
                     <div key={script.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{script.name}</h3>
-                          <p className="text-sm text-gray-600 mt-1">{script.description}</p>
-                          <div className="mt-3 p-3 bg-gray-100 rounded text-sm font-mono">
-                            {script.code}
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-medium text-gray-900">{script.name}</h3>
+                            {getPlatformBadge(script.platform)}
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">{script.description}</p>
+                          <div className="p-3 bg-gray-100 rounded text-sm font-mono text-xs overflow-x-auto">
+                            <pre>{script.code}</pre>
+                          </div>
+                          <div className="mt-3 text-xs text-gray-500">
+                            <p>• Tracks user interactions and purchase events</p>
+                            <p>• Sends data to: https://pavlo4.netlify.app/api/track</p>
+                            <p>• Business ID: {business?.id || 'YOUR_BUSINESS_ID'}</p>
+                            <p>• Affiliate ID: {business?.affiliateId || 'YOUR_AFFILIATE_ID'}</p>
                           </div>
                         </div>
                         <div className="flex flex-col gap-2 ml-4">
@@ -274,9 +407,9 @@ export default function BusinessIntegrate() {
                       Connect Page
                     </Button>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div>
                     <h3 className="font-medium text-gray-900 mb-2">Connected Pages</h3>
                     <div className="text-sm text-gray-600">
@@ -314,11 +447,19 @@ export default function BusinessIntegrate() {
                         <span className="text-sm text-gray-600">Enable analytics</span>
                         <Badge variant="secondary">Enabled</Badge>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Track "Buy Now" clicks</span>
+                        <Badge variant="secondary">Enabled</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Track "View Product" clicks</span>
+                        <Badge variant="secondary">Enabled</Badge>
+                      </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div>
                     <h3 className="font-medium text-gray-900 mb-2">Commission Settings</h3>
                     <div className="text-sm text-gray-600">

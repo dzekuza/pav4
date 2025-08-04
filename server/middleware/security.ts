@@ -186,6 +186,11 @@ export const sanitizeInput: RequestHandler = (req, res, next) => {
 
 // URL validation middleware
 export const validateUrl: RequestHandler = (req, res, next) => {
+  // Only apply validation to scraping routes
+  if (!req.path.includes('/scrape') && !req.path.includes('/n8n')) {
+    return next();
+  }
+  
   const url = req.body?.url || req.query?.url;
   
   if (url) {

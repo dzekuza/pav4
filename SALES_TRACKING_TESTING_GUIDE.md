@@ -16,7 +16,7 @@ Your sales tracking system is now fully implemented! Here's how to test it compr
 #### **Option A: Test on Local Development Server**
 ```bash
 # Visit the test page
-http://localhost:8083/test-tracking.html
+https://pavlo4.netlify.app/test-tracking.html
 ```
 
 #### **Option B: Test on God is Love Website**
@@ -87,7 +87,7 @@ Create a test page at `https://godislove.lt/test-tracking` with this content:
 ## 🚀 **Step-by-Step Testing Process**
 
 ### **Step 1: Test the Tracking Script**
-1. **Open the test page**: `http://localhost:8083/test-tracking.html`
+1. **Open the test page**: `https://pavlo4.netlify.app/test-tracking.html`
 2. **Enable browser console** (F12 → Console tab)
 3. **Click buttons** and watch for tracking logs
 4. **Fill out the form** and submit
@@ -102,7 +102,7 @@ psql "postgresql://neondb_owner:npg_K3ViucN8RGas@ep-polished-mountain-ab3ggow0-p
 ### **Step 3: Test Commission Calculation**
 ```bash
 # Set commission rate for God is Love
-curl -X POST http://localhost:8083/api/sales/commission-rates \
+curl -X POST https://pavlo4.netlify.app/api/sales/commission-rates \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN" \
   -d '{"retailer": "godislove.lt", "rate": 5.0}'
@@ -111,7 +111,7 @@ curl -X POST http://localhost:8083/api/sales/commission-rates \
 ### **Step 4: Test Webhook Notifications**
 ```bash
 # Create a webhook for God is Love
-curl -X POST http://localhost:8083/api/sales/webhooks \
+curl -X POST https://pavlo4.netlify.app/api/sales/webhooks \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN" \
   -d '{

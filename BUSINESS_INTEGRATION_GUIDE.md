@@ -39,7 +39,7 @@ The Business Integration page (`/business-integrate`) provides businesses with a
 
 ### **Step 1: Access the Page**
 ```
-http://localhost:8083/business-integrate
+https://pavlo4.netlify.app/business-integrate
 ```
 
 ### **Step 2: Configure Business Info**
@@ -148,7 +148,7 @@ GET /api/sales/stats/business/{businessId}
 
 ### **1. Test Sale Tracking**
 ```bash
-curl -X POST http://localhost:8083/api/sales/track \
+curl -X POST https://pavlo4.netlify.app/api/sales/track \
   -H "Content-Type: application/json" \
   -d '{
     "orderId": "TEST-ORDER-123",

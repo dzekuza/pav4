@@ -148,7 +148,7 @@ window.open(affiliateUrl, '_blank');
 
 ### **Test Sale Tracking**
 ```bash
-curl -X POST http://localhost:8083/api/sales/track \
+curl -X POST https://pavlo4.netlify.app/api/sales/track \
   -H "Content-Type: application/json" \
   -d '{
     "orderId": "TEST-ORDER-123",

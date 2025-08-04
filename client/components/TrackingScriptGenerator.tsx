@@ -1,328 +1,339 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Alert, AlertDescription } from './ui/alert';
 import { Copy, Check, ExternalLink, Code, Settings } from 'lucide-react';
 
 interface TrackingScriptGeneratorProps {
-    businessId: number;
-    businessName: string;
-    businessDomain: string;
+  businessId: string;
+  affiliateId: string;
+  businessName: string;
 }
 
 export const TrackingScriptGenerator: React.FC<TrackingScriptGeneratorProps> = ({
-    businessId,
-    businessName,
-    businessDomain
+  businessId,
+  affiliateId,
+  businessName
 }) => {
-    const [copied, setCopied] = useState(false);
-    const [debugMode, setDebugMode] = useState(false);
+  const [platform, setPlatform] = useState('shopify');
+  const [debugMode, setDebugMode] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('script');
 
-    // Generate the tracking script
-    const generateTrackingScript = () => {
-        const script = `<!-- PriceHunt Sales Tracking Script for ${businessName} -->
-<script src="https://pavlo4.netlify.app/tracker.js"></script>
-<script>
-window.trackerInit({
-  storeId: ${businessId},
-  userSessionId: '{{USER_SESSION_ID}}', // Replace with actual session ID
-  productId: '{{PRODUCT_ID}}', // Replace with actual product ID
-  debug: ${debugMode}
-});
+  const generateScript = () => {
+    const debugAttr = debugMode ? ' data-debug="true"' : '';
+    
+    if (platform === 'shopify') {
+      return `<script 
+  src="https://pavlo4.netlify.app/shopify-tracker.js" 
+  data-business-id="${businessId}" 
+  data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
-        return script;
-    };
-
-    // Generate the complete HTML example
-    const generateHtmlExample = () => {
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${businessName} - Product Page</title>
-    
-    <!-- PriceHunt Sales Tracking Script -->
-    <script src="https://pavlo4.netlify.app/tracker.js"></script>
-    <script>
-    window.trackerInit({
-        storeId: ${businessId},
-        userSessionId: 'user-session-123',
-        productId: 'product-456',
-        debug: ${debugMode}
-    });
-    </script>
-</head>
-<body>
-    <h1>Product Title</h1>
-    <p>Price: $99.99</p>
-    
-    <!-- Purchase button - will be automatically tracked -->
-    <button onclick="addToCart()">Add to Cart</button>
-    <button onclick="buyNow()">Buy Now</button>
-    
-    <!-- Checkout form - will be automatically tracked -->
-    <form action="/checkout" method="POST">
-        <input type="text" name="email" placeholder="Email" required>
-        <input type="text" name="card" placeholder="Card Number" required>
-        <button type="submit">Complete Purchase</button>
-    </form>
-    
-    <script>
-    function addToCart() {
-        // Your cart logic here
-        console.log('Added to cart');
+    } else if (platform === 'woocommerce') {
+      return `<script 
+  src="https://pavlo4.netlify.app/woocommerce-tracker.js" 
+  data-business-id="${businessId}" 
+  data-affiliate-id="${affiliateId}"${debugAttr}>
+</script>`;
+    } else if (platform === 'magento') {
+      return `<script 
+  src="https://pavlo4.netlify.app/magento-tracker.js" 
+  data-business-id="${businessId}" 
+  data-affiliate-id="${affiliateId}"${debugAttr}>
+</script>`;
+    } else {
+      return `<script 
+  src="https://pavlo4.netlify.app/tracker.js" 
+  data-business-id="${businessId}" 
+  data-affiliate-id="${affiliateId}" 
+  data-platform="${platform}"${debugAttr}>
+</script>`;
     }
-    
-    function buyNow() {
-        // Your buy now logic here
-        console.log('Buy now clicked');
+  };
+
+  const generateInstallationInstructions = () => {
+    switch (platform) {
+      case 'shopify':
+        return [
+          '1. Go to your Shopify admin panel',
+          '2. Navigate to Online Store > Themes',
+          '3. Click "Actions" > "Edit code" on your active theme',
+          '4. Open the theme.liquid file (usually in the Layout folder)',
+          '5. Find the closing </head> tag',
+          '6. Paste the tracking script just before the </head> tag',
+          '7. Click "Save" to apply the changes',
+          '8. Test the tracking by visiting your store and checking the browser console'
+        ];
+      case 'woocommerce':
+        return [
+          '1. Go to your WordPress admin panel',
+          '2. Navigate to Appearance > Theme Editor',
+          '3. Select your active theme',
+          '4. Open the header.php file',
+          '5. Find the closing </head> tag',
+          '6. Paste the tracking script just before the </head> tag',
+          '7. Click "Update File" to save changes',
+          '8. Test the tracking by visiting your store'
+        ];
+      case 'magento':
+        return [
+          '1. Go to your Magento admin panel',
+          '2. Navigate to Content > Design > Configuration',
+          '3. Click "Edit" on your active theme',
+          '4. Go to the "HTML Head" section',
+          '5. Add the tracking script to the "Scripts and Style Sheets" field',
+          '6. Click "Save Configuration"',
+          '7. Clear the cache (System > Cache Management)',
+          '8. Test the tracking by visiting your store'
+        ];
+      default:
+        return [
+          '1. Add the tracking script to your website\'s <head> section',
+          '2. Make sure it loads before any other scripts',
+          '3. Test the tracking by visiting your website',
+          '4. Check the browser console for any errors'
+        ];
     }
-    </script>
-</body>
-</html>`;
-    };
+  };
 
-    // Copy to clipboard
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+  const generateTestInstructions = () => {
+    return [
+      '1. Add the tracking script to your website',
+      '2. Open your website in a browser',
+      '3. Open the browser developer tools (F12)',
+      '4. Go to the Console tab',
+      '5. Look for tracking messages starting with "Tracking event:"',
+      '6. Test by clicking on products, adding to cart, or completing purchases',
+      '7. Check your business dashboard to see the tracking data'
+    ];
+  };
 
-    const trackingScript = generateTrackingScript();
-    const htmlExample = generateHtmlExample();
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(generateScript());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
 
-    return (
-        <Card className="w-full max-w-4xl mx-auto">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Code className="h-5 w-5" />
-                    Sales Tracking Script Generator
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                    Add this tracking script to your website to automatically track sales and commissions.
-                </p>
-            </CardHeader>
+  const openTestPage = () => {
+    const testUrl = platform === 'shopify' 
+      ? 'https://pavlo4.netlify.app/shopify-test.html'
+      : 'https://pavlo4.netlify.app/test-tracking.html';
+    window.open(testUrl, '_blank');
+  };
 
-            <CardContent className="space-y-6">
-                {/* Configuration */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        <h3 className="font-semibold">Configuration</h3>
-                    </div>
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Code className="h-5 w-5" />
+            Tracking Script Generator
+          </CardTitle>
+          <CardDescription>
+            Generate the tracking script for {businessName} to monitor affiliate performance
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Platform Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="platform">E-commerce Platform</Label>
+            <Select value={platform} onValueChange={setPlatform}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select platform" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="shopify">Shopify</SelectItem>
+                <SelectItem value="woocommerce">WooCommerce</SelectItem>
+                <SelectItem value="magento">Magento</SelectItem>
+                <SelectItem value="universal">Universal (Other)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="businessId">Business ID</Label>
-                            <Input id="businessId" value={businessId} readOnly />
-                        </div>
-                        <div>
-                            <Label htmlFor="businessName">Business Name</Label>
-                            <Input id="businessName" value={businessName} readOnly />
-                        </div>
-                        <div>
-                            <Label htmlFor="businessDomain">Domain</Label>
-                            <Input id="businessDomain" value={businessDomain} readOnly />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                id="debugMode"
-                                checked={debugMode}
-                                onChange={(e) => setDebugMode(e.target.checked)}
-                                className="rounded"
-                            />
-                            <Label htmlFor="debugMode">Debug Mode (shows tracking logs in console)</Label>
-                        </div>
-                    </div>
+          {/* Debug Mode */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="debug-mode"
+              checked={debugMode}
+              onChange={(e) => setDebugMode(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <Label htmlFor="debug-mode">Enable debug mode (shows tracking logs in console)</Label>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex space-x-1 border-b">
+            <button
+              onClick={() => setSelectedTab('script')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+                selectedTab === 'script'
+                  ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Tracking Script
+            </button>
+            <button
+              onClick={() => setSelectedTab('instructions')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+                selectedTab === 'instructions'
+                  ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Installation
+            </button>
+            <button
+              onClick={() => setSelectedTab('testing')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+                selectedTab === 'testing'
+                  ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Testing
+            </button>
+          </div>
+
+          {/* Script Tab */}
+          {selectedTab === 'script' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Generated Tracking Script</Label>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openTestPage}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Test Page
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyToClipboard}
+                    className="flex items-center gap-2"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
                 </div>
+              </div>
+              
+              <div className="relative">
+                <Textarea
+                  value={generateScript()}
+                  readOnly
+                  className="font-mono text-sm h-32 resize-none"
+                />
+                <Badge className="absolute top-2 right-2" variant="secondary">
+                  {platform}
+                </Badge>
+              </div>
 
-                {/* Alert */}
-                <Alert>
-                    <AlertDescription>
-                        <strong>Important:</strong> Replace <code>USER_SESSION_ID</code> and <code>PRODUCT_ID</code> with actual values from your website.
-                        The script will automatically detect purchases and send them to our API.
-                    </AlertDescription>
-                </Alert>
+              <Alert>
+                <AlertDescription>
+                  <strong>Important:</strong> Add this script to your website's &lt;head&gt; section. 
+                  The script will automatically track page views, product clicks, add-to-cart events, and purchases.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
 
-                {/* Tabs */}
-                <Tabs defaultValue="script" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="script">Tracking Script</TabsTrigger>
-                        <TabsTrigger value="example">HTML Example</TabsTrigger>
-                        <TabsTrigger value="test">Test Page</TabsTrigger>
-                    </TabsList>
+          {/* Instructions Tab */}
+          {selectedTab === 'instructions' && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-3">Installation Steps for {platform.charAt(0).toUpperCase() + platform.slice(1)}:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm">
+                  {generateInstallationInstructions().map((step, index) => (
+                    <li key={index} className="text-gray-700">{step}</li>
+                  ))}
+                </ol>
+              </div>
 
-                    <TabsContent value="script" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <Label>Copy this script to your website:</Label>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(trackingScript)}
-                                className="flex items-center gap-2"
-                            >
-                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                {copied ? 'Copied!' : 'Copy Script'}
-                            </Button>
-                        </div>
-                        <Textarea
-                            value={trackingScript}
-                            readOnly
-                            className="font-mono text-sm h-32"
-                        />
-                    </TabsContent>
+              <Alert>
+                <AlertDescription>
+                  <strong>Note:</strong> After installation, it may take a few minutes for tracking data to appear in your dashboard.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
 
-                    <TabsContent value="example" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <Label>Complete HTML example:</Label>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(htmlExample)}
-                                className="flex items-center gap-2"
-                            >
-                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                {copied ? 'Copied!' : 'Copy Example'}
-                            </Button>
-                        </div>
-                        <Textarea
-                            value={htmlExample}
-                            readOnly
-                            className="font-mono text-sm h-96"
-                        />
-                    </TabsContent>
+          {/* Testing Tab */}
+          {selectedTab === 'testing' && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-3">Testing Your Tracking Script:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm">
+                  {generateTestInstructions().map((step, index) => (
+                    <li key={index} className="text-gray-700">{step}</li>
+                  ))}
+                </ol>
+              </div>
 
-                    <TabsContent value="test" className="space-y-4">
-                        <div className="space-y-4">
-                            <div>
-                                <Label>Test your tracking script:</Label>
-                                <p className="text-sm text-muted-foreground">
-                                    Create a test page with this script to verify tracking is working.
-                                </p>
-                            </div>
+              <div className="flex space-x-2">
+                <Button onClick={openTestPage} className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Open Test Page
+                </Button>
+                <Button variant="outline" onClick={() => setDebugMode(true)} className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Enable Debug Mode
+                </Button>
+              </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-sm">Test Page URL</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground">
-                                            Create a test page on your website with the tracking script and visit it to test.
-                                        </p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2"
-                                            onClick={() => window.open(`https://${businessDomain}/test-tracking`, '_blank')}
-                                        >
-                                            <ExternalLink className="h-4 w-4 mr-2" />
-                                            Visit Test Page
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+              <Alert>
+                <AlertDescription>
+                  <strong>Debug Mode:</strong> When enabled, the tracking script will log all events to the browser console, 
+                  making it easier to verify that tracking is working correctly.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-sm">Manual Test</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-sm text-muted-foreground">
-                                            Test the tracking manually by calling the API directly.
-                                        </p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2"
-                                            onClick={() => {
-                                                fetch('https://pavlo4.netlify.app/api/sales/track', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({
-                                                        orderId: 'TEST-ORDER-' + Date.now(),
-                                                        businessId: businessId,
-                                                        productUrl: 'https://example.com/test-product',
-                                                        productTitle: 'Test Product',
-                                                        productPrice: 99.99,
-                                                        retailer: businessDomain
-                                                    })
-                                                }).then(response => response.json())
-                                                    .then(data => {
-                                                        console.log('Test sale tracked:', data);
-                                                        alert('Test sale tracked successfully!');
-                                                    }).catch(error => {
-                                                        console.error('Test failed:', error);
-                                                        alert('Test failed. Check console for details.');
-                                                    });
-                                            }}
-                                        >
-                                            Run Test Sale
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                    </TabsContent>
-                </Tabs>
-
-                {/* Features */}
-                <div className="space-y-4">
-                    <h3 className="font-semibold">What the tracking script does:</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Auto-detection</Badge>
-                                <span className="text-sm">Detects purchase forms and buttons</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Page monitoring</Badge>
-                                <span className="text-sm">Monitors for purchase confirmation pages</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Storage tracking</Badge>
-                                <span className="text-sm">Tracks localStorage/sessionStorage changes</span>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">UTM tracking</Badge>
-                                <span className="text-sm">Captures UTM parameters automatically</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Session tracking</Badge>
-                                <span className="text-sm">Tracks user sessions and referrers</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary">Error handling</Badge>
-                                <span className="text-sm">Graceful error handling and retries</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Instructions */}
-                <div className="space-y-4">
-                    <h3 className="font-semibold">Implementation Instructions:</h3>
-                    <ol className="list-decimal list-inside space-y-2 text-sm">
-                        <li>Copy the tracking script above</li>
-                        <li>Add it to the <code>&lt;head&gt;</code> section of your website</li>
-                        <li>Replace <code>USER_SESSION_ID</code> with actual user session IDs</li>
-                        <li>Replace <code>PRODUCT_ID</code> with actual product IDs</li>
-                        <li>Test the implementation using the test page</li>
-                        <li>Monitor sales in your business dashboard</li>
-                    </ol>
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-export default TrackingScriptGenerator; 
+      {/* Configuration Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Configuration Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-medium">Business ID:</span>
+              <Badge variant="outline" className="ml-2">{businessId}</Badge>
+            </div>
+            <div>
+              <span className="font-medium">Affiliate ID:</span>
+              <Badge variant="outline" className="ml-2">{affiliateId}</Badge>
+            </div>
+            <div>
+              <span className="font-medium">Platform:</span>
+              <Badge variant="outline" className="ml-2">{platform}</Badge>
+            </div>
+            <div>
+              <span className="font-medium">Debug Mode:</span>
+              <Badge variant={debugMode ? "default" : "secondary"} className="ml-2">
+                {debugMode ? "Enabled" : "Disabled"}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}; 

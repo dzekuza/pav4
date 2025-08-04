@@ -7,15 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, 
-  Link, 
-  Globe, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  Link,
+  Globe,
+  CheckCircle,
   AlertCircle,
   ExternalLink,
   Plus,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,6 +26,7 @@ interface ConnectedPage {
   domain: string;
   status: 'active' | 'pending' | 'error';
   addedAt: string;
+  verifying?: boolean;
 }
 
 export default function BusinessConnect() {
@@ -95,26 +97,87 @@ export default function BusinessConnect() {
     }
 
     setIsAdding(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      const newPage: ConnectedPage = {
-        id: Date.now().toString(),
-        url: newPageUrl,
-        domain: new URL(newPageUrl).hostname,
-        status: 'pending',
-        addedAt: new Date().toISOString().split('T')[0]
-      };
 
-      setConnectedPages([...connectedPages, newPage]);
-      setNewPageUrl('');
-      setIsAdding(false);
+    // Add page to list with pending status
+    const newPage: ConnectedPage = {
+      id: Date.now().toString(),
+      url: newPageUrl,
+      domain: new URL(newPageUrl).hostname,
+      status: 'pending',
+      addedAt: new Date().toISOString().split('T')[0]
+    };
+
+    setConnectedPages([...connectedPages, newPage]);
+    setNewPageUrl('');
+    setIsAdding(false);
+
+    toast({
+      title: "Page Added",
+      description: "The page has been added. Click 'Verify' to check if the tracking script is installed.",
+    });
+  };
+
+  const verifyPage = async (pageId: string) => {
+    const page = connectedPages.find(p => p.id === pageId);
+    if (!page) return;
+
+    // Update page to show verifying state
+    setConnectedPages(connectedPages.map(p =>
+      p.id === pageId ? { ...p, verifying: true } : p
+    ));
+
+    try {
+      const response = await fetch('/api/business/verify-tracking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pageUrl: page.url
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update page status to active
+        setConnectedPages(connectedPages.map(p =>
+          p.id === pageId ? { ...p, status: 'active', verifying: false } : p
+        ));
+
+        toast({
+          title: "Verification Successful!",
+          description: "Tracking script is properly installed on your page.",
+        });
+      } else {
+        // Update page status to error
+        setConnectedPages(connectedPages.map(p =>
+          p.id === pageId ? { ...p, status: 'error', verifying: false } : p
+        ));
+
+        toast({
+          title: "Verification Failed",
+          description: data.error || "Could not verify tracking script. Please check the installation.",
+          variant: "destructive",
+        });
+
+        // Show detailed instructions if provided
+        if (data.instructions) {
+          console.log('Installation instructions:', data.instructions);
+        }
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      setConnectedPages(connectedPages.map(p =>
+        p.id === pageId ? { ...p, status: 'error', verifying: false } : p
+      ));
 
       toast({
-        title: "Page Added",
-        description: "The page has been added to your connected pages",
+        title: "Verification Error",
+        description: "Failed to verify tracking script. Please try again.",
+        variant: "destructive",
       });
-    }, 1000);
+    }
   };
 
   const removePage = (pageId: string) => {
@@ -157,7 +220,7 @@ export default function BusinessConnect() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Integration
           </Button>
-          
+
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Connect Pages
           </h1>
@@ -190,7 +253,7 @@ export default function BusinessConnect() {
                     onChange={(e) => setNewPageUrl(e.target.value)}
                     className="flex-1"
                   />
-                  <Button 
+                  <Button
                     onClick={handleAddPage}
                     disabled={isAdding || !newPageUrl.trim()}
                   >
@@ -198,7 +261,7 @@ export default function BusinessConnect() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="text-sm text-gray-600">
                 <p>• Enter the full URL including http:// or https://</p>
                 <p>• The page will be verified before tracking is enabled</p>
@@ -234,9 +297,9 @@ export default function BusinessConnect() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <ExternalLink className="h-4 w-4 text-gray-400" />
-                          <a 
-                            href={page.url} 
-                            target="_blank" 
+                          <a
+                            href={page.url}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 font-medium"
                           >
@@ -249,14 +312,33 @@ export default function BusinessConnect() {
                           {getStatusBadge(page.status)}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removePage(page.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        {page.status === 'pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => verifyPage(page.id)}
+                            disabled={page.verifying}
+                          >
+                            {page.verifying ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              'Verify'
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePage(page.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -284,7 +366,7 @@ export default function BusinessConnect() {
                   <p className="text-sm text-gray-600">Enter the URLs of the pages you want to track</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <div className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
                   2
@@ -294,14 +376,14 @@ export default function BusinessConnect() {
                   <p className="text-sm text-gray-600">Copy and paste the tracking script into your website's HTML</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <div className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
                   3
                 </div>
                 <div>
                   <h3 className="font-medium">Verify integration</h3>
-                  <p className="text-sm text-gray-600">Check that tracking is working correctly on your pages</p>
+                  <p className="text-sm text-gray-600">Click "Verify" to check that tracking is working correctly</p>
                 </div>
               </div>
             </div>

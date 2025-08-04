@@ -148,6 +148,7 @@ interface Business {
   name: string;
   domain: string;
   email: string;
+  affiliateId: string;
 }
 
 interface BusinessAuthContextType {

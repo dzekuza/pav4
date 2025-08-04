@@ -291,7 +291,7 @@ All new tables have Row Level Security:
 
 ### **Test Sale Tracking**
 ```bash
-curl -X POST http://localhost:8083/api/sales/track \
+curl -X POST https://pavlo4.netlify.app/api/sales/track \
   -H "Content-Type: application/json" \
   -d '{
     "orderId": "TEST-123",
@@ -304,7 +304,7 @@ curl -X POST http://localhost:8083/api/sales/track \
 
 ### **Test Webhook**
 ```bash
-curl -X POST http://localhost:8083/api/sales/webhooks \
+curl -X POST https://pavlo4.netlify.app/api/sales/webhooks \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{

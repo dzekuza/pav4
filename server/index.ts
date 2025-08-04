@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
+import path from "path";
 import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
 import favoritesRouter from "./routes/favorites";
@@ -65,6 +66,7 @@ import { requireBusinessAuth } from "./middleware/business-auth";
 import redirectRouter from "./routes/redirect";
 import trackSaleRouter from "./routes/track-sale";
 import trackProductVisitRouter from "./routes/track-product-visit";
+import { trackEvent, getTrackingEvents } from "./routes/track-event";
 
 // Load environment variables
 dotenv.config();
@@ -283,8 +285,17 @@ export async function createServer() {
   );
   app.get("/api/location-info", getLocationHandler);
 
+  // Tracking routes (moved after global middleware)
+  app.post("/api/track-event", trackEvent);
+  app.get("/api/tracking-events", getTrackingEvents);
+
   // Health check route
   app.get("/api/health", healthCheckHandler);
+
+  // Test tracking page
+  app.get("/test-tracking.html", (req, res) => {
+    res.sendFile('public/test-tracking.html', { root: process.cwd() });
+  });
 
   // Affiliate/product redirect route for tracking
   app.get('/go/:affiliateId/:productId', async (req, res) => {

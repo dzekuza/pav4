@@ -85,6 +85,7 @@ model Business {
   sales               Sale[]
   webhooks            Webhook[]
   commissionRates     CommissionRate[]
+  trackingEvents      TrackingEvent[]
 
   @@map("businesses")
 }
@@ -344,6 +345,28 @@ model WebhookEvent {
   @@index([webhookId])
   @@index([status])
   @@map("webhook_events")
+}
+
+model TrackingEvent {
+  id          Int      @id @default(autoincrement())
+  eventType   String
+  businessId  Int
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  affiliateId String
+  platform    String   @default("universal")
+  sessionId   String?
+  userAgent   String?
+  referrer    String?
+  timestamp   DateTime @default(now())
+  url         String?
+  eventData   Json     @default("{}")
+  ipAddress   String?
+
+  @@index([businessId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([affiliateId])
+  @@map("tracking_events")
 }
 
 // Enums for status tracking
