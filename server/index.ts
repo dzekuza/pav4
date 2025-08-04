@@ -229,6 +229,10 @@ export async function createServer() {
   app.get("/api/business/auth/stats", getBusinessAuthStats);
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
 
+  // Tracking routes (moved before global middleware to prevent conflicts)
+  app.post("/api/track-event", trackEvent);
+  app.get("/api/tracking-events", getTrackingEvents);
+
   // Business routes with caching and validation
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
@@ -284,10 +288,6 @@ export async function createServer() {
     }
   );
   app.get("/api/location-info", getLocationHandler);
-
-  // Tracking routes (moved after global middleware)
-  app.post("/api/track-event", trackEvent);
-  app.get("/api/tracking-events", getTrackingEvents);
 
   // Health check route
   app.get("/api/health", healthCheckHandler);
