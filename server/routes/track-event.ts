@@ -16,8 +16,11 @@ export const trackEvent: RequestHandler = async (req, res) => {
             data
         } = req.body;
 
+        console.log('Track event request:', { event_type, business_id, affiliate_id, platform });
+
         // Validate required fields
         if (!event_type || !business_id || !affiliate_id) {
+            console.log('Missing required fields:', { event_type, business_id, affiliate_id });
             return res.status(400).json({
                 success: false,
                 error: "Missing required fields: event_type, business_id, affiliate_id"
@@ -25,18 +28,23 @@ export const trackEvent: RequestHandler = async (req, res) => {
         }
 
         // Check if business exists
+        console.log('Checking business with ID:', business_id);
         const business = await prisma.business.findUnique({
             where: { id: parseInt(business_id) }
         });
 
         if (!business) {
+            console.log('Business not found:', business_id);
             return res.status(400).json({
                 success: false,
                 error: "Business not found"
             });
         }
 
+        console.log('Business found:', business.name);
+
         // Create tracking event in database
+        console.log('Creating tracking event...');
         const trackingEvent = await prisma.trackingEvent.create({
             data: {
                 eventType: event_type,
@@ -53,8 +61,11 @@ export const trackEvent: RequestHandler = async (req, res) => {
             }
         });
 
+        console.log('Tracking event created:', trackingEvent.id);
+
         // Update business statistics based on event type
         if (event_type === 'purchase_click' || event_type === 'conversion') {
+            console.log('Updating business visits...');
             await prisma.business.update({
                 where: { id: parseInt(business_id) },
                 data: {
@@ -66,6 +77,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
         }
 
         if (event_type === 'conversion') {
+            console.log('Updating business purchases...');
             await prisma.business.update({
                 where: { id: parseInt(business_id) },
                 data: {
@@ -79,6 +91,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
             });
         }
 
+        console.log('Track event completed successfully');
         res.json({
             success: true,
             message: "Event tracked successfully",
@@ -89,7 +102,8 @@ export const trackEvent: RequestHandler = async (req, res) => {
         console.error("Error tracking event:", error);
         res.status(500).json({
             success: false,
-            error: "Failed to track event"
+            error: "Failed to track event",
+            details: error instanceof Error ? error.message : String(error)
         });
     }
 };
