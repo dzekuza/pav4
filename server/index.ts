@@ -233,6 +233,43 @@ export async function createServer() {
   app.post("/api/track-event", trackEvent);
   app.get("/api/tracking-events", getTrackingEvents);
 
+  // Test tracking route
+  app.post("/api/test-tracking", async (req, res) => {
+    try {
+      console.log('Test tracking route called');
+      const { prisma } = await import("../services/database");
+      
+      const testEvent = await prisma.trackingEvent.create({
+        data: {
+          eventType: 'test',
+          businessId: 1,
+          affiliateId: 'test-affiliate-123',
+          platform: 'test',
+          sessionId: 'test-session',
+          userAgent: 'test-agent',
+          referrer: 'test-referrer',
+          timestamp: new Date(),
+          url: 'test-url',
+          eventData: { test: true },
+          ipAddress: '127.0.0.1'
+        }
+      });
+      
+      res.json({
+        success: true,
+        message: "Test tracking event created",
+        event_id: testEvent.id
+      });
+    } catch (error) {
+      console.error("Test tracking error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Test tracking failed",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Business routes with caching and validation
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
