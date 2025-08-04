@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Tracking Test</title>
+</head>
+<body>
+    <h1>Simple Tracking Test</h1>
+    <p>Testing if the tracking script loads correctly.</p>
+    
+    <div id="status">Loading...</div>
+    
+    <!-- Tracking Script -->
+    <script>
+    (function() {
+        var script = document.createElement('script');
+        script.src = 'https://pavlo4.netlify.app/shopify-tracker.js';
+        script.async = true;
+        script.setAttribute('data-business-id', '1');
+        script.setAttribute('data-affiliate-id', 'PAV00000001');
+        script.setAttribute('data-platform', 'shopify');
+        script.setAttribute('data-debug', 'true');
+        document.head.appendChild(script);
+    })();
+    </script>
+
+    <script>
+    // Check script loading status
+    function checkStatus() {
+        const statusDiv = document.getElementById('status');
+        
+        if (window.trackerConfig) {
+            statusDiv.innerHTML = `
+                <h2>✅ Tracking Script Loaded Successfully!</h2>
+                <p><strong>Configuration:</strong></p>
+                <ul>
+                    <li>Business ID: ${window.trackerConfig.businessId}</li>
+                    <li>Affiliate ID: ${window.trackerConfig.affiliateId}</li>
+                    <li>Platform: ${window.trackerConfig.platform}</li>
+                    <li>API URL: ${window.trackerConfig.apiUrl}</li>
+                    <li>Debug Mode: ${window.trackerConfig.debug}</li>
+                </ul>
+                <p><strong>Available Functions:</strong></p>
+                <ul>
+                    <li>trackEvent: ${typeof window.trackEvent === 'function' ? '✅ Available' : '❌ Not Available'}</li>
+                </ul>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <h2>❌ Tracking Script Not Loaded</h2>
+                <p>Please check the browser console for errors.</p>
+            `;
+        }
+    }
+
+    // Check after 3 seconds
+    setTimeout(checkStatus, 3000);
+    </script>
+</body>
+</html> 

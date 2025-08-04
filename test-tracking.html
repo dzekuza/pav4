@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Test Page</title>
+</head>
+
+<body>
+    <h1>Tracking Test Page</h1>
+    <p>This page tests the Shopify tracking script functionality.</p>
+
+    <button onclick="testTracking()">Test Tracking</button>
+    <button onclick="testPageView()">Test Page View</button>
+    <button onclick="testAddToCart()">Test Add to Cart</button>
+    <button onclick="testPurchaseClick()">Test Purchase Click</button>
+
+    <div id="results"></div>
+
+    <!-- Tracking Script -->
+    <script>
+        (function () {
+            var script = document.createElement('script');
+            script.src = 'https://pavlo4.netlify.app/shopify-tracker.js';
+            script.async = true;
+            script.setAttribute('data-business-id', '1');
+            script.setAttribute('data-affiliate-id', 'PAV00000001');
+            script.setAttribute('data-platform', 'shopify');
+            script.setAttribute('data-debug', 'true');
+            document.head.appendChild(script);
+        })();
+    </script>
+
+    <script>
+        function testTracking() {
+            if (window.trackEvent) {
+                window.trackEvent('test_event', { test: 'data' });
+                document.getElementById('results').innerHTML += '<p>✅ Tracking function available</p>';
+            } else {
+                document.getElementById('results').innerHTML += '<p>❌ Tracking function not available</p>';
+            }
+        }
+
+        function testPageView() {
+            if (window.trackEvent) {
+                window.trackEvent('page_view', { page_title: 'Test Page', page_type: 'test' });
+                document.getElementById('results').innerHTML += '<p>✅ Page view event sent</p>';
+            } else {
+                document.getElementById('results').innerHTML += '<p>❌ Tracking function not available</p>';
+            }
+        }
+
+        function testAddToCart() {
+            if (window.trackEvent) {
+                window.trackEvent('add_to_cart', { product_id: 'test-123', product_name: 'Test Product', price: '29.99' });
+                document.getElementById('results').innerHTML += '<p>✅ Add to cart event sent</p>';
+            } else {
+                document.getElementById('results').innerHTML += '<p>❌ Tracking function not available</p>';
+            }
+        }
+
+        function testPurchaseClick() {
+            if (window.trackEvent) {
+                window.trackEvent('purchase_click', { product_id: 'test-123', product_name: 'Test Product', price: '29.99' });
+                document.getElementById('results').innerHTML += '<p>✅ Purchase click event sent</p>';
+            } else {
+                document.getElementById('results').innerHTML += '<p>❌ Tracking function not available</p>';
+            }
+        }
+
+        // Check if tracking script loaded
+        setTimeout(() => {
+            if (window.trackerConfig) {
+                document.getElementById('results').innerHTML += '<p>✅ Tracking script loaded with config: ' + JSON.stringify(window.trackerConfig) + '</p>';
+            } else {
+                document.getElementById('results').innerHTML += '<p>❌ Tracking script not loaded</p>';
+            }
+        }, 2000);
+    </script>
+</body>
+
+</html>

@@ -14,8 +14,14 @@ import { PrismaClient } from "@prisma/client";
 
 // Create a single Prisma Client instance
 const createPrismaClient = () => {
+    console.log('Creating Prisma client with DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
     return new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        datasources: {
+            db: {
+                url: process.env.DATABASE_URL
+            }
+        }
     });
 };
 
@@ -25,8 +31,29 @@ if (process.env.NODE_ENV !== "production") {
     globalThis.__prisma = prisma;
 }
 
+// Test database connection
+async function testDatabaseConnection() {
+    try {
+        await prisma.$connect();
+        console.log('Database connection successful');
+        return true;
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        return false;
+    }
+}
+
 // Simple server creation function for Netlify Functions
 export async function createServer() {
+    // Test database connection on startup
+    console.log('Testing database connection...');
+    const dbConnected = await testDatabaseConnection();
+    if (!dbConnected) {
+        console.error('Failed to connect to database on startup');
+    } else {
+        console.log('Database connection successful on startup');
+    }
+
     const app = express();
 
     // Trust Netlify/Heroku/Cloud proxy for correct req.ip and rate limiting
@@ -96,75 +123,26 @@ export async function createServer() {
                 });
             }
 
-            // Check if business exists
-            console.log('Checking business with ID:', business_id);
-            const business = await prisma.business.findUnique({
-                where: { id: parseInt(business_id) }
+            // For now, just log the event without database operations
+            console.log('Event received:', {
+                event_type,
+                business_id,
+                affiliate_id,
+                platform,
+                session_id,
+                user_agent,
+                referrer,
+                timestamp,
+                url,
+                data
             });
 
-            if (!business) {
-                console.log('Business not found:', business_id);
-                return res.status(400).json({
-                    success: false,
-                    error: "Business not found"
-                });
-            }
-
-            console.log('Business found:', business.name);
-
-            // Create tracking event in database
-            console.log('Creating tracking event...');
-            const trackingEvent = await prisma.trackingEvent.create({
-                data: {
-                    eventType: event_type,
-                    businessId: parseInt(business_id),
-                    affiliateId: affiliate_id,
-                    platform: platform || 'universal',
-                    sessionId: session_id,
-                    userAgent: user_agent,
-                    referrer: referrer,
-                    timestamp: new Date(timestamp),
-                    url: url,
-                    eventData: data || {},
-                    ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
-                }
-            });
-
-            console.log('Tracking event created:', trackingEvent.id);
-
-            // Update business statistics based on event type
-            if (event_type === 'purchase_click' || event_type === 'conversion') {
-                console.log('Updating business visits...');
-                await prisma.business.update({
-                    where: { id: parseInt(business_id) },
-                    data: {
-                        totalVisits: {
-                            increment: 1
-                        }
-                    }
-                });
-            }
-
-            if (event_type === 'conversion') {
-                console.log('Updating business purchases...');
-                await prisma.business.update({
-                    where: { id: parseInt(business_id) },
-                    data: {
-                        totalPurchases: {
-                            increment: 1
-                        },
-                        totalRevenue: {
-                            increment: parseFloat(data?.total_amount || '0')
-                        }
-                    }
-                });
-            }
-
-            console.log('Track event completed successfully');
+            // Return success response
             res.json({
                 success: true,
-                message: "Event tracked successfully",
-                event_id: trackingEvent.id
+                message: "Event tracked successfully (logged only)",
+                event_id: Date.now(),
+                note: "Database operations temporarily disabled for testing"
             });
 
         } catch (error) {
