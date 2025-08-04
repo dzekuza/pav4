@@ -1,5 +1,5 @@
 [build]
-  command = "npx prisma generate && npm run build:client"
+  command = "npm run build:netlify && npm run build:client"
   functions = "netlify/functions"
   publish = "dist/spa"
 

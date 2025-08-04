@@ -1,5 +1,5 @@
 import serverless from "serverless-http";
-import { createServer } from "../../server";
+import { createServer } from "./dist/netlify-server.mjs";
 
 // Add debugging for Netlify environment
 console.log("Netlify function environment:", {
@@ -13,13 +13,40 @@ let app: any = null;
 
 const getApp = async () => {
   if (!app) {
-    app = await createServer();
+    try {
+      console.log("Creating server instance...");
+      app = await createServer();
+      console.log("Server instance created successfully");
+    } catch (error) {
+      console.error("Error creating server instance:", error);
+      throw error;
+    }
   }
   return app;
 };
 
 export const handler = async (event: any, context: any) => {
-  const serverApp = await getApp();
-  const serverlessHandler = serverless(serverApp);
-  return serverlessHandler(event, context);
+  try {
+    console.log("Handler called with event:", {
+      path: event.path,
+      httpMethod: event.httpMethod,
+      headers: event.headers
+    });
+
+    const serverApp = await getApp();
+    const serverlessHandler = serverless(serverApp);
+    const result = await serverlessHandler(event, context);
+
+    console.log("Handler completed successfully");
+    return result;
+  } catch (error) {
+    console.error("Handler error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : String(error)
+      })
+    };
+  }
 };
