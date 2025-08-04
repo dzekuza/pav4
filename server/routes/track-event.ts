@@ -24,6 +24,18 @@ export const trackEvent: RequestHandler = async (req, res) => {
             });
         }
 
+        // Check if business exists
+        const business = await prisma.business.findUnique({
+            where: { id: parseInt(business_id) }
+        });
+
+        if (!business) {
+            return res.status(400).json({
+                success: false,
+                error: "Business not found"
+            });
+        }
+
         // Create tracking event in database
         const trackingEvent = await prisma.trackingEvent.create({
             data: {
