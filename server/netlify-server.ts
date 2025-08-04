@@ -15,12 +15,12 @@ import { PrismaClient } from "@prisma/client";
 // Create a single Prisma Client instance
 const createPrismaClient = () => {
     console.log('Creating Prisma client with DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
-    
+
     if (!process.env.DATABASE_URL) {
         console.error('DATABASE_URL is not set');
         return null;
     }
-    
+
     return new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
         datasources: {
@@ -136,7 +136,7 @@ export async function createServer() {
             // Test database connection first
             console.log('Testing database connection...');
             const dbConnected = await testDatabaseConnection();
-            
+
             if (dbConnected) {
                 // Database is available - try to save the event
                 try {
@@ -158,7 +158,7 @@ export async function createServer() {
                     });
 
                     console.log('Tracking event created:', trackingEvent.id);
-                    
+
                     res.json({
                         success: true,
                         message: "Event tracked successfully",
