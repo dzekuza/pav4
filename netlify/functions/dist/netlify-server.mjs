@@ -73,6 +73,33 @@ async function createServer() {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
   });
+  app.get("/api/location", (req, res) => {
+    res.json({
+      success: true,
+      location: {
+        country: "LT",
+        city: "Vilnius"
+      }
+    });
+  });
+  app.get("/api/auth/me", (req, res) => {
+    res.json({
+      success: false,
+      message: "Not authenticated"
+    });
+  });
+  app.get("/api/business/auth/me", (req, res) => {
+    res.json({
+      success: false,
+      message: "Not authenticated"
+    });
+  });
+  app.post("/api/business/auth/login", (req, res) => {
+    res.json({
+      success: false,
+      message: "Login endpoint not implemented in Netlify server"
+    });
+  });
   app.post("/api/track-event", async (req, res) => {
     try {
       const {
