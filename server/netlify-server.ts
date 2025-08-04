@@ -15,6 +15,12 @@ import { PrismaClient } from "@prisma/client";
 // Create a single Prisma Client instance
 const createPrismaClient = () => {
     console.log('Creating Prisma client with DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+    
+    if (!process.env.DATABASE_URL) {
+        console.error('DATABASE_URL is not set');
+        return null;
+    }
+    
     return new PrismaClient({
         log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
         datasources: {
@@ -34,6 +40,10 @@ if (process.env.NODE_ENV !== "production") {
 // Test database connection
 async function testDatabaseConnection() {
     try {
+        if (!prisma) {
+            console.error('Prisma client not initialized - DATABASE_URL missing');
+            return false;
+        }
         await prisma.$connect();
         console.log('Database connection successful');
         return true;
@@ -123,27 +133,68 @@ export async function createServer() {
                 });
             }
 
-            // For now, just log the event without database operations
-            console.log('Event received:', {
-                event_type,
-                business_id,
-                affiliate_id,
-                platform,
-                session_id,
-                user_agent,
-                referrer,
-                timestamp,
-                url,
-                data
-            });
+            // Test database connection first
+            console.log('Testing database connection...');
+            const dbConnected = await testDatabaseConnection();
+            
+            if (dbConnected) {
+                // Database is available - try to save the event
+                try {
+                    console.log('Creating tracking event in database...');
+                    const trackingEvent = await prisma.trackingEvent.create({
+                        data: {
+                            eventType: event_type,
+                            businessId: parseInt(business_id),
+                            affiliateId: affiliate_id,
+                            platform: platform || 'universal',
+                            sessionId: session_id,
+                            userAgent: user_agent,
+                            referrer: referrer,
+                            timestamp: new Date(timestamp),
+                            url: url,
+                            eventData: data || {},
+                            ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
+                        }
+                    });
 
-            // Return success response
-            res.json({
-                success: true,
-                message: "Event tracked successfully (logged only)",
-                event_id: Date.now(),
-                note: "Database operations temporarily disabled for testing"
-            });
+                    console.log('Tracking event created:', trackingEvent.id);
+                    
+                    res.json({
+                        success: true,
+                        message: "Event tracked successfully",
+                        event_id: trackingEvent.id
+                    });
+                } catch (dbError) {
+                    console.error('Database operation failed:', dbError);
+                    res.json({
+                        success: true,
+                        message: "Event tracked successfully (logged only)",
+                        event_id: Date.now(),
+                        note: "Database operation failed, but event was logged"
+                    });
+                }
+            } else {
+                // Database not available - just log the event
+                console.log('Event received (no database):', {
+                    event_type,
+                    business_id,
+                    affiliate_id,
+                    platform,
+                    session_id,
+                    user_agent,
+                    referrer,
+                    timestamp,
+                    url,
+                    data
+                });
+
+                res.json({
+                    success: true,
+                    message: "Event tracked successfully (logged only)",
+                    event_id: Date.now(),
+                    note: "Database not available - check DATABASE_URL environment variable"
+                });
+            }
 
         } catch (error) {
             console.error("Error tracking event:", error);
