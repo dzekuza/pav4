@@ -1,44 +1,76 @@
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+async function checkDatabase() {
+    console.log('🔍 Checking Database Connection...\n');
 
-async function checkAndFixDatabase() {
-  try {
-    console.log('Checking businesses...');
-    
-    // Check current businesses
-    const businesses = await prisma.business.findMany();
-    console.log('Current businesses:', businesses.map(b => ({ id: b.id, name: b.name, affiliateId: b.affiliateId })));
-    
-    // Update businesses without affiliateId
-    const updateResult = await prisma.business.updateMany({
-      where: {
-        affiliateId: null
-      },
-      data: {
-        affiliateId: {
-          set: prisma.business.fields.id
+    const prisma = new PrismaClient();
+
+    try {
+        // Test connection
+        console.log('1️⃣ Testing database connection...');
+        await prisma.$connect();
+        console.log('✅ Database connection successful');
+
+        // Check businesses
+        console.log('\n2️⃣ Checking businesses...');
+        const businesses = await prisma.business.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                domain: true,
+                isActive: true,
+                affiliateId: true,
+                trackingVerified: true,
+            }
+        });
+
+        console.log(`✅ Found ${businesses.length} businesses:`);
+        businesses.forEach(business => {
+            console.log(`   - ID: ${business.id}, Name: ${business.name}, Email: ${business.email}, Domain: ${business.domain}`);
+        });
+
+        // Check specific business
+        console.log('\n3️⃣ Checking specific business (ID: 3)...');
+        const business = await prisma.business.findUnique({
+            where: { id: 3 },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                domain: true,
+                isActive: true,
+                affiliateId: true,
+                trackingVerified: true,
+                totalVisits: true,
+                totalPurchases: true,
+                totalRevenue: true,
+            }
+        });
+
+        if (business) {
+            console.log('✅ Business found:', business);
+        } else {
+            console.log('❌ Business with ID 3 not found');
         }
-      }
-    });
-    
-    console.log('Updated businesses:', updateResult);
-    
-    // Check again
-    const updatedBusinesses = await prisma.business.findMany();
-    console.log('Updated businesses:', updatedBusinesses.map(b => ({ id: b.id, name: b.name, affiliateId: b.affiliateId })));
-    
-    // Test track-sale with a real affiliateId
-    if (updatedBusinesses.length > 0) {
-      const testBusiness = updatedBusinesses[0];
-      console.log('Testing track-sale with business:', testBusiness.name, 'affiliateId:', testBusiness.affiliateId);
+
+        // Check business clicks and conversions
+        console.log('\n4️⃣ Checking business clicks and conversions...');
+        const clicks = await prisma.businessClick.count({
+            where: { businessId: 3 }
+        });
+        const conversions = await prisma.businessConversion.count({
+            where: { businessId: 3 }
+        });
+
+        console.log(`   - Clicks: ${clicks}`);
+        console.log(`   - Conversions: ${conversions}`);
+
+    } catch (error) {
+        console.error('❌ Database error:', error);
+    } finally {
+        await prisma.$disconnect();
     }
-    
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    await prisma.$disconnect();
-  }
 }
 
-checkAndFixDatabase(); 
+checkDatabase(); 

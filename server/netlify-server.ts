@@ -217,6 +217,17 @@ export async function createServer() {
         res.json({ status: "ok", timestamp: new Date().toISOString() });
     });
 
+    // Debug endpoint to check environment variables
+    app.get("/api/debug/env", (req, res) => {
+        res.json({
+            DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
+            JWT_SECRET: process.env.JWT_SECRET ? "SET" : "NOT SET",
+            NODE_ENV: process.env.NODE_ENV,
+            FRONTEND_URL: process.env.FRONTEND_URL,
+            ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
+        });
+    });
+
     // Location endpoint
     app.get("/api/location", (req, res) => {
         res.json({ 

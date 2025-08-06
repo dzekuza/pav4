@@ -14,12 +14,12 @@ model User {
   isAdmin              Boolean               @default(false)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
-  favorites            favorites[]
-  searchHistory        SearchHistory[]
   affiliateClicks      AffiliateClick[]
   affiliateConversions AffiliateConversion[]
   commissions          Commission[]
+  favorites            favorites[]
   sales                Sale[]
+  searchHistory        SearchHistory[]
 
   @@map("users")
 }
@@ -35,6 +35,7 @@ model SearchHistory {
 
   @@index([timestamp])
   @@index([userId])
+  @@index([userId, timestamp])
   @@map("search_history")
 }
 
@@ -82,10 +83,10 @@ model Business {
   trackingVerified    Boolean              @default(false)
   clicks              BusinessClick[]
   conversions         BusinessConversion[]
-  sales               Sale[]
-  webhooks            Webhook[]
   commissionRates     CommissionRate[]
+  sales               Sale[]
   trackingEvents      TrackingEvent[]
+  webhooks            Webhook[]
 
   @@map("businesses")
 }
@@ -161,9 +162,9 @@ model favorites {
 
   @@index([createdAt])
   @@index([userId])
+  @@index([userId, createdAt])
 }
 
-// New affiliate tracking models
 model AffiliateClick {
   id           Int      @id @default(autoincrement())
   productUrl   String
@@ -171,7 +172,6 @@ model AffiliateClick {
   productPrice String?
   retailer     String?
   userId       Int?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   sessionId    String?
   referrer     String?
   utmSource    String?
@@ -180,6 +180,7 @@ model AffiliateClick {
   ipAddress    String?
   userAgent    String?
   timestamp    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id])
 
   @@map("affiliate_clicks")
 }
@@ -191,7 +192,6 @@ model AffiliateConversion {
   productPrice String?
   retailer     String?
   userId       Int?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   sessionId    String?
   referrer     String?
   utmSource    String?
@@ -200,6 +200,7 @@ model AffiliateConversion {
   ipAddress    String?
   userAgent    String?
   timestamp    DateTime @default(now())
+  user         User?    @relation(fields: [userId], references: [id])
 
   @@map("affiliate_conversions")
 }
@@ -207,7 +208,6 @@ model AffiliateConversion {
 model BusinessClick {
   id           Int      @id @default(autoincrement())
   businessId   Int
-  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   productUrl   String
   productTitle String?
   productPrice String?
@@ -220,6 +220,7 @@ model BusinessClick {
   ipAddress    String?
   userAgent    String?
   timestamp    DateTime @default(now())
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("business_clicks")
 }
@@ -227,7 +228,6 @@ model BusinessClick {
 model BusinessConversion {
   id           Int      @id @default(autoincrement())
   businessId   Int
-  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   productUrl   String
   productTitle String?
   productPrice String?
@@ -240,18 +240,16 @@ model BusinessConversion {
   ipAddress    String?
   userAgent    String?
   timestamp    DateTime @default(now())
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("business_conversions")
 }
 
-// New models for complete sales tracking
 model Sale {
   id               Int          @id @default(autoincrement())
   orderId          String       @unique
   businessId       Int
-  business         Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   userId           Int?
-  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   productUrl       String
   productTitle     String?
   productPrice     Float
@@ -272,41 +270,48 @@ model Sale {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   commissions      Commission[]
+  business         Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user             User?        @relation(fields: [userId], references: [id])
 
   @@index([businessId])
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([businessId, status])
+  @@index([createdAt, status])
+  @@index([userId, createdAt])
   @@map("sales")
 }
 
 model Commission {
   id        Int              @id @default(autoincrement())
   saleId    Int
-  sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
   userId    Int
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount    Float
   rate      Float
   status    CommissionStatus @default(PENDING)
   paidAt    DateTime?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
+  sale      Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
+  @@index([status, paidAt])
+  @@index([userId, status])
   @@map("commissions")
 }
 
 model CommissionRate {
   id         Int      @id @default(autoincrement())
   businessId Int
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   retailer   String
   rate       Float
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, retailer])
   @@map("commission_rates")
@@ -315,15 +320,15 @@ model CommissionRate {
 model Webhook {
   id            Int            @id @default(autoincrement())
   businessId    Int
-  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   url           String
   secret        String
-  events        String[] // Array of event types to listen for
+  events        String[]
   isActive      Boolean        @default(true)
   lastTriggered DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   webhookEvents WebhookEvent[]
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("webhooks")
 }
@@ -331,9 +336,8 @@ model Webhook {
 model WebhookEvent {
   id           Int           @id @default(autoincrement())
   webhookId    Int
-  webhook      Webhook       @relation(fields: [webhookId], references: [id], onDelete: Cascade)
   eventType    String
-  payload      String // JSON payload
+  payload      String
   status       WebhookStatus @default(PENDING)
   responseCode Int?
   responseBody String?
@@ -341,9 +345,12 @@ model WebhookEvent {
   nextRetryAt  DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  webhook      Webhook       @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId])
   @@index([status])
+  @@index([status, createdAt])
+  @@index([webhookId, status])
   @@map("webhook_events")
 }
 
@@ -351,7 +358,6 @@ model TrackingEvent {
   id          Int      @id @default(autoincrement())
   eventType   String
   businessId  Int
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   affiliateId String
   platform    String   @default("universal")
   sessionId   String?
@@ -361,15 +367,54 @@ model TrackingEvent {
   url         String?
   eventData   Json     @default("{}")
   ipAddress   String?
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
   @@index([eventType])
   @@index([timestamp])
   @@index([affiliateId])
+  @@index([affiliateId, timestamp])
+  @@index([businessId, timestamp])
+  @@index([eventType, timestamp])
   @@map("tracking_events")
 }
 
-// Enums for status tracking
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model oauth_connections {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  provider     String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  tokenExpires DateTime?
+  profile      Json?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+
+  @@unique([userId, provider])
+  @@index([provider])
+  @@index([userId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model oauth_states {
+  id          Int      @id @default(autoincrement())
+  state       String   @unique
+  oauthToken  String?
+  oauthSecret String?
+  provider    String
+  userId      Int?
+  redirectUri String?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([provider])
+  @@index([state])
+  @@index([userId])
+}
+
 enum SaleStatus {
   PENDING
   CONFIRMED
