@@ -1,421 +1,177 @@
-// PriceHunt Sales Tracking Script
-// Sellers embed this script on their website to track sales
-
+// Main tracking script for affiliate tracking
 (function () {
-    'use strict';
+  'use strict';
 
-    // Configuration
-    let config = {
-        storeId: null,
-        userSessionId: null,
-        productId: null,
-        apiUrl: 'https://pavlo4.netlify.app/api/sales/track', // Your app's API
-        debug: false
+  // Get business and affiliate IDs from script tag
+  const script = document.currentScript || document.querySelector('script[src*="tracker.js"]');
+  const businessId = script ? script.getAttribute('data-business-id') : null;
+  const affiliateId = script ? script.getAttribute('data-affiliate-id') : null;
+  const platform = script ? script.getAttribute('data-platform') : 'universal';
+
+  // Configuration
+  const config = {
+    apiUrl: 'https://pavlo4.netlify.app/api',
+    businessId: businessId,
+    affiliateId: affiliateId,
+    platform: platform,
+    sessionId: generateSessionId(),
+    userAgent: navigator.userAgent,
+    referrer: document.referrer,
+    timestamp: Date.now()
+  };
+
+  // Generate unique session ID
+  function generateSessionId() {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // Send tracking data to API
+  function sendTrackingData(eventType, data) {
+    const trackingData = {
+      event_type: eventType,
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      platform: config.platform,
+      session_id: config.sessionId,
+      user_agent: config.userAgent,
+      referrer: config.referrer,
+      timestamp: Date.now(),
+      url: window.location.href,
+      data: data
     };
 
-    // Initialize tracker
-    window.trackerInit = function (options) {
-        config = { ...config, ...options };
+    // Send to our API
+    fetch(config.apiUrl + '/track-event', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(trackingData)
+    }).catch(error => {
+      console.log('Tracking error:', error);
+    });
+  }
 
-        if (config.debug) {
-            console.log('PriceHunt Tracker initialized:', config);
-        }
+  // Track page view
+  function trackPageView() {
+    sendTrackingData('page_view', {
+      page_title: document.title,
+      page_url: window.location.href
+    });
+  }
 
-        // Start listening for events
-        listenForEvents();
-    };
+  // Track purchase click
+  function trackPurchaseClick(productData) {
+    sendTrackingData('purchase_click', {
+      product_id: productData.product_id,
+      product_name: productData.product_name,
+      price: productData.price,
+      currency: productData.currency || 'USD'
+    });
+  }
 
-    // Listen for purchase events
-    function listenForEvents() {
-        // Method 1: Listen for form submissions (common for purchases)
-        document.addEventListener('submit', handleFormSubmit);
+  // Track product view
+  function trackProductView(productData) {
+    sendTrackingData('product_view', {
+      product_id: productData.product_id,
+      product_name: productData.product_name,
+      price: productData.price,
+      currency: productData.currency || 'USD'
+    });
+  }
 
-        // Method 2: Listen for button clicks (Add to Cart, Buy Now, etc.)
-        document.addEventListener('click', handleButtonClick);
+  // Track add to cart
+  function trackAddToCart(productData) {
+    sendTrackingData('add_to_cart', {
+      product_id: productData.product_id,
+      product_name: productData.product_name,
+      price: productData.price,
+      currency: productData.currency || 'USD'
+    });
+  }
 
-        // Method 3: Listen for URL changes (for SPA sites)
-        if (window.history && window.history.pushState) {
-            const originalPushState = window.history.pushState;
-            window.history.pushState = function () {
-                originalPushState.apply(this, arguments);
-                checkForPurchaseConfirmation();
-            };
-        }
+  // Track conversion (purchase completed)
+  function trackConversion(orderData) {
+    sendTrackingData('conversion', {
+      order_id: orderData.order_id,
+      total_amount: orderData.total_amount,
+      currency: orderData.currency || 'USD',
+      products: orderData.products || []
+    });
+  }
 
-        // Method 4: Listen for localStorage/sessionStorage changes
-        const originalSetItem = Storage.prototype.setItem;
-        Storage.prototype.setItem = function (key, value) {
-            originalSetItem.apply(this, arguments);
-            if (key.includes('order') || key.includes('purchase') || key.includes('cart')) {
-                checkForPurchaseData(key, value);
-            }
-        };
+  // Listen for clicks on common e-commerce elements
+  document.addEventListener('click', function (e) {
+    const target = e.target;
 
-        // Method 5: Check for purchase confirmation on page load
-        setTimeout(checkForPurchaseConfirmation, 2000);
+    // Track "Buy Now" buttons
+    if (target.matches('[data-track="buy-now"], .buy-now, .purchase-now, [class*="buy"], [class*="purchase"]')) {
+      const productId = target.getAttribute('data-product-id') || target.closest('[data-product-id]')?.getAttribute('data-product-id');
+      const productName = target.getAttribute('data-product-name') || target.closest('[data-product-name]')?.getAttribute('data-product-name');
+      const price = target.getAttribute('data-price') || target.closest('[data-price]')?.getAttribute('data-price');
+
+      trackPurchaseClick({
+        product_id: productId,
+        product_name: productName,
+        price: price
+      });
     }
 
-    // Handle form submissions (checkout forms)
-    function handleFormSubmit(event) {
-        const form = event.target;
-        const formData = new FormData(form);
+    // Track "View Product" links
+    if (target.matches('[data-track="view-product"], .product-link, [class*="product"], a[href*="product"]')) {
+      const productId = target.getAttribute('data-product-id') || target.closest('[data-product-id]')?.getAttribute('data-product-id');
+      const productName = target.getAttribute('data-product-name') || target.closest('[data-product-name]')?.getAttribute('data-product-name');
+      const price = target.getAttribute('data-price') || target.closest('[data-price]')?.getAttribute('data-price');
 
-        // Check if this looks like a purchase form
-        const isPurchaseForm = isPurchaseFormCheck(form, formData);
-
-        if (isPurchaseForm) {
-            if (config.debug) {
-                console.log('Purchase form detected:', form);
-            }
-
-            // Track the purchase attempt
-            trackEvent('purchase_attempt', {
-                formAction: form.action,
-                formMethod: form.method,
-                formData: Object.fromEntries(formData)
-            });
-        }
+      trackProductView({
+        product_id: productId,
+        product_name: productName,
+        price: price
+      });
     }
 
-    // Handle button clicks (Add to Cart, Buy Now, etc.)
-    function handleButtonClick(event) {
-        const button = event.target;
-        const buttonText = button.textContent.toLowerCase();
-        const buttonClass = button.className.toLowerCase();
-        const buttonId = button.id.toLowerCase();
+    // Track "Add to Cart" buttons
+    if (target.matches('[data-track="add-to-cart"], .add-to-cart, [class*="cart"], [class*="add"]')) {
+      const productId = target.getAttribute('data-product-id') || target.closest('[data-product-id]')?.getAttribute('data-product-id');
+      const productName = target.getAttribute('data-product-name') || target.closest('[data-product-name]')?.getAttribute('data-product-name');
+      const price = target.getAttribute('data-price') || target.closest('[data-price]')?.getAttribute('data-price');
 
-        // Check if this looks like a purchase button
-        const isPurchaseButton = isPurchaseButtonCheck(button, buttonText, buttonClass, buttonId);
-
-        if (isPurchaseButton) {
-            if (config.debug) {
-                console.log('Purchase button clicked:', button);
-            }
-
-            trackEvent('purchase_button_click', {
-                buttonText: button.textContent,
-                buttonClass: button.className,
-                buttonId: button.id
-            });
-        }
+      trackAddToCart({
+        product_id: productId,
+        product_name: productName,
+        price: price
+      });
     }
+  });
 
-    // Check for purchase confirmation on current page
-    function checkForPurchaseConfirmation() {
-        // Look for common purchase confirmation indicators
-        const indicators = [
-            'thank you',
-            'order confirmation',
-            'purchase complete',
-            'order received',
-            'payment successful',
-            'order #',
-            'confirmation',
-            'success'
-        ];
+  // Track page views
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', trackPageView);
+  } else {
+    trackPageView();
+  }
 
-        const pageText = document.body.textContent.toLowerCase();
-        const pageUrl = window.location.href.toLowerCase();
-        const pageTitle = document.title.toLowerCase();
-
-        // Check if any indicators are present
-        const hasConfirmation = indicators.some(indicator =>
-            pageText.includes(indicator) ||
-            pageUrl.includes(indicator) ||
-            pageTitle.includes(indicator)
-        );
-
-        if (hasConfirmation) {
-            if (config.debug) {
-                console.log('Purchase confirmation detected on page');
-            }
-
-            // Extract order details
-            const orderDetails = extractOrderDetails();
-
-            if (orderDetails) {
-                trackPurchase(orderDetails);
-            }
-        }
+  // Expose tracking functions globally
+  window.trackEvent = function (eventType, data) {
+    switch (eventType) {
+      case 'purchase_click':
+        trackPurchaseClick(data);
+        break;
+      case 'product_view':
+        trackProductView(data);
+        break;
+      case 'add_to_cart':
+        trackAddToCart(data);
+        break;
+      case 'conversion':
+        trackConversion(data);
+        break;
+      default:
+        sendTrackingData(eventType, data);
     }
+  };
 
-    // Check for purchase data in storage
-    function checkForPurchaseData(key, value) {
-        try {
-            const data = JSON.parse(value);
-
-            // Look for order/purchase data
-            if (data.orderId || data.order_id || data.purchaseId || data.purchase_id) {
-                if (config.debug) {
-                    console.log('Purchase data found in storage:', data);
-                }
-
-                trackPurchase({
-                    orderId: data.orderId || data.order_id || data.purchaseId || data.purchase_id,
-                    amount: data.amount || data.total || data.price,
-                    currency: data.currency || 'USD',
-                    productId: data.productId || data.product_id,
-                    productName: data.productName || data.product_name
-                });
-            }
-        } catch (e) {
-            // Not JSON data, ignore
-        }
-    }
-
-    // Extract order details from the page
-    function extractOrderDetails() {
-        // Try to find order ID in various places
-        const orderId = findOrderId();
-        const amount = findAmount();
-        const currency = findCurrency();
-        const productInfo = findProductInfo();
-
-        if (orderId) {
-            return {
-                orderId: orderId,
-                amount: amount,
-                currency: currency || 'USD',
-                productId: productInfo.id,
-                productName: productInfo.name,
-                productUrl: window.location.href
-            };
-        }
-
-        return null;
-    }
-
-    // Find order ID on the page
-    function findOrderId() {
-        // Common selectors for order IDs
-        const selectors = [
-            '[data-order-id]',
-            '[data-orderid]',
-            '.order-id',
-            '.orderId',
-            '#order-id',
-            '#orderId',
-            '[class*="order"]',
-            '[id*="order"]'
-        ];
-
-        for (const selector of selectors) {
-            const element = document.querySelector(selector);
-            if (element) {
-                const orderId = element.textContent.trim() || element.getAttribute('data-order-id') || element.getAttribute('data-orderid');
-                if (orderId) return orderId;
-            }
-        }
-
-        // Try to find in page text
-        const pageText = document.body.textContent;
-        const orderMatch = pageText.match(/order[:\s#]*([A-Z0-9\-]+)/i);
-        if (orderMatch) return orderMatch[1];
-
-        return null;
-    }
-
-    // Find amount on the page
-    function findAmount() {
-        // Common selectors for amounts
-        const selectors = [
-            '[data-amount]',
-            '[data-price]',
-            '.amount',
-            '.price',
-            '.total',
-            '.cost'
-        ];
-
-        for (const selector of selectors) {
-            const element = document.querySelector(selector);
-            if (element) {
-                const amount = element.textContent.trim();
-                const numericAmount = extractNumericAmount(amount);
-                if (numericAmount) return numericAmount;
-            }
-        }
-
-        return null;
-    }
-
-    // Find currency on the page
-    function findCurrency() {
-        const pageText = document.body.textContent;
-        const currencyMatch = pageText.match(/[\$€£¥₹₽₿]|USD|EUR|GBP|JPY|INR|RUB|BTC/i);
-        if (currencyMatch) return currencyMatch[0];
-        return 'USD';
-    }
-
-    // Find product information
-    function findProductInfo() {
-        // Try to find product info in meta tags
-        const productName = document.querySelector('meta[property="og:title"]')?.content ||
-            document.querySelector('meta[name="title"]')?.content ||
-            document.title;
-
-        const productId = document.querySelector('meta[property="og:url"]')?.content ||
-            document.querySelector('link[rel="canonical"]')?.href ||
-            window.location.href;
-
-        return {
-            name: productName || 'Unknown Product',
-            id: productId || window.location.href
-        };
-    }
-
-    // Helper functions
-    function isPurchaseFormCheck(form, formData) {
-        const formAction = form.action.toLowerCase();
-        const formMethod = form.method.toLowerCase();
-        const formClass = form.className.toLowerCase();
-        const formId = form.id.toLowerCase();
-
-        // Check for common purchase form indicators
-        const purchaseIndicators = [
-            'checkout',
-            'payment',
-            'order',
-            'purchase',
-            'buy',
-            'cart',
-            'billing'
-        ];
-
-        return purchaseIndicators.some(indicator =>
-            formAction.includes(indicator) ||
-            formClass.includes(indicator) ||
-            formId.includes(indicator)
-        );
-    }
-
-    function isPurchaseButtonCheck(button, text, className, id) {
-        const purchaseKeywords = [
-            'buy',
-            'purchase',
-            'order',
-            'checkout',
-            'add to cart',
-            'add to bag',
-            'buy now',
-            'order now',
-            'proceed to checkout',
-            'complete order',
-            'place order'
-        ];
-
-        return purchaseKeywords.some(keyword =>
-            text.includes(keyword) ||
-            className.includes(keyword) ||
-            id.includes(keyword)
-        );
-    }
-
-    function extractNumericAmount(text) {
-        const match = text.match(/[\d,]+\.?\d*/);
-        if (match) {
-            return parseFloat(match[0].replace(/,/g, ''));
-        }
-        return null;
-    }
-
-    // Track a generic event
-    function trackEvent(eventType, data) {
-        if (!config.storeId) {
-            console.warn('PriceHunt Tracker: storeId not configured');
-            return;
-        }
-
-        const eventData = {
-            event: eventType,
-            storeId: config.storeId,
-            userSessionId: config.userSessionId,
-            productId: config.productId,
-            url: window.location.href,
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            ...data
-        };
-
-        if (config.debug) {
-            console.log('Tracking event:', eventData);
-        }
-
-        // Send to your API
-        fetch(config.apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(eventData)
-        }).catch(error => {
-            if (config.debug) {
-                console.error('Failed to track event:', error);
-            }
-        });
-    }
-
-    // Track a purchase
-    function trackPurchase(orderDetails) {
-        if (!config.storeId) {
-            console.warn('PriceHunt Tracker: storeId not configured');
-            return;
-        }
-
-        const purchaseData = {
-            orderId: orderDetails.orderId,
-            businessId: config.storeId, // This should be the business ID
-            productUrl: orderDetails.productUrl || window.location.href,
-            productTitle: orderDetails.productName,
-            productPrice: orderDetails.amount,
-            currency: orderDetails.currency,
-            retailer: window.location.hostname,
-            sessionId: config.userSessionId,
-            referrer: document.referrer,
-            utmSource: getUrlParameter('utm_source'),
-            utmMedium: getUrlParameter('utm_medium'),
-            utmCampaign: getUrlParameter('utm_campaign')
-        };
-
-        if (config.debug) {
-            console.log('Tracking purchase:', purchaseData);
-        }
-
-        // Send to your API
-        fetch(config.apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(purchaseData)
-        }).then(response => response.json())
-            .then(data => {
-                if (config.debug) {
-                    console.log('Purchase tracked successfully:', data);
-                }
-            }).catch(error => {
-                if (config.debug) {
-                    console.error('Failed to track purchase:', error);
-                }
-            });
-    }
-
-    // Helper function to get URL parameters
-    function getUrlParameter(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
-    }
-
-    // Auto-initialize if config is already set
-    if (window.trackerConfig) {
-        trackerInit(window.trackerConfig);
-    }
-
-    // Expose tracker for manual use
-    window.PriceHuntTracker = {
-        init: trackerInit,
-        trackEvent: trackEvent,
-        trackPurchase: trackPurchase
-    };
+  // Log that tracking is active
+  console.log('Affiliate tracking active for business:', config.businessId, 'affiliate:', config.affiliateId);
 
 })(); 

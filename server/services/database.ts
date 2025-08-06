@@ -614,8 +614,16 @@ export const businessService = {
       }),
     ]);
 
+    // Calculate derived fields
+    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+    const conversionRate = business.totalVisits > 0 ? (business.totalPurchases / business.totalVisits) * 100 : 0;
+    const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
+
     return {
       ...business,
+      averageOrderValue,
+      conversionRate,
+      projectedFee,
       recentClicks: clicks,
       recentConversions: conversions,
     };

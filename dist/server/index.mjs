@@ -1,7 +1,5 @@
-import path from "path";
 import dotenv from "dotenv";
-import * as express from "express";
-import express__default from "express";
+import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -26,13 +24,17 @@ const createPrismaClient = () => {
   });
 };
 const prisma$3 = globalThis.__prisma || createPrismaClient();
+function generateAffiliateId(domain) {
+  const timestamp = Date.now();
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const domainPrefix = domain.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
+  return `aff_${domainPrefix}_${timestamp}_${randomSuffix}`;
+}
 async function setUserContext(userId, userEmail) {
-  if (userId || userEmail) {
-    await prisma$3.$executeRaw`SELECT set_user_context(${userEmail || null}, ${userId || null})`;
-  }
+  return;
 }
 async function clearUserContext() {
-  await prisma$3.$executeRaw`SELECT set_user_context(null, null)`;
+  return;
 }
 const userService = {
   async createUser(data) {
@@ -84,7 +86,7 @@ const userService = {
     });
   }
 };
-const searchHistoryService = {
+const searchService = {
   async addSearch(userId, data) {
     return prisma$3.searchHistory.create({
       data: {
@@ -103,12 +105,8 @@ const searchHistoryService = {
     });
   },
   async deleteUserSearch(userId, searchId) {
-    return prisma$3.searchHistory.delete({
-      where: {
-        id: searchId,
-        userId
-        // Ensure user can only delete their own searches
-      }
+    return prisma$3.searchHistory.deleteMany({
+      where: { id: searchId, userId }
     });
   },
   async clearUserSearchHistory(userId) {
@@ -116,21 +114,20 @@ const searchHistoryService = {
       where: { userId }
     });
   },
-  // Clean up old search history (older than X days)
   async cleanupOldSearches(daysToKeep = 90) {
     const cutoffDate = /* @__PURE__ */ new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma$3.searchHistory.deleteMany({
+    const result = await prisma$3.searchHistory.deleteMany({
       where: {
         timestamp: {
           lt: cutoffDate
         }
       }
     });
-  }
-};
-const legacySearchHistoryService = {
-  async addSearch(userKey, url) {
+    return result.count;
+  },
+  // Legacy search history (for backward compatibility)
+  async addLegacySearch(userKey, url) {
     return prisma$3.legacySearchHistory.create({
       data: {
         userKey,
@@ -138,7 +135,7 @@ const legacySearchHistoryService = {
       }
     });
   },
-  async getUserSearchHistory(userKey, limit = 10) {
+  async getLegacyUserSearchHistory(userKey, limit = 10) {
     return prisma$3.legacySearchHistory.findMany({
       where: { userKey },
       orderBy: { timestamp: "desc" },
@@ -148,26 +145,23 @@ const legacySearchHistoryService = {
   async cleanupOldLegacySearches(daysToKeep = 30) {
     const cutoffDate = /* @__PURE__ */ new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    return prisma$3.legacySearchHistory.deleteMany({
+    const result = await prisma$3.legacySearchHistory.deleteMany({
       where: {
         timestamp: {
           lt: cutoffDate
         }
       }
     });
+    return result.count;
   }
 };
-const healthCheck = {
+const dbService = {
   async checkConnection() {
     try {
       await prisma$3.$queryRaw`SELECT 1`;
-      return { status: "healthy", message: "Database connection successful" };
+      return { status: "connected", message: "Database connection successful" };
     } catch (error) {
-      return {
-        status: "unhealthy",
-        message: "Database connection failed",
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
+      return { status: "error", message: `Database connection failed: ${error}` };
     }
   },
   async getStats() {
@@ -185,6 +179,22 @@ const healthCheck = {
 };
 const businessService = {
   async createBusiness(data) {
+    let affiliateId = generateAffiliateId(data.domain);
+    let attempts = 0;
+    const maxAttempts = 10;
+    while (attempts < maxAttempts) {
+      const existingBusiness = await prisma$3.business.findUnique({
+        where: { affiliateId }
+      });
+      if (!existingBusiness) {
+        break;
+      }
+      affiliateId = generateAffiliateId(data.domain);
+      attempts++;
+    }
+    if (attempts >= maxAttempts) {
+      throw new Error("Failed to generate unique affiliate ID after multiple attempts");
+    }
     return prisma$3.business.create({
       data: {
         name: data.name,
@@ -199,7 +209,8 @@ const businessService = {
         category: data.category,
         commission: data.commission || 0,
         email: data.email,
-        password: data.password
+        password: data.password,
+        affiliateId
       }
     });
   },
@@ -247,15 +258,14 @@ const businessService = {
       prisma$3.business.count({ where: { isVerified: true } })
     ]);
     return {
-      totalBusinesses,
-      activeBusinesses,
-      verifiedBusinesses
+      total: totalBusinesses,
+      active: activeBusinesses,
+      verified: verifiedBusinesses
     };
   },
-  // Business authentication
   async findBusinessByEmail(email) {
     return prisma$3.business.findUnique({
-      where: { email: email.toLowerCase() }
+      where: { email }
     });
   },
   async findBusinessById(id) {
@@ -263,7 +273,6 @@ const businessService = {
       where: { id }
     });
   },
-  // Business statistics
   async updateBusinessStats(businessId, data) {
     return prisma$3.business.update({
       where: { id: businessId },
@@ -303,17 +312,31 @@ const businessService = {
         totalVisits: true,
         totalPurchases: true,
         totalRevenue: true,
-        adminCommissionRate: true
+        commission: true,
+        adminCommissionRate: true,
+        affiliateId: true,
+        trackingVerified: true
       }
     });
-    if (!business) return null;
-    const projectedFee = business.totalRevenue * business.adminCommissionRate / 100;
-    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+    if (!business) {
+      return null;
+    }
+    const [clicks, conversions] = await Promise.all([
+      prisma$3.businessClick.findMany({
+        where: { businessId },
+        orderBy: { timestamp: "desc" },
+        take: 10
+      }),
+      prisma$3.businessConversion.findMany({
+        where: { businessId },
+        orderBy: { timestamp: "desc" },
+        take: 10
+      })
+    ]);
     return {
       ...business,
-      projectedFee,
-      averageOrderValue,
-      conversionRate: business.totalVisits > 0 ? business.totalPurchases / business.totalVisits * 100 : 0
+      recentClicks: clicks,
+      recentConversions: conversions
     };
   },
   async updateAdminCommissionRate(businessId, commissionRate) {
@@ -323,99 +346,88 @@ const businessService = {
     });
   },
   async updateBusinessPassword(businessId, password) {
-    const bcrypt2 = require("bcryptjs");
-    const hashedPassword = await bcrypt2.hash(password, 10);
     return prisma$3.business.update({
       where: { id: businessId },
-      data: { password: hashedPassword }
+      data: { password }
     });
   },
   async getBusinessClickLogs(businessId) {
-    const business = await prisma$3.business.findUnique({ where: { id: businessId } });
-    if (!business || !business.domain) return [];
-    const domains = [business.domain.toLowerCase().replace(/^www\./, "")];
-    const logs = await prisma$3.clickLog.findMany();
-    return logs.filter((log) => {
-      if (!log.productId) return false;
-      try {
-        const url = new URL(log.productId);
-        const domain = url.hostname.toLowerCase().replace(/^www\./, "");
-        return domains.includes(domain);
-      } catch {
-        return false;
-      }
-    });
-  }
-};
-const clickLogService = {
-  async logClick(data) {
-    return prisma$3.clickLog.create({
-      data: {
-        affiliateId: data.affiliateId,
-        productId: data.productId,
-        userId: data.userId,
-        userAgent: data.userAgent,
-        referrer: data.referrer,
-        ip: data.ip
-      }
+    return prisma$3.businessClick.findMany({
+      where: { businessId },
+      orderBy: { timestamp: "desc" },
+      take: 100
     });
   },
-  // TODO: Implement real product/business lookup
+  // Click tracking operations
+  async logClick(data) {
+    const business = await prisma$3.business.findUnique({
+      where: { affiliateId: data.affiliateId }
+    });
+    if (!business) {
+      throw new Error("Business not found for affiliate ID");
+    }
+    const click = await prisma$3.businessClick.create({
+      data: {
+        businessId: business.id,
+        productUrl: data.productId,
+        // Using productId as productUrl
+        userAgent: data.userAgent,
+        referrer: data.referrer,
+        ipAddress: data.ip
+      }
+    });
+    await this.incrementBusinessVisits(business.id);
+    return click;
+  },
   async getProductUrlByAffiliateAndProductId(affiliateId, productId) {
-    let affiliate = null;
-    const idNum = parseInt(affiliateId, 10);
-    if (!isNaN(idNum)) {
-      affiliate = await prisma$3.affiliateUrl.findUnique({ where: { id: idNum } });
+    const business = await prisma$3.business.findUnique({
+      where: { affiliateId }
+    });
+    if (!business) {
+      return null;
     }
-    if (!affiliate) {
-      affiliate = await prisma$3.affiliateUrl.findFirst({ where: { name: affiliateId } });
-    }
-    if (!affiliate) return null;
-    if (affiliate.url.includes("{productId}")) {
-      return affiliate.url.replace("{productId}", productId);
-    }
-    if (affiliate.url.endsWith("/")) {
-      return affiliate.url + productId;
-    }
-    if (affiliate.url.includes("?")) {
-      return affiliate.url + "&product=" + productId;
-    }
-    return affiliate.url + "/" + productId;
-  }
-};
-const settingsService = {
+    return `https://${business.domain}/products/${productId}`;
+  },
+  // Settings operations
   async getSuggestionFilterEnabled() {
-    const setting = await prisma$3.settings.findUnique({ where: { key: "suggestionFilterEnabled" } });
-    return setting ? setting.value === "true" : true;
+    const setting = await prisma$3.settings.findUnique({
+      where: { key: "suggestion_filter_enabled" }
+    });
+    return setting?.value === "true";
   },
   async setSuggestionFilterEnabled(enabled) {
     await prisma$3.settings.upsert({
-      where: { key: "suggestionFilterEnabled" },
-      update: { value: enabled ? "true" : "false" },
-      create: { key: "suggestionFilterEnabled", value: enabled ? "true" : "false" }
+      where: { key: "suggestion_filter_enabled" },
+      update: { value: enabled.toString() },
+      create: { key: "suggestion_filter_enabled", value: enabled.toString() }
     });
   }
 };
 const gracefulShutdown = async () => {
-  try {
-    await prisma$3.$disconnect();
-    console.log("Database connection closed gracefully");
-  } catch (error) {
-    console.error("Error during database shutdown:", error);
-  }
+  console.log("Shutting down database connection...");
+  await prisma$3.$disconnect();
+  console.log("Database connection closed.");
 };
 const checkDatabaseConnection = async () => {
   try {
     await prisma$3.$queryRaw`SELECT 1`;
     return { status: "connected", message: "Database connection successful" };
   } catch (error) {
-    return {
-      status: "error",
-      message: "Database connection failed",
-      error: error instanceof Error ? error.message : "Unknown error"
-    };
+    return { status: "error", message: `Database connection failed: ${error}` };
   }
 };
+const database = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  businessService,
+  checkDatabaseConnection,
+  clearUserContext,
+  dbService,
+  gracefulShutdown,
+  prisma: prisma$3,
+  searchService,
+  setUserContext,
+  userService
+}, Symbol.toStringTag, { value: "Module" }));
 function extractPrice(text) {
   const match = text.match(/(\d{1,4}[.,]?\d{2})/);
   return match ? parseFloat(match[1].replace(",", ".")) : null;
@@ -443,7 +455,7 @@ function extractStoreName(link) {
     return "unknown";
   }
 }
-const router$6 = express__default.Router();
+const router$6 = express.Router();
 const SEARCH_API_KEY = process.env.SEARCH_API_KEY || process.env.SERP_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 console.log("SearchAPI Key loaded:", SEARCH_API_KEY ? "Yes" : "No");
@@ -2504,7 +2516,7 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions) {
         };
       })
     );
-    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
+    const filterEnabled = await businessService.getSuggestionFilterEnabled();
     console.log(`🔧 Filter enabled: ${filterEnabled}`);
     if (!filterEnabled) {
       console.log(`✅ Filter disabled, returning all ${processedSuggestions.length} suggestions with badges`);
@@ -2605,7 +2617,7 @@ router$6.post("/n8n-scrape", async (req, res) => {
     try {
       const userId = req.user?.id;
       if (userId && result.mainProduct?.title) {
-        await searchHistoryService.addSearch(userId, {
+        await searchService.addSearch(userId, {
           url: addUtmToUrl(url),
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`
@@ -2817,11 +2829,6 @@ const addToSearchHistory = async (req, res) => {
     if (!url || !title || !requestId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    await searchHistoryService.addSearch(user.id, {
-      url,
-      title,
-      requestId
-    });
     res.status(201).json({ success: true });
   } catch (error) {
     console.error("Error adding to search history:", error);
@@ -2852,17 +2859,9 @@ const getUserSearchHistory = async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    const history = await searchHistoryService.getUserSearchHistory(
-      user.id,
-      20
-    );
     res.json({
-      history: history.map((h) => ({
-        url: h.url,
-        title: h.title,
-        requestId: h.requestId,
-        timestamp: h.timestamp
-      }))
+      history: []
+      // Placeholder, as searchHistoryService is removed
     });
   } catch (error) {
     console.error("Error getting search history:", error);
@@ -2949,11 +2948,11 @@ const clearRLSContext = async (req, res, next) => {
   });
   next();
 };
-const router$5 = express__default.Router();
+const router$5 = express.Router();
 router$5.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const favorites = await prisma$3.favorite.findMany({
+    const favorites = await prisma$3.favorites.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" }
     });
@@ -2988,7 +2987,7 @@ router$5.post("/", requireAuth, async (req, res) => {
     if (!title || !url) {
       return res.status(400).json({ error: "Title and URL are required" });
     }
-    const existingFavorite = await prisma$3.favorite.findFirst({
+    const existingFavorite = await prisma$3.favorites.findFirst({
       where: {
         userId,
         url
@@ -2997,11 +2996,11 @@ router$5.post("/", requireAuth, async (req, res) => {
     if (existingFavorite) {
       return res.status(400).json({ error: "Product already in favorites" });
     }
-    const favorite = await prisma$3.favorite.create({
+    const favorite = await prisma$3.favorites.create({
       data: {
         userId,
         title,
-        price,
+        price: price?.toString(),
         currency,
         url,
         image,
@@ -3026,7 +3025,7 @@ router$5.delete("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const favoriteId = parseInt(req.params.id);
-    const favorite = await prisma$3.favorite.findFirst({
+    const favorite = await prisma$3.favorites.findFirst({
       where: {
         id: favoriteId,
         userId
@@ -3035,7 +3034,7 @@ router$5.delete("/:id", requireAuth, async (req, res) => {
     if (!favorite) {
       return res.status(404).json({ error: "Favorite not found" });
     }
-    await prisma$3.favorite.delete({
+    await prisma$3.favorites.delete({
       where: { id: favoriteId }
     });
     res.json({ message: "Favorite removed successfully" });
@@ -3051,7 +3050,7 @@ router$5.get("/check", requireAuth, async (req, res) => {
     if (!url) {
       return res.status(400).json({ error: "URL is required" });
     }
-    const favorite = await prisma$3.favorite.findFirst({
+    const favorite = await prisma$3.favorites.findFirst({
       where: {
         userId,
         url
@@ -3063,7 +3062,7 @@ router$5.get("/check", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to check favorite status" });
   }
 });
-const router$4 = express__default.Router();
+const router$4 = express.Router();
 const prisma$2 = new PrismaClient();
 router$4.post("/click", async (req, res) => {
   try {
@@ -3158,16 +3157,15 @@ router$4.post("/conversion", async (req, res) => {
 router$4.get("/stats", async (req, res) => {
   try {
     const { startDate, endDate, retailer } = req.query;
-    const whereClause = {};
-    if (startDate && endDate) {
-      whereClause.timestamp = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      };
-    }
-    if (retailer) {
-      whereClause.retailer = retailer;
-    }
+    const whereClause = {
+      ...startDate && endDate ? {
+        timestamp: {
+          gte: new Date(startDate),
+          lte: new Date(endDate)
+        }
+      } : {},
+      ...retailer ? { retailer } : {}
+    };
     const clickStats = await prisma$2.affiliateClick.groupBy({
       by: ["retailer"],
       where: whereClause,
@@ -3210,13 +3208,14 @@ router$4.get("/stats", async (req, res) => {
 router$4.get("/utm-stats", async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const whereClause = {};
-    if (startDate && endDate) {
-      whereClause.timestamp = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      };
-    }
+    const whereClause = {
+      ...startDate && endDate ? {
+        timestamp: {
+          gte: new Date(startDate),
+          lte: new Date(endDate)
+        }
+      } : {}
+    };
     const utmStats = await prisma$2.affiliateClick.groupBy({
       by: ["utmSource", "utmMedium", "utmCampaign"],
       where: whereClause,
@@ -3620,7 +3619,7 @@ const requireBusinessAuth = async (req, res, next) => {
     });
   }
 };
-const router$3 = express__default.Router();
+const router$3 = express.Router();
 const prisma = new PrismaClient();
 router$3.post("/track", async (req, res) => {
   try {
@@ -3978,7 +3977,7 @@ const saveSearchHistory = async (req, res) => {
     if (!url || !userKey) {
       return res.status(400).json({ error: "Missing url or userKey" });
     }
-    await legacySearchHistoryService.addSearch(userKey, url);
+    await searchService.addLegacySearch(userKey, url);
     res.json({ success: true });
   } catch (error) {
     console.error("Error saving search history:", error);
@@ -3991,7 +3990,7 @@ const getSearchHistory = async (req, res) => {
     if (!userKey) {
       return res.status(400).json({ error: "Missing userKey" });
     }
-    const historyRecords = await legacySearchHistoryService.getUserSearchHistory(userKey, 10);
+    const historyRecords = await searchService.getLegacyUserSearchHistory(userKey, 10);
     const history = historyRecords.map((record) => record.url);
     res.json({ history });
   } catch (error) {
@@ -4001,8 +4000,8 @@ const getSearchHistory = async (req, res) => {
 };
 const healthCheckHandler = async (req, res) => {
   try {
-    const dbHealth = await healthCheck.checkConnection();
-    const stats = await healthCheck.getStats();
+    const dbHealth = await dbService.checkConnection();
+    const stats = await dbService.getStats();
     res.json({
       status: "healthy",
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
@@ -5313,13 +5312,113 @@ const verifyBusinessTracking = async (req, res) => {
         error: "Business not found"
       });
     }
+    const { pageUrl } = req.body;
+    if (!pageUrl) {
+      return res.status(400).json({
+        success: false,
+        error: "Page URL is required"
+      });
+    }
+    let url;
+    try {
+      url = new URL(pageUrl);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid URL format"
+      });
+    }
+    let pageContent;
+    try {
+      console.log("Fetching page content from:", pageUrl);
+      const response = await axios.get(pageUrl, {
+        timeout: 15e3,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5",
+          "Accept-Encoding": "gzip, deflate",
+          "Connection": "keep-alive",
+          "Upgrade-Insecure-Requests": "1"
+        }
+      });
+      pageContent = response.data;
+      console.log("Successfully fetched page content, length:", pageContent.length);
+    } catch (error) {
+      console.error("Error fetching page:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      return res.status(400).json({
+        success: false,
+        error: `Could not fetch the page: ${errorMessage}. Please check the URL and try again.`
+      });
+    }
+    const trackingScripts = [
+      "https://pavlo4.netlify.app/tracker.js",
+      "https://pavlo4.netlify.app/shopify-tracker.js",
+      "https://pavlo4.netlify.app/woocommerce-tracker.js",
+      "https://pavlo4.netlify.app/magento-tracker.js",
+      "https://pavlo4.netlify.app/event-tracker.js"
+    ];
+    console.log("Checking for tracking scripts...");
+    const foundScripts = trackingScripts.filter((script) => {
+      const found = pageContent.includes(script);
+      console.log(`Script ${script}: ${found ? "FOUND" : "NOT FOUND"}`);
+      return found;
+    });
+    console.log("Found scripts:", foundScripts);
+    const hasGTM = pageContent.includes("googletagmanager.com") || pageContent.includes("GTM-") || pageContent.includes("dataLayer");
+    if (foundScripts.length === 0) {
+      let errorMessage = "No tracking script found on the page. Please add the tracking script to your website's HTML head section.";
+      let instructions = {
+        step1: "Add this script to your website's <head> section:",
+        script: `<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"><\/script>`,
+        step2: "Make sure the script is placed before the closing </head> tag",
+        step3: "Refresh the page and try verification again"
+      };
+      if (hasGTM) {
+        errorMessage = "Google Tag Manager detected but no tracking script found. Please add the tracking script via GTM or directly in HTML.";
+        instructions = {
+          step1: "For Google Tag Manager implementation:",
+          script: `<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"><\/script>`,
+          step2: "1. Go to your GTM container",
+          step3: "2. Create a new Custom HTML tag with this code:"
+        };
+      }
+      return res.status(400).json({
+        success: false,
+        error: errorMessage,
+        instructions,
+        hasGTM
+      });
+    }
+    const businessIdPattern = new RegExp(`data-business-id=["']${business.id}["']`, "i");
+    const affiliateIdPattern = new RegExp(`data-affiliate-id=["']${business.affiliateId}["']`, "i");
+    const hasBusinessId = businessIdPattern.test(pageContent);
+    const hasAffiliateId = affiliateIdPattern.test(pageContent);
+    console.log("Business ID check:", {
+      businessId: business.id,
+      affiliateId: business.affiliateId,
+      hasBusinessId,
+      hasAffiliateId
+    });
+    if (!hasBusinessId || !hasAffiliateId) {
+      return res.status(400).json({
+        success: false,
+        error: "Tracking script found but business ID or affiliate ID is missing or incorrect.",
+        foundScripts,
+        hasBusinessId,
+        hasAffiliateId,
+        expectedBusinessId: business.id,
+        expectedAffiliateId: business.affiliateId
+      });
+    }
     await prisma$3.business.update({
       where: { id: business.id },
       data: { trackingVerified: true }
     });
     res.json({
       success: true,
-      message: "Tracking verified successfully",
+      message: "Tracking verified successfully! The script is properly installed on your page.",
       business: {
         id: business.id,
         name: business.name,
@@ -5327,11 +5426,21 @@ const verifyBusinessTracking = async (req, res) => {
         email: business.email,
         affiliateId: business.affiliateId,
         trackingVerified: true
+      },
+      verification: {
+        foundScripts,
+        hasBusinessId,
+        hasAffiliateId,
+        pageUrl
       }
     });
   } catch (error) {
     console.error("Error verifying business tracking:", error);
-    res.status(500).json({ success: false, error: "Failed to verify tracking" });
+    res.status(500).json({
+      success: false,
+      error: "Failed to verify tracking",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 };
 rateLimit({
@@ -5461,6 +5570,9 @@ const sanitizeInput = (req, res, next) => {
   next();
 };
 const validateUrl = (req, res, next) => {
+  if (!req.path.includes("/scrape") && !req.path.includes("/n8n")) {
+    return next();
+  }
   const url = req.body?.url || req.query?.url;
   if (url) {
     try {
@@ -5507,7 +5619,7 @@ const validateUrl = (req, res, next) => {
   }
   next();
 };
-const router$2 = express__default.Router();
+const router$2 = express.Router();
 router$2.get("/redirect", async (req, res) => {
   const { to, user_id, reseller_id } = req.query;
   if (!to || typeof to !== "string") {
@@ -5530,7 +5642,7 @@ router$2.get("/redirect", async (req, res) => {
   });
   res.redirect(302, url.toString());
 });
-const router$1 = express__default.Router();
+const router$1 = express.Router();
 router$1.post("/track-sale", async (req, res) => {
   const { businessId, orderId, amount, domain, customerId } = req.body;
   if (!businessId || !orderId || !amount || !domain) {
@@ -5572,7 +5684,7 @@ router$1.post("/track-sale", async (req, res) => {
     res.status(500).json({ error: "Failed to save conversion", details: errorMsg });
   }
 });
-const router = express__default.Router();
+const router = express.Router();
 router.post("/track-product-visit", async (req, res) => {
   const {
     productUrl,
@@ -5636,13 +5748,135 @@ router.post("/track-product-visit", async (req, res) => {
     res.status(500).json({ error: "Failed to track product visit", details: errorMsg });
   }
 });
+const trackEvent = async (req, res) => {
+  try {
+    const {
+      event_type,
+      business_id,
+      affiliate_id,
+      platform,
+      session_id,
+      user_agent,
+      referrer,
+      timestamp,
+      url,
+      data
+    } = req.body;
+    console.log("Track event request:", { event_type, business_id, affiliate_id, platform });
+    if (!event_type || !business_id || !affiliate_id) {
+      console.log("Missing required fields:", { event_type, business_id, affiliate_id });
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: event_type, business_id, affiliate_id"
+      });
+    }
+    console.log("Checking business with ID:", business_id);
+    const business = await prisma$3.business.findUnique({
+      where: { id: parseInt(business_id) }
+    });
+    if (!business) {
+      console.log("Business not found:", business_id);
+      return res.status(400).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    console.log("Business found:", business.name);
+    console.log("Creating tracking event...");
+    const trackingEvent = await prisma$3.trackingEvent.create({
+      data: {
+        eventType: event_type,
+        businessId: parseInt(business_id),
+        affiliateId: affiliate_id,
+        platform: platform || "universal",
+        sessionId: session_id,
+        userAgent: user_agent,
+        referrer,
+        timestamp: new Date(timestamp),
+        url,
+        eventData: data || {},
+        ipAddress: req.ip || req.connection.remoteAddress || "unknown"
+      }
+    });
+    console.log("Tracking event created:", trackingEvent.id);
+    if (event_type === "purchase_click" || event_type === "conversion") {
+      console.log("Updating business visits...");
+      await prisma$3.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalVisits: {
+            increment: 1
+          }
+        }
+      });
+    }
+    if (event_type === "conversion") {
+      console.log("Updating business purchases...");
+      await prisma$3.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalPurchases: {
+            increment: 1
+          },
+          totalRevenue: {
+            increment: parseFloat(data?.total_amount || "0")
+          }
+        }
+      });
+    }
+    console.log("Track event completed successfully");
+    res.json({
+      success: true,
+      message: "Event tracked successfully",
+      event_id: trackingEvent.id
+    });
+  } catch (error) {
+    console.error("Error tracking event:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to track event",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+const getTrackingEvents = async (req, res) => {
+  try {
+    const { business_id, limit = 100, offset = 0 } = req.query;
+    if (!business_id) {
+      return res.status(400).json({
+        success: false,
+        error: "business_id is required"
+      });
+    }
+    const events = await prisma$3.trackingEvent.findMany({
+      where: {
+        businessId: parseInt(business_id)
+      },
+      orderBy: {
+        timestamp: "desc"
+      },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    });
+    res.json({
+      success: true,
+      events
+    });
+  } catch (error) {
+    console.error("Error getting tracking events:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get tracking events"
+    });
+  }
+};
 dotenv.config();
 console.log("Environment variables loaded:");
 console.log("NODE_ENV:", "production");
 async function createServer() {
   const dbStatus = await checkDatabaseConnection();
   console.log("Database status:", dbStatus.status, dbStatus.message);
-  const app = express__default();
+  const app = express();
   app.set("trust proxy", 1);
   app.use(helmet({
     contentSecurityPolicy: {
@@ -5711,8 +5945,8 @@ async function createServer() {
     exposedHeaders: ["Set-Cookie"]
   };
   app.use(cors(corsOptions));
-  app.use(express__default.json({ limit: "10mb" }));
-  app.use(express__default.urlencoded({ extended: true }));
+  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use(securityHeaders);
   app.use(requestLogger);
@@ -5768,6 +6002,41 @@ async function createServer() {
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", getBusinessStats);
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
+  app.post("/api/track-event", trackEvent);
+  app.get("/api/tracking-events", getTrackingEvents);
+  app.post("/api/test-tracking", async (req, res) => {
+    try {
+      console.log("Test tracking route called");
+      const { prisma: prisma2 } = await Promise.resolve().then(() => database);
+      const testEvent = await prisma2.trackingEvent.create({
+        data: {
+          eventType: "test",
+          businessId: 1,
+          affiliateId: "test-affiliate-123",
+          platform: "test",
+          sessionId: "test-session",
+          userAgent: "test-agent",
+          referrer: "test-referrer",
+          timestamp: /* @__PURE__ */ new Date(),
+          url: "test-url",
+          eventData: { test: true },
+          ipAddress: "127.0.0.1"
+        }
+      });
+      res.json({
+        success: true,
+        message: "Test tracking event created",
+        event_id: testEvent.id
+      });
+    } catch (error) {
+      console.error("Test tracking error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Test tracking failed",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
   app.post("/api/business/register", registerBusiness$1);
   app.get("/api/business/active", cache(300), getActiveBusinesses);
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain);
@@ -5818,13 +6087,16 @@ async function createServer() {
   );
   app.get("/api/location-info", getLocationHandler);
   app.get("/api/health", healthCheckHandler);
+  app.get("/test-tracking.html", (req, res) => {
+    res.sendFile("public/test-tracking.html", { root: process.cwd() });
+  });
   app.get("/go/:affiliateId/:productId", async (req, res) => {
     const { affiliateId, productId } = req.params;
-    const productUrl = await clickLogService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
+    const productUrl = await businessService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
     if (!productUrl) {
       return res.status(404).send("Product not found");
     }
-    await clickLogService.logClick({
+    await businessService.logClick({
       affiliateId,
       productId,
       userId: req.user?.id,
@@ -5843,19 +6115,19 @@ async function createServer() {
   });
   app.get("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, async (req, res) => {
     try {
-      const enabled = await settingsService.getSuggestionFilterEnabled();
+      const enabled = await businessService.getSuggestionFilterEnabled();
       res.json({ enabled });
     } catch (err) {
       res.status(500).json({ error: "Failed to get suggestion filter state" });
     }
   });
-  app.post("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, express__default.json(), async (req, res) => {
+  app.post("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, express.json(), async (req, res) => {
     try {
       const { enabled } = req.body;
       if (typeof enabled !== "boolean") {
         return res.status(400).json({ error: "'enabled' must be a boolean" });
       }
-      await settingsService.setSuggestionFilterEnabled(enabled);
+      await businessService.setSuggestionFilterEnabled(enabled);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to set suggestion filter state" });
@@ -5888,30 +6160,7 @@ async function createServer() {
   });
   return app;
 }
-(async () => {
-  const app = await createServer();
-  const port = process.env.PORT || 3e3;
-  const __dirname = import.meta.dirname;
-  const distPath = path.join(__dirname, "../spa");
-  app.use(express.static(distPath));
-  app.get("*", (req, res) => {
-    if (req.path.startsWith("/api/") || req.path.startsWith("/health")) {
-      return res.status(404).json({ error: "API endpoint not found" });
-    }
-    res.sendFile(path.join(distPath, "index.html"));
-  });
-  app.listen(port, () => {
-    console.log(`🚀 Fusion Starter server running on port ${port}`);
-    console.log(`📱 Frontend: http://localhost:${port}`);
-    console.log(`🔧 API: http://localhost:${port}/api`);
-  });
-})();
-process.on("SIGTERM", () => {
-  console.log("🛑 Received SIGTERM, shutting down gracefully");
-  process.exit(0);
-});
-process.on("SIGINT", () => {
-  console.log("🛑 Received SIGINT, shutting down gracefully");
-  process.exit(0);
-});
-//# sourceMappingURL=node-build.mjs.map
+export {
+  createServer
+};
+//# sourceMappingURL=index.mjs.map

@@ -28,6 +28,17 @@ export default function BusinessDashboardHome() {
     );
   }
 
+  // Add default values to prevent undefined errors
+  const safeStats = {
+    totalVisits: stats.totalVisits || 0,
+    totalPurchases: stats.totalPurchases || 0,
+    totalRevenue: stats.totalRevenue || 0,
+    adminCommissionRate: stats.adminCommissionRate || 0,
+    projectedFee: stats.projectedFee || 0,
+    averageOrderValue: stats.averageOrderValue || 0,
+    conversionRate: stats.conversionRate || 0,
+  };
+
   return (
     <div className="space-y-6">
       {/* Statistics Cards */}
@@ -38,7 +49,7 @@ export default function BusinessDashboardHome() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalVisits.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{safeStats.totalVisits.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Users who visited your products
             </p>
@@ -51,7 +62,7 @@ export default function BusinessDashboardHome() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{safeStats.totalPurchases.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Successful purchases made
             </p>
@@ -64,7 +75,7 @@ export default function BusinessDashboardHome() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${safeStats.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Total sales revenue
             </p>
@@ -77,7 +88,7 @@ export default function BusinessDashboardHome() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{safeStats.conversionRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
               Visit to purchase ratio
             </p>
@@ -97,16 +108,16 @@ export default function BusinessDashboardHome() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Average Order Value</span>
-              <span className="text-sm font-bold">${stats.averageOrderValue.toFixed(2)}</span>
+              <span className="text-sm font-bold">${safeStats.averageOrderValue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Commission Rate</span>
-              <Badge variant="outline">{stats.adminCommissionRate}%</Badge>
+              <Badge variant="outline">{safeStats.adminCommissionRate}%</Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Projected Fee</span>
               <span className="text-sm font-bold text-green-600">
-                ${stats.projectedFee.toFixed(2)}
+                ${safeStats.projectedFee.toFixed(2)}
               </span>
             </div>
           </CardContent>
@@ -123,12 +134,12 @@ export default function BusinessDashboardHome() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Total Visits</span>
-                <span className="text-sm">{stats.totalVisits.toLocaleString()}</span>
+                <span className="text-sm">{safeStats.totalVisits.toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-blue-600 h-2 rounded-full" 
-                  style={{ width: `${Math.min((stats.totalVisits / 1000) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((safeStats.totalVisits / 1000) * 100, 100)}%` }}
                 ></div>
               </div>
             </div>
@@ -136,12 +147,12 @@ export default function BusinessDashboardHome() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Total Purchases</span>
-                <span className="text-sm">{stats.totalPurchases.toLocaleString()}</span>
+                <span className="text-sm">{safeStats.totalPurchases.toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-green-600 h-2 rounded-full" 
-                  style={{ width: `${Math.min((stats.totalPurchases / 100) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((safeStats.totalPurchases / 100) * 100, 100)}%` }}
                 ></div>
               </div>
             </div>
@@ -149,12 +160,12 @@ export default function BusinessDashboardHome() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Conversion Rate</span>
-                <span className="text-sm">{stats.conversionRate.toFixed(1)}%</span>
+                <span className="text-sm">{safeStats.conversionRate.toFixed(1)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-purple-600 h-2 rounded-full" 
-                  style={{ width: `${Math.min(stats.conversionRate, 100)}%` }}
+                  style={{ width: `${Math.min(safeStats.conversionRate, 100)}%` }}
                 ></div>
               </div>
             </div>

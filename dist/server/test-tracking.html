@@ -4,86 +4,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>God is Love - Test Product</title>
+    <title>Test Tracking - PriceHunt</title>
 
     <!-- PriceHunt Sales Tracking Script -->
-    <script src="/tracker.js"></script>
+    <script src="https://pavlo4.netlify.app/shopify-tracker.js"></script>
     <script>
         window.trackerInit({
-            storeId: 1, // God is Love business ID
-            userSessionId: 'test-session-123',
-            productId: 'test-product-456',
-            debug: true // Enable debug mode to see tracking logs
+            storeId: 1,
+            userSessionId: 'test-session-' + Date.now(),
+            productId: 'test-product',
+            debug: true
         });
     </script>
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
         }
 
-        .product {
-            border: 1px solid #ddd;
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
-            border-radius: 8px;
         }
 
         .price {
             font-size: 24px;
-            color: #e53e3e;
             font-weight: bold;
+            color: #059669;
         }
 
-        .button {
-            background: #3182ce;
+        .btn {
+            background: #7c3aed;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 16px;
             margin: 5px;
         }
 
-        .button:hover {
-            background: #2c5aa0;
+        .btn:hover {
+            background: #6d28d9;
         }
 
-        .form {
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
+        .btn-secondary {
+            background: #6b7280;
         }
 
-        .form input {
-            display: block;
-            width: 100%;
-            padding: 8px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .btn-secondary:hover {
+            background: #4b5563;
         }
 
-        .success {
-            background: #c6f6d5;
-            color: #22543d;
+        .status {
             padding: 10px;
             border-radius: 4px;
             margin: 10px 0;
         }
 
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
         .console {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
+            background: #1f2937;
+            color: #f9fafb;
             padding: 15px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 20px 0;
             max-height: 200px;
             overflow-y: auto;
         }
@@ -91,41 +102,53 @@
 </head>
 
 <body>
-    <h1>God is Love - Test Product Page</h1>
-    <p>This is a test page to demonstrate the PriceHunt sales tracking script.</p>
+    <div class="container">
+        <h1>🧪 Test Tracking Page</h1>
+        <p>This page is configured with the PriceHunt tracking script to test your integration.</p>
 
-    <div class="product">
-        <h2>Test Product</h2>
-        <p>A wonderful test product for demonstration purposes.</p>
-        <div class="price">€29.99</div>
+        <div class="status info">
+            <strong>Test Instructions:</strong>
+            <ul>
+                <li>Click the buttons below to test tracking events</li>
+                <li>Check the browser console for tracking logs</li>
+                <li>Use this page URL for verification in your business dashboard</li>
+            </ul>
+        </div>
 
-        <!-- Purchase buttons - will be automatically tracked -->
-        <button class="button" onclick="addToCart()">Add to Cart</button>
-        <button class="button" onclick="buyNow()">Buy Now</button>
-    </div>
+        <div class="product-card">
+            <h2>Test Product</h2>
+            <p>This is a test product to verify tracking functionality.</p>
+            <div class="price">$99.99</div>
 
-    <!-- Checkout form - will be automatically tracked -->
-    <div class="form">
-        <h3>Checkout Form</h3>
-        <form action="/thank-you" method="POST" onsubmit="handleCheckout(event)">
-            <input type="text" name="email" placeholder="Email" required>
-            <input type="text" name="card" placeholder="Card Number" required>
-            <input type="text" name="name" placeholder="Full Name" required>
-            <button type="submit" class="button">Complete Purchase</button>
+            <button class="btn" onclick="addToCart()">Add to Cart</button>
+            <button class="btn" onclick="buyNow()">Buy Now</button>
+            <button class="btn btn-secondary" onclick="viewProduct()">View Product</button>
+        </div>
+
+        <div class="product-card">
+            <h2>Another Test Product</h2>
+            <p>Second test product for additional verification.</p>
+            <div class="price">$149.99</div>
+
+            <button class="btn" onclick="addToCart2()">Add to Cart</button>
+            <button class="btn" onclick="buyNow2()">Buy Now</button>
+        </div>
+
+        <div class="status success">
+            <strong>✅ Tracking Script Loaded</strong><br>
+            The PriceHunt tracking script is active on this page.
+        </div>
+
+        <div class="console" id="console">
+            <div>Console output will appear here...</div>
+        </div>
+
+        <form action="/thank-you" method="POST" onsubmit="testFormSubmission(event)">
+            <h3>Test Form Submission</h3>
+            <input type="email" name="email" placeholder="Email" required
+                style="padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px;">
+            <button type="submit" class="btn">Complete Purchase</button>
         </form>
-    </div>
-
-    <!-- Manual tracking test -->
-    <div class="form">
-        <h3>Manual Tracking Test</h3>
-        <button class="button" onclick="testManualTracking()">Test Manual Sale Tracking</button>
-        <button class="button" onclick="simulatePurchaseConfirmation()">Simulate Purchase Confirmation Page</button>
-    </div>
-
-    <!-- Console output -->
-    <div>
-        <h3>Tracking Console</h3>
-        <div id="console" class="console"></div>
     </div>
 
     <script>
@@ -138,98 +161,55 @@
             const message = args.map(arg =>
                 typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
             ).join(' ');
-            consoleDiv.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${message}</div>`;
+
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleDiv.appendChild(logEntry);
             consoleDiv.scrollTop = consoleDiv.scrollHeight;
         };
 
+        // Test functions
         function addToCart() {
             console.log('Add to Cart clicked');
-            alert('Product added to cart!');
+            alert('Added to cart! Check console for tracking logs.');
         }
 
         function buyNow() {
             console.log('Buy Now clicked');
-            alert('Proceeding to checkout...');
+            alert('Proceeding to checkout! Check console for tracking logs.');
         }
 
-        function handleCheckout(event) {
+        function viewProduct() {
+            console.log('View Product clicked');
+            alert('Viewing product details! Check console for tracking logs.');
+        }
+
+        function addToCart2() {
+            console.log('Add to Cart (Product 2) clicked');
+            alert('Added second product to cart!');
+        }
+
+        function buyNow2() {
+            console.log('Buy Now (Product 2) clicked');
+            alert('Proceeding to checkout for second product!');
+        }
+
+        function testFormSubmission(event) {
             event.preventDefault();
-            console.log('Checkout form submitted');
-
-            // Simulate successful purchase
-            const formData = new FormData(event.target);
-            const orderData = Object.fromEntries(formData);
-
-            console.log('Order data:', orderData);
-
-            // Store order data in localStorage (will trigger tracking)
-            localStorage.setItem('order', JSON.stringify({
-                orderId: 'ORDER-' + Date.now(),
-                amount: 29.99,
-                currency: 'EUR',
-                productId: 'test-product-456',
-                productName: 'Test Product'
-            }));
-
-            // Redirect to thank you page
-            window.location.href = '/thank-you.html';
-        }
-
-        function testManualTracking() {
-            console.log('Testing manual sale tracking...');
-
-            // Call the tracking API directly
-            fetch('/api/sales/track', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    orderId: 'MANUAL-TEST-' + Date.now(),
-                    businessId: 1,
-                    productUrl: window.location.href,
-                    productTitle: 'Test Product from God is Love',
-                    productPrice: 29.99,
-                    retailer: 'godislove.lt',
-                    sessionId: 'test-session-123',
-                    utmSource: 'pricehunt',
-                    utmMedium: 'affiliate',
-                    utmCampaign: 'test-campaign'
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Manual test sale tracked:', data);
-                    alert('Manual test sale tracked successfully!');
-                })
-                .catch(error => {
-                    console.error('Manual test failed:', error);
-                    alert('Manual test failed. Check console for details.');
-                });
-        }
-
-        function simulatePurchaseConfirmation() {
-            console.log('Simulating purchase confirmation page...');
-
-            // Change the page content to look like a thank you page
-            document.body.innerHTML = `
-                <div style="text-align: center; padding: 50px;">
-                    <h1>Thank You for Your Purchase!</h1>
-                    <p>Your order has been confirmed.</p>
-                    <div class="success">
-                        <strong>Order #ORDER-${Date.now()}</strong><br>
-                        Amount: €29.99<br>
-                        Status: Payment Successful
-                    </div>
-                    <p>The tracking script should detect this confirmation page and send the sale data.</p>
-                    <button onclick="location.reload()" class="button">Back to Product</button>
-                </div>
-            `;
+            console.log('Form submitted');
+            alert('Form submitted! Check console for tracking logs.');
         }
 
         // Log when page loads
-        console.log('Test page loaded. Tracking script is active.');
-        console.log('Try clicking the buttons or filling out the form to see tracking in action.');
+        console.log('Test tracking page loaded');
+        console.log('Tracking script should be active');
+
+        // Check if tracking script is loaded
+        if (typeof window.trackEvent === 'function') {
+            console.log('✅ Tracking script is loaded and ready');
+        } else {
+            console.log('❌ Tracking script not detected');
+        }
     </script>
 </body>
 
