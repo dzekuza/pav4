@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
 import path from "path";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +39,27 @@ if (process.env.NODE_ENV !== "production") {
     globalThis.__prisma = prisma;
 }
 
+// JWT configuration
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+// Helper function to generate JWT token for business
+function generateBusinessToken(businessId: number, email: string) {
+    return jwt.sign(
+        { businessId, email, type: "business" },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+    );
+}
+
+// Helper function to verify business token
+function verifyBusinessToken(token: string) {
+    try {
+        return jwt.verify(token, JWT_SECRET) as any;
+    } catch (error) {
+        return null;
+    }
+}
+
 // Test database connection
 async function testDatabaseConnection() {
     try {
@@ -52,6 +75,27 @@ async function testDatabaseConnection() {
         return false;
     }
 }
+
+// Business service functions
+const businessService = {
+    async findBusinessByEmail(email: string) {
+        return prisma.business.findUnique({
+            where: { email },
+        });
+    },
+
+    async findBusinessById(id: number) {
+        return prisma.business.findUnique({
+            where: { id },
+        });
+    },
+
+    async createBusiness(data: any) {
+        return prisma.business.create({
+            data,
+        });
+    },
+};
 
 // Simple server creation function for Netlify Functions
 export async function createServer() {
@@ -125,18 +169,126 @@ export async function createServer() {
         });
     });
 
-    app.get("/api/business/auth/me", (req, res) => {
-        res.json({ 
-            success: false, 
-            message: "Not authenticated" 
-        });
+    // Business authentication endpoints
+    app.get("/api/business/auth/me", async (req, res) => {
+        try {
+            // Check for token in cookies or Authorization header
+            let token = req.cookies.business_token;
+
+            if (!token) {
+                const authHeader = req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    token = authHeader.substring(7);
+                }
+            }
+
+            if (!token) {
+                return res.json({
+                    business: null,
+                    authenticated: false
+                });
+            }
+
+            const decoded = verifyBusinessToken(token);
+            if (!decoded || decoded.type !== "business") {
+                return res.json({
+                    business: null,
+                    authenticated: false
+                });
+            }
+
+            const business = await businessService.findBusinessById(decoded.businessId);
+            if (!business) {
+                return res.json({
+                    business: null,
+                    authenticated: false
+                });
+            }
+
+            res.json({
+                business: {
+                    id: business.id,
+                    name: business.name,
+                    domain: business.domain,
+                    email: business.email,
+                    affiliateId: business.affiliateId,
+                    trackingVerified: business.trackingVerified,
+                },
+                authenticated: true
+            });
+        } catch (error) {
+            console.error("Error getting current business:", error);
+            res.json({
+                business: null,
+                authenticated: false
+            });
+        }
     });
 
-    app.post("/api/business/auth/login", (req, res) => {
-        res.json({ 
-            success: false, 
-            message: "Login endpoint not implemented in Netlify server" 
-        });
+    app.post("/api/business/auth/login", async (req, res) => {
+        try {
+            const { email, password } = req.body;
+
+            if (!email || !password) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Email and password are required"
+                });
+            }
+
+            const business = await businessService.findBusinessByEmail(email);
+            if (!business) {
+                return res.status(401).json({
+                    success: false,
+                    error: "Invalid email or password"
+                });
+            }
+
+            if (!business.isActive) {
+                return res.status(401).json({
+                    success: false,
+                    error: "Business account is deactivated"
+                });
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, business.password);
+            if (!isPasswordValid) {
+                return res.status(401).json({
+                    success: false,
+                    error: "Invalid email or password"
+                });
+            }
+
+            // Generate token
+            const token = generateBusinessToken(business.id, business.email);
+
+            // Set cookie
+            res.cookie("business_token", token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            });
+
+            res.json({
+                success: true,
+                business: {
+                    id: business.id,
+                    name: business.name,
+                    domain: business.domain,
+                    email: business.email,
+                },
+                message: "Business login successful"
+            });
+        } catch (error) {
+            console.error("Error logging in business:", error);
+            res.status(500).json({ success: false, error: "Failed to login" });
+        }
+    });
+
+    app.post("/api/business/auth/logout", (req, res) => {
+        res.clearCookie("business_token");
+        res.json({ success: true, message: "Business logged out successfully" });
     });
 
     // Track event endpoint
