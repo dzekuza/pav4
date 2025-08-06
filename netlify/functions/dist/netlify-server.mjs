@@ -68,6 +68,54 @@ const businessService = {
     return prisma.business.create({
       data
     });
+  },
+  async getBusinessStatistics(businessId) {
+    try {
+      const business = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: {
+          id: true,
+          name: true,
+          domain: true,
+          totalVisits: true,
+          totalPurchases: true,
+          totalRevenue: true,
+          commission: true,
+          adminCommissionRate: true,
+          affiliateId: true,
+          trackingVerified: true
+        }
+      });
+      if (!business) {
+        return null;
+      }
+      const [clicks, conversions] = await Promise.all([
+        prisma.businessClick.findMany({
+          where: { businessId },
+          orderBy: { timestamp: "desc" },
+          take: 10
+        }),
+        prisma.businessConversion.findMany({
+          where: { businessId },
+          orderBy: { timestamp: "desc" },
+          take: 10
+        })
+      ]);
+      const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+      const conversionRate = business.totalVisits > 0 ? business.totalPurchases / business.totalVisits * 100 : 0;
+      const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
+      return {
+        ...business,
+        averageOrderValue,
+        conversionRate,
+        projectedFee,
+        recentClicks: clicks,
+        recentConversions: conversions
+      };
+    } catch (error) {
+      console.error("Error getting business statistics:", error);
+      return null;
+    }
   }
 };
 async function createServer() {
@@ -225,6 +273,41 @@ async function createServer() {
   app.post("/api/business/auth/logout", (req, res) => {
     res.clearCookie("business_token");
     res.json({ success: true, message: "Business logged out successfully" });
+  });
+  app.get("/api/business/auth/stats", async (req, res) => {
+    try {
+      let token = req.cookies.business_token;
+      if (!token) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          error: "Not authenticated"
+        });
+      }
+      const decoded = verifyBusinessToken(token);
+      if (!decoded || decoded.type !== "business") {
+        return res.status(401).json({
+          success: false,
+          error: "Invalid token"
+        });
+      }
+      const stats = await businessService.getBusinessStatistics(decoded.businessId);
+      if (!stats) {
+        return res.status(404).json({
+          success: false,
+          error: "Business not found"
+        });
+      }
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error("Error getting business stats:", error);
+      res.status(500).json({ success: false, error: "Failed to get business statistics" });
+    }
   });
   app.post("/api/track-event", async (req, res) => {
     try {
