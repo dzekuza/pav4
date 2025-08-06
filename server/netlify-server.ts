@@ -24,7 +24,7 @@ const createPrismaClient = () => {
     }
 
     return new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: ['error'],
         datasources: {
             db: {
                 url: process.env.DATABASE_URL
@@ -50,10 +50,6 @@ async function testDatabaseConnection() {
         console.log('Testing database connection...');
         await prisma.$connect();
         console.log('Database connection successful');
-        
-        // Test a simple query
-        const result = await prisma.$queryRaw`SELECT 1 as test`;
-        console.log('Database query test successful:', result);
         
         return true;
     } catch (error) {
@@ -106,6 +102,13 @@ const businessService = {
     async getBusinessStatistics(businessId: number) {
         try {
             console.log('Getting business statistics for businessId:', businessId);
+            
+            // Test database connection first
+            const dbConnected = await testDatabaseConnection();
+            if (!dbConnected) {
+                console.log('Database connection failed, cannot get business statistics');
+                return null;
+            }
             
             // Get business details
             const business = await prisma.business.findUnique({

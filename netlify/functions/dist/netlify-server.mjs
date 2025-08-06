@@ -33,8 +33,6 @@ async function testDatabaseConnection() {
     console.log("Testing database connection...");
     await prisma.$connect();
     console.log("Database connection successful");
-    const result = await prisma.$queryRaw`SELECT 1 as test`;
-    console.log("Database query test successful:", result);
     return true;
   } catch (error) {
     console.error("Database connection failed:", error);
@@ -75,6 +73,11 @@ const businessService = {
   async getBusinessStatistics(businessId) {
     try {
       console.log("Getting business statistics for businessId:", businessId);
+      const dbConnected = await testDatabaseConnection();
+      if (!dbConnected) {
+        console.log("Database connection failed, cannot get business statistics");
+        return null;
+      }
       const business = await prisma.business.findUnique({
         where: { id: businessId },
         select: {
