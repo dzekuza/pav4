@@ -1,11 +1,11 @@
 import { RequestHandler } from "express";
-import { healthCheck } from "../services/database";
+import { dbService } from "../services/database";
 
 // Basic health check
 export const healthCheckHandler: RequestHandler = async (req, res) => {
   try {
-    const dbHealth = await healthCheck.checkConnection();
-    const stats = await healthCheck.getStats();
+    const dbHealth = await dbService.checkConnection();
+    const stats = await dbService.getStats();
 
     res.json({
       status: "healthy",

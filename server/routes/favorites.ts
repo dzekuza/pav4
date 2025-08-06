@@ -9,7 +9,7 @@ router.get('/', requireAuth, async (req: any, res) => {
   try {
     const userId = req.user.id;
     
-    const favorites = await prisma.favorite.findMany({
+    const favorites = await prisma.favorites.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' }
     });
@@ -50,7 +50,7 @@ router.post('/', requireAuth, async (req: any, res) => {
     }
 
     // Check if already favorited
-    const existingFavorite = await prisma.favorite.findFirst({
+    const existingFavorite = await prisma.favorites.findFirst({
       where: {
         userId,
         url
@@ -61,11 +61,11 @@ router.post('/', requireAuth, async (req: any, res) => {
       return res.status(400).json({ error: 'Product already in favorites' });
     }
 
-    const favorite = await prisma.favorite.create({
+    const favorite = await prisma.favorites.create({
       data: {
-        userId,
+        userId: userId as number,
         title,
-        price,
+        price: price?.toString(),
         currency,
         url,
         image,
@@ -78,7 +78,7 @@ router.post('/', requireAuth, async (req: any, res) => {
         details,
         returnPolicy,
         condition
-      }
+      } as any
     });
 
     res.json(favorite);
@@ -94,7 +94,7 @@ router.delete('/:id', requireAuth, async (req: any, res) => {
     const userId = req.user.id;
     const favoriteId = parseInt(req.params.id);
 
-    const favorite = await prisma.favorite.findFirst({
+    const favorite = await prisma.favorites.findFirst({
       where: {
         id: favoriteId,
         userId
@@ -105,7 +105,7 @@ router.delete('/:id', requireAuth, async (req: any, res) => {
       return res.status(404).json({ error: 'Favorite not found' });
     }
 
-    await prisma.favorite.delete({
+    await prisma.favorites.delete({
       where: { id: favoriteId }
     });
 
@@ -126,7 +126,7 @@ router.get('/check', requireAuth, async (req: any, res) => {
       return res.status(400).json({ error: 'URL is required' });
     }
 
-    const favorite = await prisma.favorite.findFirst({
+    const favorite = await prisma.favorites.findFirst({
       where: {
         userId,
         url: url as string

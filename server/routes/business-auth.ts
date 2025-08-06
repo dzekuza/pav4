@@ -408,13 +408,10 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
         errorMessage = "Google Tag Manager detected but no tracking script found. Please add the tracking script via GTM or directly in HTML.";
         instructions = {
           step1: "For Google Tag Manager implementation:",
+          script: `<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"></script>`,
           step2: "1. Go to your GTM container",
-          step3: "2. Create a new Custom HTML tag with this code:",
-          gtmScript: `<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"></script>`,
-          step4: "3. Set trigger to fire on pages containing '/thank-you'",
-          step5: "4. Publish your GTM container",
-          step6: "5. Test on a thank-you page and try verification again"
-        };
+          step3: "2. Create a new Custom HTML tag with this code:"
+        } as any;
       }
 
       return res.status(400).json({

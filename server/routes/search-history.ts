@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { legacySearchHistoryService } from "../services/database";
+import { searchService } from "../services/database";
 
 interface SearchHistoryRequest {
   url: string;
@@ -15,7 +15,7 @@ export const saveSearchHistory: RequestHandler = async (req, res) => {
     }
 
     // Add to legacy search history
-    await legacySearchHistoryService.addSearch(userKey, url);
+    await searchService.addLegacySearch(userKey, url);
 
     res.json({ success: true });
   } catch (error) {
@@ -33,7 +33,7 @@ export const getSearchHistory: RequestHandler = async (req, res) => {
     }
 
     const historyRecords =
-      await legacySearchHistoryService.getUserSearchHistory(userKey, 10);
+      await searchService.getLegacyUserSearchHistory(userKey, 10);
     const history = historyRecords.map((record) => record.url);
 
     res.json({ history });

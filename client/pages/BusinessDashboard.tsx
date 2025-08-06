@@ -11,6 +11,7 @@ interface BusinessStats {
   id: number;
   name: string;
   domain: string;
+  affiliateId: string;
   totalVisits: number;
   totalPurchases: number;
   totalRevenue: number;
@@ -121,10 +122,10 @@ export default function BusinessDashboard() {
             <p className="text-muted-foreground">{stats.domain}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/business-activity')}>
+            <Button variant="outline" onClick={() => navigate('/business/dashboard/activity')}>
               User Activity
             </Button>
-            <Button variant="outline" onClick={() => navigate('/business-integrate')}>
+            <Button variant="outline" onClick={() => navigate('/business/dashboard/integrate')}>
               Integrate
             </Button>
             <Button variant="outline" onClick={handleLogout}>

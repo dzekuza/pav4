@@ -111,21 +111,18 @@ router.get('/stats', async (req, res) => {
   try {
     const { startDate, endDate, retailer } = req.query;
 
-    const whereClause: any = {};
-    
-    if (startDate && endDate) {
-      whereClause.timestamp = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string),
-      };
-    }
-    
-    if (retailer) {
-      whereClause.retailer = retailer;
-    }
+    const whereClause = {
+      ...(startDate && endDate ? {
+        timestamp: {
+          gte: new Date(startDate as string),
+          lte: new Date(endDate as string),
+        }
+      } : {}),
+      ...(retailer ? { retailer } : {})
+    };
 
     // Get click statistics
-    const clickStats = await prisma.affiliateClick.groupBy({
+    const clickStats = await (prisma.affiliateClick.groupBy as any)({
       by: ['retailer'],
       where: whereClause,
       _count: {
@@ -137,7 +134,7 @@ router.get('/stats', async (req, res) => {
     });
 
     // Get conversion statistics
-    const conversionStats = await prisma.affiliateConversion.groupBy({
+    const conversionStats = await (prisma.affiliateConversion.groupBy as any)({
       by: ['retailer'],
       where: whereClause,
       _count: {
@@ -179,17 +176,17 @@ router.get('/utm-stats', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    const whereClause: any = {};
-    
-    if (startDate && endDate) {
-      whereClause.timestamp = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string),
-      };
-    }
+    const whereClause = {
+      ...(startDate && endDate ? {
+        timestamp: {
+          gte: new Date(startDate as string),
+          lte: new Date(endDate as string),
+        }
+      } : {})
+    };
 
     // Get UTM campaign statistics
-    const utmStats = await prisma.affiliateClick.groupBy({
+    const utmStats = await (prisma.affiliateClick.groupBy as any)({
       by: ['utmSource', 'utmMedium', 'utmCampaign'],
       where: whereClause,
       _count: {
@@ -197,7 +194,7 @@ router.get('/utm-stats', async (req, res) => {
       },
     });
 
-    const utmConversionStats = await prisma.affiliateConversion.groupBy({
+    const utmConversionStats = await (prisma.affiliateConversion.groupBy as any)({
       by: ['utmSource', 'utmMedium', 'utmCampaign'],
       where: whereClause,
       _count: {

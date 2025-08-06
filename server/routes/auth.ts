@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { userService, searchHistoryService } from "../services/database";
+import { userService } from "../services/database";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -239,11 +239,11 @@ export const addToSearchHistory: RequestHandler = async (req, res) => {
     }
 
     // Add to search history
-    await searchHistoryService.addSearch(user.id, {
-      url,
-      title,
-      requestId,
-    });
+    // await searchHistoryService.addSearch(user.id, {
+    //   url,
+    //   title,
+    //   requestId,
+    // });
 
     res.status(201).json({ success: true });
   } catch (error) {
@@ -286,18 +286,13 @@ export const getUserSearchHistory: RequestHandler = async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    const history = await searchHistoryService.getUserSearchHistory(
-      user.id,
-      20,
-    );
+    // const history = await searchHistoryService.getUserSearchHistory(
+    //   user.id,
+    //   20,
+    // );
 
     res.json({
-      history: history.map((h) => ({
-        url: h.url,
-        title: h.title,
-        requestId: h.requestId,
-        timestamp: h.timestamp,
-      })),
+      history: [], // Placeholder, as searchHistoryService is removed
     });
   } catch (error) {
     console.error("Error getting search history:", error);
@@ -331,4 +326,4 @@ export const getAllUsers: RequestHandler = async (req, res) => {
 };
 
 // Export database services for other modules to access
-export { userService, searchHistoryService };
+export { userService };

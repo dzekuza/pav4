@@ -87,10 +87,10 @@ export function SearchHeader({
                 <Link to="/business/dashboard">Dashboard</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/business-activity">Activity</Link>
+                <Link to="/business/dashboard/activity">Activity</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/business-integrate">Integrate</Link>
+                <Link to="/business/dashboard/integrate">Integrate</Link>
               </Button>
               <Button variant="outline" size="sm" onClick={logoutBusiness}>
                 <LogOut className="mr-2 h-4 w-4" />

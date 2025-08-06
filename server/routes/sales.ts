@@ -4,6 +4,20 @@ import SalesTrackingService, { SaleData } from '../services/sales-tracking';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { requireBusinessAuth } from '../middleware/business-auth';
 
+// Extend Express Request interface to include business property
+declare global {
+  namespace Express {
+    interface Request {
+      business?: {
+        id: number;
+        name: string;
+        domain: string;
+        email: string;
+      };
+    }
+  }
+}
+
 const router = express.Router();
 const prisma = new PrismaClient();
 

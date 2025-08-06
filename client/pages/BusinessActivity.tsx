@@ -19,6 +19,7 @@ interface ActivityItem {
   userAgent?: string;
   referrer?: string;
   ip?: string;
+  customerId?: string;
 }
 
 export default function BusinessActivity() {

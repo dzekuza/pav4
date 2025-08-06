@@ -5,7 +5,7 @@ import express from "express";
 import axios from "axios";
 import { ProductData, PriceComparison } from "../../shared/api";
 import { Request, Response } from "express";
-import { searchHistoryService, businessService, settingsService } from "../services/database";
+import { businessService, searchService } from "../services/database";
 import { requireAuth } from "../middleware/auth";
 
 // --- Product patterns for better product parsing ---
@@ -2104,7 +2104,7 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Prom
     );
     
     // Check if the filter is enabled
-    const filterEnabled = await settingsService.getSuggestionFilterEnabled();
+    const filterEnabled = await businessService.getSuggestionFilterEnabled();
     console.log(`🔧 Filter enabled: ${filterEnabled}`);
     
     if (!filterEnabled) {
@@ -2249,7 +2249,7 @@ router.post("/n8n-scrape", async (req, res) => {
       // Check if user is authenticated by looking for user info in request
       const userId = (req as any).user?.id;
       if (userId && result.mainProduct?.title) {
-        await searchHistoryService.addSearch(userId, {
+        await searchService.addSearch(userId, {
           url: addUtmToUrl(url),
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`,

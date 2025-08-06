@@ -5,34 +5,63 @@ import { ExternalLink, Star, TrendingUp, MapPin, ShoppingCart } from "lucide-rea
 import { generateAffiliateLink, trackAffiliateClick, trackSale, getStoredUtmParameters } from "@/lib/tracking";
 
 interface ProductCardProps {
-  product: {
-    title: string;
-    price: string;
-    url: string;
-    image?: string;
-    retailer?: string;
-    savings?: string;
-    isLocal?: boolean;
-    distance?: string;
-    businessId?: number; // Add business ID for sales tracking
-  };
+  title: string;
+  price: number;
+  currency: string;
+  url: string;
+  store: string;
+  image?: string;
+  rating?: number;
+  availability?: string;
+  reviews?: number;
+  inStock?: boolean;
+  condition?: string;
+  isBestPrice?: boolean;
+  savings?: number;
+  isLocal?: boolean;
+  distance?: string;
+  affiliateId?: string;
+  productId?: string;
+  businessId?: number; // Add business ID for sales tracking
   onFavoriteToggle?: () => void;
   isFavorited?: boolean;
   showBuyNow?: boolean; // New prop to show Buy Now button
 }
 
-export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow = false }: ProductCardProps) {
+export function ProductCard({ 
+  title,
+  price,
+  currency,
+  url,
+  store,
+  image,
+  rating,
+  availability,
+  reviews,
+  inStock,
+  condition,
+  isBestPrice,
+  savings,
+  isLocal,
+  distance,
+  affiliateId,
+  productId,
+  businessId,
+  onFavoriteToggle, 
+  isFavorited, 
+  showBuyNow = false 
+}: ProductCardProps) {
   const handleViewDeal = () => {
     // Generate affiliate link
-    const affiliateUrl = generateAffiliateLink(product.url, product.retailer || 'unknown');
+    const affiliateUrl = generateAffiliateLink(url, store || 'unknown');
 
     // Track the click
     const utmParams = getStoredUtmParameters();
     trackAffiliateClick({
-      productUrl: product.url,
-      productTitle: product.title,
-      productPrice: product.price,
-      retailer: product.retailer,
+      productUrl: url,
+      productTitle: title,
+      productPrice: `${price} ${currency}`,
+      retailer: store,
       sessionId: sessionStorage.getItem('pricehunt_session_id') || undefined,
       referrer: document.referrer,
       utmSource: utmParams.utm_source,
@@ -47,7 +76,7 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
   const handleBuyNow = async () => {
     try {
       // Generate affiliate link
-      const affiliateUrl = generateAffiliateLink(product.url, product.retailer || 'unknown');
+      const affiliateUrl = generateAffiliateLink(url, store || 'unknown');
 
       // Track the purchase intent
       const utmParams = getStoredUtmParameters();
@@ -55,10 +84,10 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
 
       // Track affiliate click with purchase intent
       trackAffiliateClick({
-        productUrl: product.url,
-        productTitle: product.title,
-        productPrice: product.price,
-        retailer: product.retailer,
+        productUrl: url,
+        productTitle: title,
+        productPrice: `${price} ${currency}`,
+        retailer: store,
         sessionId: sessionId,
         referrer: document.referrer,
         utmSource: utmParams.utm_source,
@@ -67,17 +96,17 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
       });
 
       // If we have a business ID, track the sale
-      if (product.businessId) {
+      if (businessId) {
         const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Use the new trackSale function
         const saleTracked = await trackSale({
           orderId: orderId,
-          businessId: product.businessId,
-          productUrl: product.url,
-          productTitle: product.title,
-          productPrice: product.price,
-          retailer: product.retailer,
+          businessId: businessId,
+          productUrl: url,
+          productTitle: title,
+          productPrice: `${price} ${currency}`,
+          retailer: store,
           sessionId: sessionId,
           referrer: document.referrer,
           utmSource: utmParams.utm_source,
@@ -86,7 +115,7 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
         });
 
         if (saleTracked) {
-          console.log('Sale tracked successfully for business:', product.businessId);
+          console.log('Sale tracked successfully for business:', businessId);
         }
       }
 
@@ -96,7 +125,7 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
     } catch (error) {
       console.error('Error tracking purchase:', error);
       // Fallback to regular affiliate link
-      const affiliateUrl = generateAffiliateLink(product.url, product.retailer || 'unknown');
+      const affiliateUrl = generateAffiliateLink(url, store || 'unknown');
       window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
     }
   };
@@ -119,7 +148,8 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
     }
   };
 
-  const retailerName = product.retailer || getRetailerName(product.url);
+  const retailerName = store || getRetailerName(url);
+  const priceDisplay = `${price} ${currency}`;
 
   return (
     <Card className="relative overflow-hidden hover:shadow-lg transition-shadow duration-200">
@@ -127,23 +157,23 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-2">
-              {product.title}
+              {title}
             </h3>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg font-bold text-green-600">
-                {product.price}
+                {priceDisplay}
               </span>
-              {product.savings && (
+              {savings && savings > 0 && (
                 <Badge variant="secondary" className="text-xs">
-                  Save {product.savings}
+                  Save {savings.toFixed(2)} {currency}
                 </Badge>
               )}
             </div>
           </div>
-          {product.image && (
+          {image && (
             <img
-              src={product.image}
-              alt={product.title}
+              src={image}
+              alt={title}
               className="w-16 h-16 object-cover rounded ml-3 flex-shrink-0"
             />
           )}
@@ -152,7 +182,7 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">{retailerName}</span>
-            {product.isLocal && (
+            {isLocal && (
               <div className="flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-blue-500" />
                 <span className="text-xs text-blue-600">Local</span>
@@ -210,9 +240,9 @@ export function ProductCard({ product, onFavoriteToggle, isFavorited, showBuyNow
           </div>
         </div>
 
-        {product.distance && (
+        {distance && (
           <div className="mt-2 text-xs text-gray-500">
-            {product.distance}
+            {distance}
           </div>
         )}
       </CardContent>

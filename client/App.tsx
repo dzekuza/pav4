@@ -19,9 +19,12 @@ import NewSearchResults from "./pages/NewSearchResults";
 import { BusinessRegistration } from "./components/BusinessRegistration";
 import { BusinessManagement } from "./pages/BusinessManagement";
 import BusinessLogin from "./pages/BusinessLogin";
-import BusinessDashboard from "./pages/BusinessDashboard";
-import { StagewiseToolbar } from '@stagewise/toolbar-react';
-import ReactPlugin from '@stagewise-plugins/react';
+import BusinessDashboardLayout from "./components/BusinessDashboardLayout";
+import BusinessDashboardHome from "./pages/BusinessDashboardHome";
+import BusinessActivityDashboard from "./pages/BusinessActivityDashboard";
+import BusinessIntegrateDashboard from "./pages/BusinessIntegrateDashboard";
+import BusinessAnalyticsDashboard from "./pages/BusinessAnalyticsDashboard";
+import BusinessSettingsDashboard from "./pages/BusinessSettingsDashboard";
 import BusinessIntegrate from "./pages/BusinessIntegrate";
 import BusinessActivity from "./pages/BusinessActivity";
 import BusinessConnect from "./pages/BusinessConnect";
@@ -93,8 +96,31 @@ const router = createBrowserRouter([
   },
   {
     path: "/business/dashboard",
-    element: <BusinessDashboard />,
+    element: <BusinessDashboardLayout />,
+          children: [
+        {
+          index: true,
+          element: <BusinessDashboardHome />,
+        },
+        {
+          path: "activity",
+          element: <BusinessActivityDashboard />,
+        },
+        {
+          path: "integrate",
+          element: <BusinessIntegrateDashboard />,
+        },
+        {
+          path: "analytics",
+          element: <BusinessAnalyticsDashboard />,
+        },
+        {
+          path: "settings",
+          element: <BusinessSettingsDashboard />,
+        },
+      ],
   },
+  // Legacy routes for backward compatibility
   {
     path: "/business/integrate",
     element: <BusinessIntegrate />,
@@ -124,7 +150,7 @@ const router = createBrowserRouter([
 
 const App = () => (
   <>
-    <StagewiseToolbar config={{ plugins: [ReactPlugin] }} />
+    {/* <StagewiseToolbar config={{ plugins: [ReactPlugin] }} /> */}
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>

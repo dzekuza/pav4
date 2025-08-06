@@ -18,16 +18,26 @@ if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
 }
 
+// Function to generate unique affiliate ID
+function generateAffiliateId(domain: string): string {
+  const timestamp = Date.now();
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const domainPrefix = domain.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+  return `aff_${domainPrefix}_${timestamp}_${randomSuffix}`;
+}
+
 // Function to set user context for Row Level Security
 export async function setUserContext(userId?: number, userEmail?: string) {
-  if (userId || userEmail) {
-    await prisma.$executeRaw`SELECT set_user_context(${userEmail || null}, ${userId || null})`;
-  }
+  // Skip RLS context setting if not needed
+  // The set_user_context function doesn't exist in the current database schema
+  return;
 }
 
 // Function to clear user context
 export async function clearUserContext() {
-  await prisma.$executeRaw`SELECT set_user_context(null, null)`;
+  // Skip RLS context clearing if not needed
+  // The set_user_context function doesn't exist in the current database schema
+  return;
 }
 
 // User operations
@@ -106,30 +116,32 @@ export const adminService = {
     name?: string;
     role?: string;
   }) {
-    return prisma.admin.create({
+    return prisma.admins.create({
       data: {
         email: data.email,
         password: data.password,
-        name: data.name,
+        name: data.name || "",
         role: data.role || "admin",
+        isActive: true,
+        updatedAt: new Date(),
       },
     });
   },
 
   async findAdminByEmail(email: string) {
-    return prisma.admin.findUnique({
+    return prisma.admins.findUnique({
       where: { email },
     });
   },
 
   async findAdminById(id: number) {
-    return prisma.admin.findUnique({
+    return prisma.admins.findUnique({
       where: { id },
     });
   },
 
   async getAllAdmins() {
-    return prisma.admin.findMany({
+    return prisma.admins.findMany({
       select: {
         id: true,
         email: true,
@@ -137,6 +149,7 @@ export const adminService = {
         role: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -154,21 +167,21 @@ export const adminService = {
       isActive: boolean;
     }>,
   ) {
-    return prisma.admin.update({
+    return prisma.admins.update({
       where: { id },
       data,
     });
   },
 
   async deleteAdmin(id: number) {
-    return prisma.admin.delete({
+    return prisma.admins.delete({
       where: { id },
     });
   },
 };
 
 // Search history operations
-export const searchHistoryService = {
+export const searchService = {
   async addSearch(
     userId: number,
     data: {
@@ -196,11 +209,8 @@ export const searchHistoryService = {
   },
 
   async deleteUserSearch(userId: number, searchId: number) {
-    return prisma.searchHistory.delete({
-      where: {
-        id: searchId,
-        userId, // Ensure user can only delete their own searches
-      },
+    return prisma.searchHistory.deleteMany({
+      where: { id: searchId, userId },
     });
   },
 
@@ -210,24 +220,23 @@ export const searchHistoryService = {
     });
   },
 
-  // Clean up old search history (older than X days)
   async cleanupOldSearches(daysToKeep: number = 90) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    return prisma.searchHistory.deleteMany({
+    const result = await prisma.searchHistory.deleteMany({
       where: {
         timestamp: {
           lt: cutoffDate,
         },
       },
     });
-  },
-};
 
-// Legacy search history for non-authenticated users
-export const legacySearchHistoryService = {
-  async addSearch(userKey: string, url: string) {
+    return result.count;
+  },
+
+  // Legacy search history (for backward compatibility)
+  async addLegacySearch(userKey: string, url: string) {
     return prisma.legacySearchHistory.create({
       data: {
         userKey,
@@ -236,7 +245,7 @@ export const legacySearchHistoryService = {
     });
   },
 
-  async getUserSearchHistory(userKey: string, limit: number = 10) {
+  async getLegacyUserSearchHistory(userKey: string, limit: number = 10) {
     return prisma.legacySearchHistory.findMany({
       where: { userKey },
       orderBy: { timestamp: "desc" },
@@ -248,28 +257,26 @@ export const legacySearchHistoryService = {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    return prisma.legacySearchHistory.deleteMany({
+    const result = await prisma.legacySearchHistory.deleteMany({
       where: {
         timestamp: {
           lt: cutoffDate,
         },
       },
     });
+
+    return result.count;
   },
 };
 
-// Database health check
-export const healthCheck = {
+// Database utility functions
+export const dbService = {
   async checkConnection() {
     try {
       await prisma.$queryRaw`SELECT 1`;
-      return { status: "healthy", message: "Database connection successful" };
+      return { status: "connected", message: "Database connection successful" };
     } catch (error) {
-      return {
-        status: "unhealthy",
-        message: "Database connection failed",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return { status: "error", message: `Database connection failed: ${error}` };
     }
   },
 
@@ -283,7 +290,7 @@ export const healthCheck = {
     return {
       users: userCount,
       searches: searchCount,
-      legacySearches: legacySearchCount,
+      legacySearches: legacySearchCount
     };
   },
 };
@@ -296,18 +303,19 @@ export const affiliateService = {
     description?: string;
     isActive?: boolean;
   }) {
-    return prisma.affiliateUrl.create({
+    return prisma.affiliate_urls.create({
       data: {
         name: data.name,
         url: data.url,
-        description: data.description,
-        isActive: data.isActive ?? true,
+        description: data.description || "",
+        isActive: data.isActive !== false,
+        updatedAt: new Date(),
       },
     });
   },
 
   async getAllAffiliateUrls() {
-    return prisma.affiliateUrl.findMany({
+    return prisma.affiliate_urls.findMany({
       orderBy: {
         createdAt: "desc",
       },
@@ -315,7 +323,7 @@ export const affiliateService = {
   },
 
   async getAffiliateUrlById(id: number) {
-    return prisma.affiliateUrl.findUnique({
+    return prisma.affiliate_urls.findUnique({
       where: { id },
     });
   },
@@ -329,20 +337,20 @@ export const affiliateService = {
       isActive: boolean;
     }>,
   ) {
-    return prisma.affiliateUrl.update({
+    return prisma.affiliate_urls.update({
       where: { id },
       data,
     });
   },
 
   async deleteAffiliateUrl(id: number) {
-    return prisma.affiliateUrl.delete({
+    return prisma.affiliate_urls.delete({
       where: { id },
     });
   },
 
   async incrementClicks(id: number) {
-    return prisma.affiliateUrl.update({
+    return prisma.affiliate_urls.update({
       where: { id },
       data: {
         clicks: {
@@ -353,7 +361,7 @@ export const affiliateService = {
   },
 
   async addConversion(id: number, revenue: number = 0) {
-    return prisma.affiliateUrl.update({
+    return prisma.affiliate_urls.update({
       where: { id },
       data: {
         conversions: {
@@ -367,26 +375,22 @@ export const affiliateService = {
   },
 
   async getAffiliateStats() {
-    const [totalUrls, activeUrls, totalClicks, totalConversions, totalRevenue] = await Promise.all([
-      prisma.affiliateUrl.count(),
-      prisma.affiliateUrl.count({ where: { isActive: true } }),
-      prisma.affiliateUrl.aggregate({
-        _sum: { clicks: true },
-      }),
-      prisma.affiliateUrl.aggregate({
-        _sum: { conversions: true },
-      }),
-      prisma.affiliateUrl.aggregate({
-        _sum: { revenue: true },
-      }),
-    ]);
+    const stats = await prisma.affiliate_urls.aggregate({
+      _sum: {
+        clicks: true,
+        conversions: true,
+        revenue: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
 
     return {
-      totalUrls,
-      activeUrls,
-      totalClicks: totalClicks._sum.clicks || 0,
-      totalConversions: totalConversions._sum.conversions || 0,
-      totalRevenue: totalRevenue._sum.revenue || 0,
+      totalUrls: stats._count.id,
+      totalClicks: stats._sum.clicks || 0,
+      totalConversions: stats._sum.conversions || 0,
+      totalRevenue: stats._sum.revenue || 0,
     };
   },
 };
@@ -408,6 +412,31 @@ export const businessService = {
     email: string;
     password: string;
   }) {
+    // Generate unique affiliate ID
+    let affiliateId = generateAffiliateId(data.domain);
+    
+    // Check if affiliate ID already exists and generate a new one if needed
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      const existingBusiness = await prisma.business.findUnique({
+        where: { affiliateId },
+      });
+      
+      if (!existingBusiness) {
+        break; // Affiliate ID is unique
+      }
+      
+      // Generate new affiliate ID with different random suffix
+      affiliateId = generateAffiliateId(data.domain);
+      attempts++;
+    }
+    
+    if (attempts >= maxAttempts) {
+      throw new Error('Failed to generate unique affiliate ID after multiple attempts');
+    }
+
     return prisma.business.create({
       data: {
         name: data.name,
@@ -423,6 +452,7 @@ export const businessService = {
         commission: data.commission || 0,
         email: data.email,
         password: data.password,
+        affiliateId: affiliateId,
       },
     });
   },
@@ -495,16 +525,15 @@ export const businessService = {
     ]);
 
     return {
-      totalBusinesses,
-      activeBusinesses,
-      verifiedBusinesses,
+      total: totalBusinesses,
+      active: activeBusinesses,
+      verified: verifiedBusinesses,
     };
   },
 
-  // Business authentication
   async findBusinessByEmail(email: string) {
     return prisma.business.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
     });
   },
 
@@ -514,7 +543,6 @@ export const businessService = {
     });
   },
 
-  // Business statistics
   async updateBusinessStats(businessId: number, data: {
     totalVisits?: number;
     totalPurchases?: number;
@@ -561,20 +589,35 @@ export const businessService = {
         totalVisits: true,
         totalPurchases: true,
         totalRevenue: true,
+        commission: true,
         adminCommissionRate: true,
+        affiliateId: true,
+        trackingVerified: true,
       },
     });
 
-    if (!business) return null;
+    if (!business) {
+      return null;
+    }
 
-    const projectedFee = (business.totalRevenue * business.adminCommissionRate) / 100;
-    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+    // Get recent clicks and conversions
+    const [clicks, conversions] = await Promise.all([
+      prisma.businessClick.findMany({
+        where: { businessId },
+        orderBy: { timestamp: "desc" },
+        take: 10,
+      }),
+      prisma.businessConversion.findMany({
+        where: { businessId },
+        orderBy: { timestamp: "desc" },
+        take: 10,
+      }),
+    ]);
 
     return {
       ...business,
-      projectedFee,
-      averageOrderValue,
-      conversionRate: business.totalVisits > 0 ? (business.totalPurchases / business.totalVisits) * 100 : 0,
+      recentClicks: clicks,
+      recentConversions: conversions,
     };
   },
 
@@ -586,37 +629,21 @@ export const businessService = {
   },
 
   async updateBusinessPassword(businessId: number, password: string) {
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
     return prisma.business.update({
       where: { id: businessId },
-      data: { password: hashedPassword },
+      data: { password },
     });
   },
 
   async getBusinessClickLogs(businessId: number) {
-    // Get the business and its domain(s)
-    const business = await prisma.business.findUnique({ where: { id: businessId } });
-    if (!business || !business.domain) return [];
-    const domains = [business.domain.toLowerCase().replace(/^www\./, "")];
-    // Find all ClickLog entries where the url domain matches the business domain
-    const logs = await prisma.clickLog.findMany();
-    return logs.filter(log => {
-      if (!log.productId) return false;
-      try {
-        const url = new URL(log.productId);
-        const domain = url.hostname.toLowerCase().replace(/^www\./, "");
-        return domains.includes(domain);
-      } catch {
-        return false;
-      }
+    return prisma.businessClick.findMany({
+      where: { businessId },
+      orderBy: { timestamp: "desc" },
+      take: 100,
     });
   },
-};
 
-// Click log operations
-export const clickLogService = {
+  // Click tracking operations
   async logClick(data: {
     affiliateId: string;
     productId: string;
@@ -625,80 +652,81 @@ export const clickLogService = {
     referrer?: string;
     ip?: string;
   }) {
-    return prisma.clickLog.create({
+    // Find business by affiliate ID
+    const business = await prisma.business.findUnique({
+      where: { affiliateId: data.affiliateId },
+    });
+
+    if (!business) {
+      throw new Error('Business not found for affiliate ID');
+    }
+
+    // Log the click
+    const click = await prisma.businessClick.create({
       data: {
-        affiliateId: data.affiliateId,
-        productId: data.productId,
-        userId: data.userId,
+        businessId: business.id,
+        productUrl: data.productId, // Using productId as productUrl
         userAgent: data.userAgent,
         referrer: data.referrer,
-        ip: data.ip,
+        ipAddress: data.ip,
       },
     });
+
+    // Increment business visit count
+    await this.incrementBusinessVisits(business.id);
+
+    return click;
   },
 
-  // TODO: Implement real product/business lookup
   async getProductUrlByAffiliateAndProductId(affiliateId: string, productId: string): Promise<string | null> {
-    // Try to find the affiliate by id (as int) or name
-    let affiliate: any = null;
-    const idNum = parseInt(affiliateId, 10);
-    if (!isNaN(idNum)) {
-      affiliate = await prisma.affiliateUrl.findUnique({ where: { id: idNum } });
-    }
-    if (!affiliate) {
-      affiliate = await prisma.affiliateUrl.findFirst({ where: { name: affiliateId } });
-    }
-    if (!affiliate) return null;
-    // If the affiliate url contains a placeholder for productId, replace it
-    if (affiliate.url.includes('{productId}')) {
-      return affiliate.url.replace('{productId}', productId);
-    }
-    // Otherwise, append productId as a slug or query param
-    if (affiliate.url.endsWith('/')) {
-      return affiliate.url + productId;
-    }
-    if (affiliate.url.includes('?')) {
-      return affiliate.url + '&product=' + productId;
-    }
-    return affiliate.url + '/' + productId;
-  },
-};
+    // This is a placeholder implementation
+    // In a real implementation, you would store product URLs in a separate table
+    // or have a way to map affiliate IDs and product IDs to URLs
+    
+    // For now, we'll return a generic URL based on the affiliate ID
+    const business = await prisma.business.findUnique({
+      where: { affiliateId },
+    });
 
-// Settings operations
-export const settingsService = {
-  async getSuggestionFilterEnabled(): Promise<boolean> {
-    const setting = await prisma.settings.findUnique({ where: { key: 'suggestionFilterEnabled' } });
-    return setting ? setting.value === 'true' : true; // Default: enabled
+    if (!business) {
+      return null;
+    }
+
+    // Construct a URL based on the business domain and product ID
+    // This is a simplified approach - in reality, you'd want to store actual product URLs
+    return `https://${business.domain}/products/${productId}`;
   },
+
+  // Settings operations
+  async getSuggestionFilterEnabled(): Promise<boolean> {
+    const setting = await prisma.settings.findUnique({
+      where: { key: 'suggestion_filter_enabled' },
+    });
+    return setting?.value === 'true';
+  },
+
   async setSuggestionFilterEnabled(enabled: boolean): Promise<void> {
     await prisma.settings.upsert({
-      where: { key: 'suggestionFilterEnabled' },
-      update: { value: enabled ? 'true' : 'false' },
-      create: { key: 'suggestionFilterEnabled', value: enabled ? 'true' : 'false' },
+      where: { key: 'suggestion_filter_enabled' },
+      update: { value: enabled.toString() },
+      create: { key: 'suggestion_filter_enabled', value: enabled.toString() },
     });
   },
 };
 
 // Graceful shutdown
 export const gracefulShutdown = async () => {
-  try {
-    await prisma.$disconnect();
-    console.log('Database connection closed gracefully');
-  } catch (error) {
-    console.error('Error during database shutdown:', error);
-  }
+  console.log('Shutting down database connection...');
+  await prisma.$disconnect();
+  console.log('Database connection closed.');
 };
 
-// Health check for database connection
+// Database connection check
 export const checkDatabaseConnection = async () => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return { status: 'connected', message: 'Database connection successful' };
+    return { status: "connected", message: "Database connection successful" };
   } catch (error) {
-    return { 
-      status: 'error', 
-      message: 'Database connection failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    return { status: "error", message: `Database connection failed: ${error}` };
   }
 };

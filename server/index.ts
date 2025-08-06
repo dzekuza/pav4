@@ -24,7 +24,7 @@ import { requireAuth, requireAdmin, optionalAuth, clearRLSContext } from "./midd
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
-import { gracefulShutdown, checkDatabaseConnection, clickLogService, settingsService, businessService } from "./services/database";
+import { gracefulShutdown, checkDatabaseConnection, businessService } from "./services/database";
 import {
   registerBusiness,
   getAllBusinesses,
@@ -237,7 +237,7 @@ export async function createServer() {
   app.post("/api/test-tracking", async (req, res) => {
     try {
       console.log('Test tracking route called');
-      const { prisma } = await import("../services/database");
+      const { prisma } = await import("./services/database");
       
       const testEvent = await prisma.trackingEvent.create({
         data: {
@@ -338,12 +338,12 @@ export async function createServer() {
   app.get('/go/:affiliateId/:productId', async (req, res) => {
     const { affiliateId, productId } = req.params;
     // Look up the real product URL
-    const productUrl = await clickLogService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
+    const productUrl = await businessService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
     if (!productUrl) {
       return res.status(404).send('Product not found');
     }
     // Log the click
-    await clickLogService.logClick({
+    await businessService.logClick({
       affiliateId,
       productId,
       userId: req.user?.id,
@@ -365,7 +365,7 @@ export async function createServer() {
   // Admin: Get suggestion filter state
   app.get("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, async (req, res) => {
     try {
-      const enabled = await settingsService.getSuggestionFilterEnabled();
+      const enabled = await businessService.getSuggestionFilterEnabled();
       res.json({ enabled });
     } catch (err) {
       res.status(500).json({ error: "Failed to get suggestion filter state" });
@@ -379,7 +379,7 @@ export async function createServer() {
       if (typeof enabled !== "boolean") {
         return res.status(400).json({ error: "'enabled' must be a boolean" });
       }
-      await settingsService.setSuggestionFilterEnabled(enabled);
+      await businessService.setSuggestionFilterEnabled(enabled);
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to set suggestion filter state" });

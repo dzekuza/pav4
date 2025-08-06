@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -53,6 +53,21 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
   });
   
   const { toast } = useToast();
+
+  // Auto-generate website URL from domain
+  useEffect(() => {
+    if (formData.domain) {
+      const cleanDomain = formData.domain.trim().toLowerCase();
+      if (cleanDomain) {
+        // Ensure the domain has a protocol
+        let websiteUrl = cleanDomain;
+        if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+          websiteUrl = `https://${websiteUrl}`;
+        }
+        setFormData(prev => ({ ...prev, website: websiteUrl }));
+      }
+    }
+  }, [formData.domain]);
 
   const updateFormData = (field: keyof BusinessRegistrationData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -181,7 +196,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
           description: formData.description,
           category: formData.category,
           country: formData.country,
-          contactEmail: formData.contactEmail || formData.email,
+          contactEmail: formData.contactEmail,
           contactPhone: formData.contactPhone,
           address: formData.address,
         }),
@@ -345,13 +360,20 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                 />
               </div>
               <div>
-                <Label htmlFor="website">Website URL</Label>
+                <Label htmlFor="website" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Website URL (Auto-generated)
+                </Label>
                 <Input
                   id="website"
                   value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://amazon.com, https://bestbuy.com"
+                  readOnly
+                  className="bg-gray-50 cursor-not-allowed"
+                  placeholder="https://yourdomain.com"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Website URL is automatically generated from your domain
+                </p>
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
