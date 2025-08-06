@@ -9,11 +9,11 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 dotenv.config();
 const createPrismaClient = () => {
-  const databaseUrl = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL;
+  const databaseUrl = process.env.NETLIFY_DATABASE_URL;
   console.log("Creating Prisma client with database URL:", databaseUrl ? "SET" : "NOT SET");
   console.log("Using Netlify database:", !!process.env.NETLIFY_DATABASE_URL);
   if (!databaseUrl) {
-    console.error("No database URL found (neither NETLIFY_DATABASE_URL nor DATABASE_URL)");
+    console.error("No NETLIFY_DATABASE_URL found");
     return null;
   }
   return new PrismaClient({
