@@ -10,6 +10,9 @@ interface BusinessRegistrationData {
   name: string;
   domain: string;
   website: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
   description: string;
   logo: string;
   contactEmail: string;
@@ -25,6 +28,9 @@ export function BusinessRegistration() {
     name: '',
     domain: '',
     website: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
     description: '',
     logo: '',
     contactEmail: '',
@@ -46,10 +52,37 @@ export function BusinessRegistration() {
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.domain || !formData.website) {
+    if (!formData.name || !formData.domain || !formData.website || !formData.email || !formData.password) {
       toast({
         title: "Validation Error",
-        description: "Name, domain, and website are required fields.",
+        description: "Name, domain, website, email, and password are required fields.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Passwords Don't Match",
+        description: "Password and confirm password must match.",
         variant: "destructive",
       });
       return false;
@@ -83,7 +116,18 @@ export function BusinessRegistration() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          name: formData.name,
+          domain: formData.domain,
+          website: formData.website,
+          email: formData.email,
+          password: formData.password,
+          description: formData.description,
+          logo: formData.logo,
+          contactEmail: formData.contactEmail,
+          contactPhone: formData.contactPhone,
+          address: formData.address,
+          country: formData.country,
+          category: formData.category,
           commission: formData.commission ? parseFloat(formData.commission) : 0,
         }),
       });
@@ -93,7 +137,7 @@ export function BusinessRegistration() {
       if (data.success) {
         toast({
           title: "Registration Successful",
-          description: "Your business has been registered successfully! We'll review and verify your information.",
+          description: "Your business has been registered successfully! You can now log in with your email and password.",
         });
         
         // Reset form
@@ -101,6 +145,9 @@ export function BusinessRegistration() {
           name: '',
           domain: '',
           website: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
           description: '',
           logo: '',
           contactEmail: '',
@@ -136,147 +183,200 @@ export function BusinessRegistration() {
           <CardTitle>Business Registration</CardTitle>
           <CardDescription>
             Register your business to appear in product search suggestions. 
-            Only registered businesses will be shown to users when they search for products.
+            You'll need to provide login credentials to access your business dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Business Information Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Business Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Business Name *</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Amazon"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="domain">Domain *</Label>
+                  <Input
+                    id="domain"
+                    name="domain"
+                    value={formData.domain}
+                    onChange={handleInputChange}
+                    placeholder="e.g., amazon.com"
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="name">Business Name *</Label>
+                <Label htmlFor="website">Website URL *</Label>
                 <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="website"
+                  name="website"
+                  value={formData.website}
                   onChange={handleInputChange}
-                  placeholder="e.g., Amazon"
+                  placeholder="e.g., https://amazon.com"
                   required
                 />
               </div>
+            </div>
+
+            {/* Login Credentials Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Login Credentials</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Create a password (min. 6 characters)"
+                    required
+                  />
+                </div>
+              </div>
 
               <div className="space-y-2">
-                <Label htmlFor="domain">Domain *</Label>
+                <Label htmlFor="confirmPassword">Confirm Password *</Label>
                 <Input
-                  id="domain"
-                  name="domain"
-                  value={formData.domain}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  placeholder="e.g., amazon.com"
+                  placeholder="Confirm your password"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="website">Website URL *</Label>
-              <Input
-                id="website"
-                name="website"
-                value={formData.website}
-                onChange={handleInputChange}
-                placeholder="e.g., https://amazon.com"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Brief description of your business..."
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Additional Information Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Additional Information</h3>
               <div className="space-y-2">
-                <Label htmlFor="logo">Logo URL</Label>
-                <Input
-                  id="logo"
-                  name="logo"
-                  value={formData.logo}
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
                   onChange={handleInputChange}
-                  placeholder="https://example.com/logo.png"
+                  placeholder="Brief description of your business..."
+                  rows={3}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Electronics, Fashion"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="logo">Logo URL</Label>
+                  <Input
+                    id="logo"
+                    name="logo"
+                    value={formData.logo}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Electronics, Fashion"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail">Contact Email</Label>
-                <Input
-                  id="contactEmail"
-                  name="contactEmail"
-                  type="email"
-                  value={formData.contactEmail}
-                  onChange={handleInputChange}
-                  placeholder="contact@example.com"
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Input
+                    id="contactEmail"
+                    name="contactEmail"
+                    type="email"
+                    value={formData.contactEmail}
+                    onChange={handleInputChange}
+                    placeholder="contact@example.com"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Contact Phone</Label>
-                <Input
-                  id="contactPhone"
-                  name="contactPhone"
-                  value={formData.contactPhone}
-                  onChange={handleInputChange}
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                placeholder="Business address..."
-                rows={2}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                  placeholder="e.g., United States"
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="contactPhone">Contact Phone</Label>
+                  <Input
+                    id="contactPhone"
+                    name="contactPhone"
+                    value={formData.contactPhone}
+                    onChange={handleInputChange}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="commission">Commission Rate (%)</Label>
-                <Input
-                  id="commission"
-                  name="commission"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={formData.commission}
+                <Label htmlFor="address">Address</Label>
+                <Textarea
+                  id="address"
+                  name="address"
+                  value={formData.address}
                   onChange={handleInputChange}
-                  placeholder="5.0"
+                  placeholder="Business address..."
+                  rows={2}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleInputChange}
+                    placeholder="e.g., United States"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="commission">Commission Rate (%)</Label>
+                  <Input
+                    id="commission"
+                    name="commission"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.commission}
+                    onChange={handleInputChange}
+                    placeholder="5.0"
+                  />
+                </div>
               </div>
             </div>
 

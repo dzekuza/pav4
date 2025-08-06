@@ -38,6 +38,9 @@ export default defineConfig({
                 "compression",
                 "cookie-parser",
                 "@prisma/client",
+                "@netlify/neon",
+                "bcryptjs",
+                "jsonwebtoken",
             ],
             output: {
                 format: "es",

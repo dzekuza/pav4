@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import { businessService, prisma } from "../services/database";
 import { requireAdminAuth } from "../middleware/admin-auth";
 import { verifyBusinessToken } from "../middleware/business-auth";
+import bcrypt from "bcryptjs";
 
 // Register a new business
 export const registerBusiness: RequestHandler = async (req, res) => {
@@ -10,6 +11,8 @@ export const registerBusiness: RequestHandler = async (req, res) => {
       name, 
       domain, 
       website, 
+      email,
+      password,
       description, 
       logo, 
       contactEmail, 
@@ -20,10 +23,26 @@ export const registerBusiness: RequestHandler = async (req, res) => {
       commission 
     } = req.body;
 
-    if (!name || !domain || !website) {
+    if (!name || !domain || !website || !email || !password) {
       return res.status(400).json({ 
         success: false, 
-        error: "Name, domain, and website are required" 
+        error: "Name, domain, website, email, and password are required" 
+      });
+    }
+
+    // Validate email format
+    if (!email.includes('@')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Invalid email format" 
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Password must be at least 6 characters long" 
       });
     }
 
@@ -45,10 +64,24 @@ export const registerBusiness: RequestHandler = async (req, res) => {
       });
     }
 
+    // Check if email already exists
+    const existingBusinessByEmail = await businessService.findBusinessByEmail(email);
+    if (existingBusinessByEmail) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "A business with this email already exists" 
+      });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const business = await businessService.createBusiness({
       name,
       domain,
       website,
+      email,
+      password: hashedPassword,
       description,
       logo,
       contactEmail,
@@ -57,14 +90,18 @@ export const registerBusiness: RequestHandler = async (req, res) => {
       country,
       category,
       commission: commission ? parseFloat(commission) : 0,
-      email: contactEmail || `contact@${domain}`,
-      password: "defaultpassword123", // This will be hashed in the service
     });
 
     res.status(201).json({ 
       success: true, 
-      business,
-      message: "Business registered successfully" 
+      business: {
+        id: business.id,
+        name: business.name,
+        domain: business.domain,
+        email: business.email,
+        affiliateId: business.affiliate_id,
+      },
+      message: "Business registered successfully. You can now log in with your email and password." 
     });
   } catch (error) {
     console.error("Error registering business:", error);

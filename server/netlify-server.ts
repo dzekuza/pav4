@@ -7,54 +7,20 @@ import compression from "compression";
 import path from "path";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { neon } from '@netlify/neon';
 
 // Load environment variables
 dotenv.config();
 
-// Import database service
-import { PrismaClient } from "@prisma/client";
-
-// Create a single Prisma Client instance
-const createPrismaClient = () => {
-    // Use only Netlify database URL
-    const databaseUrl = process.env.NETLIFY_DATABASE_URL;
-    
-    console.log('Creating Prisma client with database URL:', databaseUrl ? 'SET' : 'NOT SET');
-    console.log('Using Netlify database:', !!process.env.NETLIFY_DATABASE_URL);
-
-    if (!databaseUrl) {
-        console.error('No NETLIFY_DATABASE_URL found');
-        return null;
-    }
-
-    return new PrismaClient({
-        log: ['error'],
-        datasources: {
-            db: {
-                url: databaseUrl
-            }
-        }
-    });
-};
-
-export const prisma = globalThis.__prisma || createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-    globalThis.__prisma = prisma;
-}
+// Create Neon SQL client
+const sql = neon(); // automatically uses env NETLIFY_DATABASE_URL
 
 // Test database connection with retry logic
 async function testDatabaseConnection() {
     try {
-        if (!prisma) {
-            console.error('Prisma client not initialized - DATABASE_URL missing');
-            return false;
-        }
-        
-        console.log('Testing database connection...');
-        await prisma.$connect();
-        console.log('Database connection successful');
-        
+        console.log('Testing database connection with Neon...');
+        const result = await sql`SELECT 1 as test`;
+        console.log('Database connection successful:', result);
         return true;
     } catch (error) {
         console.error('Database connection failed:', error);
@@ -83,24 +49,46 @@ function verifyBusinessToken(token: string) {
     }
 }
 
-// Business service functions
+// Business service functions using Neon
 const businessService = {
     async findBusinessByEmail(email: string) {
-        return prisma.business.findUnique({
-            where: { email },
-        });
+        try {
+            const result = await sql`
+                SELECT * FROM business 
+                WHERE email = ${email}
+            `;
+            return result[0] || null;
+        } catch (error) {
+            console.error('Error finding business by email:', error);
+            return null;
+        }
     },
 
     async findBusinessById(id: number) {
-        return prisma.business.findUnique({
-            where: { id },
-        });
+        try {
+            const result = await sql`
+                SELECT * FROM business 
+                WHERE id = ${id}
+            `;
+            return result[0] || null;
+        } catch (error) {
+            console.error('Error finding business by id:', error);
+            return null;
+        }
     },
 
     async createBusiness(data: any) {
-        return prisma.business.create({
-            data,
-        });
+        try {
+            const result = await sql`
+                INSERT INTO business (name, domain, website, email, password, affiliate_id, is_active, created_at, updated_at)
+                VALUES (${data.name}, ${data.domain}, ${data.website}, ${data.email}, ${data.password}, ${data.affiliateId}, true, NOW(), NOW())
+                RETURNING *
+            `;
+            return result[0] || null;
+        } catch (error) {
+            console.error('Error creating business:', error);
+            return null;
+        }
     },
 
     async getBusinessStatistics(businessId: number) {
@@ -115,22 +103,13 @@ const businessService = {
             }
             
             // Get business details
-            const business = await prisma.business.findUnique({
-                where: { id: businessId },
-                select: {
-                    id: true,
-                    name: true,
-                    domain: true,
-                    totalVisits: true,
-                    totalPurchases: true,
-                    totalRevenue: true,
-                    commission: true,
-                    adminCommissionRate: true,
-                    affiliateId: true,
-                    trackingVerified: true,
-                },
-            });
-
+            const businessResult = await sql`
+                SELECT id, name, domain, total_visits, total_purchases, total_revenue, commission, admin_commission_rate, affiliate_id, tracking_verified
+                FROM business 
+                WHERE id = ${businessId}
+            `;
+            
+            const business = businessResult[0];
             console.log('Business found:', business);
 
             if (!business) {
@@ -140,28 +119,39 @@ const businessService = {
 
             // Get recent clicks and conversions
             const [clicks, conversions] = await Promise.all([
-                prisma.businessClick.findMany({
-                    where: { businessId },
-                    orderBy: { timestamp: "desc" },
-                    take: 10,
-                }),
-                prisma.businessConversion.findMany({
-                    where: { businessId },
-                    orderBy: { timestamp: "desc" },
-                    take: 10,
-                }),
+                sql`
+                    SELECT * FROM business_click 
+                    WHERE business_id = ${businessId}
+                    ORDER BY timestamp DESC 
+                    LIMIT 10
+                `,
+                sql`
+                    SELECT * FROM business_conversion 
+                    WHERE business_id = ${businessId}
+                    ORDER BY timestamp DESC 
+                    LIMIT 10
+                `
             ]);
 
             console.log('Recent clicks count:', clicks.length);
             console.log('Recent conversions count:', conversions.length);
 
             // Calculate derived fields
-            const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
-            const conversionRate = business.totalVisits > 0 ? (business.totalPurchases / business.totalVisits) * 100 : 0;
-            const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
+            const averageOrderValue = business.total_purchases > 0 ? business.total_revenue / business.total_purchases : 0;
+            const conversionRate = business.total_visits > 0 ? (business.total_purchases / business.total_visits) * 100 : 0;
+            const projectedFee = business.total_revenue * (business.admin_commission_rate / 100);
 
             const result = {
-                ...business,
+                id: business.id,
+                name: business.name,
+                domain: business.domain,
+                totalVisits: business.total_visits,
+                totalPurchases: business.total_purchases,
+                totalRevenue: business.total_revenue,
+                commission: business.commission,
+                adminCommissionRate: business.admin_commission_rate,
+                affiliateId: business.affiliate_id,
+                trackingVerified: business.tracking_verified,
                 averageOrderValue,
                 conversionRate,
                 projectedFee,
@@ -234,11 +224,10 @@ export async function createServer() {
     // Debug endpoint to check environment variables
     app.get("/api/debug/env", (req, res) => {
         res.json({
-            DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
+            NETLIFY_DATABASE_URL: process.env.NETLIFY_DATABASE_URL ? "SET" : "NOT SET",
             JWT_SECRET: process.env.JWT_SECRET ? "SET" : "NOT SET",
             NODE_ENV: process.env.NODE_ENV,
             FRONTEND_URL: process.env.FRONTEND_URL,
-            ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
         });
     });
 
@@ -250,15 +239,12 @@ export async function createServer() {
             
             if (dbConnected) {
                 // Test business query
-                const business = await prisma.business.findUnique({
-                    where: { id: 3 },
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        domain: true,
-                    }
-                });
+                const businessResult = await sql`
+                    SELECT id, name, email, domain 
+                    FROM business 
+                    WHERE id = 3
+                `;
+                const business = businessResult[0];
                 
                 res.json({
                     success: true,
@@ -344,8 +330,8 @@ export async function createServer() {
                     name: business.name,
                     domain: business.domain,
                     email: business.email,
-                    affiliateId: business.affiliateId,
-                    trackingVerified: business.trackingVerified,
+                    affiliateId: business.affiliate_id,
+                    trackingVerified: business.tracking_verified,
                 },
                 authenticated: true
             });
@@ -377,7 +363,7 @@ export async function createServer() {
                 });
             }
 
-            if (!business.isActive) {
+            if (!business.is_active) {
                 return res.status(401).json({
                     success: false,
                     error: "Business account is deactivated"
@@ -481,6 +467,137 @@ export async function createServer() {
         }
     });
 
+    // Business registration endpoint
+    app.post("/api/business/register", async (req, res) => {
+        try {
+            const { 
+                name, 
+                domain, 
+                website, 
+                email,
+                password,
+                description, 
+                logo, 
+                contactEmail, 
+                contactPhone, 
+                address, 
+                country, 
+                category, 
+                commission 
+            } = req.body;
+
+            console.log('Business registration request:', { name, domain, email });
+
+            if (!name || !domain || !website || !email || !password) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Name, domain, website, email, and password are required" 
+                });
+            }
+
+            // Validate email format
+            if (!email.includes('@')) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Invalid email format" 
+                });
+            }
+
+            // Validate password length
+            if (password.length < 6) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Password must be at least 6 characters long" 
+                });
+            }
+
+            // Validate domain format
+            const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+            if (!domainRegex.test(domain)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Invalid domain format" 
+                });
+            }
+
+            // Test database connection first
+            const dbConnected = await testDatabaseConnection();
+            if (!dbConnected) {
+                return res.status(500).json({ 
+                    success: false, 
+                    error: "Database connection failed" 
+                });
+            }
+
+            // Check if domain already exists
+            const existingDomainResult = await sql`
+                SELECT id FROM business WHERE domain = ${domain}
+            `;
+            if (existingDomainResult.length > 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "A business with this domain already exists" 
+                });
+            }
+
+            // Check if email already exists
+            const existingEmailResult = await sql`
+                SELECT id FROM business WHERE email = ${email}
+            `;
+            if (existingEmailResult.length > 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "A business with this email already exists" 
+                });
+            }
+
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(password, 12);
+
+            // Generate affiliate ID
+            const affiliateId = `aff_${domain.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`;
+
+            // Create the business
+            const result = await sql`
+                INSERT INTO business (
+                    name, domain, website, email, password, description, logo, 
+                    contact_email, contact_phone, address, country, category, 
+                    commission, affiliate_id, is_active, created_at, updated_at
+                ) VALUES (
+                    ${name}, ${domain}, ${website}, ${email}, ${hashedPassword}, 
+                    ${description || ''}, ${logo || ''}, ${contactEmail || ''}, 
+                    ${contactPhone || ''}, ${address || ''}, ${country || ''}, 
+                    ${category || ''}, ${commission ? parseFloat(commission) : 0}, 
+                    ${affiliateId}, true, NOW(), NOW()
+                ) RETURNING id, name, domain, email, affiliate_id
+            `;
+
+            const business = result[0];
+
+            console.log('Business created successfully:', business.id);
+
+            res.status(201).json({ 
+                success: true, 
+                business: {
+                    id: business.id,
+                    name: business.name,
+                    domain: business.domain,
+                    email: business.email,
+                    affiliateId: business.affiliate_id,
+                },
+                message: "Business registered successfully. You can now log in with your email and password." 
+            });
+
+        } catch (error) {
+            console.error("Error registering business:", error);
+            res.status(500).json({ 
+                success: false, 
+                error: "Failed to register business",
+                details: error instanceof Error ? error.message : String(error)
+            });
+        }
+    });
+
     // Track event endpoint
     app.post("/api/track-event", async (req, res) => {
         try {
@@ -516,22 +633,19 @@ export async function createServer() {
                 // Database is available - try to save the event
                 try {
                     console.log('Creating tracking event in database...');
-                    const trackingEvent = await prisma.trackingEvent.create({
-                        data: {
-                            eventType: event_type,
-                            businessId: parseInt(business_id),
-                            affiliateId: affiliate_id,
-                            platform: platform || 'universal',
-                            sessionId: session_id,
-                            userAgent: user_agent,
-                            referrer: referrer,
-                            timestamp: new Date(timestamp),
-                            url: url,
-                            eventData: data || {},
-                            ipAddress: req.ip || req.connection.remoteAddress || 'unknown'
-                        }
-                    });
-
+                    const result = await sql`
+                        INSERT INTO tracking_event (
+                            event_type, business_id, affiliate_id, platform, session_id, 
+                            user_agent, referrer, timestamp, url, event_data, ip_address
+                        ) VALUES (
+                            ${event_type}, ${parseInt(business_id)}, ${affiliate_id}, 
+                            ${platform || 'universal'}, ${session_id}, ${user_agent}, 
+                            ${referrer}, ${new Date(timestamp)}, ${url}, ${JSON.stringify(data || {})}, 
+                            ${req.ip || req.connection.remoteAddress || 'unknown'}
+                        ) RETURNING id
+                    `;
+                    
+                    const trackingEvent = result[0];
                     console.log('Tracking event created:', trackingEvent.id);
 
                     res.json({
@@ -567,7 +681,7 @@ export async function createServer() {
                     success: true,
                     message: "Event tracked successfully (logged only)",
                     event_id: Date.now(),
-                    note: "Database not available - check DATABASE_URL environment variable"
+                    note: "Database not available - check NETLIFY_DATABASE_URL environment variable"
                 });
             }
 
