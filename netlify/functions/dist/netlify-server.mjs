@@ -71,6 +71,7 @@ const businessService = {
   },
   async getBusinessStatistics(businessId) {
     try {
+      console.log("Getting business statistics for businessId:", businessId);
       const business = await prisma.business.findUnique({
         where: { id: businessId },
         select: {
@@ -86,7 +87,9 @@ const businessService = {
           trackingVerified: true
         }
       });
+      console.log("Business found:", business);
       if (!business) {
+        console.log("Business not found for ID:", businessId);
         return null;
       }
       const [clicks, conversions] = await Promise.all([
@@ -101,10 +104,12 @@ const businessService = {
           take: 10
         })
       ]);
+      console.log("Recent clicks count:", clicks.length);
+      console.log("Recent conversions count:", conversions.length);
       const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
       const conversionRate = business.totalVisits > 0 ? business.totalPurchases / business.totalVisits * 100 : 0;
       const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
-      return {
+      const result = {
         ...business,
         averageOrderValue,
         conversionRate,
@@ -112,6 +117,8 @@ const businessService = {
         recentClicks: clicks,
         recentConversions: conversions
       };
+      console.log("Returning business statistics:", result);
+      return result;
     } catch (error) {
       console.error("Error getting business statistics:", error);
       return null;
@@ -276,6 +283,7 @@ async function createServer() {
   });
   app.get("/api/business/auth/stats", async (req, res) => {
     try {
+      console.log("Stats endpoint called");
       let token = req.cookies.business_token;
       if (!token) {
         const authHeader = req.headers.authorization;
@@ -283,26 +291,34 @@ async function createServer() {
           token = authHeader.substring(7);
         }
       }
+      console.log("Token found:", !!token);
       if (!token) {
+        console.log("No token found");
         return res.status(401).json({
           success: false,
           error: "Not authenticated"
         });
       }
       const decoded = verifyBusinessToken(token);
+      console.log("Token decoded:", decoded);
       if (!decoded || decoded.type !== "business") {
+        console.log("Invalid token:", decoded);
         return res.status(401).json({
           success: false,
           error: "Invalid token"
         });
       }
+      console.log("Business ID from token:", decoded.businessId);
       const stats = await businessService.getBusinessStatistics(decoded.businessId);
+      console.log("Stats result:", !!stats);
       if (!stats) {
+        console.log("Business not found in getBusinessStatistics");
         return res.status(404).json({
           success: false,
           error: "Business not found"
         });
       }
+      console.log("Returning successful stats response");
       res.json({ success: true, stats });
     } catch (error) {
       console.error("Error getting business stats:", error);

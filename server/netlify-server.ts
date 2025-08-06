@@ -98,6 +98,8 @@ const businessService = {
 
     async getBusinessStatistics(businessId: number) {
         try {
+            console.log('Getting business statistics for businessId:', businessId);
+            
             // Get business details
             const business = await prisma.business.findUnique({
                 where: { id: businessId },
@@ -115,7 +117,10 @@ const businessService = {
                 },
             });
 
+            console.log('Business found:', business);
+
             if (!business) {
+                console.log('Business not found for ID:', businessId);
                 return null;
             }
 
@@ -133,12 +138,15 @@ const businessService = {
                 }),
             ]);
 
+            console.log('Recent clicks count:', clicks.length);
+            console.log('Recent conversions count:', conversions.length);
+
             // Calculate derived fields
             const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
             const conversionRate = business.totalVisits > 0 ? (business.totalPurchases / business.totalVisits) * 100 : 0;
             const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
 
-            return {
+            const result = {
                 ...business,
                 averageOrderValue,
                 conversionRate,
@@ -146,6 +154,9 @@ const businessService = {
                 recentClicks: clicks,
                 recentConversions: conversions,
             };
+
+            console.log('Returning business statistics:', result);
+            return result;
         } catch (error) {
             console.error("Error getting business statistics:", error);
             return null;
@@ -350,6 +361,8 @@ export async function createServer() {
     // Business statistics endpoint
     app.get("/api/business/auth/stats", async (req, res) => {
         try {
+            console.log('Stats endpoint called');
+            
             // Check for business authentication
             let token = req.cookies.business_token;
 
@@ -360,7 +373,10 @@ export async function createServer() {
                 }
             }
 
+            console.log('Token found:', !!token);
+
             if (!token) {
+                console.log('No token found');
                 return res.status(401).json({
                     success: false,
                     error: "Not authenticated"
@@ -368,21 +384,30 @@ export async function createServer() {
             }
 
             const decoded = verifyBusinessToken(token);
+            console.log('Token decoded:', decoded);
+
             if (!decoded || decoded.type !== "business") {
+                console.log('Invalid token:', decoded);
                 return res.status(401).json({
                     success: false,
                     error: "Invalid token"
                 });
             }
 
+            console.log('Business ID from token:', decoded.businessId);
+
             const stats = await businessService.getBusinessStatistics(decoded.businessId);
+            console.log('Stats result:', !!stats);
+
             if (!stats) {
+                console.log('Business not found in getBusinessStatistics');
                 return res.status(404).json({
                     success: false,
                     error: "Business not found"
                 });
             }
 
+            console.log('Returning successful stats response');
             res.json({ success: true, stats });
         } catch (error) {
             console.error("Error getting business stats:", error);
