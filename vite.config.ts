@@ -1,6 +1,7 @@
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -15,7 +16,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist/spa",
   },
-  plugins: [react(), expressPlugin()],
+  plugins: [react(), expressPlugin(), copyRedirectsPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
@@ -35,6 +36,22 @@ function expressPlugin(): Plugin {
 
       // Add Express app as middleware to Vite dev server
       server.middlewares.use(app);
+    },
+  };
+}
+
+function copyRedirectsPlugin(): Plugin {
+  return {
+    name: "copy-redirects",
+    writeBundle() {
+      // Copy _redirects file to build output
+      const redirectsPath = path.resolve(__dirname, "public/_redirects");
+      const outputPath = path.resolve(__dirname, "dist/spa/_redirects");
+      
+      if (fs.existsSync(redirectsPath)) {
+        fs.copyFileSync(redirectsPath, outputPath);
+        console.log("Copied _redirects file to build output");
+      }
     },
   };
 }

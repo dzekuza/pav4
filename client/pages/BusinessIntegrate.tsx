@@ -34,7 +34,7 @@ export default function BusinessIntegrate() {
       code: `<script>
 (function() {
   var script = document.createElement('script');
-  script.src = 'https://pavlo4.netlify.app/tracker.js';
+  script.src = 'https://paaav.vercel.app/tracker.js';
   script.async = true;
   script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
   script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
@@ -51,7 +51,7 @@ export default function BusinessIntegrate() {
       code: `<script>
 (function() {
   var script = document.createElement('script');
-  script.src = 'https://pavlo4.netlify.app/shopify-tracker.js';
+  script.src = 'https://paaav.vercel.app/shopify-tracker.js';
   script.async = true;
   script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
   script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
@@ -69,7 +69,7 @@ export default function BusinessIntegrate() {
       code: `<script>
 (function() {
   var script = document.createElement('script');
-  script.src = 'https://pavlo4.netlify.app/woocommerce-tracker.js';
+  script.src = 'https://paaav.vercel.app/woocommerce-tracker.js';
   script.async = true;
   script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
   script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
@@ -87,7 +87,7 @@ export default function BusinessIntegrate() {
       code: `<script>
 (function() {
   var script = document.createElement('script');
-  script.src = 'https://pavlo4.netlify.app/magento-tracker.js';
+  script.src = 'https://paaav.vercel.app/magento-tracker.js';
   script.async = true;
   script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
   script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
@@ -105,7 +105,7 @@ export default function BusinessIntegrate() {
       code: `<script>
 (function() {
   var script = document.createElement('script');
-  script.src = 'https://pavlo4.netlify.app/event-tracker.js';
+  script.src = 'https://paaav.vercel.app/event-tracker.js';
   script.async = true;
   script.setAttribute('data-business-id', '${business?.id || 'YOUR_BUSINESS_ID'}');
   script.setAttribute('data-affiliate-id', '${business?.affiliateId || 'YOUR_AFFILIATE_ID'}');
@@ -339,7 +339,7 @@ export default function BusinessIntegrate() {
                           </div>
                           <div className="mt-3 text-xs text-gray-500">
                             <p>• Tracks user interactions and purchase events</p>
-                            <p>• Sends data to: https://pavlo4.netlify.app/api/track</p>
+                            <p>• Sends data to: https://paaav.vercel.app/api/track</p>
                             <p>• Business ID: {business?.id || 'YOUR_BUSINESS_ID'}</p>
                             <p>• Affiliate ID: {business?.affiliateId || 'YOUR_AFFILIATE_ID'}</p>
                           </div>

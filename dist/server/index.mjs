@@ -333,8 +333,14 @@ const businessService = {
         take: 10
       })
     ]);
+    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
+    const conversionRate = business.totalVisits > 0 ? business.totalPurchases / business.totalVisits * 100 : 0;
+    const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
     return {
       ...business,
+      averageOrderValue,
+      conversionRate,
+      projectedFee,
       recentClicks: clicks,
       recentConversions: conversions
     };
@@ -4753,6 +4759,8 @@ const registerBusiness$1 = async (req, res) => {
       name,
       domain,
       website,
+      email,
+      password,
       description,
       logo,
       contactEmail,
@@ -4762,10 +4770,22 @@ const registerBusiness$1 = async (req, res) => {
       category,
       commission
     } = req.body;
-    if (!name || !domain || !website) {
+    if (!name || !domain || !website || !email || !password) {
       return res.status(400).json({
         success: false,
-        error: "Name, domain, and website are required"
+        error: "Name, domain, website, email, and password are required"
+      });
+    }
+    if (!email.includes("@")) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format"
+      });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: "Password must be at least 6 characters long"
       });
     }
     const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
@@ -4782,10 +4802,20 @@ const registerBusiness$1 = async (req, res) => {
         error: "A business with this domain already exists"
       });
     }
+    const existingBusinessByEmail = await businessService.findBusinessByEmail(email);
+    if (existingBusinessByEmail) {
+      return res.status(400).json({
+        success: false,
+        error: "A business with this email already exists"
+      });
+    }
+    const hashedPassword = await bcrypt.hash(password, 12);
     const business = await businessService.createBusiness({
       name,
       domain,
       website,
+      email,
+      password: hashedPassword,
       description,
       logo,
       contactEmail,
@@ -4793,15 +4823,18 @@ const registerBusiness$1 = async (req, res) => {
       address,
       country,
       category,
-      commission: commission ? parseFloat(commission) : 0,
-      email: contactEmail || `contact@${domain}`,
-      password: "defaultpassword123"
-      // This will be hashed in the service
+      commission: commission ? parseFloat(commission) : 0
     });
     res.status(201).json({
       success: true,
-      business,
-      message: "Business registered successfully"
+      business: {
+        id: business.id,
+        name: business.name,
+        domain: business.domain,
+        email: business.email,
+        affiliateId: business.affiliate_id
+      },
+      message: "Business registered successfully. You can now log in with your email and password."
     });
   } catch (error) {
     console.error("Error registering business:", error);

@@ -101,7 +101,7 @@ export default function BusinessIntegrateDashboard() {
       features: ['Product tracking', 'Purchase tracking', 'Cart tracking', 'User behavior'],
       get scriptTemplate() {
         return `<!-- PriceHunt Shopify Integration -->
-<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://paaav.vercel.app/shopify-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
 <script>
 // Shopify-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
       features: ['Product tracking', 'Purchase tracking', 'Cart tracking', 'User behavior'],
       get scriptTemplate() {
         return `<!-- PriceHunt WooCommerce Integration -->
-<script src="https://pavlo4.netlify.app/woocommerce-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://paaav.vercel.app/woocommerce-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
 <script>
 // WooCommerce-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
       features: ['Product tracking', 'Purchase tracking', 'Cart tracking', 'User behavior'],
       get scriptTemplate() {
         return `<!-- PriceHunt Magento Integration -->
-<script src="https://pavlo4.netlify.app/magento-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://paaav.vercel.app/magento-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
 <script>
 // Magento-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
       features: ['Basic tracking', 'Page views', 'User behavior', 'Custom events'],
       get scriptTemplate() {
         return `<!-- PriceHunt Custom Integration -->
-<script src="https://pavlo4.netlify.app/tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://paaav.vercel.app/tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
 <script>
 // Custom website tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -270,32 +270,84 @@ document.addEventListener('DOMContentLoaded', function() {
     setIsTesting(true);
     setTestResults([]);
 
-    // Simulate testing process
-    const testSteps = [
-      { event: 'Script Loaded', details: 'PriceHunt tracking script loaded successfully', delay: 1000 },
-      { event: 'Page View', details: 'User visited your website', delay: 2000 },
-      { event: 'Product View', details: 'User viewed a product page', delay: 3000 },
-      { event: 'Add to Cart', details: 'User added product to cart', delay: 4000 },
-      { event: 'Purchase', details: 'User completed a purchase', delay: 5000 }
-    ];
+    // Start polling for real tracking events
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/business/tracking-events', {
+          credentials: 'include'
+        });
 
-    for (let i = 0; i < testSteps.length; i++) {
-      const step = testSteps[i];
-      await new Promise(resolve => setTimeout(resolve, step.delay));
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success && data.events.length > 0) {
+            // Convert tracking events to test results
+            const newEvents = data.events.map((event: any) => ({
+                timestamp: event.timestamp,
+                event: event.eventType,
+                details: `Event from ${event.url || 'unknown page'}`,
+                status: 'success' as const
+            }));
+
+            setTestResults(newEvents);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tracking events:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Stop polling after 30 seconds
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      setIsTesting(false);
       
-      setTestResults(prev => [...prev, {
-        timestamp: new Date().toISOString(),
-        event: step.event,
-        details: step.details,
-        status: 'success'
-      }]);
-    }
+      if (testResults.length === 0) {
+        toast({
+          title: "No Events Detected",
+          description: "No tracking events were detected. Make sure the tracking script is installed on your website.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Testing Complete!",
+          description: `Detected ${testResults.length} tracking events from your website.`,
+        });
+      }
+    }, 30000);
+  };
 
-    setIsTesting(false);
-    toast({
-      title: "Testing Complete!",
-      description: "All tracking events are working correctly",
-    });
+  const generateTestEvents = async () => {
+    try {
+      const response = await fetch('/api/business/test-tracking', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "Test Events Created",
+          description: data.message || "Test tracking events have been created successfully.",
+        });
+        
+        // Start polling for the new events
+        startTesting();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create test events. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error generating test events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create test events. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const openTestWebsite = () => {
@@ -538,6 +590,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     >
                       <Play className="h-4 w-4 mr-2" />
                       {isTesting ? 'Testing...' : 'Start Test'}
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={generateTestEvents}
+                      disabled={isTesting}
+                    >
+                      <Activity className="h-4 w-4 mr-2" />
+                      Generate Test Events
                     </Button>
                   </div>
                 </div>

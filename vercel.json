@@ -13,14 +13,14 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "server/vercel-server.ts"
+      "source": "/api/(.*)",
+      "destination": "server/vercel-server.ts"
     },
     {
-      "src": "/(.*)",
-      "dest": "dist/spa/$1"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "env": {

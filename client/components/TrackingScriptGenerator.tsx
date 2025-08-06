@@ -30,25 +30,25 @@ export const TrackingScriptGenerator: React.FC<TrackingScriptGeneratorProps> = (
     
     if (platform === 'shopify') {
       return `<script 
-  src="https://pavlo4.netlify.app/shopify-tracker.js" 
+  src="https://paaav.vercel.app/shopify-tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
     } else if (platform === 'woocommerce') {
       return `<script 
-  src="https://pavlo4.netlify.app/woocommerce-tracker.js" 
+  src="https://paaav.vercel.app/woocommerce-tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
     } else if (platform === 'magento') {
       return `<script 
-  src="https://pavlo4.netlify.app/magento-tracker.js" 
+  src="https://paaav.vercel.app/magento-tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
     } else {
       return `<script 
-  src="https://pavlo4.netlify.app/tracker.js" 
+  src="https://paaav.vercel.app/tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}" 
   data-platform="${platform}"${debugAttr}>
@@ -125,8 +125,8 @@ export const TrackingScriptGenerator: React.FC<TrackingScriptGeneratorProps> = (
 
   const openTestPage = () => {
     const testUrl = platform === 'shopify' 
-      ? 'https://pavlo4.netlify.app/shopify-test.html'
-      : 'https://pavlo4.netlify.app/test-tracking.html';
+      ? 'https://paaav.vercel.app/shopify-test.html'
+      : 'https://paaav.vercel.app/test-tracking.html';
     window.open(testUrl, '_blank');
   };
 
