@@ -39,6 +39,29 @@ if (process.env.NODE_ENV !== "production") {
     globalThis.__prisma = prisma;
 }
 
+// Test database connection with retry logic
+async function testDatabaseConnection() {
+    try {
+        if (!prisma) {
+            console.error('Prisma client not initialized - DATABASE_URL missing');
+            return false;
+        }
+        
+        console.log('Testing database connection...');
+        await prisma.$connect();
+        console.log('Database connection successful');
+        
+        // Test a simple query
+        const result = await prisma.$queryRaw`SELECT 1 as test`;
+        console.log('Database query test successful:', result);
+        
+        return true;
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        return false;
+    }
+}
+
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -57,22 +80,6 @@ function verifyBusinessToken(token: string) {
         return jwt.verify(token, JWT_SECRET) as any;
     } catch (error) {
         return null;
-    }
-}
-
-// Test database connection
-async function testDatabaseConnection() {
-    try {
-        if (!prisma) {
-            console.error('Prisma client not initialized - DATABASE_URL missing');
-            return false;
-        }
-        await prisma.$connect();
-        console.log('Database connection successful');
-        return true;
-    } catch (error) {
-        console.error('Database connection failed:', error);
-        return false;
     }
 }
 
@@ -226,6 +233,47 @@ export async function createServer() {
             FRONTEND_URL: process.env.FRONTEND_URL,
             ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
         });
+    });
+
+    // Debug endpoint to test database connection
+    app.get("/api/debug/db", async (req, res) => {
+        try {
+            console.log('Testing database connection from debug endpoint...');
+            const dbConnected = await testDatabaseConnection();
+            
+            if (dbConnected) {
+                // Test business query
+                const business = await prisma.business.findUnique({
+                    where: { id: 3 },
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        domain: true,
+                    }
+                });
+                
+                res.json({
+                    success: true,
+                    databaseConnected: true,
+                    businessFound: !!business,
+                    business: business
+                });
+            } else {
+                res.json({
+                    success: false,
+                    databaseConnected: false,
+                    error: "Database connection failed"
+                });
+            }
+        } catch (error) {
+            console.error('Database test error:', error);
+            res.json({
+                success: false,
+                databaseConnected: false,
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
     });
 
     // Location endpoint
