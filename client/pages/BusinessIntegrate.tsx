@@ -339,7 +339,7 @@ export default function BusinessIntegrate() {
                           </div>
                           <div className="mt-3 text-xs text-gray-500">
                             <p>• Tracks user interactions and purchase events</p>
-                            <p>• Sends data to: https://paaav.vercel.app/api/track</p>
+                            <p>• Sends data to: https://paaav.vercel.app/api/track-event</p>
                             <p>• Business ID: {business?.id || 'YOUR_BUSINESS_ID'}</p>
                             <p>• Affiliate ID: {business?.affiliateId || 'YOUR_AFFILIATE_ID'}</p>
                           </div>

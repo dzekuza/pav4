@@ -104,17 +104,49 @@ export default function BusinessSettingsDashboard() {
   const handleSaveSettings = async (section: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Settings Saved",
-        description: `${section} settings have been updated successfully.`,
-      });
+      if (section === 'Profile') {
+        // Call the business profile update endpoint
+        const response = await fetch('/api/business/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            name: settings.businessInfo.name,
+            domain: settings.businessInfo.domain,
+            email: settings.businessInfo.email,
+            phone: settings.businessInfo.phone,
+            address: settings.businessInfo.address,
+            country: settings.businessInfo.country,
+            category: settings.businessInfo.category,
+            description: settings.businessInfo.description
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to save profile settings');
+        }
+
+        const data = await response.json();
+        toast({
+          title: "Profile Updated",
+          description: data.message || "Business profile has been updated successfully.",
+        });
+      } else {
+        // For other sections, simulate API call for now
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        toast({
+          title: "Settings Saved",
+          description: `${section} settings have been updated successfully.`,
+        });
+      }
     } catch (error) {
+      console.error('Error saving settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save settings. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save settings. Please try again.",
         variant: "destructive",
       });
     } finally {

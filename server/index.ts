@@ -97,7 +97,7 @@ export async function createServer() {
           "'self'",
           "https://api.searchapi.io",
           "https://n8n.srv824584.hstgr.cloud",
-          "https://pavlo4.netlify.app",
+          "https://paaav.vercel.app",
           "http://localhost:5746",
           "http://localhost:5747",
           "http://localhost:8082",
@@ -136,7 +136,7 @@ export async function createServer() {
     "http://localhost:8082",
     "http://localhost:8083",
     "http://localhost:8084",
-    "https://pavlo4.netlify.app",
+          "https://paaav.vercel.app",
     "https://app.pavlo.com", // Assuming this is your custom domain
     "http://127.0.0.1:8083",
     "http://[::1]:8083"
@@ -229,8 +229,10 @@ export async function createServer() {
   app.get("/api/business/auth/stats", getBusinessAuthStats);
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
 
-  // Tracking routes (moved before global middleware to prevent conflicts)
-  app.post("/api/track-event", trackEvent);
+  // Open CORS for tracking endpoint so third-party business sites can send events
+  const openCors = cors({ origin: true, credentials: false });
+  app.options("/api/track-event", openCors);
+  app.post("/api/track-event", openCors, trackEvent);
   app.get("/api/tracking-events", getTrackingEvents);
 
   // Test tracking route

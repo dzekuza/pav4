@@ -1004,5 +1004,113 @@ app.post("/api/business/test-tracking", async (req, res) => {
     }
 });
 
+// Update business profile (business can update their own profile)
+app.put("/api/business/profile", async (req, res) => {
+    try {
+        // Check for business authentication
+        let token = req.cookies.business_token;
+
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: "Not authenticated"
+            });
+        }
+
+        const decoded = verifyBusinessToken(token);
+
+        if (!decoded || decoded.type !== "business") {
+            return res.status(401).json({
+                success: false,
+                error: "Invalid token"
+            });
+        }
+
+        const {
+            name,
+            domain,
+            email,
+            phone,
+            address,
+            country,
+            category,
+            description
+        } = req.body;
+
+        // Validate required fields
+        if (!name || !domain) {
+            return res.status(400).json({
+                success: false,
+                error: "Business name and domain are required"
+            });
+        }
+
+        // Try to update business profile
+        try {
+            const sql = getSql();
+            
+            // Check if domain is already taken by another business
+            const existingBusiness = await sql`
+                SELECT id FROM businesses 
+                WHERE domain = ${domain} AND id != ${decoded.businessId}
+            `;
+            
+            if (existingBusiness.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Domain is already taken by another business"
+                });
+            }
+
+            // Update business profile
+            const result = await sql`
+                UPDATE businesses 
+                SET 
+                    name = ${name},
+                    domain = ${domain},
+                    email = ${email || null},
+                    "contactPhone" = ${phone || null},
+                    address = ${address || null},
+                    country = ${country || null},
+                    category = ${category || null},
+                    description = ${description || null},
+                    "updatedAt" = NOW()
+                WHERE id = ${decoded.businessId}
+                RETURNING id, name, domain, email, "contactPhone", address, country, category, description
+            `;
+
+            if (result.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Business not found"
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "Business profile updated successfully",
+                business: result[0]
+            });
+        } catch (dbError) {
+            console.error('Database error in business profile update:', dbError);
+            res.status(500).json({ 
+                success: false, 
+                error: "Database connection failed",
+                details: dbError instanceof Error ? dbError.message : String(dbError)
+            });
+        }
+    } catch (error) {
+        console.error("Error updating business profile:", error);
+        res.status(500).json({ success: false, error: "Failed to update business profile" });
+    }
+});
+
 // Export for Vercel
 export default app;

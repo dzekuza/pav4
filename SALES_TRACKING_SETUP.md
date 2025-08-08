@@ -2,11 +2,15 @@
 
 ## 🎯 Overview
 
-Your price comparison app now has a **complete sales tracking system** that can track all sales customers make on sellers' websites coming from your app. This includes commission calculation, webhook notifications, and comprehensive analytics.
+Your price comparison app now has a **complete sales tracking system** that can
+track all sales customers make on sellers' websites coming from your app. This
+includes commission calculation, webhook notifications, and comprehensive
+analytics.
 
 ## 🔧 What Was Missing & Now Implemented
 
 ### **Previously Missing:**
+
 1. ❌ **Post-Purchase Tracking** - No way to track actual purchases
 2. ❌ **Commission Calculation** - No automatic commission tracking
 3. ❌ **Webhook System** - No seller notifications
@@ -15,6 +19,7 @@ Your price comparison app now has a **complete sales tracking system** that can 
 6. ❌ **Real-time Notifications** - No sale completion alerts
 
 ### **Now Implemented:**
+
 1. ✅ **Complete Sales Tracking** - Track every sale with order IDs
 2. ✅ **Automatic Commission Calculation** - Based on business/retailer rates
 3. ✅ **Webhook System** - Real-time notifications to sellers
@@ -27,6 +32,7 @@ Your price comparison app now has a **complete sales tracking system** that can 
 ### **New Tables Added:**
 
 #### **`sales`** - Main sales tracking
+
 - `orderId` - Unique order identifier
 - `businessId` - Which business the sale belongs to
 - `userId` - Which user made the sale (optional)
@@ -40,20 +46,24 @@ Your price comparison app now has a **complete sales tracking system** that can 
 - UTM parameters for attribution
 
 #### **`commissions`** - Commission tracking
+
 - Links sales to users who earn commissions
 - Tracks commission status (PENDING, APPROVED, PAID, CANCELLED)
 - Records payment dates
 
 #### **`commission_rates`** - Business commission rates
+
 - Per-business, per-retailer commission rates
 - Allows different rates for different retailers
 
 #### **`webhooks`** - Webhook configuration
+
 - Business webhook URLs and secrets
 - Event types to listen for
 - Active/inactive status
 
 #### **`webhook_events`** - Webhook delivery tracking
+
 - Records all webhook attempts
 - Retry logic with exponential backoff
 - Success/failure tracking
@@ -61,12 +71,15 @@ Your price comparison app now has a **complete sales tracking system** that can 
 ## 🚀 API Endpoints
 
 ### **Sales Tracking**
+
 ```http
 POST /api/sales/track
 ```
+
 Track a new sale from external systems (e.g., seller websites)
 
 **Request Body:**
+
 ```json
 {
   "orderId": "ORD-12345",
@@ -85,12 +98,15 @@ Track a new sale from external systems (e.g., seller websites)
 ```
 
 ### **Update Sale Status**
+
 ```http
 PUT /api/sales/status/:orderId
 ```
+
 Update sale status (PENDING → CONFIRMED → PAID)
 
 **Request Body:**
+
 ```json
 {
   "status": "CONFIRMED"
@@ -98,36 +114,45 @@ Update sale status (PENDING → CONFIRMED → PAID)
 ```
 
 ### **Business Analytics**
+
 ```http
 GET /api/sales/stats/business/:businessId
 ```
+
 Get comprehensive sales statistics for a business
 
 ### **User Commission Stats**
+
 ```http
 GET /api/sales/stats/commissions
 ```
+
 Get user's commission earnings and statistics
 
 ### **Webhook Management**
+
 ```http
 POST /api/sales/webhooks
 GET /api/sales/webhooks
 PUT /api/sales/webhooks/:id
 DELETE /api/sales/webhooks/:id
 ```
+
 Manage webhook configurations for real-time notifications
 
 ### **Commission Rate Management**
+
 ```http
 POST /api/sales/commission-rates
 GET /api/sales/commission-rates
 ```
+
 Set and view commission rates per retailer
 
 ## 🔗 Webhook Integration
 
 ### **Webhook Events**
+
 When sales are tracked, webhooks are automatically triggered:
 
 1. **`sale.created`** - New sale tracked
@@ -135,6 +160,7 @@ When sales are tracked, webhooks are automatically triggered:
 3. **`commission.paid`** - Commission marked as paid
 
 ### **Webhook Payload Example**
+
 ```json
 {
   "event": "sale.created",
@@ -154,6 +180,7 @@ When sales are tracked, webhooks are automatically triggered:
 ```
 
 ### **Webhook Security**
+
 - HMAC-SHA256 signatures for verification
 - Retry logic with exponential backoff
 - Failed webhook tracking and retry system
@@ -161,6 +188,7 @@ When sales are tracked, webhooks are automatically triggered:
 ## 💰 Commission System
 
 ### **Commission Calculation**
+
 ```typescript
 // Commission is calculated automatically
 const rate = commissionRate?.rate || 0;
@@ -168,12 +196,15 @@ const commissionAmount = (productPrice * rate) / 100;
 ```
 
 ### **Commission Flow**
+
 1. **Sale Created** → Commission status: `PENDING`
 2. **Sale Confirmed** → Commission status: `APPROVED`
 3. **Commission Paid** → Commission status: `PAID`
 
 ### **Commission Rates by Retailer**
+
 Businesses can set different commission rates:
+
 - Amazon: 5%
 - Walmart: 3%
 - Target: 4%
@@ -182,6 +213,7 @@ Businesses can set different commission rates:
 ## 📊 Analytics & Reporting
 
 ### **Business Dashboard**
+
 - Total sales and revenue
 - Commission earned
 - Conversion rates
@@ -189,12 +221,14 @@ Businesses can set different commission rates:
 - Sales by status
 
 ### **User Commission Dashboard**
+
 - Total commissions earned
 - Pending vs paid commissions
 - Average commission per sale
 - Commission history
 
 ### **Admin Overview**
+
 - All sales across all businesses
 - Global commission statistics
 - Webhook delivery monitoring
@@ -205,6 +239,7 @@ Businesses can set different commission rates:
 ### **For Sellers (Businesses)**
 
 1. **Set Commission Rates:**
+
 ```http
 POST /api/sales/commission-rates
 {
@@ -214,6 +249,7 @@ POST /api/sales/commission-rates
 ```
 
 2. **Configure Webhooks:**
+
 ```http
 POST /api/sales/webhooks
 {
@@ -224,30 +260,33 @@ POST /api/sales/webhooks
 ```
 
 3. **Track Sales from Your Website:**
+
 ```javascript
 // On your e-commerce site when a sale is completed
-fetch('/api/sales/track', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+fetch("/api/sales/track", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    orderId: 'ORD-12345',
+    orderId: "ORD-12345",
     businessId: 1,
-    productUrl: 'https://amazon.com/product/123',
+    productUrl: "https://amazon.com/product/123",
     productPrice: 999.99,
-    retailer: 'amazon',
+    retailer: "amazon",
     // ... other fields
-  })
+  }),
 });
 ```
 
 ### **For Users (Affiliates)**
 
 1. **View Commission Stats:**
+
 ```http
 GET /api/sales/stats/commissions
 ```
 
 2. **View Commission History:**
+
 ```http
 GET /api/sales/commissions?page=1&limit=20
 ```
@@ -255,17 +294,21 @@ GET /api/sales/commissions?page=1&limit=20
 ## 🛡️ Security Features
 
 ### **RLS Policies**
+
 All new tables have Row Level Security:
+
 - Users can only see their own commissions
 - Businesses can only see their own sales
 - Admins can see everything
 
 ### **Webhook Security**
+
 - HMAC signatures prevent tampering
 - Retry logic handles failures
 - Failed webhook tracking
 
 ### **Data Validation**
+
 - Required field validation
 - Status enum validation
 - Business ownership verification
@@ -290,8 +333,9 @@ All new tables have Row Level Security:
 ## 🔍 Testing
 
 ### **Test Sale Tracking**
+
 ```bash
-curl -X POST https://pavlo4.netlify.app/api/sales/track \
+curl -X POST https://paaav.vercel.app/api/sales/track \
   -H "Content-Type: application/json" \
   -d '{
     "orderId": "TEST-123",
@@ -303,6 +347,7 @@ curl -X POST https://pavlo4.netlify.app/api/sales/track \
 ```
 
 ### **Test Webhook**
+
 ```bash
 curl -X POST https://pavlo4.netlify.app/api/sales/webhooks \
   -H "Content-Type: application/json" \
@@ -314,4 +359,4 @@ curl -X POST https://pavlo4.netlify.app/api/sales/webhooks \
   }'
 ```
 
-Your sales tracking system is now **complete and production-ready**! 🎉 
+Your sales tracking system is now **complete and production-ready**! 🎉
