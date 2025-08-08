@@ -746,7 +746,10 @@ app.post("/api/business/register", async (req, res) => {
 });
 
 // Track event endpoint
-app.post("/api/track-event", async (req, res) => {
+// Open CORS for tracking so merchant sites can POST directly
+const openCors = cors({ origin: true, credentials: false });
+app.options("/api/track-event", openCors);
+app.post("/api/track-event", openCors, async (req, res) => {
     try {
         const {
             event_type,

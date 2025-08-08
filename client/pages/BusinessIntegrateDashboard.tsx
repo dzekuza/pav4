@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start polling for real tracking events
     const pollInterval = setInterval(async () => {
       try {
-         const response = await fetch('/api/tracking-events', {
+        const response = await fetch(`/api/tracking-events${stats?.id ? `?business_id=${stats.id}` : ''}` , {
           credentials: 'include'
         });
 
@@ -321,7 +321,9 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       const response = await fetch('/api/test-tracking', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_id: stats?.id })
       });
 
       if (response.ok) {
