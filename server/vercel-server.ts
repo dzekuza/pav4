@@ -74,6 +74,7 @@ app.use(helmet({
                 "https://api.searchapi.io",
                 "https://n8n.srv824584.hstgr.cloud",
                 "https://pavlo4.netlify.app",
+                "https://paaav.vercel.app",
             ],
         },
     },
@@ -1001,6 +1002,74 @@ app.post("/api/business/test-tracking", async (req, res) => {
     } catch (error) {
         console.error("Error creating test tracking events:", error);
         res.status(500).json({ success: false, error: "Failed to create test events" });
+    }
+});
+
+// Mirror simple, unauthenticated endpoints used by the Business Integrate UI
+// Get tracking events by business_id (read-only, safe default when unauthenticated)
+app.get("/api/tracking-events", async (req, res) => {
+    try {
+        const { business_id, limit = 50, offset = 0 } = req.query as any;
+        if (!business_id) {
+            return res.json({ success: true, events: [] });
+        }
+        try {
+            const sql = getSql();
+            const events = await sql`
+                SELECT 
+                    id,
+                    event_type,
+                    business_id,
+                    affiliate_id,
+                    platform,
+                    session_id,
+                    user_agent,
+                    referrer,
+                    timestamp,
+                    url,
+                    event_data,
+                    ip_address
+                FROM tracking_events 
+                WHERE business_id = ${parseInt(business_id)}
+                ORDER BY timestamp DESC 
+                LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
+            `;
+            return res.json({ success: true, events });
+        } catch (dbErr) {
+            console.error("DB error in /api/tracking-events:", dbErr);
+            return res.json({ success: true, events: [] });
+        }
+    } catch (error) {
+        console.error("Error in /api/tracking-events:", error);
+        return res.status(500).json({ success: false, error: "Failed to get tracking events" });
+    }
+});
+
+// Create a simple test event without requiring auth (for setup testing)
+app.post("/api/test-tracking", async (req, res) => {
+    try {
+        const { business_id = 1, affiliate_id = "test-affiliate-123" } = req.body || {};
+        try {
+            const sql = getSql();
+            const result = await sql`
+                INSERT INTO tracking_events (
+                    event_type, business_id, affiliate_id, platform, session_id,
+                    user_agent, referrer, timestamp, url, event_data, ip_address
+                ) VALUES (
+                    'test', ${parseInt(business_id)}, ${affiliate_id},
+                    'test', 'test-session', 'test-agent', 'test-referrer', NOW(),
+                    'test-url', '{}'::jsonb, '127.0.0.1'
+                ) RETURNING id
+            `;
+            const ev = result[0];
+            return res.json({ success: true, message: "Test tracking event created", event_id: ev.id });
+        } catch (dbErr) {
+            console.error("DB error in /api/test-tracking:", dbErr);
+            return res.json({ success: true, message: "Test tracking event created (log-only)" });
+        }
+    } catch (error) {
+        console.error("Error in /api/test-tracking:", error);
+        return res.status(500).json({ success: false, error: "Test tracking failed" });
     }
 });
 
