@@ -188,54 +188,54 @@ export default function BusinessAnalyticsDashboard() {
     <div className="space-y-6 text-white">
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Visits</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Total Visits</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {analyticsData.dailyVisits.reduce((sum, day) => sum + day.visits, 0).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Last {timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'} days
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               ${analyticsData.dailyRevenue.reduce((sum, day) => sum + day.revenue, 0).toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Total revenue
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {stats.conversionRate.toFixed(1)}%
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Overall rate
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Daily Visits</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Avg Daily Visits</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -244,7 +244,7 @@ export default function BusinessAnalyticsDashboard() {
                 ? Math.round(analyticsData.dailyVisits.reduce((sum, day) => sum + day.visits, 0) / analyticsData.dailyVisits.length)
                 : 0}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Average per day
             </p>
           </CardContent>
@@ -254,23 +254,23 @@ export default function BusinessAnalyticsDashboard() {
       {/* Time Range Selector */}
       <div className="flex gap-2">
         <Button
-          variant={timeRange === '7d' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setTimeRange('7d')}
+          className={`${timeRange === '7d' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           7 Days
         </Button>
         <Button
-          variant={timeRange === '30d' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setTimeRange('30d')}
+          className={`${timeRange === '30d' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           30 Days
         </Button>
         <Button
-          variant={timeRange === '90d' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setTimeRange('90d')}
+          className={`${timeRange === '90d' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           90 Days
         </Button>
@@ -286,17 +286,17 @@ export default function BusinessAnalyticsDashboard() {
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>
-                <CardTitle>Daily Visits</CardTitle>
-                <CardDescription>
+              <CardTitle className="text-white">Daily Visits</CardTitle>
+              <CardDescription className="text-white/80">
                   Visitor traffic over the last {timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'} days
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {analyticsData.dailyVisits.length === 0 || analyticsData.dailyVisits.every(day => day.visits === 0) ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">No visit data available for the selected time range.</p>
+                  <p className="text-white/70">No visit data available for the selected time range.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -304,7 +304,7 @@ export default function BusinessAnalyticsDashboard() {
                       const maxVisits = Math.max(...analyticsData.dailyVisits.map(d => d.visits), 1);
                       return (
                         <div key={day.date} className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-white/70">
                             {formatDate(day.date)}
                           </span>
                           <div className="flex items-center gap-2">
@@ -324,17 +324,17 @@ export default function BusinessAnalyticsDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>
-                <CardTitle>Daily Revenue</CardTitle>
-                <CardDescription>
+              <CardTitle className="text-white">Daily Revenue</CardTitle>
+              <CardDescription className="text-white/80">
                   Revenue generated over the last {timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'} days
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {analyticsData.dailyRevenue.length === 0 || analyticsData.dailyRevenue.every(day => day.revenue === 0) ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">No revenue data available for the selected time range.</p>
+                  <p className="text-white/70">No revenue data available for the selected time range.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -342,7 +342,7 @@ export default function BusinessAnalyticsDashboard() {
                       const maxRevenue = Math.max(...analyticsData.dailyRevenue.map(d => d.revenue), 1);
                       return (
                         <div key={day.date} className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-white/70">
                             {formatDate(day.date)}
                           </span>
                           <div className="flex items-center gap-2">
@@ -365,17 +365,17 @@ export default function BusinessAnalyticsDashboard() {
         </TabsContent>
 
         <TabsContent value="products" className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle>Top Performing Products</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Top Performing Products</CardTitle>
+              <CardDescription className="text-white/80">
                 Products with the highest engagement and conversion rates
               </CardDescription>
             </CardHeader>
             <CardContent>
               {analyticsData.topProducts.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No product data available for the selected time range.</p>
+                  <p className="text-white/70">No product data available for the selected time range.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -407,17 +407,17 @@ export default function BusinessAnalyticsDashboard() {
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle>Conversion Rate Trends</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Conversion Rate Trends</CardTitle>
+              <CardDescription className="text-white/80">
                 How your conversion rate has changed over time
               </CardDescription>
             </CardHeader>
                         <CardContent>
               {analyticsData.conversionTrends.length === 0 || analyticsData.conversionTrends.every(trend => trend.rate === 0) ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No conversion trend data available for the selected time range.</p>
+                  <p className="text-white/70">No conversion trend data available for the selected time range.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -425,7 +425,7 @@ export default function BusinessAnalyticsDashboard() {
                     const maxRate = Math.max(...analyticsData.conversionTrends.map(t => t.rate), 1);
                     return (
                       <div key={trend.date} className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-white/70">
                           {formatDate(trend.date)}
                         </span>
                         <div className="flex items-center gap-2">

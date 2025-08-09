@@ -109,13 +109,13 @@ export default function BusinessActivityDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'purchased':
-        return <Badge className="bg-green-100 text-green-800">Purchased</Badge>;
+        return <Badge className="bg-green-500/20 text-green-300 border-0">Purchased</Badge>;
       case 'browsed':
-        return <Badge className="bg-blue-100 text-blue-800">Browsed</Badge>;
+        return <Badge className="bg-blue-500/20 text-blue-300 border-0">Browsed</Badge>;
       case 'abandoned':
-        return <Badge className="bg-red-100 text-red-800">Abandoned</Badge>;
+        return <Badge className="bg-red-500/20 text-red-300 border-0">Abandoned</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="text-white border-white/30">{status}</Badge>;
     }
   };
 
@@ -163,56 +163,56 @@ export default function BusinessActivityDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Activity Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Product page visits
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Total Purchases</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Successful conversions
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Revenue from purchases
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
             <Filter className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/80">
               Click to purchase ratio
             </p>
           </CardContent>
@@ -222,44 +222,44 @@ export default function BusinessActivityDashboard() {
       {/* Filter Controls */}
       <div className="flex gap-2">
         <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
           onClick={() => setFilter('all')}
+          className={`${filter === 'all' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           All Activity
         </Button>
         <Button
-          variant={filter === 'clicks' ? 'default' : 'outline'}
           onClick={() => setFilter('clicks')}
+          className={`${filter === 'clicks' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           Clicks Only
         </Button>
         <Button
-          variant={filter === 'purchases' ? 'default' : 'outline'}
           onClick={() => setFilter('purchases')}
+          className={`${filter === 'purchases' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           Purchases Only
         </Button>
       </div>
 
       {/* Activity Table */}
-      <Card>
+      <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle className="text-white">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
           {filteredActivities.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No activity found for the selected filter.</p>
+            <div className="text-center py-8 text-white/70">
+              <p>No activity found for the selected filter.</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="text-white">Type</TableHead>
+                  <TableHead className="text-white">Product</TableHead>
+                  <TableHead className="text-white">Status</TableHead>
+                  <TableHead className="text-white">Amount</TableHead>
+                  <TableHead className="text-white">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -268,7 +268,7 @@ export default function BusinessActivityDashboard() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getTypeIcon(activity.type)}
-                        <span className="capitalize">{activity.type}</span>
+                        <span className="capitalize text-white">{activity.type}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -277,7 +277,7 @@ export default function BusinessActivityDashboard() {
                           href={activity.productUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-white hover:underline"
                         >
                           {activity.productName}
                         </a>
@@ -287,12 +287,12 @@ export default function BusinessActivityDashboard() {
                       {getStatusBadge(activity.status)}
                     </TableCell>
                     <TableCell>
-                      {activity.amount ? `$${activity.amount.toFixed(2)}` : '-'}
+                      <span className="text-white">{activity.amount ? `$${activity.amount.toFixed(2)}` : '-'}</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(activity.timestamp)}
+                        <span className="text-white/80">{formatDate(activity.timestamp)}</span>
                       </div>
                     </TableCell>
                   </TableRow>

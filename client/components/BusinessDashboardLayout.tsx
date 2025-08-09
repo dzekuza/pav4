@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -130,7 +131,8 @@ export default function BusinessDashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
       <SearchHeader showBackButton={false} />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -146,43 +148,68 @@ export default function BusinessDashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <div className="flex space-x-2 mb-8 border-b border-white/10">
+        <div className="flex space-x-2 mb-6">
           <Button
-            variant={isActiveRoute('/business/dashboard') ? "default" : "ghost"}
+            variant="ghost"
             onClick={() => navigate('/business/dashboard')}
-            className="flex items-center text-white"
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute('/business/dashboard')
+                ? "bg-white text-black border border-black/10 hover:bg-white/90"
+                : "text-white hover:bg-white/10"
+            )}
           >
             <Home className="mr-2 h-4 w-4" />
             Dashboard
           </Button>
           <Button
-            variant={isActiveRoute('/business/dashboard/activity') ? "default" : "ghost"}
+            variant="ghost"
             onClick={() => navigate('/business/dashboard/activity')}
-            className="flex items-center text-white"
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute('/business/dashboard/activity')
+                ? "bg-white text-black border border-black/10 hover:bg-white/90"
+                : "text-white hover:bg-white/10"
+            )}
           >
             <Activity className="mr-2 h-4 w-4" />
             Activity
           </Button>
           <Button
-            variant={isActiveRoute('/business/dashboard/integrate') ? "default" : "ghost"}
+            variant="ghost"
             onClick={() => navigate('/business/dashboard/integrate')}
-            className="flex items-center text-white"
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute('/business/dashboard/integrate')
+                ? "bg-white text-black border border-black/10 hover:bg-white/90"
+                : "text-white hover:bg-white/10"
+            )}
           >
             <Code className="mr-2 h-4 w-4" />
             Integrate
           </Button>
           <Button
-            variant={isActiveRoute('/business/dashboard/analytics') ? "default" : "ghost"}
+            variant="ghost"
             onClick={() => navigate('/business/dashboard/analytics')}
-            className="flex items-center text-white"
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute('/business/dashboard/analytics')
+                ? "bg-white text-black border border-black/10 hover:bg-white/90"
+                : "text-white hover:bg-white/10"
+            )}
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
           </Button>
           <Button
-            variant={isActiveRoute('/business/dashboard/settings') ? "default" : "ghost"}
+            variant="ghost"
             onClick={() => navigate('/business/dashboard/settings')}
-            className="flex items-center text-white"
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute('/business/dashboard/settings')
+                ? "bg-white text-black border border-black/10 hover:bg-white/90"
+                : "text-white hover:bg-white/10"
+            )}
           >
             <Settings className="mr-2 h-4 w-4" />
             Settings

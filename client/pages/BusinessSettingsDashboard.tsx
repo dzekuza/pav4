@@ -187,13 +187,13 @@ export default function BusinessSettingsDashboard() {
 
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <Building2 className="h-5 w-5" />
                 Business Information
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/80">
                 Update your business profile and contact information
               </CardDescription>
             </CardHeader>
@@ -260,7 +260,7 @@ export default function BusinessSettingsDashboard() {
                   <Label htmlFor="description">Description</Label>
                   <textarea
                     id="description"
-                    className="w-full min-h-[100px] px-3 py-2 border border-input rounded-md"
+                    className="w-full min-h-[140px] px-3 py-2 rounded-md border border-white/10 bg-white/5 text-white placeholder:text-white/60 backdrop-blur-sm focus-visible:outline-none focus-visible:ring-0"
                     value={settings.businessInfo.description}
                     onChange={(e) => updateSettings('businessInfo', 'description', e.target.value)}
                   />
@@ -280,13 +280,13 @@ export default function BusinessSettingsDashboard() {
 
         {/* Tracking Settings */}
         <TabsContent value="tracking" className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <Globe className="h-5 w-5" />
                 Tracking Configuration
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/80">
                 Configure your tracking and analytics settings
               </CardDescription>
             </CardHeader>
@@ -345,13 +345,13 @@ export default function BusinessSettingsDashboard() {
 
         {/* Commission Settings */}
         <TabsContent value="commission" className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <CreditCard className="h-5 w-5" />
                 Commission Settings
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/80">
                 Configure your commission rates and payout preferences
               </CardDescription>
             </CardHeader>
@@ -405,13 +405,13 @@ export default function BusinessSettingsDashboard() {
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 <Shield className="h-5 w-5" />
                 Security Settings
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/80">
                 Manage your account security and access controls
               </CardDescription>
             </CardHeader>

@@ -389,12 +389,12 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Stepper Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold">Integration Setup</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold text-white">Integration Setup</h2>
+          <p className="text-white/70">
             Set up tracking for your website in 3 simple steps
           </p>
         </div>
@@ -405,9 +405,9 @@ document.addEventListener('DOMContentLoaded', function() {
         {[1, 2, 3].map((step) => (
           <div key={step} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              getStepStatus(step) === 'completed' ? 'bg-green-500 text-white' :
-              getStepStatus(step) === 'current' ? 'bg-blue-500 text-white' :
-              'bg-gray-200 text-gray-500'
+              getStepStatus(step) === 'completed' ? 'bg-green-500 text-black' :
+              getStepStatus(step) === 'current' ? 'bg-white text-black' :
+              'bg-white/10 text-white/60'
             }`}>
               {getStepStatus(step) === 'completed' ? (
                 <CheckCircle className="h-4 w-4" />
@@ -416,15 +416,15 @@ document.addEventListener('DOMContentLoaded', function() {
               )}
             </div>
             <span className={`ml-2 text-sm font-medium ${
-              getStepStatus(step) === 'current' ? 'text-blue-600' :
-              getStepStatus(step) === 'completed' ? 'text-green-600' :
-              'text-gray-500'
+              getStepStatus(step) === 'current' ? 'text-white' :
+              getStepStatus(step) === 'completed' ? 'text-green-400' :
+              'text-white/60'
             }`}>
               {step === 1 ? 'Choose Platform' : step === 2 ? 'Add Script' : 'Test Tracking'}
             </span>
             {step < 3 && (
               <div className={`w-16 h-0.5 mx-4 ${
-                getStepStatus(step + 1) === 'completed' ? 'bg-green-500' : 'bg-gray-200'
+                getStepStatus(step + 1) === 'completed' ? 'bg-green-500' : 'bg-white/20'
               }`} />
             )}
           </div>
@@ -433,13 +433,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       {/* Step 1: Platform Selection */}
       {currentStep === 1 && (
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <Store className="h-5 w-5" />
               Choose Your Platform
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/80">
               Select the platform your website is built on to get the appropriate tracking script
             </CardDescription>
           </CardHeader>
@@ -450,29 +450,29 @@ document.addEventListener('DOMContentLoaded', function() {
                   key={platform.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-all ${
                     selectedPlatform?.id === platform.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-white bg-white/10'
+                      : 'border-white/10 hover:border-white/20 bg-white/5'
                   }`}
                   onClick={() => setSelectedPlatform(platform)}
                 >
                   <div className="flex items-start gap-3">
                     <div className="text-2xl">{platform.icon}</div>
                     <div className="flex-1">
-                      <h3 className="font-semibold">{platform.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <h3 className="font-semibold text-white">{platform.name}</h3>
+                      <p className="text-sm text-white/70 mb-2">
                         {platform.description}
                       </p>
                       <div className="space-y-1">
                         {platform.features.map((feature, index) => (
                           <div key={index} className="flex items-center gap-2">
-                            <CheckCircle className="h-3 w-3 text-green-500" />
-                            <span className="text-xs text-muted-foreground">{feature}</span>
+                            <CheckCircle className="h-3 w-3 text-green-400" />
+                            <span className="text-xs text-white/70">{feature}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                     {selectedPlatform?.id === platform.id && (
-                      <CheckCircle className="h-5 w-5 text-blue-500" />
+                      <CheckCircle className="h-5 w-5 text-white" />
                     )}
                   </div>
                 </div>
@@ -484,32 +484,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
       {/* Step 2: Script Generation */}
       {currentStep === 2 && (
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <Code className="h-5 w-5" />
               Add Tracking Script
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/80">
               Copy the tracking script and add it to your website
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Business Info Display */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-800 mb-2">📋 Your Business Information:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+              <h4 className="font-medium text-white mb-2">📋 Your Business Information:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
                 <div>
-                  <span className="font-medium">Business Name:</span> {stats?.name}
+                  <span className="font-medium text-white">Business Name:</span> {stats?.name}
                 </div>
                 <div>
-                  <span className="font-medium">Website:</span> {stats?.domain}
+                  <span className="font-medium text-white">Website:</span> {stats?.domain}
                 </div>
                 <div>
-                  <span className="font-medium">Business ID:</span> {stats?.id}
+                  <span className="font-medium text-white">Business ID:</span> {stats?.id}
                 </div>
                 <div>
-                  <span className="font-medium">Affiliate ID:</span> {stats?.affiliateId}
+                  <span className="font-medium text-white">Affiliate ID:</span> {stats?.affiliateId}
                 </div>
               </div>
             </div>
@@ -517,25 +517,26 @@ document.addEventListener('DOMContentLoaded', function() {
             {selectedPlatform && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Tracking Script for {selectedPlatform.name}</h4>
+                  <h4 className="font-medium text-white">Tracking Script for {selectedPlatform.name}</h4>
                   <Button
                     size="sm"
                     onClick={() => copyToClipboard(selectedPlatform.scriptTemplate)}
+                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     {copiedScript ? 'Copied!' : 'Copy Script'}
                   </Button>
                 </div>
                 
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-white">
                   <pre className="text-xs overflow-x-auto">
                     <code>{selectedPlatform.scriptTemplate}</code>
                   </pre>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h5 className="font-medium text-green-800 mb-2">✅ Installation Instructions:</h5>
-                  <ol className="text-sm text-green-700 space-y-1">
+                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                  <h5 className="font-medium text-white mb-2">✅ Installation Instructions:</h5>
+                  <ol className="text-sm text-white/80 space-y-1">
                     <li>1. Copy the script above</li>
                     <li>2. Add it to your website's &lt;head&gt; section</li>
                     <li>3. For Shopify: Add to theme.liquid file in your theme</li>
@@ -545,9 +546,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   </ol>
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h5 className="font-medium text-yellow-800 mb-2">⚠️ Important Notes:</h5>
-                  <ul className="text-sm text-yellow-700 space-y-1">
+                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                  <h5 className="font-medium text-white mb-2">⚠️ Important Notes:</h5>
+                  <ul className="text-sm text-white/80 space-y-1">
                     <li>• The script will only track users who came from our app</li>
                     <li>• It tracks product views, cart additions, and purchases</li>
                     <li>• Make sure to test the script after installation</li>
@@ -562,13 +563,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       {/* Step 3: Testing */}
       {currentStep === 3 && (
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <Play className="h-5 w-5" />
               Test Your Tracking
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/80">
               Verify that tracking is working correctly on your website
             </CardDescription>
           </CardHeader>
@@ -577,11 +578,11 @@ document.addEventListener('DOMContentLoaded', function() {
               <div className="space-y-4">
                 <div>
                   <Label>Test Your Website</Label>
-                  <p className="text-sm text-muted-foreground mb-2">
+                  <p className="text-sm text-white/70 mb-2">
                     Open your website to test the tracking script
                   </p>
                   <div className="flex gap-2">
-                    <Button onClick={openTestWebsite} disabled={!stats?.domain}>
+                    <Button onClick={openTestWebsite} disabled={!stats?.domain} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Open {stats?.domain}
                     </Button>
@@ -589,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
                       variant="outline" 
                       onClick={startTesting}
                       disabled={isTesting || !stats?.domain}
+                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                     >
                       <Play className="h-4 w-4 mr-2" />
                       {isTesting ? 'Testing...' : 'Start Test'}
@@ -597,6 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
                       variant="secondary" 
                       onClick={generateTestEvents}
                       disabled={isTesting}
+                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                     >
                       <Activity className="h-4 w-4 mr-2" />
                       Generate Test Events
@@ -604,9 +607,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   </div>
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h5 className="font-medium text-yellow-800 mb-2">⚠️ Testing Instructions:</h5>
-                  <ul className="text-sm text-yellow-700 space-y-1">
+                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                  <h5 className="font-medium text-white mb-2">⚠️ Testing Instructions:</h5>
+                  <ul className="text-sm text-white/80 space-y-1">
                     <li>• Open your website in a new tab</li>
                     <li>• Browse through different pages</li>
                     <li>• View product pages</li>
@@ -619,29 +622,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
               <div>
                 <Label>Tracking Events</Label>
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="text-sm text-white/70 mb-2">
                   Real-time tracking events from your website
                 </p>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {testResults.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Activity className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <div className="text-center py-8 text-white/70">
+                      <Activity className="h-8 w-8 mx-auto mb-2 text-white/50" />
                       <p>No tracking events yet</p>
                       <p className="text-xs">Start testing to see events here</p>
                     </div>
                   ) : (
                     testResults.map((result, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5">
                         <div className={`w-2 h-2 rounded-full ${
-                          result.status === 'success' ? 'bg-green-500' :
-                          result.status === 'error' ? 'bg-red-500' :
-                          'bg-yellow-500'
+                          result.status === 'success' ? 'bg-green-400' :
+                          result.status === 'error' ? 'bg-red-400' :
+                          'bg-yellow-400'
                         }`} />
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{result.event}</div>
-                          <div className="text-xs text-muted-foreground">{result.details}</div>
+                          <div className="font-medium text-sm text-white">{result.event}</div>
+                          <div className="text-xs text-white/70">{result.details}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-white/60">
                           {new Date(result.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
@@ -652,23 +655,23 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             {testResults.length > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h5 className="font-medium text-green-800 mb-2">✅ Tracking Status:</h5>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                <h5 className="font-medium text-white mb-2">✅ Tracking Status:</h5>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/80">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-400" />
                     <span>Script Loaded</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-400" />
                     <span>User Tracking</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-400" />
                     <span>Product Views</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-400" />
                     <span>Purchase Tracking</span>
                   </div>
                 </div>
@@ -684,6 +687,7 @@ document.addEventListener('DOMContentLoaded', function() {
           variant="outline"
           onClick={prevStep}
           disabled={currentStep === 1}
+          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Previous
@@ -692,6 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <Button
           onClick={nextStep}
           disabled={!canProceedToNext()}
+          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
         >
           {currentStep === 3 ? 'Finish Setup' : 'Next Step'}
           <ArrowRight className="h-4 w-4 ml-2" />

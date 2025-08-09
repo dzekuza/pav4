@@ -181,53 +181,53 @@ export default function BusinessActivity() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Product page visits
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Purchases</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Successful conversions
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Total sales revenue
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Click to purchase ratio
               </p>
             </CardContent>
@@ -238,44 +238,44 @@ export default function BusinessActivity() {
         <div className="flex justify-between items-center mb-6">
           <div className="flex gap-2">
             <Button 
-              variant={filter === 'all' ? 'default' : 'outline'} 
               size="sm"
               onClick={() => setFilter('all')}
+              className={`${filter === 'all' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
             >
               All Activity
             </Button>
             <Button 
-              variant={filter === 'clicks' ? 'default' : 'outline'} 
               size="sm"
               onClick={() => setFilter('clicks')}
+              className={`${filter === 'clicks' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
             >
               Clicks Only
             </Button>
             <Button 
-              variant={filter === 'purchases' ? 'default' : 'outline'} 
               size="sm"
               onClick={() => setFilter('purchases')}
+              className={`${filter === 'purchases' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
             >
               Purchases Only
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchActivity}>
+          <Button size="sm" onClick={fetchActivity} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
             <Filter className="mr-2 h-4 w-4" />
             Refresh
           </Button>
         </div>
 
         {/* Activity Table */}
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader>
-            <CardTitle>Activity Log</CardTitle>
+            <CardTitle className="text-white">Activity Log</CardTitle>
           </CardHeader>
           <CardContent>
             {filteredActivities.length === 0 ? (
               <div className="text-center py-8 text-white/70">
                 <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No activity found</p>
-                <p className="text-sm">User activity will appear here once customers start browsing your products</p>
+                <p className="text-sm text-white/70">User activity will appear here once customers start browsing your products</p>
               </div>
             ) : (
               <div className="overflow-x-auto">

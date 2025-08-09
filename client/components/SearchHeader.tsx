@@ -61,37 +61,57 @@ export function SearchHeader({
     );
   }
 
-  // Render business navigation if logged in as business
-  if (isBusiness && business) {
+  // Helper to render profile dropdown (used for both customer and business sessions)
+  const ProfileDropdown = () => {
+    const displayName = (business?.name || user?.email || "User") as string;
+    const initials = displayName
+      .split(" ")
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
     return (
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-transparent">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link to="/business/dashboard" className="flex items-center space-x-2">
-                <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
-              </Link>
-            </div>
-            <nav className="flex items-center space-x-2 sm:space-x-4">
-              <Link to="/">
-                <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
-                  Customer<span className="hidden sm:inline"> portal</span>
-                </Button>
-              </Link>
-              <Link to="/business/dashboard">
-                <Button
-                  variant="outline"
-                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
-                >
-                  Business<span className="hidden sm:inline"> portal</span>
-                </Button>
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="p-0 rounded-full h-9 w-9">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-white text-black">{initials}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-48">
+          {isBusiness && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to="/business/dashboard">Dashboard</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/business/dashboard/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={async () => {
+                  await logoutBusiness();
+                  navigate("/");
+                }}
+              >
+                Logout
+              </DropdownMenuItem>
+            </>
+          )}
+          {!isBusiness && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to="/favorites">Favorites</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
-  }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-transparent">
@@ -107,19 +127,25 @@ export function SearchHeader({
           </div>
 
           <nav className="flex items-center space-x-2 sm:space-x-4">
-            <Link to="/">
-              <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
-                Customer<span className="hidden sm:inline"> portal</span>
-              </Button>
-            </Link>
-            <Link to="/business/dashboard">
-              <Button
-                variant="outline"
-                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
-              >
-                Business<span className="hidden sm:inline"> portal</span>
-              </Button>
-            </Link>
+            {(isAuthenticated || isBusiness) ? (
+              <ProfileDropdown />
+            ) : (
+              <>
+                <Link to="/">
+                  <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
+                    Customer<span className="hidden sm:inline"> portal</span>
+                  </Button>
+                </Link>
+                <Link to="/business/dashboard">
+                  <Button
+                    variant="outline"
+                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
+                  >
+                    Business<span className="hidden sm:inline"> portal</span>
+                  </Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </div>

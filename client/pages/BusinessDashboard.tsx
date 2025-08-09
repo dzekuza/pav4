@@ -117,19 +117,19 @@ export default function BusinessDashboard() {
       <SearchHeader showBackButton={false} />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
             <p className="text-white/70">{stats.domain}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/business/dashboard/activity')}>
+            <Button onClick={() => navigate('/business/dashboard/activity')} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
               User Activity
             </Button>
-            <Button variant="outline" onClick={() => navigate('/business/dashboard/integrate')}>
+            <Button onClick={() => navigate('/business/dashboard/integrate')} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
               Integrate
             </Button>
-            <Button variant="outline" onClick={handleLogout}>
+            <Button onClick={handleLogout} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
@@ -140,12 +140,12 @@ export default function BusinessDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Visits</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Visits</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalVisits.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Users who visited your products
               </p>
             </CardContent>
@@ -153,12 +153,12 @@ export default function BusinessDashboard() {
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Purchases</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Successful purchases made
               </p>
             </CardContent>
@@ -166,12 +166,12 @@ export default function BusinessDashboard() {
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Total sales revenue
               </p>
             </CardContent>
@@ -179,12 +179,12 @@ export default function BusinessDashboard() {
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80">
                 Visit to purchase ratio
               </p>
             </CardContent>
@@ -195,41 +195,39 @@ export default function BusinessDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle>Revenue Analysis</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Revenue Analysis</CardTitle>
+              <CardDescription className="text-white/80">
                 Detailed breakdown of your business performance
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Average Order Value</span>
-                <span className="text-sm font-bold">${stats.averageOrderValue.toFixed(2)}</span>
+                <span className="text-sm font-medium text-white">Average Order Value</span>
+                <span className="text-sm font-bold text-white">${stats.averageOrderValue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Commission Rate</span>
-                <Badge variant="outline">{stats.adminCommissionRate}%</Badge>
+                <span className="text-sm font-medium text-white">Commission Rate</span>
+                <Badge variant="outline" className="text-white border-white/30">{stats.adminCommissionRate}%</Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Projected Fee</span>
-                <span className="text-sm font-bold text-green-600">
-                  ${stats.projectedFee.toFixed(2)}
-                </span>
+                <span className="text-sm font-medium text-white">Projected Fee</span>
+                <span className="text-sm font-bold text-white">${stats.projectedFee.toFixed(2)}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle>Performance Metrics</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-white">Performance Metrics</CardTitle>
+              <CardDescription className="text-white/80">
                 Key performance indicators for your business
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Visits</span>
-                  <span className="text-sm">{stats.totalVisits.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-white">Total Visits</span>
+                  <span className="text-sm text-white">{stats.totalVisits.toLocaleString()}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
@@ -241,8 +239,8 @@ export default function BusinessDashboard() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Purchases</span>
-                  <span className="text-sm">{stats.totalPurchases.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-white">Total Purchases</span>
+                  <span className="text-sm text-white">{stats.totalPurchases.toLocaleString()}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
@@ -254,8 +252,8 @@ export default function BusinessDashboard() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Conversion Rate</span>
-                  <span className="text-sm">{stats.conversionRate.toFixed(1)}%</span>
+                  <span className="text-sm font-medium text-white">Conversion Rate</span>
+                  <span className="text-sm text-white">{stats.conversionRate.toFixed(1)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
