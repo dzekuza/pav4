@@ -221,23 +221,40 @@ app.post("/api/n8n-scrape", async (req, res) => {
       return res.status(400).json({ error: "URL or keywords is required" });
     }
     const webhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv824584.hstgr.cloud/webhook/new-test';
-    const payload: any = { gl: gl || 'us' };
-    if (url) payload.url = url;
-    if (keywords) payload.keywords = keywords;
-    if (requestId) payload.requestId = requestId;
-    if (findSimilar) payload.findSimilar = !!findSimilar;
+    const params: any = { gl: gl || 'us' };
+    if (url) params.url = url;
+    if (keywords) params.keywords = keywords;
+    if (requestId) params.requestId = requestId;
+    if (findSimilar) params.findSimilar = !!findSimilar;
 
-    const response = await axios.post(webhookUrl, payload, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 30000,
-      maxRedirects: 5,
-    });
-    return res.status(200).json(response.data);
+    // Most n8n webhooks default to GET for testable URLs. Try GET first, then fall back to POST.
+    let data: any;
+    try {
+      const resp = await axios.get(webhookUrl, {
+        params,
+        timeout: 30000,
+        maxRedirects: 5,
+      });
+      data = resp.data;
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const message: string | undefined = err?.response?.data?.message || err?.message;
+      const shouldRetryPost = status === 404 || status === 405 || (message && /GET|POST/i.test(message));
+      if (!shouldRetryPost) throw err;
+      const resp = await axios.post(webhookUrl, params, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000,
+        maxRedirects: 5,
+      });
+      data = resp.data;
+    }
+
+    return res.status(200).json(data);
   } catch (error) {
     const status = (error as any)?.response?.status || 500;
-    const data = (error as any)?.response?.data;
-    console.error("/api/n8n-scrape error:", status, data || String(error));
-    return res.status(500).json({ error: "Scrape failed", details: data || (error instanceof Error ? error.message : String(error)) });
+    const detail = (error as any)?.response?.data || (error instanceof Error ? error.message : String(error));
+    console.error("/api/n8n-scrape error:", status, detail);
+    return res.status(500).json({ error: "Scrape failed", details: detail });
   }
 });
 
