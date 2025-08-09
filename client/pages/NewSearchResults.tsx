@@ -521,7 +521,7 @@ const NewSearchResults = () => {
                   <div className="flex-shrink-0 w-full sm:w-auto">
                     <Button asChild className="w-full sm:w-auto rounded-full bg-white text-black hover:bg-white/90">
                       <a 
-                        href={mainProduct.url} 
+                        href={`/api/redirect?to=${encodeURIComponent(mainProduct.url)}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         aria-label="View original product details"
@@ -638,7 +638,7 @@ const NewSearchResults = () => {
                           <div className="flex flex-col gap-2 flex-shrink-0">
                             <Button asChild size="sm" variant="outline" className="flex-shrink-0 rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                               <a 
-                                href={suggestion.link} 
+                                href={`/api/redirect?to=${encodeURIComponent(suggestion.link)}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
                                 title="View product details"

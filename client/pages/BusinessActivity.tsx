@@ -49,21 +49,24 @@ export default function BusinessActivity() {
         fetch('/api/business/activity/conversions', { credentials: 'include' })
       ]);
 
-      const clicks = clicksResponse.ok ? await clicksResponse.json() : [];
-      const conversions = conversionsResponse.ok ? await conversionsResponse.json() : [];
+      const clicksJson = clicksResponse.ok ? await clicksResponse.json() : { clicks: [] };
+      const conversionsJson = conversionsResponse.ok ? await conversionsResponse.json() : { conversions: [] };
+
+      const clicks = Array.isArray(clicksJson) ? clicksJson : (clicksJson.clicks || []);
+      const conversions = Array.isArray(conversionsJson) ? conversionsJson : (conversionsJson.conversions || []);
 
       // Combine and format the data
       const combinedActivities: ActivityItem[] = [
         ...clicks.map((click: any) => ({
           id: `click-${click.id}`,
           type: 'click' as const,
-          productName: extractProductName(click.productId),
-          productUrl: click.productId,
+          productName: extractProductName(click.productUrl),
+          productUrl: click.productUrl,
           status: 'browsed' as const,
           timestamp: click.timestamp,
           userAgent: click.userAgent,
           referrer: click.referrer,
-          ip: click.ip
+          ip: click.ipAddress
         })),
         ...conversions.map((conversion: any) => ({
           id: `purchase-${conversion.id}`,
