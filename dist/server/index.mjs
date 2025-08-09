@@ -86,6 +86,57 @@ const userService = {
     });
   }
 };
+const adminService = {
+  async createAdmin(data) {
+    return prisma$3.admins.create({
+      data: {
+        email: data.email,
+        password: data.password,
+        name: data.name || "",
+        role: data.role || "admin",
+        isActive: true,
+        updatedAt: /* @__PURE__ */ new Date()
+      }
+    });
+  },
+  async findAdminByEmail(email) {
+    return prisma$3.admins.findUnique({
+      where: { email }
+    });
+  },
+  async findAdminById(id) {
+    return prisma$3.admins.findUnique({
+      where: { id }
+    });
+  },
+  async getAllAdmins() {
+    return prisma$3.admins.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  },
+  async updateAdmin(id, data) {
+    return prisma$3.admins.update({
+      where: { id },
+      data
+    });
+  },
+  async deleteAdmin(id) {
+    return prisma$3.admins.delete({
+      where: { id }
+    });
+  }
+};
 const searchService = {
   async addSearch(userId, data) {
     return prisma$3.searchHistory.create({
@@ -424,6 +475,7 @@ const checkDatabaseConnection = async () => {
 };
 const database = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
+  adminService,
   businessService,
   checkDatabaseConnection,
   clearUserContext,
@@ -4004,6 +4056,23 @@ const getSearchHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to get search history" });
   }
 };
+process.env.JWT_SECRET || "your-secret-key";
+const promoteUserToAdmin = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: "email is required" });
+    }
+    const result = await adminService.promoteUserToAdmin?.(email);
+    if (!result) {
+      return res.status(404).json({ success: false, error: "User not found or service not implemented" });
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Promote user error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
 const healthCheckHandler = async (req, res) => {
   try {
     const dbHealth = await dbService.checkConnection();
@@ -5915,7 +5984,29 @@ async function createServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "blob:",
+          "https://vercel.live",
+          "https://www.googletagmanager.com",
+          "https://www.google-analytics.com",
+          "https://esm.sh",
+          "https://unpkg.com",
+          "https://cdn.jsdelivr.net"
+        ],
+        // For completeness include script-src-elem with same policy
+        scriptSrcElem: [
+          "'self'",
+          "'unsafe-inline'",
+          "blob:",
+          "https://vercel.live",
+          "https://www.googletagmanager.com",
+          "https://www.google-analytics.com",
+          "https://esm.sh",
+          "https://unpkg.com",
+          "https://cdn.jsdelivr.net"
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: [
@@ -5924,6 +6015,7 @@ async function createServer() {
           "https://n8n.srv824584.hstgr.cloud",
           "https://paaav.vercel.app",
           "https://pavlo4.netlify.app",
+          "https://vercel.live",
           "http://localhost:5746",
           "http://localhost:5747",
           "http://localhost:8082",
@@ -6021,6 +6113,7 @@ async function createServer() {
   app.post("/api/search-history", requireAuth, addToSearchHistory);
   app.get("/api/search-history", requireAuth, getUserSearchHistory);
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
+  app.post("/api/admin/promote", promoteUserToAdmin);
   app.use("/api/affiliate", router$4);
   app.use("/api/sales", router$3);
   app.post(

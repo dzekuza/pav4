@@ -1,1 +1,0 @@
-import{r as e,$ as s}from"./vendor_react-Bpl_dUPQ.js";import{k as u}from"./index-Bm7-4qCY.js";var c=s.useId||(()=>{}),n=0;function i(t){const[r,a]=e.useState(c());return u(()=>{a(o=>o??String(n++))},[t]),t||(r?`radix-${r}`:"")}export{i as u};
