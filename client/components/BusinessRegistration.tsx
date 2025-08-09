@@ -133,11 +133,11 @@ export function BusinessRegistration() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6">
-      <Card>
+    <div className="max-w-md mx-auto p-6 text-white">
+      <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle>Business Registration</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">Business Registration</CardTitle>
+          <CardDescription className="text-white/80">
             Register your business to appear in product search suggestions. 
             You can complete your profile later in the settings.
           </CardDescription>
@@ -146,7 +146,7 @@ export function BusinessRegistration() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Business Name *</Label>
+                <Label htmlFor="name" className="text-white">Business Name *</Label>
                 <Input
                   id="name"
                   name="name"
@@ -158,7 +158,7 @@ export function BusinessRegistration() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="website">App URL *</Label>
+                <Label htmlFor="website" className="text-white">App URL *</Label>
                 <Input
                   id="website"
                   name="website"
@@ -167,13 +167,13 @@ export function BusinessRegistration() {
                   placeholder="https://yourstore.com"
                   required
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-white/70">
                   Enter your website URL where customers can purchase products
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password" className="text-white">Password *</Label>
                 <Input
                   id="password"
                   name="password"
@@ -186,7 +186,7 @@ export function BusinessRegistration() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                <Label htmlFor="confirmPassword" className="text-white">Confirm Password *</Label>
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -201,13 +201,13 @@ export function BusinessRegistration() {
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90" 
               disabled={isLoading}
             >
               {isLoading ? "Registering..." : "Register Business"}
             </Button>
 
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-sm text-white/70">
               <p>You can complete your business profile later in the settings.</p>
             </div>
           </form>

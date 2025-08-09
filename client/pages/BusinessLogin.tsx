@@ -93,22 +93,23 @@ export default function BusinessLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
       <SearchHeader showBackButton={false} />
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
-          <Card>
+          <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Business Login</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-white">Business Login</CardTitle>
+              <CardDescription className="text-white/80">
                 Sign in to your business account
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-white">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -120,7 +121,7 @@ export default function BusinessLogin() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-white">Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -133,7 +134,7 @@ export default function BusinessLogin() {
 
                 <Button 
                   type="submit" 
-                  className="w-full" 
+                  className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90" 
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
@@ -147,14 +148,14 @@ export default function BusinessLogin() {
                     console.log('Register button clicked, setting showRegistrationWizard to true');
                     setShowRegistrationWizard(true);
                   }}
-                  className="text-sm"
+                  className="text-sm text-white"
                 >
                   Don't have an account? Register
                 </Button>
               </div>
 
               <div className="mt-4 text-center">
-                <Link to="/" className="text-sm text-muted-foreground hover:underline">
+                <Link to="/" className="text-sm text-white/70 hover:underline">
                   Back to Home
                 </Link>
               </div>

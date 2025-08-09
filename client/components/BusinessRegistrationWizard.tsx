@@ -256,7 +256,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
   ];
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-2xl mx-auto p-6 text-white">
       {/* Progress Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -276,13 +276,13 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
         </div>
       </div>
 
-      <Card>
+      <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Building2 className="h-5 w-5" />
             {currentStep === 1 ? "Create Business Account" : "Business Information"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-white/80">
             {currentStep === 1 
               ? "Step 1: Set up your business account credentials"
               : "Step 2: Provide your business details"
@@ -343,7 +343,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
             <div className="space-y-4">
               <div>
                 <Label htmlFor="name">Business Name</Label>
-                <Input
+                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -352,7 +352,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
               </div>
               <div>
                 <Label htmlFor="domain">Domain</Label>
-                <Input
+                 <Input
                   id="domain"
                   value={formData.domain}
                   onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
@@ -364,20 +364,20 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                   <Globe className="h-4 w-4" />
                   Website URL (Auto-generated)
                 </Label>
-                <Input
+                 <Input
                   id="website"
                   value={formData.website}
                   readOnly
-                  className="bg-gray-50 cursor-not-allowed"
+                   className="cursor-not-allowed"
                   placeholder="https://yourdomain.com"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                 <p className="text-xs text-white/70 mt-1">
                   Website URL is automatically generated from your domain
                 </p>
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Textarea
+                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -386,7 +386,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
               </div>
               <div>
                 <Label htmlFor="logo">Logo URL (Optional)</Label>
-                <Input
+                 <Input
                   id="logo"
                   value={formData.logo}
                   onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
@@ -396,10 +396,10 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
               <div>
                 <Label htmlFor="category">Category</Label>
                 <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger>
+                   <SelectTrigger className="border-white/10 bg-white/5 text-white">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
-                  <SelectContent>
+                   <SelectContent className="border-white/10 bg-black/80 text-white">
                     <SelectItem value="Electronics">Electronics</SelectItem>
                     <SelectItem value="Fashion">Fashion</SelectItem>
                     <SelectItem value="Home & Garden">Home & Garden</SelectItem>
@@ -416,10 +416,10 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
               <div>
                 <Label htmlFor="country">Country</Label>
                 <Select value={formData.country} onValueChange={(value) => setFormData({ ...formData, country: value })}>
-                  <SelectTrigger>
+                   <SelectTrigger className="border-white/10 bg-white/5 text-white">
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
-                  <SelectContent>
+                   <SelectContent className="border-white/10 bg-black/80 text-white">
                     <SelectItem value="United States">United States</SelectItem>
                     <SelectItem value="Canada">Canada</SelectItem>
                     <SelectItem value="United Kingdom">United Kingdom</SelectItem>

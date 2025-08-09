@@ -90,10 +90,10 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto border-white/10 bg-white/5 text-white">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">Welcome</CardTitle>
-        <CardDescription className="text-center">
+        <CardTitle className="text-2xl text-center text-white">Welcome</CardTitle>
+        <CardDescription className="text-center text-white/80">
           {activeTab === "login"
             ? "Sign in to your account to access your search history"
             : "Create an account to save your search history"}
@@ -120,7 +120,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     id="email"
                     type="email"
@@ -136,7 +136,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     id="password"
                     type="password"
@@ -156,7 +156,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="email-register">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     id="email-register"
                     type="email"
@@ -172,7 +172,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="password-register">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     id="password-register"
                     type="password"
@@ -190,7 +190,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-white/60" />
                   <Input
                     id="confirm-password"
                     type="password"
@@ -206,7 +206,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               </div>
             </TabsContent>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
