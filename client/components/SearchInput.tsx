@@ -282,7 +282,7 @@ export function SearchInput({
           {/* subtle inner sheen */}
           <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(120%_60%_at_15%_-20%,rgba(255,255,255,0.18),rgba(255,255,255,0))]" />
 
-          <div className="relative flex w-full items-stretch gap-2 p-1.5">
+          <div className="relative flex w-full items-stretch gap-1 sm:gap-1.5 p-1.5">
             {/* Country selector */}
             <div className="flex items-center">
               <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
@@ -291,11 +291,11 @@ export function SearchInput({
                     variant="ghost"
                     role="combobox"
                     aria-expanded={openCountrySelect}
-                    className="h-12 px-4 rounded-full text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="h-12 pl-2 pr-0 sm:px-4 rounded-full text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
                   >
-                    <span className="text-lg mr-2">{selectedCountryData?.flag}</span>
-                    <span className="text-sm font-semibold uppercase tracking-wide">{selectedCountryData?.code}</span>
-                    <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
+                    <span className="text-lg mr-0 sm:mr-2">{selectedCountryData?.flag}</span>
+                    <span className="hidden sm:inline text-sm font-semibold uppercase tracking-wide">{selectedCountryData?.code}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-60 hidden sm:inline" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0 border-white/10 bg-white/10 backdrop-blur-md">
@@ -328,7 +328,7 @@ export function SearchInput({
 
             {/* Input */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60" />
               <Input
                 ref={inputRef}
                 type="text"
@@ -341,7 +341,7 @@ export function SearchInput({
                   }
                 }}
                 onKeyDown={handleKeyDown}
-                className="h-12 rounded-full border-0 bg-transparent pl-12 pr-4 text-base text-white placeholder:text-white/60 focus-visible:ring-0"
+                className="h-12 rounded-full border-0 bg-transparent pl-10 sm:pl-12 pr-4 text-base text-white placeholder:text-white/60 focus-visible:ring-0"
                 disabled={isLoading}
               />
             </div>
@@ -353,10 +353,10 @@ export function SearchInput({
                 size="lg"
                 disabled={isLoading}
                 variant="outline"
-                className="h-12 rounded-full bg-white text-black border border-black/10 px-6 hover:bg-white/90 hover:text-black focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="h-12 rounded-full bg-white text-black border border-black/10 w-12 sm:w-auto px-0 sm:px-6 justify-center hover:bg-white/90 hover:text-black focus-visible:ring-0 focus-visible:ring-offset-0"
               >
-                {isLoading ? "Searching..." : submitLabel}
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <span className="hidden sm:inline">{isLoading ? "Searching..." : submitLabel}</span>
+                <ArrowRight className="h-5 w-5 sm:ml-2" />
               </Button>
             </div>
           </div>

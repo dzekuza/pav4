@@ -54,19 +54,26 @@ const DemoLanding: React.FC = () => {
 
       {/* Content overlay */}
       <div className="relative z-10">
-        {/* Top-right buttons */}
-        <div className="absolute right-6 top-6 flex items-center gap-4">
+        {/* Top navbar elements */}
+        {/* Logo left */}
+        <div className="absolute left-6 top-6">
           <Link to="/">
-            <Button className="rounded-full bg-black text-white hover:bg-black/90 px-6">
-              Customer portal
+            <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
+          </Link>
+        </div>
+        {/* Top-right buttons */}
+        <div className="absolute right-4 sm:right-6 top-4 sm:top-6 flex items-center gap-2 sm:gap-4">
+          <Link to="/">
+            <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
+              Customer<span className="hidden sm:inline"> portal</span>
             </Button>
           </Link>
           <Link to="/business/dashboard">
             <Button
               variant="outline"
-              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-6"
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
             >
-              Business portal
+              Business<span className="hidden sm:inline"> portal</span>
             </Button>
           </Link>
         </div>
@@ -102,8 +109,8 @@ const DemoLanding: React.FC = () => {
         }}
       />
 
-      {/* Globe fixed to bottom as last element (no internal overlay) */}
-      <div className="pointer-events-none fixed bottom-0 left-1/2 z-0 w-full max-w-3xl -translate-x-1/2 h-[260px] md:h-[420px]">
+      {/* Globe fixed to bottom as last element (larger and slightly lower) */}
+      <div className="pointer-events-none fixed -bottom-36 md:-bottom-64 left-1/2 z-0 w-full max-w-6xl -translate-x-1/2 h-[420px] md:h-[680px]">
         <Globe className="top-0" />
       </div>
     </div>
