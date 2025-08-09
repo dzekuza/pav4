@@ -82,14 +82,35 @@ model Business {
   updatedAt           DateTime             @updatedAt
   affiliateId         String               @unique
   trackingVerified    Boolean              @default(false)
+  domainVerified      Boolean              @default(false)
+  domainVerifiedAt    DateTime?
   clicks              BusinessClick[]
   conversions         BusinessConversion[]
   commissionRates     CommissionRate[]
   sales               Sale[]
   trackingEvents      TrackingEvent[]
   webhooks            Webhook[]
+  domainVerifications DomainVerification[]
 
   @@map("businesses")
+}
+
+model DomainVerification {
+  id                Int       @id @default(autoincrement())
+  businessId        Int
+  domain            String
+  verificationToken String    @unique
+  status            String    @default("pending") // pending, verified, expired
+  expiresAt         DateTime
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  business          Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([domain])
+  @@index([verificationToken])
+  @@index([status])
+  @@map("domain_verifications")
 }
 
 model ClickLog {

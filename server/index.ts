@@ -68,6 +68,12 @@ import redirectRouter from "./routes/redirect";
 import trackSaleRouter from "./routes/track-sale";
 import trackProductVisitRouter from "./routes/track-product-visit";
 import { trackEvent, getTrackingEvents } from "./routes/track-event";
+import {
+  generateVerificationToken,
+  verifyDomain,
+  checkDomainVerification,
+  getVerificationStatus
+} from "./routes/domain-verification";
 
 // Load environment variables
 dotenv.config();
@@ -305,6 +311,12 @@ export async function createServer() {
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
+
+  // Domain verification routes
+  app.post("/api/domain-verification/generate-token", requireBusinessAuth, generateVerificationToken);
+  app.post("/api/domain-verification/verify", requireBusinessAuth, verifyDomain);
+  app.get("/api/domain-verification/check", checkDomainVerification);
+  app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getVerificationStatus);
 
   // Admin business routes
   app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);

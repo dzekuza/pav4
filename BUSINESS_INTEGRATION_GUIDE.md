@@ -60,13 +60,13 @@ https://paaav.vercel.app/business-integrate
 
 ### **Step 3: Choose Integration Method**
 
-#### **Option A: Enhanced Shopify Tracking (Recommended for Shopify stores)**
+#### **Option A: Modern One-Line Integration (Recommended for Shopify stores)**
 
 1. Go to "Scripts" tab
-2. Find "Enhanced Shopify Tracking Script"
+2. Find "Shopify" tracking script (one-line loader)
 3. Copy the generated script
 4. Add to your Shopify theme's `theme.liquid` file in the `<head>` section
-5. Test with a purchase and check browser console for debugging
+5. The loader automatically handles all complex setup and debugging
 
 #### **Option B: Universal Tracking Script**
 
@@ -91,16 +91,27 @@ https://paaav.vercel.app/business-integrate
 
 ## 📊 **Generated Scripts**
 
-### **Enhanced Shopify Tracking Script**
+### **Modern Shopify Integration Script**
 
 ```html
-<!-- PriceHunt Enhanced Shopify Integration -->
+<!-- PriceHunt Shopify Integration -->
 <script
-  src="https://paaav.vercel.app/shopify-tracker-enhanced.js"
+  src="https://paaav.vercel.app/shopify-tracker-loader.js"
   data-business-id="YOUR_BUSINESS_ID"
   data-affiliate-id="YOUR_AFFILIATE_ID"
   data-debug="true"
 ></script>
+<!-- End PriceHunt Shopify Integration -->
+```
+
+**That's it!** The loader automatically:
+
+- Fetches the full enhanced tracking script
+- Sets up all event listeners
+- Handles AJAX cart tracking
+- Provides debugging functions
+- Works with all Shopify themes
+
 <script>
   // Enhanced tracking for your Shopify store
   document.addEventListener("DOMContentLoaded", function () {
@@ -338,8 +349,8 @@ https://paaav.vercel.app/business-integrate
   });
 </script>
 <!-- End PriceHunt Enhanced Shopify Integration -->
-```
 
+````
 ### **Universal Tracking Script**
 
 ```html
@@ -357,7 +368,7 @@ https://paaav.vercel.app/business-integrate
     debug: false, // Set to true for testing, false for production
   });
 </script>
-```
+````
 
 ### **GTM Integration Script**
 
