@@ -7,7 +7,8 @@ import compression from "compression";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { neon } from '@neondatabase/serverless';
-import n8nScrapeRouter from "./routes/n8n-scrape";
+// Do not import heavy routers (e.g., Prisma-based) in the serverless build
+import axios from "axios";
 
 // Load environment variables
 dotenv.config();
@@ -67,7 +68,12 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "blob:",
+                "https://vercel.live"
+            ],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: [
@@ -82,10 +88,8 @@ app.use(helmet({
 }));
 
 // CORS configuration
-app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true,
-}));
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.FRONT_END_URL || "https://paaav.vercel.app";
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -209,20 +213,35 @@ app.get("/api/auth/me", (req, res) => {
     });
 });
 
-// Public search routes (mount n8n-scrape router)
-// Mirror server/index.ts behavior so /api/n8n-scrape exists in production
-app.post("/api/scrape", (req, res) => {
-  // Forward to n8n-scrape
-  (req as any).url = '/n8n-scrape';
-  (n8nScrapeRouter as any)(req, res, () => {});
+// Lightweight n8n-scrape endpoint that avoids Prisma imports in serverless
+app.post("/api/n8n-scrape", async (req, res) => {
+  try {
+    const { url, keywords, gl, requestId, findSimilar } = req.body || {};
+    if (!url && !keywords) {
+      return res.status(400).json({ error: "URL or keywords is required" });
+    }
+    const webhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv824584.hstgr.cloud/webhook/new-test';
+    const payload: any = { gl: gl || 'us' };
+    if (url) payload.url = url;
+    if (keywords) payload.keywords = keywords;
+    if (requestId) payload.requestId = requestId;
+    if (findSimilar) payload.findSimilar = !!findSimilar;
+
+    const response = await axios.post(webhookUrl, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+      maxRedirects: 5,
+    });
+    return res.status(200).json(response.data);
+  } catch (error) {
+    const status = (error as any)?.response?.status || 500;
+    const data = (error as any)?.response?.data;
+    console.error("/api/n8n-scrape error:", status, data || String(error));
+    return res.status(500).json({ error: "Scrape failed", details: data || (error instanceof Error ? error.message : String(error)) });
+  }
 });
 
-app.post("/api/n8n-webhook-scrape", (req, res) => {
-  (req as any).url = '/n8n-scrape';
-  (n8nScrapeRouter as any)(req, res, () => {});
-});
-
-app.use("/api", n8nScrapeRouter);
+// Keep only lightweight proxy for scraping in serverless
 
 // User registration endpoint
 app.post("/api/auth/register", async (req, res) => {
