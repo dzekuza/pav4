@@ -166,21 +166,22 @@ export default function BusinessActivity() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-50" />
       <SearchHeader showBackButton={false} />
       
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">User Activity</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-white">User Activity</h1>
+          <p className="text-white/70">
             Track user interactions and purchases for {business?.name || 'your business'}
           </p>
         </div>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
@@ -193,7 +194,7 @@ export default function BusinessActivity() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -206,7 +207,7 @@ export default function BusinessActivity() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -219,7 +220,7 @@ export default function BusinessActivity() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -265,13 +266,13 @@ export default function BusinessActivity() {
         </div>
 
         {/* Activity Table */}
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader>
             <CardTitle>Activity Log</CardTitle>
           </CardHeader>
           <CardContent>
             {filteredActivities.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-white/70">
                 <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No activity found</p>
                 <p className="text-sm">User activity will appear here once customers start browsing your products</p>

@@ -36,7 +36,7 @@ export function SearchHeader({
   // Show loading state while checking authentication
   if (isLoading || isBusinessLoading) {
     return (
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-white/10 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-transparent">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -64,7 +64,7 @@ export function SearchHeader({
   // Render business navigation if logged in as business
   if (isBusiness && business) {
     return (
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-white/10 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-transparent">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -94,7 +94,7 @@ export function SearchHeader({
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-white/10 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-transparent">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">

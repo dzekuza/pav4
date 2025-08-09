@@ -95,7 +95,7 @@ export default function BusinessDashboardLayout() {
   if (isLoading) {
     return (
       <div className="relative min-h-screen overflow-hidden">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-80" />
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-60" />
         <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
@@ -114,10 +114,10 @@ export default function BusinessDashboardLayout() {
   if (!stats) {
     return (
       <div className="relative min-h-screen overflow-hidden">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-80" />
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-60" />
         <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
-          <Card className="border-white/10 bg-white/5 backdrop-blur-xl text-white">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardContent className="p-6 text-center">
               <p className="text-white/80">Unable to load business statistics.</p>
               <Button onClick={() => navigate('/business-login')} className="mt-4 rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
@@ -131,15 +131,15 @@ export default function BusinessDashboardLayout() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-80" />
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-50" />
       <SearchHeader showBackButton={false} />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">{stats.name}</h1>
-            <p className="text-muted-foreground">{stats.domain}</p>
+            <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
+            <p className="text-white/70">{stats.domain}</p>
           </div>
           <Button variant="outline" onClick={handleLogout} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
             <LogOut className="mr-2 h-4 w-4" />

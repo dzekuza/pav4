@@ -185,10 +185,10 @@ export default function BusinessAnalyticsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Visits</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -203,7 +203,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -218,7 +218,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
@@ -233,7 +233,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Daily Visits</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
@@ -286,7 +286,7 @@ export default function BusinessAnalyticsDashboard() {
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
+            <Card className="border-white/10 bg-white/5">
               <CardHeader>
                 <CardTitle>Daily Visits</CardTitle>
                 <CardDescription>
@@ -324,7 +324,7 @@ export default function BusinessAnalyticsDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-white/10 bg-white/5">
               <CardHeader>
                 <CardTitle>Daily Revenue</CardTitle>
                 <CardDescription>
@@ -365,7 +365,7 @@ export default function BusinessAnalyticsDashboard() {
         </TabsContent>
 
         <TabsContent value="products" className="space-y-4">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle>Top Performing Products</CardTitle>
               <CardDescription>
@@ -407,7 +407,7 @@ export default function BusinessAnalyticsDashboard() {
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle>Conversion Rate Trends</CardTitle>
               <CardDescription>

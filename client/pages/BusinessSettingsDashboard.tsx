@@ -165,12 +165,12 @@ export default function BusinessSettingsDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Settings Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Business Settings</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-bold text-white">Business Settings</h2>
+          <p className="text-white/70">
             Manage your business profile, tracking, and security settings
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function BusinessSettingsDashboard() {
 
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-4">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
@@ -280,7 +280,7 @@ export default function BusinessSettingsDashboard() {
 
         {/* Tracking Settings */}
         <TabsContent value="tracking" className="space-y-4">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
@@ -345,7 +345,7 @@ export default function BusinessSettingsDashboard() {
 
         {/* Commission Settings */}
         <TabsContent value="commission" className="space-y-4">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -405,7 +405,7 @@ export default function BusinessSettingsDashboard() {
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-4">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
