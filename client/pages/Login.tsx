@@ -9,18 +9,15 @@ export default function Login() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Get the intended destination from location state
-  const from = location.state?.from?.pathname || "/";
-
   // Redirect if already authenticated
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate(from, { replace: true });
+      navigate("/history", { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, from]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   const handleAuthSuccess = () => {
-    navigate(from, { replace: true });
+    navigate("/history", { replace: true });
   };
 
   if (isLoading) {

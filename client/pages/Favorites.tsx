@@ -40,17 +40,18 @@ const Favorites = () => {
   // Show authentication modal if user is not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-8">
-          <Card>
+          <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardContent className="p-8 text-center">
-              <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view favorites</h3>
-              <p className="text-gray-600 mb-4">
+              <Heart className="h-12 w-12 text-white/60 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">Sign in to view favorites</h3>
+              <p className="text-white/70 mb-4">
                 Create an account or sign in to view your saved favorites.
               </p>
-              <Button onClick={() => modalProps.onClose()}>
+              <Button onClick={() => modalProps.onClose()} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 Sign In
               </Button>
             </CardContent>
@@ -63,12 +64,13 @@ const Favorites = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading favorites...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+            <p className="mt-2 text-white/70">Loading favorites...</p>
           </div>
         </div>
       </div>
@@ -77,13 +79,14 @@ const Favorites = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-8">
-          <Card>
+          <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardContent className="p-8 text-center">
-              <p className="text-red-600 mb-4">Error loading favorites: {error}</p>
-              <Button onClick={() => window.location.reload()}>
+              <p className="text-red-300 mb-4">Error loading favorites: {error}</p>
+              <Button onClick={() => window.location.reload()} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 Try Again
               </Button>
             </CardContent>
@@ -94,13 +97,14 @@ const Favorites = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
       <SearchHeader />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Favorites</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-white mb-2">My Favorites</h1>
+          <p className="text-white/70">
             {favorites.length === 0 
               ? "You haven't saved any favorites yet." 
               : `You have ${favorites.length} saved favorite${favorites.length === 1 ? '' : 's'}.`
@@ -109,14 +113,14 @@ const Favorites = () => {
         </div>
 
         {favorites.length === 0 ? (
-          <Card>
+          <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardContent className="p-8 text-center">
-              <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No favorites yet</h3>
-              <p className="text-gray-600 mb-4">
+              <Heart className="h-12 w-12 text-white/60 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">No favorites yet</h3>
+              <p className="text-white/70 mb-4">
                 Start searching for products and add them to your favorites to see them here.
               </p>
-              <Button onClick={() => window.location.href = '/'}>
+              <Button onClick={() => window.location.href = '/'} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 Start Searching
               </Button>
             </CardContent>
@@ -124,7 +128,7 @@ const Favorites = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {favorites.map((favorite) => (
-              <Card key={favorite.id} className="hover:shadow-lg transition-shadow">
+              <Card key={favorite.id} className="hover:shadow-lg transition-shadow border-white/10 bg-white/5 text-white backdrop-blur-sm">
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-3">
                     {/* Product image */}
@@ -132,7 +136,7 @@ const Favorites = () => {
                       <img 
                         src={favorite.image || "/placeholder.svg"} 
                         alt={favorite.title}
-                        className="w-16 h-16 object-cover rounded border"
+                        className="w-16 h-16 object-cover rounded border border-white/20"
                         onError={(e) => {
                           e.currentTarget.src = "/placeholder.svg";
                         }}
@@ -141,24 +145,24 @@ const Favorites = () => {
                     
                     <div className="flex-1 min-w-0">
                       {/* Store/Merchant name */}
-                      <p className="text-xs font-medium text-blue-600 mb-1 capitalize">
+                      <p className="text-xs font-medium text-white/80 mb-1 capitalize">
                         {favorite.merchant || favorite.store || 'Unknown Store'}
                       </p>
                       
                       {/* Product title */}
-                      <h4 className="font-medium text-sm line-clamp-2 mb-2">
+                      <h4 className="font-medium text-sm line-clamp-2 mb-2 text-white">
                         {favorite.title}
                       </h4>
                       
                       {/* Price */}
                       {favorite.price && (
-                        <p className="text-lg font-bold text-gray-700">
+                        <p className="text-lg font-bold text-white">
                           {favorite.price}
                         </p>
                       )}
 
                       {/* Additional details */}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                      <div className="flex items-center gap-3 text-xs text-white/70 mt-2">
                         {/* Stock status */}
                         {favorite.stock && (
                           <span className={`flex items-center gap-1 ${
@@ -200,7 +204,7 @@ const Favorites = () => {
                       )}
 
                       {/* Saved date */}
-                      <p className="text-xs text-gray-400 mt-2">
+                      <p className="text-xs text-white/60 mt-2">
                         Saved on {new Date(favorite.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -208,7 +212,7 @@ const Favorites = () => {
                     {/* Action buttons */}
                     <div className="flex flex-col gap-2">
                       {favorite.url && (
-                        <Button asChild size="sm" variant="outline" className="flex-shrink-0">
+                        <Button asChild size="sm" variant="outline" className="flex-shrink-0 rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                           <a 
                             href={favorite.url} 
                             target="_blank" 
@@ -224,7 +228,7 @@ const Favorites = () => {
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="flex-shrink-0 p-1 h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="flex-shrink-0 p-1 h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-500/10"
                         onClick={() => handleRemoveFavorite(favorite.id, favorite.title)}
                         title="Remove from favorites"
                       >

@@ -68,11 +68,12 @@ export default function History() {
 
   if (isLoading || loadingHistory) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
         </div>
       </div>
@@ -81,17 +82,18 @@ export default function History() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
-          <Card className="max-w-md mx-auto">
+          <Card className="max-w-md mx-auto border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardContent className="p-8 text-center">
-              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Sign in to view history</h3>
-              <p className="text-gray-600 mb-4">
+              <Clock className="h-12 w-12 text-white/60 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">Sign in to view history</h3>
+              <p className="text-white/70 mb-4">
                 Create an account or sign in to view your search history.
               </p>
-              <Button onClick={() => modalProps.onClose()}>
+              <Button onClick={() => modalProps.onClose()} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 Sign In
               </Button>
             </CardContent>
@@ -103,16 +105,15 @@ export default function History() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
       <SearchHeader />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Search History</h1>
-            <p className="text-muted-foreground">
-              Your recent product price comparisons and searches
-            </p>
+            <h1 className="text-3xl font-bold text-white mb-2">Search History</h1>
+            <p className="text-white/70">Your recent product price comparisons and searches</p>
           </div>
 
           {error && (
@@ -122,19 +123,16 @@ export default function History() {
           )}
 
           {history.length === 0 ? (
-            <Card className="border-2 border-dashed border-muted-foreground/25">
+            <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
               <CardContent className="p-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full border border-white/20 bg-white/10 flex items-center justify-center">
                   🔍
                 </div>
-                <h2 className="text-xl font-semibold mb-2">
-                  No search history yet
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Your recent product searches will appear here. Start by
-                  searching for any product URL to build your history.
+                <h2 className="text-xl font-semibold mb-2">No search history yet</h2>
+                <p className="text-white/70 mb-6">
+                  Your recent product searches will appear here. Start by searching for any product URL to build your history.
                 </p>
-                <Button asChild>
+                <Button asChild className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                   <Link to="/">Start Searching</Link>
                 </Button>
               </CardContent>
@@ -142,34 +140,34 @@ export default function History() {
           ) : (
             <div className="space-y-4">
               {history.map((item, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
+                <Card key={index} className="hover:shadow-md transition-shadow border-white/10 bg-white/5 text-white backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg mb-2 line-clamp-2">
+                        <h3 className="font-semibold text-lg mb-2 line-clamp-2 text-white">
                           {item.title}
                         </h3>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-white/70 mb-3">
                           <div className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
                             {formatDate(item.timestamp)}
                           </div>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="text-white border-white/30">
                             ID: {item.requestId.slice(0, 8)}...
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground break-all max-w-full">
+                        <div className="flex items-center gap-2 text-sm text-white/70 break-all max-w-full">
                           <ExternalLink className="h-4 w-4 flex-shrink-0" />
                           <span className="truncate max-w-full md:max-w-md">{item.url}</span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 w-full md:w-auto">
-                        <Button asChild size="sm" className="w-full md:w-auto">
+                        <Button asChild size="sm" className="w-full md:w-auto rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                           <Link to={`/new-search/${item.requestId}/results`}>
                             View Results
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm" asChild className="w-full md:w-auto">
+                        <Button variant="outline" size="sm" asChild className="w-full md:w-auto rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                           <a
                             href={item.url}
                             target="_blank"
