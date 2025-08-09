@@ -781,12 +781,12 @@ app.post("/api/track-event", openCors, async (req, res) => {
             const sql = getSql();
             const result = await sql`
                 INSERT INTO tracking_events (
-                    event_type, business_id, affiliate_id, platform, session_id, 
-                    user_agent, referrer, timestamp, url, event_data, ip_address
+                    "eventType", "businessId", "affiliateId", "platform", "sessionId",
+                    "userAgent", "referrer", "timestamp", "url", "eventData", "ipAddress"
                 ) VALUES (
-                    ${event_type}, ${parseInt(business_id)}, ${affiliate_id}, 
-                    ${platform || 'universal'}, ${session_id}, ${user_agent}, 
-                    ${referrer}, ${new Date(timestamp)}, ${url}, ${JSON.stringify(data || {})}, 
+                    ${event_type}, ${parseInt(business_id)}, ${affiliate_id},
+                    ${platform || 'universal'}, ${session_id},
+                    ${user_agent}, ${referrer}, ${new Date(timestamp)}, ${url}, ${JSON.stringify(data || {})}::jsonb,
                     ${req.ip || req.connection.remoteAddress || 'unknown'}
                 ) RETURNING id
             `;
@@ -1021,19 +1021,19 @@ app.get("/api/tracking-events", async (req, res) => {
             const events = await sql`
                 SELECT 
                     id,
-                    event_type,
-                    business_id,
-                    affiliate_id,
+                    "eventType",
+                    "businessId",
+                    "affiliateId",
                     platform,
-                    session_id,
-                    user_agent,
+                    "sessionId",
+                    "userAgent",
                     referrer,
                     timestamp,
                     url,
-                    event_data,
-                    ip_address
+                    "eventData",
+                    "ipAddress"
                 FROM tracking_events 
-                WHERE business_id = ${parseInt(business_id)}
+                WHERE "businessId" = ${parseInt(business_id)}
                 ORDER BY timestamp DESC 
                 LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
             `;
@@ -1056,8 +1056,8 @@ app.post("/api/test-tracking", async (req, res) => {
             const sql = getSql();
             const result = await sql`
                 INSERT INTO tracking_events (
-                    event_type, business_id, affiliate_id, platform, session_id,
-                    user_agent, referrer, timestamp, url, event_data, ip_address
+                    "eventType", "businessId", "affiliateId", "platform", "sessionId",
+                    "userAgent", "referrer", "timestamp", "url", "eventData", "ipAddress"
                 ) VALUES (
                     'test', ${parseInt(business_id)}, ${affiliate_id},
                     'test', 'test-session', 'test-agent', 'test-referrer', NOW(),
