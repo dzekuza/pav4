@@ -2,11 +2,18 @@ import express from "express";
 import { prisma } from "../services/database";
 const router = express.Router();
 
+// Test route to verify router is working
+router.get("/test", (req, res) => {
+  res.json({ message: "Redirect router is working" });
+});
+
 // /api/redirect?to=<url>&user_id=<id>&reseller_id=<id>
 router.get("/redirect", async (req, res) => {
+  console.log("Redirect route hit with query:", req.query);
   const { to, user_id, reseller_id } = req.query;
 
   if (!to || typeof to !== "string") {
+    console.log("Missing or invalid 'to' parameter");
     return res.status(400).json({ error: "Missing destination URL" });
   }
 
@@ -14,6 +21,7 @@ router.get("/redirect", async (req, res) => {
   try {
     url = new URL(to);
   } catch {
+    console.log("Invalid URL:", to);
     return res.status(400).json({ error: "Invalid destination URL" });
   }
 
@@ -25,6 +33,7 @@ router.get("/redirect", async (req, res) => {
   try {
     // Extract bare domain without www.
     const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    console.log("Looking for business with domain:", hostname);
 
     const business = await prisma.business.findFirst({
       where: { domain: hostname },
@@ -32,6 +41,7 @@ router.get("/redirect", async (req, res) => {
     });
 
     if (business) {
+      console.log("Found business:", business.id);
       await prisma.businessClick.create({
         data: {
           businessId: business.id,
@@ -50,12 +60,16 @@ router.get("/redirect", async (req, res) => {
         where: { id: business.id },
         data: { totalVisits: { increment: 1 } },
       });
+      console.log("Business click logged and visits incremented");
+    } else {
+      console.log("No business found for domain:", hostname);
     }
   } catch (e) {
     // Do not block redirect on logging failure
     console.error("Failed to log redirect click:", e);
   }
 
+  console.log("Redirecting to:", url.toString());
   res.redirect(302, url.toString());
 });
 

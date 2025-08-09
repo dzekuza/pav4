@@ -430,13 +430,154 @@ app.delete("/api/favorites/:id", async (req, res) => {
   }
 });
 
-// Provide empty activity endpoints to keep UI working (business auth is separate)
-app.get("/api/business/activity/clicks", (_req, res) => {
-  res.json([]);
+// Business activity endpoints
+app.get("/api/business/activity/clicks", async (req, res) => {
+    try {
+        // Check for business authentication
+        let token = req.cookies.business_token;
+
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: "Not authenticated"
+            });
+        }
+
+        const decoded = verifyBusinessToken(token);
+
+        if (!decoded || decoded.type !== "business") {
+            return res.status(401).json({
+                success: false,
+                error: "Invalid token"
+            });
+        }
+
+        // Get business clicks from database
+        try {
+            const sql = getSql();
+            const clicks = await sql`
+                SELECT 
+                    id,
+                    "productUrl",
+                    "productTitle",
+                    "productPrice",
+                    retailer,
+                    "sessionId",
+                    referrer,
+                    "utmSource",
+                    "utmMedium",
+                    "utmCampaign",
+                    "ipAddress",
+                    "userAgent",
+                    timestamp
+                FROM business_clicks 
+                WHERE "businessId" = ${decoded.businessId}
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `;
+
+            res.json({
+                success: true,
+                clicks: clicks
+            });
+        } catch (dbError) {
+            console.error('Database error fetching business clicks:', dbError);
+            res.status(500).json({
+                success: false,
+                error: "Database connection failed",
+                details: dbError instanceof Error ? dbError.message : String(dbError)
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching business clicks:", error);
+        res.status(500).json({
+            success: false,
+            error: "Failed to fetch business clicks"
+        });
+    }
 });
 
-app.get("/api/business/activity/conversions", (_req, res) => {
-  res.json([]);
+app.get("/api/business/activity/conversions", async (req, res) => {
+    try {
+        // Check for business authentication
+        let token = req.cookies.business_token;
+
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: "Not authenticated"
+            });
+        }
+
+        const decoded = verifyBusinessToken(token);
+
+        if (!decoded || decoded.type !== "business") {
+            return res.status(401).json({
+                success: false,
+                error: "Invalid token"
+            });
+        }
+
+        // Get business conversions from database
+        try {
+            const sql = getSql();
+            const conversions = await sql`
+                SELECT 
+                    id,
+                    "orderId",
+                    "customerId",
+                    amount,
+                    currency,
+                    domain,
+                    "productTitle",
+                    "productUrl",
+                    "sessionId",
+                    "referrer",
+                    "utmSource",
+                    "utmMedium",
+                    "utmCampaign",
+                    "ipAddress",
+                    "userAgent",
+                    timestamp
+                FROM business_conversions 
+                WHERE "businessId" = ${decoded.businessId}
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `;
+
+            res.json({
+                success: true,
+                conversions: conversions
+            });
+        } catch (dbError) {
+            console.error('Database error fetching business conversions:', dbError);
+            res.status(500).json({
+                success: false,
+                error: "Database connection failed",
+                details: dbError instanceof Error ? dbError.message : String(dbError)
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching business conversions:", error);
+        res.status(500).json({
+            success: false,
+            error: "Failed to fetch business conversions"
+        });
+    }
 });
 
 // Keep only lightweight proxy for scraping in serverless
@@ -1415,6 +1556,86 @@ app.put("/api/business/profile", async (req, res) => {
         console.error("Error updating business profile:", error);
         res.status(500).json({ success: false, error: "Failed to update business profile" });
     }
+});
+
+// Redirect route for tracking business clicks
+app.get("/api/redirect", async (req, res) => {
+    console.log("Redirect route hit with query:", req.query);
+    const { to, user_id, reseller_id } = req.query;
+
+    if (!to || typeof to !== "string") {
+        console.log("Missing or invalid 'to' parameter");
+        return res.status(400).json({ error: "Missing destination URL" });
+    }
+
+    let url;
+    try {
+        url = new URL(to);
+    } catch {
+        console.log("Invalid URL:", to);
+        return res.status(400).json({ error: "Invalid destination URL" });
+    }
+
+    if (user_id) url.searchParams.set("track_user", String(user_id));
+    if (reseller_id) url.searchParams.set("aff_id", String(reseller_id));
+    url.searchParams.set("utm_source", "pavlo4");
+
+    // Check if this is a business domain and log the click
+    try {
+        const sql = getSql();
+        const domain = url.hostname;
+        console.log("Looking for business with domain:", domain);
+        
+        const business = await sql`
+            SELECT id FROM businesses 
+            WHERE domain = ${domain} 
+            LIMIT 1
+        `;
+
+        if (business.length > 0) {
+            console.log("Found business:", business[0].id);
+            
+            // Log the business click
+            await sql`
+                INSERT INTO business_clicks (
+                    "businessId", 
+                    "productUrl", 
+                    "utmSource", 
+                    "utmMedium", 
+                    "utmCampaign", 
+                    "ipAddress", 
+                    "userAgent", 
+                    "timestamp"
+                ) VALUES (
+                    ${business[0].id},
+                    ${url.toString()},
+                    ${url.searchParams.get("utm_source") || "pavlo4"},
+                    ${url.searchParams.get("utm_medium") || null},
+                    ${url.searchParams.get("utm_campaign") || null},
+                    ${req.ip || req.connection.remoteAddress || "unknown"},
+                    ${req.get("User-Agent") || "unknown"},
+                    NOW()
+                )
+            `;
+
+            // Increment business total visits
+            await sql`
+                UPDATE businesses 
+                SET "totalVisits" = "totalVisits" + 1, "updatedAt" = NOW()
+                WHERE id = ${business[0].id}
+            `;
+
+            console.log("Business click logged and visits incremented");
+        } else {
+            console.log("No business found for domain:", domain);
+        }
+    } catch (error) {
+        console.error("Error logging business click:", error);
+        // Don't fail the redirect if logging fails
+    }
+
+    console.log("Redirecting to:", url.toString());
+    res.redirect(url.toString());
 });
 
 // Export for Vercel

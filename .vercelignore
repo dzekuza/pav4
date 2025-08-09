@@ -1,0 +1,15 @@
+node_modules
+*.heapsnapshot
+dist
+.env.local
+.env.development
+.env.test
+*.log
+.DS_Store
+.vscode
+.idea
+*.tmp
+*.temp
+coverage
+.nyc_output
+.cache

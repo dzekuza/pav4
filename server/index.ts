@@ -335,6 +335,12 @@ export async function createServer() {
       n8nScrapeRouter(req, res, () => { });
     }
   );
+  
+  // Redirect routes - mount before catch-all to ensure priority
+  app.use("/api", redirectRouter);
+  app.use("/api", trackSaleRouter);
+  app.use("/api", trackProductVisitRouter);
+  
   app.use("/api",
     validateUrl,
     n8nScrapeRouter
@@ -434,11 +440,6 @@ export async function createServer() {
 
   // Business: Get conversions activity
   app.get("/api/business/activity/conversions", getBusinessConversions);
-
-  // Redirect routes
-  app.use("/api", redirectRouter);
-  app.use("/api", trackSaleRouter);
-  app.use("/api", trackProductVisitRouter);
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {

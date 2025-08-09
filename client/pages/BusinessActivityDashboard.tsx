@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, ShoppingCart, DollarSign, Calendar, Filter } from 'lucide-react';
+import { Eye, ShoppingCart, DollarSign, Calendar, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface ActivityItem {
   id: string;
@@ -21,6 +21,8 @@ interface ActivityItem {
 export default function BusinessActivityDashboard() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'clicks' | 'purchases'>('all');
   const [stats, setStats] = useState({
     totalClicks: 0,
@@ -33,9 +35,14 @@ export default function BusinessActivityDashboard() {
     fetchActivity();
   }, []);
 
-  const fetchActivity = async () => {
+  const fetchActivity = async (isRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
       
       // Fetch both click logs and conversions
       const [clicksResponse, conversionsResponse] = await Promise.all([
@@ -43,8 +50,12 @@ export default function BusinessActivityDashboard() {
         fetch('/api/business/activity/conversions', { credentials: 'include' })
       ]);
 
-      const clicksJson = clicksResponse.ok ? await clicksResponse.json() : { clicks: [] };
-      const conversionsJson = conversionsResponse.ok ? await conversionsResponse.json() : { conversions: [] };
+      if (!clicksResponse.ok || !conversionsResponse.ok) {
+        throw new Error('Failed to fetch activity data');
+      }
+
+      const clicksJson = await clicksResponse.json();
+      const conversionsJson = await conversionsResponse.json();
 
       const clicks = Array.isArray(clicksJson) ? clicksJson : (clicksJson.clicks || []);
       const conversions = Array.isArray(conversionsJson) ? conversionsJson : (conversionsJson.conversions || []);
@@ -65,8 +76,8 @@ export default function BusinessActivityDashboard() {
         ...conversions.map((conversion: any) => ({
           id: `purchase-${conversion.id}`,
           type: 'purchase' as const,
-          productName: `Order ${conversion.orderId}`,
-          productUrl: conversion.domain,
+          productName: conversion.productTitle || `Order ${conversion.orderId}`,
+          productUrl: conversion.productUrl || conversion.domain,
           status: 'purchased' as const,
           amount: conversion.amount,
           timestamp: conversion.timestamp,
@@ -82,7 +93,7 @@ export default function BusinessActivityDashboard() {
       // Calculate stats
       const totalClicks = clicks.length;
       const totalPurchases = conversions.length;
-      const totalRevenue = conversions.reduce((sum: number, conv: any) => sum + conv.amount, 0);
+      const totalRevenue = conversions.reduce((sum: number, conv: any) => sum + (conv.amount || 0), 0);
       const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
 
       setStats({
@@ -94,9 +105,15 @@ export default function BusinessActivityDashboard() {
 
     } catch (error) {
       console.error('Error fetching activity:', error);
+      setError('Failed to load activity data. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchActivity(true);
   };
 
   const extractProductName = (url: string): string => {
@@ -149,7 +166,7 @@ export default function BusinessActivityDashboard() {
     return true;
   });
 
-  if (isLoading) {
+  if (isLoading && !isRefreshing) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -161,6 +178,21 @@ export default function BusinessActivityDashboard() {
           </div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 text-white">
+        <div className="flex items-center gap-2 text-red-400">
+          <AlertCircle className="h-5 w-5" />
+          <p>{error}</p>
+        </div>
+        <Button onClick={handleRefresh} className="bg-red-500 hover:bg-red-600 text-white">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Data
+        </Button>
       </div>
     );
   }
@@ -223,7 +255,7 @@ export default function BusinessActivityDashboard() {
       </div>
 
       {/* Filter Controls */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <Button
           onClick={() => setFilter('all')}
           className={`${filter === 'all' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
@@ -241,6 +273,14 @@ export default function BusinessActivityDashboard() {
           className={`${filter === 'purchases' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
         >
           Purchases Only
+        </Button>
+        <Button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="bg-white/10 text-white hover:bg-white/20 rounded-full ml-auto"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 
