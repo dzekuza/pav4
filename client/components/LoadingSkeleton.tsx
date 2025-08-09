@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
 
 interface LoadingSkeletonProps {
   count?: number;
@@ -64,55 +65,32 @@ export function LoadingSkeleton({
 
 export function SearchLoadingState() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center">
-          {/* Enhanced loading animation */}
-          <div className="relative w-20 h-20 mx-auto mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse"></div>
-            <div className="absolute inset-2 bg-background rounded-full flex items-center justify-center">
-              <Search className="w-8 h-8 text-primary animate-bounce" />
-            </div>
-            {/* Rotating border effect */}
-            <div className="absolute inset-0 border-2 border-primary/20 rounded-full animate-spin"></div>
-          </div>
-          
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">Searching for the best deals...</h2>
-          <p className="text-muted-foreground mb-8 mobile-text-sm">
-            We're scanning hundreds of retailers to find the lowest prices for you
-          </p>
-          
-          {/* Animated search steps */}
-          <div className="max-w-md mx-auto space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <span className="text-sm mobile-text-sm">Extracting product details...</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:0.5s]"></div>
-              <span className="text-sm mobile-text-sm">Searching across retailers...</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:1s]"></div>
-              <span className="text-sm mobile-text-sm">Comparing prices...</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:1.5s]"></div>
-              <span className="text-sm mobile-text-sm">Preparing results...</span>
+    <div className="relative min-h-screen overflow-hidden">
+      <HeroWave />
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-6">
+        <div className="w-full max-w-2xl text-center">
+          {/* Minimal glass spinner */}
+          <div className="mx-auto mb-8 inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 p-3 backdrop-blur-xl">
+            <div className="relative h-14 w-14">
+              <div className="absolute inset-0 rounded-full border-2 border-white/20"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-white/60 border-t-transparent animate-spin"></div>
+              <Search className="absolute inset-0 m-auto h-6 w-6 text-white/80" />
             </div>
           </div>
-          
-          {/* Progress bar */}
-          <div className="mt-8 max-w-md mx-auto">
-            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse w-3/5"></div>
+          <h2 className="text-2xl font-semibold text-white">Preparing your results…</h2>
+          <p className="mt-2 text-white/70">Scanning retailers and comparing prices</p>
+
+          {/* Thin progress bar in glass pill */}
+          <div className="mx-auto mt-8 w-full max-w-xl">
+            <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/10 backdrop-blur">
+              <div className="absolute inset-y-0 left-0 w-2/3 animate-[pulse_1.8s_ease-in-out_infinite] bg-gradient-to-r from-white/80 to-white/40"></div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              This usually takes 10-30 seconds
-            </p>
+            <p className="mt-3 text-xs text-white/60">This usually takes 10–30 seconds</p>
           </div>
         </div>
       </div>
+
+      {/* Globe removed for a cleaner minimal loading view */}
     </div>
   );
 }
