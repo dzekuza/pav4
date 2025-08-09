@@ -7,6 +7,7 @@ import compression from "compression";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { neon } from '@neondatabase/serverless';
+import n8nScrapeRouter from "./routes/n8n-scrape";
 
 // Load environment variables
 dotenv.config();
@@ -207,6 +208,21 @@ app.get("/api/auth/me", (req, res) => {
         message: "Not authenticated" 
     });
 });
+
+// Public search routes (mount n8n-scrape router)
+// Mirror server/index.ts behavior so /api/n8n-scrape exists in production
+app.post("/api/scrape", (req, res) => {
+  // Forward to n8n-scrape
+  (req as any).url = '/n8n-scrape';
+  (n8nScrapeRouter as any)(req, res, () => {});
+});
+
+app.post("/api/n8n-webhook-scrape", (req, res) => {
+  (req as any).url = '/n8n-scrape';
+  (n8nScrapeRouter as any)(req, res, () => {});
+});
+
+app.use("/api", n8nScrapeRouter);
 
 // User registration endpoint
 app.post("/api/auth/register", async (req, res) => {

@@ -98,14 +98,17 @@ export async function createServer() {
           "https://api.searchapi.io",
           "https://n8n.srv824584.hstgr.cloud",
           "https://paaav.vercel.app",
+          "https://pavlo4.netlify.app",
           "http://localhost:5746",
           "http://localhost:5747",
           "http://localhost:8082",
           "http://localhost:8083",
+          "http://localhost:8084",
           "ws://localhost:5746",
           "ws://localhost:5747",
           "ws://localhost:8082",
-          "ws://localhost:8083"
+          "ws://localhost:8083",
+          "ws://localhost:8084"
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://rsms.me"],
       },
@@ -137,6 +140,7 @@ export async function createServer() {
     "http://localhost:8083",
     "http://localhost:8084",
           "https://paaav.vercel.app",
+    "https://pavlo4.netlify.app",
     "https://app.pavlo.com", // Assuming this is your custom domain
     "http://127.0.0.1:8083",
     "http://[::1]:8083"
