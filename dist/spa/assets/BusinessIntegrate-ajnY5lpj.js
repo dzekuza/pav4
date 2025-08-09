@@ -1,0 +1,70 @@
+import{j as e,z as B,C as v,y as N,I as U,W as D,Y as y,E as F,B as b,t as L}from"./vendor_ui-DPKP3YLX.js";import{r as g}from"./vendor_react-Bpl_dUPQ.js";import{r as O,u as P}from"./index-Bm7-4qCY.js";import{B as j}from"./button-BVbCSO_a.js";import{C as i,a as c,b as n,d,c as l}from"./card-C3AOPTFZ.js";import{T as R,a as Y,b as o,c as m}from"./tabs-DMdJGpTX.js";import{B as r}from"./badge-CNTn68H-.js";import{S as w}from"./separator-BhfWM-ku.js";import{a as $}from"./vendor_router-0FUT4RNd.js";import"./index-DjoQLnK1.js";import"./index-BLqSjk83.js";function ee(){const x=$(),{business:s,isBusinessLoading:p,isBusiness:h}=O(),{toast:u}=P(),[k,I]=g.useState("overview"),[f,A]=g.useState([{id:1,name:"Universal Tracking Script",description:"Basic script to track page visits and user interactions across all platforms",code:`<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://paaav.vercel.app/tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${(s==null?void 0:s.id)||"YOUR_BUSINESS_ID"}');
+  script.setAttribute('data-affiliate-id', '${(s==null?void 0:s.affiliateId)||"YOUR_AFFILIATE_ID"}');
+  document.head.appendChild(script);
+})();
+<\/script>`,installed:!1,platform:"Universal"},{id:2,name:"Shopify Tracking Script",description:"Enhanced script for Shopify stores with purchase tracking and conversion monitoring",code:`<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://paaav.vercel.app/shopify-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${(s==null?void 0:s.id)||"YOUR_BUSINESS_ID"}');
+  script.setAttribute('data-affiliate-id', '${(s==null?void 0:s.affiliateId)||"YOUR_AFFILIATE_ID"}');
+  script.setAttribute('data-platform', 'shopify');
+  document.head.appendChild(script);
+})();
+<\/script>`,installed:!1,platform:"Shopify"},{id:3,name:"WooCommerce Tracking Script",description:"WordPress WooCommerce integration for tracking purchases and user behavior",code:`<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://paaav.vercel.app/woocommerce-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${(s==null?void 0:s.id)||"YOUR_BUSINESS_ID"}');
+  script.setAttribute('data-affiliate-id', '${(s==null?void 0:s.affiliateId)||"YOUR_AFFILIATE_ID"}');
+  script.setAttribute('data-platform', 'woocommerce');
+  document.head.appendChild(script);
+})();
+<\/script>`,installed:!1,platform:"WooCommerce"},{id:4,name:"Magento Tracking Script",description:"Enterprise e-commerce tracking for Magento stores with advanced analytics",code:`<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://paaav.vercel.app/magento-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${(s==null?void 0:s.id)||"YOUR_BUSINESS_ID"}');
+  script.setAttribute('data-affiliate-id', '${(s==null?void 0:s.affiliateId)||"YOUR_AFFILIATE_ID"}');
+  script.setAttribute('data-platform', 'magento');
+  document.head.appendChild(script);
+})();
+<\/script>`,installed:!1,platform:"Magento"},{id:5,name:"Custom Event Tracking",description:'Track custom events like "Buy Now" clicks, "View Product" actions, and conversions',code:`<script>
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://paaav.vercel.app/event-tracker.js';
+  script.async = true;
+  script.setAttribute('data-business-id', '${(s==null?void 0:s.id)||"YOUR_BUSINESS_ID"}');
+  script.setAttribute('data-affiliate-id', '${(s==null?void 0:s.affiliateId)||"YOUR_AFFILIATE_ID"}');
+  document.head.appendChild(script);
+  
+  // Track "Buy Now" clicks
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-track="buy-now"], .buy-now, .add-to-cart')) {
+      window.trackEvent('purchase_click', {
+        product_id: e.target.getAttribute('data-product-id'),
+        product_name: e.target.getAttribute('data-product-name'),
+        price: e.target.getAttribute('data-price')
+      });
+    }
+  });
+  
+  // Track "View Product" clicks
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-track="view-product"], .product-link')) {
+      window.trackEvent('product_view', {
+        product_id: e.target.getAttribute('data-product-id'),
+        product_name: e.target.getAttribute('data-product-name')
+      });
+    }
+  });
+})();
+<\/script>`,installed:!1,platform:"Custom"}]);if(g.useEffect(()=>{!p&&!h&&x("/business-login")},[p,h,x]),p)return e.jsx("div",{className:"min-h-screen bg-gray-50 py-8",children:e.jsx("div",{className:"max-w-6xl mx-auto px-4 sm:px-6 lg:px-8",children:e.jsxs("div",{className:"animate-pulse",children:[e.jsx("div",{className:"h-8 bg-gray-200 rounded w-1/4 mb-6"}),e.jsx("div",{className:"h-32 bg-gray-200 rounded"})]})})});if(!h)return null;const C=async(t,a)=>{try{await navigator.clipboard.writeText(t),u({title:"Copied!",description:`${a} code copied to clipboard`})}catch{u({title:"Error",description:"Failed to copy to clipboard",variant:"destructive"})}},S=t=>{A(f.map(a=>a.id===t?{...a,installed:!0}:a)),u({title:"Script Installed",description:"The script has been marked as installed"})},E=()=>{x("/business/connect")},T=t=>{switch(t.toLowerCase()){case"shopify":return e.jsx(b,{className:"h-4 w-4"});case"woocommerce":return e.jsx(L,{className:"h-4 w-4"});case"magento":return e.jsx(b,{className:"h-4 w-4"});default:return e.jsx(N,{className:"h-4 w-4"})}},_=t=>{const a={shopify:"bg-green-100 text-green-800",woocommerce:"bg-blue-100 text-blue-800",magento:"bg-orange-100 text-orange-800",universal:"bg-purple-100 text-purple-800",custom:"bg-gray-100 text-gray-800"};return e.jsxs(r,{variant:"secondary",className:a[t.toLowerCase()]||a.custom,children:[T(t),e.jsx("span",{className:"ml-1",children:t})]})};return e.jsx("div",{className:"min-h-screen bg-gray-50 py-8",children:e.jsxs("div",{className:"max-w-6xl mx-auto px-4 sm:px-6 lg:px-8",children:[e.jsxs("div",{className:"mb-8",children:[e.jsx("h1",{className:"text-3xl font-bold text-gray-900 mb-2",children:"Business Integration"}),e.jsx("p",{className:"text-gray-600",children:"Add tracking scripts to your website to track sales and commissions"})]}),e.jsxs(i,{className:"mb-8",children:[e.jsx(c,{children:e.jsxs(n,{className:"flex items-center gap-2",children:[e.jsx(B,{className:"h-5 w-5"}),"Business Information"]})}),e.jsx(d,{children:e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-4",children:[e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900",children:"Business ID"}),e.jsx("p",{className:"text-sm text-gray-600",children:(s==null?void 0:s.id)||"N/A"})]}),e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900",children:"Business Name"}),e.jsx("p",{className:"text-sm text-gray-600",children:(s==null?void 0:s.name)||"N/A"})]}),e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900",children:"Domain"}),e.jsx("p",{className:"text-sm text-gray-600",children:(s==null?void 0:s.domain)||"N/A"})]}),e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900",children:"Affiliate ID"}),e.jsx("p",{className:"text-sm text-gray-600",children:(s==null?void 0:s.affiliateId)||"N/A"})]}),e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900",children:"Status"}),e.jsxs(r,{variant:"default",className:"bg-green-100 text-green-800",children:[e.jsx(v,{className:"h-3 w-3 mr-1"}),"Active"]})]})]})})]}),e.jsxs(R,{value:k,onValueChange:I,className:"space-y-6",children:[e.jsxs(Y,{className:"grid w-full grid-cols-4",children:[e.jsx(o,{value:"overview",children:"Overview"}),e.jsx(o,{value:"scripts",children:"Scripts"}),e.jsx(o,{value:"connect",children:"Connect"}),e.jsx(o,{value:"settings",children:"Settings"})]}),e.jsx(m,{value:"overview",className:"space-y-6",children:e.jsxs(i,{children:[e.jsxs(c,{children:[e.jsx(n,{children:"Integration Overview"}),e.jsx(l,{children:"Track your integration progress and performance"})]}),e.jsx(d,{children:e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-4",children:[e.jsxs("div",{className:"text-center p-4 bg-blue-50 rounded-lg",children:[e.jsx("div",{className:"text-2xl font-bold text-blue-600",children:"5"}),e.jsx("div",{className:"text-sm text-gray-600",children:"Available Scripts"})]}),e.jsxs("div",{className:"text-center p-4 bg-green-50 rounded-lg",children:[e.jsx("div",{className:"text-2xl font-bold text-green-600",children:"0"}),e.jsx("div",{className:"text-sm text-gray-600",children:"Installed Scripts"})]}),e.jsxs("div",{className:"text-center p-4 bg-purple-50 rounded-lg",children:[e.jsx("div",{className:"text-2xl font-bold text-purple-600",children:"0"}),e.jsx("div",{className:"text-sm text-gray-600",children:"Connected Pages"})]})]})})]})}),e.jsx(m,{value:"scripts",className:"space-y-6",children:e.jsxs(i,{children:[e.jsxs(c,{children:[e.jsxs(n,{className:"flex items-center gap-2",children:[e.jsx(N,{className:"h-5 w-5"}),"Available Scripts"]}),e.jsx(l,{children:'Find and install tracking scripts for your website. These scripts will track user interactions and send data to our platform when users click "Buy Now" or "View Product" buttons.'})]}),e.jsx(d,{children:e.jsx("div",{className:"space-y-4",children:f.map(t=>e.jsx("div",{className:"border rounded-lg p-4",children:e.jsxs("div",{className:"flex items-start justify-between",children:[e.jsxs("div",{className:"flex-1",children:[e.jsxs("div",{className:"flex items-center gap-2 mb-2",children:[e.jsx("h3",{className:"font-medium text-gray-900",children:t.name}),_(t.platform)]}),e.jsx("p",{className:"text-sm text-gray-600 mb-3",children:t.description}),e.jsx("div",{className:"p-3 bg-gray-100 rounded text-sm font-mono text-xs overflow-x-auto",children:e.jsx("pre",{children:t.code})}),e.jsxs("div",{className:"mt-3 text-xs text-gray-500",children:[e.jsx("p",{children:"• Tracks user interactions and purchase events"}),e.jsx("p",{children:"• Sends data to: https://paaav.vercel.app/api/track-event"}),e.jsxs("p",{children:["• Business ID: ",(s==null?void 0:s.id)||"YOUR_BUSINESS_ID"]}),e.jsxs("p",{children:["• Affiliate ID: ",(s==null?void 0:s.affiliateId)||"YOUR_AFFILIATE_ID"]})]})]}),e.jsxs("div",{className:"flex flex-col gap-2 ml-4",children:[e.jsxs(j,{size:"sm",variant:"outline",onClick:()=>C(t.code,t.name),children:[e.jsx(U,{className:"h-4 w-4 mr-1"}),"Copy"]}),e.jsx(j,{size:"sm",variant:t.installed?"default":"outline",onClick:()=>S(t.id),disabled:t.installed,children:t.installed?e.jsxs(e.Fragment,{children:[e.jsx(v,{className:"h-4 w-4 mr-1"}),"Installed"]}):e.jsxs(e.Fragment,{children:[e.jsx(D,{className:"h-4 w-4 mr-1"}),"Install"]})})]})]})},t.id))})})]})}),e.jsx(m,{value:"connect",className:"space-y-6",children:e.jsxs(i,{children:[e.jsxs(c,{children:[e.jsxs(n,{className:"flex items-center gap-2",children:[e.jsx(y,{className:"h-5 w-5"}),"Connect New Page"]}),e.jsx(l,{children:"Connect additional pages or domains to your business account"})]}),e.jsx(d,{children:e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"p-6 border-2 border-dashed border-gray-300 rounded-lg text-center",children:[e.jsx(y,{className:"h-12 w-12 text-gray-400 mx-auto mb-4"}),e.jsx("h3",{className:"text-lg font-medium text-gray-900 mb-2",children:"Connect New Page"}),e.jsx("p",{className:"text-gray-600 mb-4",children:"Add tracking to additional pages or domains"}),e.jsxs(j,{onClick:E,className:"gap-2",children:[e.jsx(F,{className:"h-4 w-4"}),"Connect Page"]})]}),e.jsx(w,{}),e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900 mb-2",children:"Connected Pages"}),e.jsx("div",{className:"text-sm text-gray-600",children:"No pages connected yet. Use the button above to add your first page."})]})]})})]})}),e.jsx(m,{value:"settings",className:"space-y-6",children:e.jsxs(i,{children:[e.jsxs(c,{children:[e.jsx(n,{children:"Integration Settings"}),e.jsx(l,{children:"Configure your integration preferences and tracking options"})]}),e.jsx(d,{children:e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900 mb-2",children:"Tracking Configuration"}),e.jsxs("div",{className:"space-y-2",children:[e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsx("span",{className:"text-sm text-gray-600",children:"Enable conversion tracking"}),e.jsx(r,{variant:"secondary",children:"Enabled"})]}),e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsx("span",{className:"text-sm text-gray-600",children:"Enable click tracking"}),e.jsx(r,{variant:"secondary",children:"Enabled"})]}),e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsx("span",{className:"text-sm text-gray-600",children:"Enable analytics"}),e.jsx(r,{variant:"secondary",children:"Enabled"})]}),e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsx("span",{className:"text-sm text-gray-600",children:'Track "Buy Now" clicks'}),e.jsx(r,{variant:"secondary",children:"Enabled"})]}),e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsx("span",{className:"text-sm text-gray-600",children:'Track "View Product" clicks'}),e.jsx(r,{variant:"secondary",children:"Enabled"})]})]})]}),e.jsx(w,{}),e.jsxs("div",{children:[e.jsx("h3",{className:"font-medium text-gray-900 mb-2",children:"Commission Settings"}),e.jsxs("div",{className:"text-sm text-gray-600",children:["Current commission rate: ",e.jsx("span",{className:"font-medium",children:"5%"})]})]})]})})]})})]}),e.jsxs(i,{className:"mt-8",children:[e.jsx(c,{children:e.jsx(n,{children:"Quick Links"})}),e.jsx(d,{children:e.jsxs("div",{className:"space-y-2",children:[e.jsx("a",{href:"/business/dashboard",className:"block text-blue-600 hover:text-blue-800",children:"→ Business Dashboard"}),e.jsx("a",{href:"/business/activity",className:"block text-blue-600 hover:text-blue-800",children:"→ Business Activity"}),e.jsx("a",{href:"/",className:"block text-blue-600 hover:text-blue-800",children:"→ Home Page"})]})})]})]})})}export{ee as default};

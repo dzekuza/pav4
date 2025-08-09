@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '../hooks/use-toast';
+import { SearchHeader } from './SearchHeader';
 
 interface BusinessRegistrationData {
   name: string;
@@ -133,8 +134,11 @@ export function BusinessRegistration() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 text-white">
-      <Card className="border-white/10 bg-white/5 text-white">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <SearchHeader showBackButton={false} />
+      <div className="max-w-md mx-auto p-6">
+      <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-white">Business Registration</CardTitle>
           <CardDescription className="text-white/80">
@@ -213,6 +217,7 @@ export function BusinessRegistration() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 } 

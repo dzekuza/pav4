@@ -15,6 +15,18 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: "dist/spa",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor_react: ["react", "react-dom"],
+          vendor_router: ["react-router-dom"],
+          vendor_ui: [
+            "lucide-react",
+            "@tanstack/react-query",
+          ],
+        },
+      },
+    },
   },
   plugins: [react(), expressPlugin(), copyRedirectsPlugin()],
   resolve: {

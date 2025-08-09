@@ -67,9 +67,13 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 30, quality = "medium" }) => 
       return COS_TABLE[index];
     };
 
-    const frameInterval = 1000 / Math.max(10, Math.min(60, fps));
+    // Respect reduced motion
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const targetFps = prefersReducedMotion ? Math.min(15, fps) : fps;
+    const frameInterval = 1000 / Math.max(10, Math.min(60, targetFps));
     let lastTs = 0;
     let running = true;
+    let rafId = 0;
 
     const handleVisibility = () => {
       running = document.visibilityState === "visible";
@@ -78,12 +82,12 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 30, quality = "medium" }) => 
 
     const render = () => {
       if (!running) {
-        requestAnimationFrame(render);
+        rafId = requestAnimationFrame(render);
         return;
       }
       const now = performance.now();
       if (now - lastTs < frameInterval) {
-        requestAnimationFrame(render);
+        rafId = requestAnimationFrame(render);
         return;
       }
       lastTs = now;
@@ -139,16 +143,16 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 30, quality = "medium" }) => 
           canvas.height
         );
       }
-
-      requestAnimationFrame(render);
+      rafId = requestAnimationFrame(render);
     };
 
-    render();
+    rafId = requestAnimationFrame(render);
 
     return () => {
       window.removeEventListener("resize", throttledResize);
       document.removeEventListener("visibilitychange", handleVisibility);
       cancelAnimationFrame(resizeRaf);
+      cancelAnimationFrame(rafId);
     };
   }, []);
 

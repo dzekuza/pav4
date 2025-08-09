@@ -4,31 +4,32 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
-import Index from "./pages/Index";
-import SearchResults from "./pages/SearchResults";
-import History from "./pages/History";
-import Favorites from "./pages/Favorites";
-import Login from "./pages/Login";
-import Admin from "./pages/Admin";
-import NotFound from "./pages/NotFound";
-import DemoLanding from "./pages/DemoLanding";
+const Index = lazy(() => import("./pages/Index"));
+const SearchResults = lazy(() => import("./pages/SearchResults"));
+const History = lazy(() => import("./pages/History"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Login = lazy(() => import("./pages/Login"));
+const Admin = lazy(() => import("./pages/Admin"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const DemoLanding = lazy(() => import("./pages/DemoLanding"));
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
-import NewSearchResults from "./pages/NewSearchResults";
-import { BusinessRegistration } from "./components/BusinessRegistration";
-import { BusinessManagement } from "./pages/BusinessManagement";
-import BusinessLogin from "./pages/BusinessLogin";
-import BusinessDashboardLayout from "./components/BusinessDashboardLayout";
-import BusinessDashboardHome from "./pages/BusinessDashboardHome";
-import BusinessActivityDashboard from "./pages/BusinessActivityDashboard";
-import BusinessIntegrateDashboard from "./pages/BusinessIntegrateDashboard";
-import BusinessAnalyticsDashboard from "./pages/BusinessAnalyticsDashboard";
-import BusinessSettingsDashboard from "./pages/BusinessSettingsDashboard";
-import BusinessIntegrate from "./pages/BusinessIntegrate";
-import BusinessActivity from "./pages/BusinessActivity";
-import BusinessConnect from "./pages/BusinessConnect";
+const NewSearchResults = lazy(() => import("./pages/NewSearchResults"));
+const BusinessRegistration = lazy(() => import("./components/BusinessRegistration").then(m => ({ default: m.BusinessRegistration })));
+const BusinessManagement = lazy(() => import("./pages/BusinessManagement").then(m => ({ default: m.BusinessManagement })));
+const BusinessLogin = lazy(() => import("./pages/BusinessLogin"));
+const BusinessDashboardLayout = lazy(() => import("./components/BusinessDashboardLayout"));
+const BusinessDashboardHome = lazy(() => import("./pages/BusinessDashboardHome"));
+const BusinessActivityDashboard = lazy(() => import("./pages/BusinessActivityDashboard"));
+const BusinessIntegrateDashboard = lazy(() => import("./pages/BusinessIntegrateDashboard"));
+const BusinessAnalyticsDashboard = lazy(() => import("./pages/BusinessAnalyticsDashboard"));
+const BusinessSettingsDashboard = lazy(() => import("./pages/BusinessSettingsDashboard"));
+const BusinessIntegrate = lazy(() => import("./pages/BusinessIntegrate"));
+const BusinessActivity = lazy(() => import("./pages/BusinessActivity"));
+const BusinessConnect = lazy(() => import("./pages/BusinessConnect"));
 import { initializeTracking } from "@/lib/tracking";
 // import NewLanding from "./pages/NewLanding";
 // import NewSearch from "./pages/NewSearch";
@@ -45,7 +46,9 @@ const router = createBrowserRouter([
     element: (
       <>
         <UrlRedirectHandler />
-        <DemoLanding />
+        <Suspense fallback={null}>
+          <DemoLanding />
+        </Suspense>
       </>
     ),
   },
@@ -54,7 +57,9 @@ const router = createBrowserRouter([
     element: (
       <>
         <UrlRedirectHandler />
-        <SearchResults />
+        <Suspense fallback={null}>
+          <SearchResults />
+        </Suspense>
       </>
     ),
   },
@@ -63,89 +68,37 @@ const router = createBrowserRouter([
     element: (
       <>
         <UrlRedirectHandler />
-        <NewSearchResults />
+        <Suspense fallback={null}>
+          <NewSearchResults />
+        </Suspense>
       </>
     ),
   },
-  {
-    path: "/history",
-    element: <History />,
-  },
-  {
-    path: "/demo-landing",
-    element: <DemoLanding />,
-  },
-  {
-    path: "/favorites",
-    element: <Favorites />,
-  },
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/admin",
-    element: <Admin />,
-  },
-  {
-    path: "/business/register",
-    element: <BusinessRegistration />,
-  },
-  {
-    path: "/admin/business",
-    element: <BusinessManagement />,
-  },
-  {
-    path: "/business-login",
-    element: <BusinessLogin />,
-  },
+  { path: "/history", element: <Suspense fallback={null}><History /></Suspense> },
+  { path: "/demo-landing", element: <Suspense fallback={null}><DemoLanding /></Suspense> },
+  { path: "/favorites", element: <Suspense fallback={null}><Favorites /></Suspense> },
+  { path: "/login", element: <Suspense fallback={null}><Login /></Suspense> },
+  { path: "/admin", element: <Suspense fallback={null}><Admin /></Suspense> },
+  { path: "/business/register", element: <Suspense fallback={null}><BusinessRegistration /></Suspense> },
+  { path: "/admin/business", element: <Suspense fallback={null}><BusinessManagement /></Suspense> },
+  { path: "/business-login", element: <Suspense fallback={null}><BusinessLogin /></Suspense> },
   {
     path: "/business/dashboard",
-    element: <BusinessDashboardLayout />,
-          children: [
-        {
-          index: true,
-          element: <BusinessDashboardHome />,
-        },
-        {
-          path: "activity",
-          element: <BusinessActivityDashboard />,
-        },
-        {
-          path: "integrate",
-          element: <BusinessIntegrateDashboard />,
-        },
-        {
-          path: "analytics",
-          element: <BusinessAnalyticsDashboard />,
-        },
-        {
-          path: "settings",
-          element: <BusinessSettingsDashboard />,
-        },
-      ],
+    element: <Suspense fallback={null}><BusinessDashboardLayout /></Suspense>,
+    children: [
+      { index: true, element: <Suspense fallback={null}><BusinessDashboardHome /></Suspense> },
+      { path: "activity", element: <Suspense fallback={null}><BusinessActivityDashboard /></Suspense> },
+      { path: "integrate", element: <Suspense fallback={null}><BusinessIntegrateDashboard /></Suspense> },
+      { path: "analytics", element: <Suspense fallback={null}><BusinessAnalyticsDashboard /></Suspense> },
+      { path: "settings", element: <Suspense fallback={null}><BusinessSettingsDashboard /></Suspense> },
+    ],
   },
   // Legacy routes for backward compatibility
-  {
-    path: "/business/integrate",
-    element: <BusinessIntegrate />,
-  },
-  {
-    path: "/business-integrate",
-    element: <BusinessIntegrate />,
-  },
-  {
-    path: "/business/activity",
-    element: <BusinessActivity />,
-  },
-  {
-    path: "/business/connect",
-    element: <BusinessConnect />,
-  },
-  {
-    path: "*",
-    element: <NotFound />,
-  },
+  { path: "/business/integrate", element: <Suspense fallback={null}><BusinessIntegrate /></Suspense> },
+  { path: "/business-integrate", element: <Suspense fallback={null}><BusinessIntegrate /></Suspense> },
+  { path: "/business/activity", element: <Suspense fallback={null}><BusinessActivity /></Suspense> },
+  { path: "/business/connect", element: <Suspense fallback={null}><BusinessConnect /></Suspense> },
+  { path: "*", element: <Suspense fallback={null}><NotFound /></Suspense> },
 ], {
   future: {
     v7_startTransition: true,
@@ -162,7 +115,9 @@ const App = () => (
           <BusinessAuthProvider>
             <Toaster />
             <Sonner />
-            <RouterProvider router={router} />
+            <Suspense fallback={null}>
+              <RouterProvider router={router} />
+            </Suspense>
           </BusinessAuthProvider>
         </AuthProvider>
       </TooltipProvider>

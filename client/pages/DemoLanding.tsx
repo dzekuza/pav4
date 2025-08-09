@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
-import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
+import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
+const HeroWave = lazy(() => import("@/components/ui/dynamic-wave-canvas-background"));
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/SearchInput";
 import { useNavigate } from "react-router-dom";
-import { Globe } from "@/components/ui/globe";
+const Globe = lazy(() => import("@/components/ui/globe").then(m => ({ default: m.Globe })));
 
 const DemoLanding: React.FC = () => {
   const [searchUrl, setSearchUrl] = useState("");
@@ -35,22 +35,34 @@ const DemoLanding: React.FC = () => {
     const updateOverlayTop = () => {
       if (!searchBlockRef.current) return;
       const rect = searchBlockRef.current.getBoundingClientRect();
-      // We want the gradient to start a little below the search input
       const offset = 24; // 24px spacing
       setOverlayTop(rect.bottom + window.scrollY + offset);
     };
+
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        updateOverlayTop();
+        rafId = 0;
+      });
+    };
+
     updateOverlayTop();
-    window.addEventListener("resize", updateOverlayTop);
-    window.addEventListener("scroll", updateOverlayTop);
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
     return () => {
-      window.removeEventListener("resize", updateOverlayTop);
-      window.removeEventListener("scroll", updateOverlayTop);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate);
+      cancelAnimationFrame(rafId);
     };
   }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <HeroWave />
+      <Suspense fallback={null}>
+        <HeroWave />
+      </Suspense>
 
       {/* Content overlay */}
       <div className="relative z-10">
@@ -111,7 +123,9 @@ const DemoLanding: React.FC = () => {
 
       {/* Globe fixed to bottom as last element (fill container, centered) */}
       <div className="pointer-events-none fixed -bottom-36 md:-bottom-64 left-1/2 z-0 -translate-x-1/2 aspect-square h-[420px] md:h-[680px]">
-        <Globe className="top-0" />
+        <Suspense fallback={null}>
+          <Globe className="top-0" />
+        </Suspense>
       </div>
     </div>
   );

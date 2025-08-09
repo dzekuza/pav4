@@ -6,13 +6,11 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useToast } from '../hooks/use-toast';
 import { SearchHeader } from '../components/SearchHeader';
-import { BusinessRegistrationWizard } from '../components/BusinessRegistrationWizard';
 
 export default function BusinessLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showRegistrationWizard, setShowRegistrationWizard] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -68,29 +66,15 @@ export default function BusinessLogin() {
   };
 
   const handleRegistrationComplete = () => {
-    setShowRegistrationWizard(false);
     toast({
       title: "Registration Successful",
       description: "Your business account has been created! You can now log in.",
     });
   };
 
-  // Debug logging
-  console.log('BusinessLogin render - showRegistrationWizard:', showRegistrationWizard);
+  // Debug logging removed
 
-  // Show registration wizard if requested
-  if (showRegistrationWizard) {
-    console.log('Rendering BusinessRegistrationWizard');
-    return (
-      <div className="min-h-screen bg-background">
-        <SearchHeader showBackButton={false} />
-        <BusinessRegistrationWizard
-          onComplete={handleRegistrationComplete}
-          onBack={() => setShowRegistrationWizard(false)}
-        />
-      </div>
-    );
-  }
+  // Registration is now a dedicated page at /business/register
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
@@ -142,16 +126,9 @@ export default function BusinessLogin() {
               </form>
 
               <div className="mt-6 text-center">
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    console.log('Register button clicked, setting showRegistrationWizard to true');
-                    setShowRegistrationWizard(true);
-                  }}
-                  className="text-sm text-white"
-                >
+                <Link to="/business/register" className="text-sm text-white hover:underline">
                   Don't have an account? Register
-                </Button>
+                </Link>
               </div>
 
               <div className="mt-4 text-center">

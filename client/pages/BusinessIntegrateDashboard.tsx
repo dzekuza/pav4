@@ -67,16 +67,13 @@ export default function BusinessIntegrateDashboard() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
 
-  // Debug: Log the stats data
+  // Cleanup any running timers on unmount
   useEffect(() => {
-    console.log('BusinessIntegrateDashboard - Received stats:', stats);
-    if (stats) {
-      console.log('Business ID:', stats.id);
-      console.log('Business Name:', stats.name);
-      console.log('Domain:', stats.domain);
-      console.log('Affiliate ID:', stats.affiliateId);
-    }
-  }, [stats]);
+    return () => {
+      if ((window as any).__ph_pollInterval) clearInterval((window as any).__ph_pollInterval);
+      if ((window as any).__ph_stopTimeout) clearTimeout((window as any).__ph_stopTimeout);
+    };
+  }, []);
 
   // Auto-select platform based on domain if possible
   useEffect(() => {
@@ -271,6 +268,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setTestResults([]);
 
     // Start polling for real tracking events
+    if ((window as any).__ph_pollInterval) clearInterval((window as any).__ph_pollInterval);
+    if ((window as any).__ph_stopTimeout) clearTimeout((window as any).__ph_stopTimeout);
+
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/tracking-events${stats?.id ? `?business_id=${stats.id}` : ''}` , {
@@ -295,11 +295,13 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch (error) {
         console.error('Error fetching tracking events:', error);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 4000); // Poll every 4 seconds to reduce load
+    (window as any).__ph_pollInterval = pollInterval;
 
     // Stop polling after 30 seconds
-    setTimeout(() => {
+    const stopTimeout = setTimeout(() => {
       clearInterval(pollInterval);
+      (window as any).__ph_pollInterval = undefined;
       setIsTesting(false);
       
       if (testResults.length === 0) {
@@ -315,6 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     }, 30000);
+    (window as any).__ph_stopTimeout = stopTimeout;
   };
 
   const generateTestEvents = async () => {

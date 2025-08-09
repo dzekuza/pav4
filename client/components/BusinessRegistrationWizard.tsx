@@ -256,20 +256,21 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
   ];
 
   return (
-    <div className="max-w-2xl mx-auto p-6 text-white">
+    <div className="relative max-w-2xl mx-auto p-6 text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100 rounded-2xl" />
       {/* Progress Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Badge variant={currentStep >= 1 ? "default" : "secondary"}>1</Badge>
-            <span className={currentStep >= 1 ? "font-medium" : "text-muted-foreground"}>
+            <Badge variant={currentStep >= 1 ? "default" : "secondary"} className="bg-white text-black border-0">1</Badge>
+            <span className={currentStep >= 1 ? "font-medium" : "text-white/70"}>
               Account Setup
             </span>
           </div>
-          <div className="flex-1 mx-4 h-px bg-border"></div>
+          <div className="flex-1 mx-4 h-px bg-white/20"></div>
           <div className="flex items-center gap-2">
-            <Badge variant={currentStep >= 2 ? "default" : "secondary"}>2</Badge>
-            <span className={currentStep >= 2 ? "font-medium" : "text-muted-foreground"}>
+            <Badge variant={currentStep >= 2 ? "default" : "secondary"} className="bg-white text-black border-0">2</Badge>
+            <span className={currentStep >= 2 ? "font-medium" : "text-white/70"}>
               Business Information
             </span>
           </div>
@@ -490,7 +491,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
           <div className="flex justify-between pt-6">
             <div>
               {currentStep === 1 ? (
-                <Button variant="outline" onClick={onBack}>
+                <Button variant="outline" onClick={onBack} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                   Back to Login
                 </Button>
               ) : (
@@ -503,12 +504,12 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
 
             <div className="flex gap-2">
               {currentStep === 1 ? (
-                <Button onClick={handleNext}>
+                <Button onClick={handleNext} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                   Next Step
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={isLoading}>
+                <Button onClick={handleSubmit} disabled={isLoading} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                   {isLoading ? "Creating Account..." : "Create Business Account"}
                 </Button>
               )}
