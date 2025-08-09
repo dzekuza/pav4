@@ -141,20 +141,25 @@ const NewSearchResults = () => {
       const data = await response.json();
       console.log("Search response:", data);
       
+      // Normalize array-wrapped n8n payloads: [{ mainProduct, suggestions }]
+      const payload: any = Array.isArray(data) && data.length === 1 && data[0]?.mainProduct && data[0]?.suggestions
+        ? data[0]
+        : data;
+
       // Handle n8n response format
-      if (data.mainProduct && data.suggestions) {
+      if (payload.mainProduct && payload.suggestions) {
         // Convert n8n format to our expected format
         const mainProduct: ProductData = {
-          title: data.mainProduct.title,
-          price: extractPrice(data.mainProduct.price),
-          currency: extractCurrency(data.mainProduct.price),
-          image: data.mainProduct.image,
-          url: data.mainProduct.url,
-          store: new URL(data.mainProduct.url || url).hostname.replace(/^www\./, "")
+          title: payload.mainProduct.title,
+          price: extractPrice(payload.mainProduct.price),
+          currency: extractCurrency(payload.mainProduct.price),
+          image: payload.mainProduct.image,
+          url: payload.mainProduct.url,
+          store: new URL(payload.mainProduct.url || url).hostname.replace(/^www\./, "")
         };
 
         // Convert suggestions to PriceComparison format
-        const comparisons: PriceComparison[] = data.suggestions.map((suggestion: any) => ({
+        const comparisons: PriceComparison[] = payload.suggestions.map((suggestion: any) => ({
           title: suggestion.title,
           store: suggestion.site || 'unknown',
           price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
@@ -172,11 +177,11 @@ const NewSearchResults = () => {
 
         setSearchData({
           mainProduct: mainProduct,
-          suggestions: data.suggestions,
+          suggestions: payload.suggestions,
           comparisons: comparisons
         });
       } else {
-        setSearchData(data);
+        setSearchData(payload);
       }
       
       setIsLoading(false);
@@ -363,7 +368,10 @@ const NewSearchResults = () => {
         throw new Error(errorData.error || "Failed to fetch search data");
       }
       const data = await response.json();
-      setSearchData(data);
+      const payload: any = Array.isArray(data) && data.length === 1 && data[0]?.mainProduct && data[0]?.suggestions
+        ? data[0]
+        : data;
+      setSearchData(payload);
       setIsLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load search results");

@@ -72,7 +72,23 @@ app.use(helmet({
                 "'self'",
                 "'unsafe-inline'",
                 "blob:",
-                "https://vercel.live"
+                "https://vercel.live",
+                "https://www.googletagmanager.com",
+                "https://www.google-analytics.com",
+                "https://esm.sh",
+                "https://unpkg.com",
+                "https://cdn.jsdelivr.net"
+            ],
+            scriptSrcElem: [
+                "'self'",
+                "'unsafe-inline'",
+                "blob:",
+                "https://vercel.live",
+                "https://www.googletagmanager.com",
+                "https://www.google-analytics.com",
+                "https://esm.sh",
+                "https://unpkg.com",
+                "https://cdn.jsdelivr.net"
             ],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
             imgSrc: ["'self'", "data:", "https:"],
@@ -82,6 +98,7 @@ app.use(helmet({
                 "https://n8n.srv824584.hstgr.cloud",
                 "https://pavlo4.netlify.app",
                 "https://paaav.vercel.app",
+                "https://vercel.live",
             ],
         },
     },
@@ -256,6 +273,35 @@ app.post("/api/n8n-scrape", async (req, res) => {
     console.error("/api/n8n-scrape error:", status, detail);
     return res.status(500).json({ error: "Scrape failed", details: detail });
   }
+});
+
+// Minimal stubs for endpoints used by the UI to avoid 404s in serverless
+app.get("/api/search-history", (_req, res) => {
+  res.json({ history: [] });
+});
+
+app.post("/api/search-history", (_req, res) => {
+  res.json({ success: true });
+});
+
+app.get("/api/favorites", (_req, res) => {
+  res.json({ favorites: [] });
+});
+
+app.post("/api/favorites", (_req, res) => {
+  res.json({ id: Date.now(), success: true });
+});
+
+app.delete("/api/favorites/:id", (_req, res) => {
+  res.json({ success: true });
+});
+
+app.get("/api/business/activity/clicks", (_req, res) => {
+  res.json([]);
+});
+
+app.get("/api/business/activity/conversions", (_req, res) => {
+  res.json([]);
 });
 
 // Keep only lightweight proxy for scraping in serverless
