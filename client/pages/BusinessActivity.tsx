@@ -167,7 +167,7 @@ export default function BusinessActivity() {
 
   return (
     <div className="min-h-screen relative overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-50" />
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
       <SearchHeader showBackButton={false} />
       
       <div className="container mx-auto px-4 py-8">

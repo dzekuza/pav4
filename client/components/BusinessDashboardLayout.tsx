@@ -113,8 +113,7 @@ export default function BusinessDashboardLayout() {
 
   if (!stats) {
     return (
-      <div className="relative min-h-screen overflow-hidden">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-60" />
+      <div className="min-h-screen bg-background text-white">
         <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
           <Card className="border-white/10 bg-white/5 text-white">
@@ -131,8 +130,7 @@ export default function BusinessDashboardLayout() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-50" />
+    <div className="min-h-screen bg-background text-white">
       <SearchHeader showBackButton={false} />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
