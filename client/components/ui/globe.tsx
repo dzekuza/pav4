@@ -1,4 +1,6 @@
-import createGlobe, { type COBEOptions } from "cobe";
+"use client";
+
+import createGlobe, { COBEOptions } from "cobe";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -34,29 +36,25 @@ const GLOBE_CONFIG: COBEOptions = {
 export function Globe({
   className,
   config = GLOBE_CONFIG,
-  devicePixelRatio = 1.5, // lower DPR reduces RAM/CPU
-  autoPause = true,
 }: {
   className?: string;
   config?: COBEOptions;
-  devicePixelRatio?: number;
-  autoPause?: boolean;
 }) {
   let phi = 0;
   let width = 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointerInteracting = useRef<number | null>(null);
+  const pointerInteracting = useRef<any>(null);
   const pointerInteractionMovement = useRef(0);
   const [r, setR] = useState(0);
 
-  const updatePointerInteraction = (value: number | null) => {
+  const updatePointerInteraction = (value: any) => {
     pointerInteracting.current = value;
     if (canvasRef.current) {
       canvasRef.current.style.cursor = value ? "grabbing" : "grab";
     }
   };
 
-  const updateMovement = (clientX: number) => {
+  const updateMovement = (clientX: any) => {
     if (pointerInteracting.current !== null) {
       const delta = clientX - pointerInteracting.current;
       pointerInteractionMovement.current = delta;
@@ -86,29 +84,13 @@ export function Globe({
 
     const globe = createGlobe(canvasRef.current!, {
       ...config,
-      devicePixelRatio,
       width: width * 2,
       height: width * 2,
       onRender,
     });
 
     setTimeout(() => (canvasRef.current!.style.opacity = "1"));
-    const handleVisibility = () => {
-      if (!autoPause) return;
-      // COBE internally uses requestAnimationFrame; pause by setting width/height to 0 when hidden
-      if (document.visibilityState !== "visible" && canvasRef.current) {
-        canvasRef.current.style.opacity = "0.6";
-      } else if (canvasRef.current) {
-        canvasRef.current.style.opacity = "1";
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      window.removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      globe.destroy();
-    };
+    return () => globe.destroy();
   }, []);
 
   return (
@@ -138,5 +120,3 @@ export function Globe({
     </div>
   );
 }
-
-
