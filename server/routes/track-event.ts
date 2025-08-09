@@ -13,10 +13,11 @@ export const trackEvent: RequestHandler = async (req, res) => {
             referrer,
             timestamp,
             url,
-            data
+            data,
+            page_title
         } = req.body;
 
-        console.log('Track event request:', { event_type, business_id, affiliate_id, platform });
+        console.log('Track event request:', { event_type, business_id, affiliate_id, platform, url });
 
         // Validate required fields
         if (!event_type || !business_id || !affiliate_id) {
@@ -50,7 +51,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
                 eventType: event_type,
                 businessId: parseInt(business_id),
                 affiliateId: affiliate_id,
-                platform: platform || 'universal',
+                platform: platform || 'shopify',
                 sessionId: session_id,
                 userAgent: user_agent,
                 referrer: referrer,
@@ -64,7 +65,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
         console.log('Tracking event created:', trackingEvent.id);
 
         // Update business statistics based on event type
-        if (event_type === 'purchase_click' || event_type === 'conversion') {
+        if (event_type === 'page_view' || event_type === 'product_view') {
             console.log('Updating business visits...');
             await prisma.business.update({
                 where: { id: parseInt(business_id) },
@@ -76,8 +77,21 @@ export const trackEvent: RequestHandler = async (req, res) => {
             });
         }
 
-        if (event_type === 'conversion') {
+        if (event_type === 'add_to_cart') {
+            console.log('Updating business clicks...');
+            await prisma.business.update({
+                where: { id: parseInt(business_id) },
+                data: {
+                    totalVisits: {
+                        increment: 1
+                    }
+                }
+            });
+        }
+
+        if (event_type === 'conversion' || event_type === 'purchase') {
             console.log('Updating business purchases...');
+            const totalAmount = parseFloat(data?.total_amount || data?.amount || '0');
             await prisma.business.update({
                 where: { id: parseInt(business_id) },
                 data: {
@@ -85,7 +99,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
                         increment: 1
                     },
                     totalRevenue: {
-                        increment: parseFloat(data?.total_amount || '0')
+                        increment: totalAmount
                     }
                 }
             });

@@ -30,7 +30,7 @@ export const TrackingScriptGenerator: React.FC<TrackingScriptGeneratorProps> = (
     
     if (platform === 'shopify') {
       return `<script 
-  src="https://paaav.vercel.app/shopify-tracker.js" 
+  src="https://paaav.vercel.app/shopify-tracker-loader.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;

@@ -565,44 +565,47 @@ export default function BusinessActivityDashboard() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="text-white">Type</TableHead>
-                  <TableHead className="text-white">Product</TableHead>
-                  <TableHead className="text-white">Status</TableHead>
-                  <TableHead className="text-white">Amount</TableHead>
-                  <TableHead className="text-white">Date</TableHead>
+                <TableRow className="border-white/20 hover:bg-white/5">
+                  <TableHead className="text-white border-b border-white/20 pb-3">Type</TableHead>
+                  <TableHead className="text-white border-b border-white/20 pb-3">Product</TableHead>
+                  <TableHead className="text-white border-b border-white/20 pb-3">Status</TableHead>
+                  <TableHead className="text-white border-b border-white/20 pb-3">Amount</TableHead>
+                  <TableHead className="text-white border-b border-white/20 pb-3">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredActivities.slice(0, 20).map((activity) => (
-                  <TableRow key={activity.id}>
-                    <TableCell>
+                {filteredActivities.slice(0, 20).map((activity, index) => (
+                  <TableRow 
+                    key={activity.id}
+                    className="border-b border-white/10 hover:bg-white/5 transition-colors duration-200"
+                  >
+                    <TableCell className="py-4">
                       <div className="flex items-center gap-2">
                         {getTypeIcon(activity.type)}
                         <span className="capitalize text-white">{activity.type}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="max-w-xs truncate">
                         <a 
                           href={activity.productUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-white hover:underline"
+                          className="text-white hover:underline transition-colors duration-200"
                         >
                           {activity.productName}
                         </a>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       {getStatusBadge(activity.status)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <span className="text-white">{activity.amount ? `$${activity.amount.toFixed(2)}` : '-'}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <Calendar className="h-3 w-3 text-white/60" />
                         <span className="text-white/80">{formatDate(activity.timestamp)}</span>
                       </div>
                     </TableCell>

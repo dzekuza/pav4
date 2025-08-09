@@ -1708,5 +1708,95 @@ app.get("/api/business/activity/events", async (req, res) => {
     }
 });
 
+// Business authentication check endpoint
+app.get("/api/business/auth/check", async (req, res) => {
+    try {
+        // Check for business authentication
+        let token = req.cookies.business_token;
+
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: "Not authenticated"
+            });
+        }
+
+        const decoded = verifyBusinessToken(token);
+
+        if (!decoded || decoded.type !== "business") {
+            return res.status(401).json({
+                success: false,
+                error: "Invalid token"
+            });
+        }
+
+        // Get business info
+        try {
+            const sql = getSql();
+            const business = await sql`
+                SELECT 
+                    id,
+                    name,
+                    domain,
+                    email,
+                    "totalVisits",
+                    "totalPurchases",
+                    "totalRevenue",
+                    commission,
+                    "adminCommissionRate",
+                    "affiliateId",
+                    "trackingVerified"
+                FROM businesses 
+                WHERE id = ${decoded.businessId}
+                LIMIT 1
+            `;
+
+            if (business.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Business not found"
+                });
+            }
+
+            const businessData = business[0];
+            
+            // Calculate additional stats
+            const averageOrderValue = businessData.totalPurchases > 0 ? businessData.totalRevenue / businessData.totalPurchases : 0;
+            const conversionRate = businessData.totalVisits > 0 ? (businessData.totalPurchases / businessData.totalVisits) * 100 : 0;
+            const projectedFee = businessData.totalRevenue * (businessData.adminCommissionRate / 100);
+
+            res.json({
+                success: true,
+                business: {
+                    ...businessData,
+                    averageOrderValue,
+                    conversionRate,
+                    projectedFee
+                }
+            });
+        } catch (dbError) {
+            console.error('Database error in business auth check:', dbError);
+            res.status(500).json({
+                success: false,
+                error: "Database connection failed",
+                details: dbError instanceof Error ? dbError.message : String(dbError)
+            });
+        }
+    } catch (error) {
+        console.error("Error in business auth check:", error);
+        res.status(500).json({
+            success: false,
+            error: "Failed to check business authentication"
+        });
+    }
+});
+
 // Export for Vercel
 export default app;

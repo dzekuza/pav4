@@ -93,38 +93,12 @@ export default function BusinessIntegrateDashboard() {
     {
       id: 'shopify',
       name: 'Shopify',
-      description: 'E-commerce platform for online stores',
+      description: 'Modern one-line integration with automatic enhanced tracking',
       icon: '🛍️',
-      features: ['Product tracking', 'Purchase tracking', 'Cart tracking', 'User behavior'],
+      features: ['Simple one-line script', 'Automatic enhanced loading', 'AJAX cart support', 'Comprehensive debugging', 'Debug functions'],
       get scriptTemplate() {
         return `<!-- PriceHunt Shopify Integration -->
-<script src="https://paaav.vercel.app/shopify-tracker.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
-<script>
-// Shopify-specific tracking
-document.addEventListener('DOMContentLoaded', function() {
-  // Track product page views
-  if (window.Shopify && window.Shopify.theme) {
-    const product = window.Shopify.theme.product;
-    if (product) {
-      window.PriceHuntTracker.track('product_view', {
-        product_id: product.id,
-        product_name: product.title,
-        product_price: product.price
-      });
-    }
-  }
-  
-  // Track add to cart
-  document.addEventListener('click', function(e) {
-    if (e.target.matches('[data-action="add-to-cart"], .add-to-cart, [class*="cart"]')) {
-      window.PriceHuntTracker.track('add_to_cart', {
-        product_id: e.target.getAttribute('data-product-id'),
-        product_name: e.target.getAttribute('data-product-name')
-      });
-    }
-  });
-});
-</script>
+<script src="https://paaav.vercel.app/shopify-tracker-loader.js" data-business-id="${stats?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${stats?.affiliateId || 'YOUR_AFFILIATE_ID'}" data-debug="true"></script>
 <!-- End PriceHunt Shopify Integration -->`;
       }
     },
@@ -540,20 +514,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div className="border border-white/10 bg-white/5 rounded-lg p-4">
                   <h5 className="font-medium text-white mb-2">✅ Installation Instructions:</h5>
                   <ol className="text-sm text-white/80 space-y-1">
-                    <li>1. Copy the script above</li>
+                    <li>1. Copy the simplified script above</li>
                     <li>2. Add it to your website's &lt;head&gt; section</li>
                     <li>3. For Shopify: Add to theme.liquid file in your theme</li>
                     <li>4. For WooCommerce: Add to header.php or use a plugin</li>
                     <li>5. For Magento: Add to default_head_blocks.xml</li>
                     <li>6. For Custom: Add to your main HTML template</li>
+                    <li>7. The loader will automatically fetch the full tracking script</li>
                   </ol>
                 </div>
 
                 <div className="border border-white/10 bg-white/5 rounded-lg p-4">
                   <h5 className="font-medium text-white mb-2">⚠️ Important Notes:</h5>
                   <ul className="text-sm text-white/80 space-y-1">
-                    <li>• The script will only track users who came from our app</li>
-                    <li>• It tracks product views, cart additions, and purchases</li>
+                    <li>• Simple one-line script - no complex code needed</li>
+                    <li>• Automatically loads enhanced tracking features</li>
+                    <li>• Tracks product views, cart additions, and purchases</li>
+                    <li>• Enhanced debugging available in browser console</li>
+                    <li>• Use PriceHuntDebug functions for testing</li>
                     <li>• Make sure to test the script after installation</li>
                     <li>• Contact support if you need help with installation</li>
                   </ul>
