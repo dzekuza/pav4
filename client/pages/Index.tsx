@@ -181,7 +181,7 @@ export default function Index() {
             AI-powered price comparison.
           </p>
           {/* Search Form */}
-          <div className="mb-12">
+          <div className="mb-12 max-w-2xl mx-auto">
             <SearchInput
               value={searchUrl}
               onChange={setSearchUrl}
@@ -198,7 +198,7 @@ export default function Index() {
             )}
           </div>
           {/* Popular Stores */}
-          <div className="mb-16">
+          <div className="mb-16 max-w-3xl mx-auto">
             <p className="text-sm text-muted-foreground mb-4">
               We compare prices from popular stores including:
             </p>
@@ -218,7 +218,7 @@ export default function Index() {
       </section>
       {/* Features Section */}
       <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Why choose PriceHunt?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -248,7 +248,7 @@ export default function Index() {
       </section>
       {/* Recent Searches */}
       <section className="py-16">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Recent success stories</h2>
             <p className="text-muted-foreground">

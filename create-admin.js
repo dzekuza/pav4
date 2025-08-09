@@ -1,24 +1,56 @@
-// Simple script to create an admin user
-// Run with: node create-admin.js
+#!/usr/bin/env node
+/**
+ * CLI: Promote a user to admin
+ * Usage examples:
+ *   node create-admin.js --email info@gvozdovic.com
+ *   node create-admin.js -e info@gvozdovic.com
+ */
 
-const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
-console.log("=== Admin User Creation ===");
-console.log("To create your first admin user, follow these steps:");
-console.log("");
-console.log("1. Register normally through the app at /login");
-console.log("2. Copy the user ID from the admin panel or server logs");
-console.log("3. Manually set isAdmin: true in the server code");
-console.log("");
-console.log("For production, create a proper admin user creation endpoint.");
-console.log("");
-console.log("Sample admin user data:");
-console.log("{");
-console.log('  id: "' + crypto.randomUUID() + '",');
-console.log('  email: "admin@example.com",');
-console.log('  password: "' + bcrypt.hashSync("admin123", 12) + '",');
-console.log("  isAdmin: true,");
-console.log("  createdAt: new Date(),");
-console.log("  searchHistory: []");
-console.log("}");
+const args = process.argv.slice(2);
+const emailArgIndex = Math.max(args.indexOf("--email"), args.indexOf("-e"));
+const email = emailArgIndex !== -1 ? args[emailArgIndex + 1] : null;
+
+if (!email) {
+  console.error("Usage: node create-admin.js --email user@example.com");
+  process.exit(1);
+}
+
+async function promoteViaApi() {
+  // Prefer calling server endpoint if available
+  const fetch = (await import("node-fetch")).default;
+  const baseUrl = process.env.APP_BASE_URL || "http://localhost:8083";
+  try {
+    const res = await fetch(`${baseUrl}/api/admin/promote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status}`);
+    }
+    const data = await res.json();
+    if (data.success) {
+      console.log(`✔ Promoted ${email} to admin via API.`);
+      return true;
+    }
+    console.error("API error:", data.error || data);
+    return false;
+  } catch (err) {
+    console.warn("API promote failed, falling back to local DB where possible:", err.message);
+    return false;
+  }
+}
+
+(async () => {
+  const ok = await promoteViaApi();
+  if (ok) return;
+
+  // Fallback: show instructions for manual promotion depending on storage
+  console.log("\nManual promotion steps (fallback):");
+  console.log("- If you use Prisma/SQLite file (prisma/dev.db), run an UPDATE to set isAdmin=1 for the user with email:", email);
+  console.log("- If you use a JSON/Netlify DB, find the user document and set isAdmin: true.");
+  console.log("- Or expose an /api/admin/promote endpoint that updates the user by email.");
+})();

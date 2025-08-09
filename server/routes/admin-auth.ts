@@ -197,3 +197,21 @@ export const createAdmin = async (req: Request, res: Response) => {
     });
   }
 }; 
+
+// Promote existing user to admin by email
+export const promoteUserToAdmin = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: "email is required" });
+    }
+    const result = await (adminService as any).promoteUserToAdmin?.(email);
+    if (!result) {
+      return res.status(404).json({ success: false, error: "User not found or service not implemented" });
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Promote user error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};

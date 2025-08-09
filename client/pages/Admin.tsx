@@ -139,11 +139,12 @@ export default function Admin() {
 
   if (isLoading || loadingUsers) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
         </div>
       </div>
@@ -152,14 +153,13 @@ export default function Admin() {
 
   if (!admin) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
           <Alert variant="destructive" className="max-w-md mx-auto">
             <Shield className="h-4 w-4" />
-            <AlertDescription>
-              Redirecting to admin login...
-            </AlertDescription>
+            <AlertDescription>Redirecting to admin login...</AlertDescription>
           </Alert>
         </div>
       </div>
@@ -171,20 +171,17 @@ export default function Admin() {
   const totalSearches = users.reduce((sum, u) => sum + u.searchCount, 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
       <SearchHeader />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-            <p className="text-muted-foreground">
-              Manage users and monitor system activity
-            </p>
+            <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+            <p className="text-white/70">Manage users and monitor system activity</p>
             {admin && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Logged in as: {admin.email}
-              </p>
+              <p className="text-sm text-white/60 mt-1">Logged in as: {admin.email}</p>
             )}
             <div className="mt-4 flex items-center gap-3">
               <Switch
@@ -193,17 +190,17 @@ export default function Admin() {
                 onCheckedChange={handleToggleFilter}
                 id="suggestion-filter-toggle"
               />
-              <label htmlFor="suggestion-filter-toggle" className="text-sm">
+              <label htmlFor="suggestion-filter-toggle" className="text-sm text-white">
                 Show only suggestions from registered businesses
               </label>
-              {filterLoading && <span className="text-xs ml-2">Saving...</span>}
-              {filterError && <span className="text-xs text-red-500 ml-2">{filterError}</span>}
+              {filterLoading && <span className="text-xs ml-2 text-white/60">Saving...</span>}
+              {filterError && <span className="text-xs text-red-300 ml-2">{filterError}</span>}
             </div>
           </div>
           <Button
             variant="outline"
             onClick={handleLogout}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
           >
             <LogOut className="h-4 w-4" />
             <span>Logout</span>
@@ -232,85 +229,68 @@ export default function Admin() {
           <TabsContent value="users" className="space-y-6">
             {/* Statistics Cards */}
             <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <Card>
+              <Card className="border-white/10 bg-white/5 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-white">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {adminUsers} admin{adminUsers !== 1 ? "s" : ""}
-                  </p>
+                  <p className="text-xs text-white/70">{adminUsers} admin{adminUsers !== 1 ? "s" : ""}</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-white/10 bg-white/5 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Searches
-                  </CardTitle>
-                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-white">Total Searches</CardTitle>
+                  <Search className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{totalSearches}</div>
-                  <p className="text-xs text-muted-foreground">Across all users</p>
+                  <p className="text-xs text-white/70">Across all users</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-white/10 bg-white/5 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Avg. Searches/User
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-white">Avg. Searches/User</CardTitle>
+                  <Calendar className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {totalUsers > 0 ? Math.round(totalSearches / totalUsers) : 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Per registered user
-                  </p>
+                  <div className="text-2xl font-bold">{totalUsers > 0 ? Math.round(totalSearches / totalUsers) : 0}</div>
+                  <p className="text-xs text-white/70">Per registered user</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Users Table */}
-            <Card>
+            <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>
-                <CardTitle>Registered Users</CardTitle>
-                <CardDescription>
-                  All users registered in the system
-                </CardDescription>
+                <CardTitle className="text-white">Registered Users</CardTitle>
+                <CardDescription className="text-white/80">All users registered in the system</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {users.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      No users found
-                    </p>
+                    <p className="text-center text-white/70 py-8">No users found</p>
                   ) : (
                     users.map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="flex items-center justify-between p-4 border border-white/20 rounded-lg"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">{user.email}</span>
+                            <span className="font-medium text-white">{user.email}</span>
                             {user.isAdmin && (
                               <Badge variant="secondary">Admin</Badge>
                             )}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            Joined {new Date(user.createdAt).toLocaleDateString()} •{" "}
-                            {user.searchCount} searches
+                          <div className="text-sm text-white/70">
+                            Joined {new Date(user.createdAt).toLocaleDateString()} • {user.searchCount} searches
                           </div>
                         </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          ID: {user.id.toString().slice(0, 8)}...
-                        </div>
+                        <div className="text-right text-sm text-white/70">ID: {user.id.toString().slice(0, 8)}...</div>
                       </div>
                     ))
                   )}
@@ -327,3 +307,4 @@ export default function Admin() {
     </div>
   );
 }
+

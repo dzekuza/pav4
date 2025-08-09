@@ -22,6 +22,7 @@ import {
 } from "./routes/auth";
 import { requireAuth, requireAdmin, optionalAuth, clearRLSContext } from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
+import { promoteUserToAdmin } from "./routes/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
 import { gracefulShutdown, checkDatabaseConnection, businessService } from "./services/database";
@@ -90,7 +91,29 @@ export async function createServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "blob:"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "blob:",
+          "https://vercel.live",
+          "https://www.googletagmanager.com",
+          "https://www.google-analytics.com",
+          "https://esm.sh",
+          "https://unpkg.com",
+          "https://cdn.jsdelivr.net"
+        ],
+        // For completeness include script-src-elem with same policy
+        scriptSrcElem: [
+          "'self'",
+          "'unsafe-inline'",
+          "blob:",
+          "https://vercel.live",
+          "https://www.googletagmanager.com",
+          "https://www.google-analytics.com",
+          "https://esm.sh",
+          "https://unpkg.com",
+          "https://cdn.jsdelivr.net"
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: [
@@ -99,6 +122,7 @@ export async function createServer() {
           "https://n8n.srv824584.hstgr.cloud",
           "https://paaav.vercel.app",
           "https://pavlo4.netlify.app",
+          "https://vercel.live",
           "http://localhost:5746",
           "http://localhost:5747",
           "http://localhost:8082",
@@ -212,6 +236,7 @@ export async function createServer() {
 
   // Admin routes
   app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
+  app.post("/api/admin/promote", promoteUserToAdmin);
 
   // Affiliate routes
   app.use("/api/affiliate", affiliateRouter);

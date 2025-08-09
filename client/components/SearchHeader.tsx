@@ -80,6 +80,14 @@ export function SearchHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
+          {isAuthenticated && isAdmin && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link to="/admin">Go to Admin</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           {isBusiness && (
             <>
               <DropdownMenuItem asChild>

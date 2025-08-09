@@ -14,6 +14,7 @@ const History = lazy(() => import("./pages/History"));
 const Favorites = lazy(() => import("./pages/Favorites"));
 const Login = lazy(() => import("./pages/Login"));
 const Admin = lazy(() => import("./pages/Admin"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DemoLanding = lazy(() => import("./pages/DemoLanding"));
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
   { path: "/favorites", element: <Suspense fallback={null}><Favorites /></Suspense> },
   { path: "/login", element: <Suspense fallback={null}><Login /></Suspense> },
   { path: "/admin", element: <Suspense fallback={null}><Admin /></Suspense> },
+  { path: "/admin-login", element: <Suspense fallback={null}><AdminLogin /></Suspense> },
   { path: "/business/register", element: <Suspense fallback={null}><BusinessRegistration /></Suspense> },
   { path: "/admin/business", element: <Suspense fallback={null}><BusinessManagement /></Suspense> },
   { path: "/business-login", element: <Suspense fallback={null}><BusinessLogin /></Suspense> },
