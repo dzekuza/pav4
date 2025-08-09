@@ -57,6 +57,15 @@ function verifyBusinessToken(token: string) {
     }
 }
 
+// Helper: verify user token (client auth)
+function verifyUserToken(token: string) {
+    try {
+        return jwt.verify(token, JWT_SECRET) as any;
+    } catch (error) {
+        return null;
+    }
+}
+
 // Create Express app
 const app = express();
 
@@ -275,27 +284,153 @@ app.post("/api/n8n-scrape", async (req, res) => {
   }
 });
 
-// Minimal stubs for endpoints used by the UI to avoid 404s in serverless
-app.get("/api/search-history", (_req, res) => {
-  res.json({ history: [] });
+// Ensure tables helpers (idempotent)
+async function ensureSearchHistoryTable(sql: any) {
+  await sql`CREATE TABLE IF NOT EXISTS search_history (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    url TEXT NOT NULL,
+    title TEXT NOT NULL,
+    request_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+}
+
+async function ensureFavoritesTable(sql: any) {
+  await sql`CREATE TABLE IF NOT EXISTS favorites (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title TEXT,
+    price TEXT,
+    currency TEXT,
+    url TEXT,
+    image TEXT,
+    store TEXT,
+    merchant TEXT,
+    stock TEXT,
+    rating TEXT,
+    reviews_count TEXT,
+    delivery_price TEXT,
+    details TEXT,
+    return_policy TEXT,
+    condition TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`;
+}
+
+// Real search history endpoints (Neon)
+app.get("/api/search-history", async (req, res) => {
+  try {
+    let token = req.cookies.token as string | undefined;
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) token = req.headers.authorization.substring(7);
+    const decoded = token ? verifyUserToken(token) : null;
+    if (!decoded?.userId) return res.status(401).json({ error: "Not authenticated" });
+    const sql = getSql();
+    await ensureSearchHistoryTable(sql);
+    const rows = await sql`SELECT url, title, request_id, created_at FROM search_history WHERE user_id = ${decoded.userId} ORDER BY created_at DESC LIMIT 50`;
+    const history = rows.map((r: any) => ({ url: r.url, title: r.title, requestId: r.request_id, timestamp: r.created_at }));
+    return res.json({ history });
+  } catch (err) {
+    console.error("/api/search-history GET error:", err);
+    return res.json({ history: [] });
+  }
 });
 
-app.post("/api/search-history", (_req, res) => {
-  res.json({ success: true });
+app.post("/api/search-history", async (req, res) => {
+  try {
+    let token = req.cookies.token as string | undefined;
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) token = req.headers.authorization.substring(7);
+    const decoded = token ? verifyUserToken(token) : null;
+    if (!decoded?.userId) return res.status(401).json({ error: "Not authenticated" });
+    const { url, title, requestId } = req.body || {};
+    if (!url || !title) return res.status(400).json({ error: "url and title are required" });
+    const sql = getSql();
+    await ensureSearchHistoryTable(sql);
+    await sql`INSERT INTO search_history (user_id, url, title, request_id) VALUES (${decoded.userId}, ${url}, ${title}, ${requestId || null})`;
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("/api/search-history POST error:", err);
+    return res.status(500).json({ error: "Failed to save history" });
+  }
 });
 
-app.get("/api/favorites", (_req, res) => {
-  res.json({ favorites: [] });
+// Real favorites endpoints (Neon)
+app.get("/api/favorites", async (req, res) => {
+  try {
+    let token = req.cookies.token as string | undefined;
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) token = req.headers.authorization.substring(7);
+    const decoded = token ? verifyUserToken(token) : null;
+    if (!decoded?.userId) return res.status(401).json({ error: "Not authenticated" });
+    const sql = getSql();
+    await ensureFavoritesTable(sql);
+    const rows = await sql`SELECT id, title, price, currency, url, image, store, merchant, stock, rating, reviews_count, delivery_price, details, return_policy, condition, created_at FROM favorites WHERE user_id = ${decoded.userId} ORDER BY created_at DESC LIMIT 100`;
+    const favorites = rows.map((r: any) => ({
+      id: r.id,
+      title: r.title,
+      price: r.price,
+      currency: r.currency,
+      url: r.url,
+      image: r.image,
+      store: r.store,
+      merchant: r.merchant,
+      stock: r.stock,
+      rating: r.rating,
+      reviewsCount: r.reviews_count,
+      deliveryPrice: r.delivery_price,
+      details: r.details,
+      returnPolicy: r.return_policy,
+      condition: r.condition,
+      createdAt: r.created_at,
+    }));
+    return res.json({ favorites });
+  } catch (err) {
+    console.error("/api/favorites GET error:", err);
+    return res.json({ favorites: [] });
+  }
 });
 
-app.post("/api/favorites", (_req, res) => {
-  res.json({ id: Date.now(), success: true });
+app.post("/api/favorites", async (req, res) => {
+  try {
+    let token = req.cookies.token as string | undefined;
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) token = req.headers.authorization.substring(7);
+    const decoded = token ? verifyUserToken(token) : null;
+    if (!decoded?.userId) return res.status(401).json({ error: "Not authenticated" });
+    const {
+      title, price, currency, url, image, store, merchant, stock,
+      rating, reviewsCount, deliveryPrice, details, returnPolicy, condition
+    } = req.body || {};
+    const sql = getSql();
+    await ensureFavoritesTable(sql);
+    const rows = await sql`INSERT INTO favorites (
+      user_id, title, price, currency, url, image, store, merchant, stock, rating, reviews_count, delivery_price, details, return_policy, condition
+    ) VALUES (
+      ${decoded.userId}, ${title || null}, ${price || null}, ${currency || null}, ${url || null}, ${image || null}, ${store || null}, ${merchant || null}, ${stock || null}, ${rating || null}, ${reviewsCount || null}, ${deliveryPrice || null}, ${details || null}, ${returnPolicy || null}, ${condition || null}
+    ) RETURNING id`;
+    return res.json({ id: rows[0].id, success: true });
+  } catch (err) {
+    console.error("/api/favorites POST error:", err);
+    return res.status(500).json({ error: "Failed to save favorite" });
+  }
 });
 
-app.delete("/api/favorites/:id", (_req, res) => {
-  res.json({ success: true });
+app.delete("/api/favorites/:id", async (req, res) => {
+  try {
+    let token = req.cookies.token as string | undefined;
+    if (!token && req.headers.authorization?.startsWith('Bearer ')) token = req.headers.authorization.substring(7);
+    const decoded = token ? verifyUserToken(token) : null;
+    if (!decoded?.userId) return res.status(401).json({ error: "Not authenticated" });
+    const { id } = req.params;
+    const sql = getSql();
+    await ensureFavoritesTable(sql);
+    await sql`DELETE FROM favorites WHERE id = ${parseInt(id)} AND user_id = ${decoded.userId}`;
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("/api/favorites DELETE error:", err);
+    return res.status(500).json({ error: "Failed to delete favorite" });
+  }
 });
 
+// Provide empty activity endpoints to keep UI working (business auth is separate)
 app.get("/api/business/activity/clicks", (_req, res) => {
   res.json([]);
 });
