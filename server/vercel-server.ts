@@ -1638,5 +1638,78 @@ app.get("/api/redirect", async (req, res) => {
     res.redirect(url.toString());
 });
 
+// Get tracking events for business dashboard
+app.get("/api/business/activity/events", async (req, res) => {
+    try {
+        // Check for business authentication
+        let token = req.cookies.business_token;
+
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: "Not authenticated"
+            });
+        }
+
+        const decoded = verifyBusinessToken(token);
+
+        if (!decoded || decoded.type !== "business") {
+            return res.status(401).json({
+                success: false,
+                error: "Invalid token"
+            });
+        }
+
+        // Get tracking events for this business
+        try {
+            const sql = getSql();
+            const events = await sql`
+                SELECT 
+                    id,
+                    "eventType",
+                    "businessId",
+                    "affiliateId",
+                    platform,
+                    "sessionId",
+                    "userAgent",
+                    referrer,
+                    timestamp,
+                    url,
+                    "eventData",
+                    "ipAddress"
+                FROM tracking_events 
+                WHERE "businessId" = ${decoded.businessId}
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `;
+
+            res.json({
+                success: true,
+                events: events
+            });
+        } catch (dbError) {
+            console.error('Database error fetching tracking events:', dbError);
+            res.status(500).json({
+                success: false,
+                error: "Database connection failed",
+                details: dbError instanceof Error ? dbError.message : String(dbError)
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching tracking events:", error);
+        res.status(500).json({
+            success: false,
+            error: "Failed to fetch tracking events"
+        });
+    }
+});
+
 // Export for Vercel
 export default app;
