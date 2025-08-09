@@ -5722,26 +5722,59 @@ const validateUrl = (req, res, next) => {
   next();
 };
 const router$2 = express.Router();
+router$2.get("/test", (req, res) => {
+  res.json({ message: "Redirect router is working" });
+});
 router$2.get("/redirect", async (req, res) => {
+  console.log("Redirect route hit with query:", req.query);
   const { to, user_id, reseller_id } = req.query;
   if (!to || typeof to !== "string") {
+    console.log("Missing or invalid 'to' parameter");
     return res.status(400).json({ error: "Missing destination URL" });
   }
   let url;
   try {
     url = new URL(to);
   } catch {
+    console.log("Invalid URL:", to);
     return res.status(400).json({ error: "Invalid destination URL" });
   }
   if (user_id) url.searchParams.set("track_user", String(user_id));
   if (reseller_id) url.searchParams.set("aff_id", String(reseller_id));
   url.searchParams.set("utm_source", "pavlo4");
-  console.log("Redirecting user:", {
-    user_id,
-    reseller_id,
-    destination: url.toString(),
-    timestamp: (/* @__PURE__ */ new Date()).toISOString()
-  });
+  try {
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    console.log("Looking for business with domain:", hostname);
+    const business = await prisma$3.business.findFirst({
+      where: { domain: hostname },
+      select: { id: true }
+    });
+    if (business) {
+      console.log("Found business:", business.id);
+      await prisma$3.businessClick.create({
+        data: {
+          businessId: business.id,
+          productUrl: to,
+          userAgent: req.get("User-Agent") || void 0,
+          referrer: req.get("Referer") || void 0,
+          ipAddress: req.ip,
+          utmSource: "pavlo4",
+          utmMedium: "redirect",
+          utmCampaign: "product_suggestion"
+        }
+      });
+      await prisma$3.business.update({
+        where: { id: business.id },
+        data: { totalVisits: { increment: 1 } }
+      });
+      console.log("Business click logged and visits incremented");
+    } else {
+      console.log("No business found for domain:", hostname);
+    }
+  } catch (e) {
+    console.error("Failed to log redirect click:", e);
+  }
+  console.log("Redirecting to:", url.toString());
   res.redirect(302, url.toString());
 });
 const router$1 = express.Router();
@@ -6194,6 +6227,9 @@ async function createServer() {
       });
     }
   );
+  app.use("/api", router$2);
+  app.use("/api", router$1);
+  app.use("/api", router);
   app.use(
     "/api",
     validateUrl,
@@ -6277,9 +6313,6 @@ async function createServer() {
   });
   app.get("/api/business/activity/clicks", getBusinessClicks);
   app.get("/api/business/activity/conversions", getBusinessConversions);
-  app.use("/api", router$2);
-  app.use("/api", router$1);
-  app.use("/api", router);
   process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully");
     await gracefulShutdown();

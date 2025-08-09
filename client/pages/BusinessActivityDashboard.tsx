@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,12 +32,33 @@ export default function BusinessActivityDashboard() {
     totalClicks: 0,
     totalPurchases: 0,
     totalRevenue: 0,
-    conversionRate: 0
+    conversionRate: 0,
+    totalAddToCart: 0,
+    totalPageViews: 0,
+    totalProductViews: 0,
+    cartToPurchaseRate: 0,
+    averageOrderValue: 0,
+    totalSessions: 0
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    fetchActivity();
-  }, []);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/business/auth/check', { credentials: 'include' });
+        if (response.status === 401) {
+          navigate('/business/login');
+          return;
+        }
+        fetchActivity();
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        navigate('/business/login');
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const fetchActivity = async (isRefresh = false) => {
     try {
@@ -54,8 +76,20 @@ export default function BusinessActivityDashboard() {
         fetch('/api/business/activity/events', { credentials: 'include' })
       ]);
 
+      // Check if any response is not ok
       if (!clicksResponse.ok || !conversionsResponse.ok || !eventsResponse.ok) {
-        throw new Error('Failed to fetch activity data');
+        // Check if it's an authentication error
+        if (clicksResponse.status === 401 || conversionsResponse.status === 401 || eventsResponse.status === 401) {
+          navigate('/business-login');
+          return;
+        }
+        throw new Error('Failed to fetch activity data. Please try again.');
+      }
+
+      // Check content type to ensure we're getting JSON
+      const contentType = clicksResponse.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format. Please try again.');
       }
 
       const clicksJson = await clicksResponse.json();
@@ -84,12 +118,14 @@ export default function BusinessActivityDashboard() {
         ...conversions.map((conversion: any) => ({
           id: `conversion-${conversion.id}`,
           type: 'conversion' as const,
-          productName: conversion.productTitle || `Order ${conversion.orderId}`,
-          productUrl: conversion.productUrl || conversion.domain,
+          productName: conversion.productTitle || extractProductName(conversion.productUrl),
+          productUrl: conversion.productUrl,
           status: 'purchased' as const,
-          amount: conversion.amount,
+          amount: conversion.productPrice ? parseFloat(conversion.productPrice) : undefined,
           timestamp: conversion.timestamp,
-          customerId: conversion.customerId
+          userAgent: conversion.userAgent,
+          referrer: conversion.referrer,
+          ip: conversion.ipAddress
         })),
         // Tracking events (add to cart, purchases, page views, etc.)
         ...events.map((event: any) => {
@@ -154,19 +190,39 @@ export default function BusinessActivityDashboard() {
       const totalClicks = clicks.length;
       const totalPurchases = conversions.length + events.filter((e: any) => e.eventType === 'purchase').length;
       const totalAddToCart = events.filter((e: any) => e.eventType === 'add_to_cart').length;
+      const totalPageViews = events.filter((e: any) => e.eventType === 'page_view').length;
+      const totalProductViews = events.filter((e: any) => e.eventType === 'product_view').length;
+      
       const totalRevenue = conversions.reduce((sum: number, conv: any) => sum + (conv.amount || 0), 0) +
                           events.filter((e: any) => e.eventType === 'purchase')
                                 .reduce((sum: number, e: any) => {
                                   const eventData = typeof e.eventData === 'string' ? JSON.parse(e.eventData) : e.eventData;
                                   return sum + (eventData.total || 0);
                                 }, 0);
+      
       const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+      const cartToPurchaseRate = totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
+      const averageOrderValue = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
+      
+      // Count unique sessions from all data sources
+      const allSessionIds = new Set([
+        ...clicks.map((c: any) => c.sessionId).filter(Boolean),
+        ...conversions.map((c: any) => c.sessionId).filter(Boolean),
+        ...events.map((e: any) => e.sessionId).filter(Boolean)
+      ]);
+      const totalSessions = allSessionIds.size;
 
       setStats({
         totalClicks,
         totalPurchases,
         totalRevenue,
-        conversionRate
+        conversionRate,
+        totalAddToCart,
+        totalPageViews,
+        totalProductViews,
+        cartToPurchaseRate,
+        averageOrderValue,
+        totalSessions
       });
 
     } catch (error) {
@@ -279,7 +335,7 @@ export default function BusinessActivityDashboard() {
   return (
     <div className="space-y-6 text-white">
       {/* Activity Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
@@ -295,8 +351,21 @@ export default function BusinessActivityDashboard() {
 
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">Add to Cart</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalAddToCart.toLocaleString()}</div>
+            <p className="text-xs text-white/80">
+              Cart additions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">Total Purchases</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
@@ -309,7 +378,7 @@ export default function BusinessActivityDashboard() {
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
@@ -321,17 +390,125 @@ export default function BusinessActivityDashboard() {
 
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
-            <Filter className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-white">Avg Order Value</CardTitle>
+            <DollarSign className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">${stats.averageOrderValue.toFixed(2)}</div>
             <p className="text-xs text-white/80">
-              Click to purchase ratio
+              Average per order
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Secondary Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">Page Views</CardTitle>
+            <Eye className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalPageViews.toLocaleString()}</div>
+            <p className="text-xs text-white/80">
+              Page visits
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">Product Views</CardTitle>
+            <Eye className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalProductViews.toLocaleString()}</div>
+            <p className="text-xs text-white/80">
+              Product page visits
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
+            <Filter className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
+            <p className="text-xs text-white/80">
+              Click to purchase
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">Cart Conversion</CardTitle>
+            <Filter className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.cartToPurchaseRate.toFixed(1)}%</div>
+            <p className="text-xs text-white/80">
+              Cart to purchase
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">Total Sessions</CardTitle>
+            <Calendar className="h-4 w-4 text-cyan-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalSessions.toLocaleString()}</div>
+            <p className="text-xs text-white/80">
+              Unique sessions
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Insights */}
+      <Card className="border-white/10 bg-white/5 text-white">
+        <CardHeader>
+          <CardTitle className="text-white">Key Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-green-400">
+                {stats.totalPurchases > 0 ? stats.conversionRate.toFixed(1) : '0'}%
+              </div>
+              <div className="text-sm text-white/80">Click to Purchase Rate</div>
+              <div className="text-xs text-white/60 mt-1">
+                {stats.totalClicks} clicks → {stats.totalPurchases} purchases
+              </div>
+            </div>
+            
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-orange-400">
+                {stats.totalAddToCart > 0 ? stats.cartToPurchaseRate.toFixed(1) : '0'}%
+              </div>
+              <div className="text-sm text-white/80">Cart to Purchase Rate</div>
+              <div className="text-xs text-white/60 mt-1">
+                {stats.totalAddToCart} cart additions → {stats.totalPurchases} purchases
+              </div>
+            </div>
+            
+            <div className="text-center p-4 bg-white/5 rounded-lg">
+              <div className="text-2xl font-bold text-blue-400">
+                ${stats.averageOrderValue.toFixed(2)}
+              </div>
+              <div className="text-sm text-white/80">Average Order Value</div>
+              <div className="text-xs text-white/60 mt-1">
+                Total: ${stats.totalRevenue.toFixed(2)} / {stats.totalPurchases} orders
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filter Controls */}
       <div className="flex gap-2 items-center flex-wrap">

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -12,9 +13,11 @@ import {
   DollarSign, 
   Calendar,
   BarChart3,
-  PieChart,
+  PieChart as PieChartIcon,
   Activity,
-  Target
+  Target,
+  Eye,
+  Filter
 } from 'lucide-react';
 
 interface BusinessStats {
@@ -38,19 +41,28 @@ interface AnalyticsData {
 }
 
 export default function BusinessAnalyticsDashboard() {
-  const { stats } = useOutletContext<{ stats: BusinessStats }>();
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    dailyVisits: [],
-    dailyRevenue: [],
-    topProducts: [],
-    conversionTrends: []
-  });
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [businessStats, setBusinessStats] = useState<BusinessStats | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchAnalyticsData();
-  }, [timeRange]);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/business/auth/check', { credentials: 'include' });
+        if (response.status === 401) {
+          navigate('/business-login');
+          return;
+        }
+        fetchAnalyticsData();
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        navigate('/business-login');
+      }
+    };
+    checkAuth();
+  }, [navigate, timeRange]);
 
   const fetchAnalyticsData = async () => {
     try {
@@ -63,9 +75,29 @@ export default function BusinessAnalyticsDashboard() {
         fetch('/api/business/auth/stats', { credentials: 'include' })
       ]);
 
-      const clicks = clicksResponse.ok ? await clicksResponse.json() : [];
-      const conversions = conversionsResponse.ok ? await conversionsResponse.json() : [];
+      // Check if any response is not ok
+      if (!clicksResponse.ok || !conversionsResponse.ok || !statsResponse.ok) {
+        // Check if it's an authentication error
+        if (clicksResponse.status === 401 || conversionsResponse.status === 401 || statsResponse.status === 401) {
+          navigate('/business-login');
+          return;
+        }
+        throw new Error('Failed to fetch analytics data. Please try again.');
+      }
+
+      // Check content type to ensure we're getting JSON
+      const contentType = clicksResponse.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format. Please try again.');
+      }
+
+      const clicksJson = await clicksResponse.json();
+      const conversionsJson = await conversionsResponse.json();
       const businessStats = statsResponse.ok ? await statsResponse.json() : { stats: {} };
+
+      // Ensure clicks and conversions are arrays
+      const clicks = Array.isArray(clicksJson) ? clicksJson : (clicksJson.clicks || []);
+      const conversions = Array.isArray(conversionsJson) ? conversionsJson : (conversionsJson.conversions || []);
 
       // Process clicks data for daily visits
       const dailyVisitsMap = new Map<string, number>();
@@ -195,7 +227,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {analyticsData.dailyVisits.reduce((sum, day) => sum + day.visits, 0).toLocaleString()}
+              {analyticsData?.dailyVisits.reduce((sum, day) => sum + day.visits, 0).toLocaleString()}
             </div>
             <p className="text-xs text-white/80">
               Last {timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'} days
@@ -210,7 +242,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${analyticsData.dailyRevenue.reduce((sum, day) => sum + day.revenue, 0).toLocaleString()}
+              ${analyticsData?.dailyRevenue.reduce((sum, day) => sum + day.revenue, 0).toLocaleString()}
             </div>
             <p className="text-xs text-white/80">
               Total revenue
@@ -225,7 +257,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.conversionRate.toFixed(1)}%
+              {businessStats?.conversionRate.toFixed(1)}%
             </div>
             <p className="text-xs text-white/80">
               Overall rate
@@ -240,7 +272,7 @@ export default function BusinessAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {analyticsData.dailyVisits.length > 0 
+              {analyticsData?.dailyVisits.length > 0 
                 ? Math.round(analyticsData.dailyVisits.reduce((sum, day) => sum + day.visits, 0) / analyticsData.dailyVisits.length)
                 : 0}
             </div>
@@ -294,7 +326,7 @@ export default function BusinessAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {analyticsData.dailyVisits.length === 0 || analyticsData.dailyVisits.every(day => day.visits === 0) ? (
+                {analyticsData?.dailyVisits.length === 0 || analyticsData.dailyVisits.every(day => day.visits === 0) ? (
                   <div className="text-center py-8">
                   <p className="text-white/70">No visit data available for the selected time range.</p>
                   </div>
@@ -332,7 +364,7 @@ export default function BusinessAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {analyticsData.dailyRevenue.length === 0 || analyticsData.dailyRevenue.every(day => day.revenue === 0) ? (
+                {analyticsData?.dailyRevenue.length === 0 || analyticsData.dailyRevenue.every(day => day.revenue === 0) ? (
                   <div className="text-center py-8">
                   <p className="text-white/70">No revenue data available for the selected time range.</p>
                   </div>
@@ -373,7 +405,7 @@ export default function BusinessAnalyticsDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {analyticsData.topProducts.length === 0 ? (
+              {analyticsData?.topProducts.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-white/70">No product data available for the selected time range.</p>
                 </div>
@@ -415,7 +447,7 @@ export default function BusinessAnalyticsDashboard() {
               </CardDescription>
             </CardHeader>
                         <CardContent>
-              {analyticsData.conversionTrends.length === 0 || analyticsData.conversionTrends.every(trend => trend.rate === 0) ? (
+              {analyticsData?.conversionTrends.length === 0 || analyticsData.conversionTrends.every(trend => trend.rate === 0) ? (
                 <div className="text-center py-8">
                   <p className="text-white/70">No conversion trend data available for the selected time range.</p>
                 </div>
