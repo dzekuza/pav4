@@ -1,6 +1,11 @@
 import React, { useEffect, useRef } from "react";
 
-const HeroWave: React.FC = () => {
+type HeroWaveProps = {
+  fps?: number; // cap frames per second to reduce CPU
+  quality?: "high" | "medium" | "low"; // affects internal scale
+};
+
+const HeroWave: React.FC<HeroWaveProps> = ({ fps = 30, quality = "medium" }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -13,18 +18,31 @@ const HeroWave: React.FC = () => {
     let height: number;
     let imageData: ImageData;
     let data: Uint8ClampedArray;
-    const SCALE = 2;
+    // Higher scale => fewer pixels computed
+    const scaleFromQuality = quality === "low" ? 4 : quality === "high" ? 2 : 3;
+    let SCALE = scaleFromQuality;
+    // Respect device pixel ratio; increase SCALE on very high DPR
+    const dpr = Math.min(1.75, window.devicePixelRatio || 1);
+    if (dpr > 1.25) SCALE = Math.max(SCALE, 3);
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
       width = Math.floor(canvas.width / SCALE);
       height = Math.floor(canvas.height / SCALE);
       imageData = ctx.createImageData(width, height);
       data = imageData.data;
     };
 
-    window.addEventListener("resize", resizeCanvas);
+    let resizeRaf = 0;
+    const throttledResize = () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => {
+        resizeCanvas();
+        resizeRaf = 0;
+      });
+    };
+    window.addEventListener("resize", throttledResize);
     resizeCanvas();
 
     const startTime = Date.now();
@@ -49,7 +67,26 @@ const HeroWave: React.FC = () => {
       return COS_TABLE[index];
     };
 
+    const frameInterval = 1000 / Math.max(10, Math.min(60, fps));
+    let lastTs = 0;
+    let running = true;
+
+    const handleVisibility = () => {
+      running = document.visibilityState === "visible";
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     const render = () => {
+      if (!running) {
+        requestAnimationFrame(render);
+        return;
+      }
+      const now = performance.now();
+      if (now - lastTs < frameInterval) {
+        requestAnimationFrame(render);
+        return;
+      }
+      lastTs = now;
       const time = (Date.now() - startTime) * 0.001;
 
       for (let y = 0; y < height; y++) {
@@ -108,7 +145,11 @@ const HeroWave: React.FC = () => {
 
     render();
 
-    return () => window.removeEventListener("resize", resizeCanvas);
+    return () => {
+      window.removeEventListener("resize", throttledResize);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      cancelAnimationFrame(resizeRaf);
+    };
   }, []);
 
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;

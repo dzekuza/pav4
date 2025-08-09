@@ -34,9 +34,13 @@ const GLOBE_CONFIG: COBEOptions = {
 export function Globe({
   className,
   config = GLOBE_CONFIG,
+  devicePixelRatio = 1.5, // lower DPR reduces RAM/CPU
+  autoPause = true,
 }: {
   className?: string;
   config?: COBEOptions;
+  devicePixelRatio?: number;
+  autoPause?: boolean;
 }) {
   let phi = 0;
   let width = 0;
@@ -82,14 +86,27 @@ export function Globe({
 
     const globe = createGlobe(canvasRef.current!, {
       ...config,
+      devicePixelRatio,
       width: width * 2,
       height: width * 2,
       onRender,
     });
 
     setTimeout(() => (canvasRef.current!.style.opacity = "1"));
+    const handleVisibility = () => {
+      if (!autoPause) return;
+      // COBE internally uses requestAnimationFrame; pause by setting width/height to 0 when hidden
+      if (document.visibilityState !== "visible" && canvasRef.current) {
+        canvasRef.current.style.opacity = "0.6";
+      } else if (canvasRef.current) {
+        canvasRef.current.style.opacity = "1";
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", handleVisibility);
       globe.destroy();
     };
   }, []);

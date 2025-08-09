@@ -72,20 +72,20 @@ export function SearchHeader({
                 <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
               </Link>
             </div>
-            <nav className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/business/dashboard">Dashboard</Link>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/business/dashboard/activity">Activity</Link>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/business/dashboard/integrate">Integrate</Link>
-              </Button>
-              <Button variant="outline" size="sm" onClick={logoutBusiness}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+            <nav className="flex items-center space-x-2 sm:space-x-4">
+              <Link to="/">
+                <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
+                  Customer<span className="hidden sm:inline"> portal</span>
+                </Button>
+              </Link>
+              <Link to="/business/dashboard">
+                <Button
+                  variant="outline"
+                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
+                >
+                  Business<span className="hidden sm:inline"> portal</span>
+                </Button>
+              </Link>
             </nav>
           </div>
         </div>
@@ -106,121 +106,20 @@ export function SearchHeader({
             )}
           </div>
 
-          <nav className="flex items-center space-x-4">
-            {/* Business Links - Always visible */}
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="hidden md:flex text-white hover:text-white"
-            >
-              <Link to="/business/register">
-                <Building2 className="mr-2 h-4 w-4" />
-                Register Business
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="hidden md:flex text-white hover:text-white"
-            >
-              <Link to="/business-login">
-                <Building2 className="mr-2 h-4 w-4" />
-                Business Login
-              </Link>
-            </Button>
-
-            {/* Show navigation links only when authenticated */}
-            {isAuthenticated && (
-              <></>
-            )}
-
-            {/* User Profile Dropdown or Sign In Button */}
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user?.email.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="text-sm font-medium">{user?.email}</p>
-                      {isAdmin && (
-                        <p className="text-xs text-muted-foreground">
-                          Administrator
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {/* Business page */}
-                  <DropdownMenuItem asChild>
-                    <Link to="/business-login">
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Business page
-                    </Link>
-                  </DropdownMenuItem>
-                  {/* History */}
-                  <DropdownMenuItem asChild>
-                    <Link to="/history">
-                      <User className="mr-2 h-4 w-4" />
-                      History
-                    </Link>
-                  </DropdownMenuItem>
-                  {/* Favorites with heart icon */}
-                  <DropdownMenuItem asChild>
-                    <Link to="/favorites" className="relative flex items-center">
-                      <Heart className="mr-2 h-4 w-4" />
-                      Favorites
-                      {favorites.length > 0 && (
-                        <Badge 
-                          variant="secondary" 
-                          className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs font-medium"
-                        >
-                          {favorites.length > 99 ? '99+' : favorites.length}
-                        </Badge>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-                  {/* Admin */}
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin">
-                        <Shield className="mr-2 h-4 w-4" />
-                        Admin
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                onClick={() => {
-                  console.log("Sign in button clicked, navigating to /login");
-                  window.location.href = "/login";
-                }}
-              >
-                <User className="mr-2 h-4 w-4" />
-                Sign in
+          <nav className="flex items-center space-x-2 sm:space-x-4">
+            <Link to="/">
+              <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
+                Customer<span className="hidden sm:inline"> portal</span>
               </Button>
-            )}
+            </Link>
+            <Link to="/business/dashboard">
+              <Button
+                variant="outline"
+                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
+              >
+                Business<span className="hidden sm:inline"> portal</span>
+              </Button>
+            </Link>
           </nav>
         </div>
       </div>

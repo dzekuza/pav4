@@ -94,7 +94,8 @@ export default function BusinessDashboardLayout() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-80" />
         <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
@@ -112,13 +113,14 @@ export default function BusinessDashboardLayout() {
 
   if (!stats) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden">
+        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-80" />
         <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
-          <Card>
+          <Card className="border-white/10 bg-white/5 backdrop-blur-xl text-white">
             <CardContent className="p-6 text-center">
-              <p className="text-gray-500">Unable to load business statistics.</p>
-              <Button onClick={() => navigate('/business-login')} className="mt-4">
+              <p className="text-white/80">Unable to load business statistics.</p>
+              <Button onClick={() => navigate('/business-login')} className="mt-4 rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 Back to Login
               </Button>
             </CardContent>
@@ -129,9 +131,9 @@ export default function BusinessDashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen overflow-hidden">
+      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-80" />
       <SearchHeader showBackButton={false} />
-      
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -139,18 +141,18 @@ export default function BusinessDashboardLayout() {
             <h1 className="text-3xl font-bold">{stats.name}</h1>
             <p className="text-muted-foreground">{stats.domain}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button variant="outline" onClick={handleLogout} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
         </div>
 
         {/* Navigation */}
-        <div className="flex space-x-2 mb-8 border-b">
+        <div className="flex space-x-2 mb-8 border-b border-white/10">
           <Button
             variant={isActiveRoute('/business/dashboard') ? "default" : "ghost"}
             onClick={() => navigate('/business/dashboard')}
-            className="flex items-center"
+            className="flex items-center text-white"
           >
             <Home className="mr-2 h-4 w-4" />
             Dashboard
@@ -158,7 +160,7 @@ export default function BusinessDashboardLayout() {
           <Button
             variant={isActiveRoute('/business/dashboard/activity') ? "default" : "ghost"}
             onClick={() => navigate('/business/dashboard/activity')}
-            className="flex items-center"
+            className="flex items-center text-white"
           >
             <Activity className="mr-2 h-4 w-4" />
             Activity
@@ -166,7 +168,7 @@ export default function BusinessDashboardLayout() {
           <Button
             variant={isActiveRoute('/business/dashboard/integrate') ? "default" : "ghost"}
             onClick={() => navigate('/business/dashboard/integrate')}
-            className="flex items-center"
+            className="flex items-center text-white"
           >
             <Code className="mr-2 h-4 w-4" />
             Integrate
@@ -174,7 +176,7 @@ export default function BusinessDashboardLayout() {
           <Button
             variant={isActiveRoute('/business/dashboard/analytics') ? "default" : "ghost"}
             onClick={() => navigate('/business/dashboard/analytics')}
-            className="flex items-center"
+            className="flex items-center text-white"
           >
             <BarChart3 className="mr-2 h-4 w-4" />
             Analytics
@@ -182,7 +184,7 @@ export default function BusinessDashboardLayout() {
           <Button
             variant={isActiveRoute('/business/dashboard/settings') ? "default" : "ghost"}
             onClick={() => navigate('/business/dashboard/settings')}
-            className="flex items-center"
+            className="flex items-center text-white"
           >
             <Settings className="mr-2 h-4 w-4" />
             Settings

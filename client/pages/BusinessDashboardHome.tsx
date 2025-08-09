@@ -40,10 +40,10 @@ export default function BusinessDashboardHome() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Visits</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -56,7 +56,7 @@ export default function BusinessDashboardHome() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -69,7 +69,7 @@ export default function BusinessDashboardHome() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -82,7 +82,7 @@ export default function BusinessDashboardHome() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -98,7 +98,7 @@ export default function BusinessDashboardHome() {
 
       {/* Detailed Statistics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
           <CardHeader>
             <CardTitle>Revenue Analysis</CardTitle>
             <CardDescription>
@@ -123,7 +123,7 @@ export default function BusinessDashboardHome() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-white/10 bg-white/5 backdrop-blur-xl">
           <CardHeader>
             <CardTitle>Performance Metrics</CardTitle>
             <CardDescription>

@@ -1,5 +1,6 @@
+import React, { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
 
@@ -64,33 +65,108 @@ export function LoadingSkeleton({
 }
 
 export function SearchLoadingState() {
+  const steps = [
+    "Searching product information",
+    "Gathering results from retailers",
+    "Filtering for best prices",
+    "Evaluating delivery and quality",
+    "Preparing suggestions",
+  ];
+
+  const [stepIndex, setStepIndex] = useState(0);
+  const [progress, setProgress] = useState(0); // 0..1
+
+  useEffect(() => {
+    // Total minimum duration: 7 seconds
+    const totalMs = 7000;
+    const minPerStep = 500; // keep each step visible
+    const remaining = Math.max(totalMs - minPerStep * steps.length, 0);
+    const weights = Array.from({ length: steps.length }, () => Math.random());
+    const wSum = weights.reduce((a, b) => a + b, 0) || 1;
+    const durations = weights.map((w) => (w / wSum) * remaining + minPerStep);
+
+    // Schedule step changes
+    let acc = 0;
+    const timers: number[] = [];
+    for (let i = 0; i < steps.length - 1; i++) {
+      acc += durations[i];
+      timers.push(window.setTimeout(() => setStepIndex(i + 1), acc));
+    }
+
+    // Progress animation
+    const start = performance.now();
+    let raf = 0;
+    const tick = () => {
+      const elapsed = performance.now() - start;
+      setProgress(Math.min(1, elapsed / totalMs));
+      if (elapsed < totalMs) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const percent = progress * 100;
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <HeroWave />
       <div className="relative z-10 flex min-h-screen items-center justify-center px-6">
-        <div className="w-full max-w-2xl text-center">
-          {/* Minimal glass spinner */}
-          <div className="mx-auto mb-8 inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 p-3 backdrop-blur-xl">
-            <div className="relative h-14 w-14">
-              <div className="absolute inset-0 rounded-full border-2 border-white/20"></div>
-              <div className="absolute inset-0 rounded-full border-2 border-white/60 border-t-transparent animate-spin"></div>
-              <Search className="absolute inset-0 m-auto h-6 w-6 text-white/80" />
+        <div className="w-full max-w-2xl">
+          {/* Spinner */}
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/5 backdrop-blur-xl">
+            <div className="relative h-10 w-10">
+              <div className="absolute inset-0 rounded-full border-2 border-white/25"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-white/70 border-t-transparent animate-spin"></div>
+              <Search className="absolute inset-0 m-auto h-5 w-5 text-white/80" />
             </div>
           </div>
-          <h2 className="text-2xl font-semibold text-white">Preparing your results…</h2>
-          <p className="mt-2 text-white/70">Scanning retailers and comparing prices</p>
 
-          {/* Thin progress bar in glass pill */}
-          <div className="mx-auto mt-8 w-full max-w-xl">
+          <h2 className="text-center text-2xl font-semibold text-white">Preparing your results…</h2>
+          <p className="mt-2 text-center text-white/70">We are working through a few quick steps</p>
+
+          {/* Steps */}
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+            <ul className="space-y-2" aria-live="polite">
+              {steps.map((label, idx) => {
+                const isDone = idx < stepIndex;
+                const isActive = idx === stepIndex;
+                return (
+                  <li key={label} className="flex items-center gap-3">
+                    <span
+                      className={
+                        "flex h-5 w-5 items-center justify-center rounded-full " +
+                        (isDone
+                          ? "bg-green-500/90 text-black"
+                          : isActive
+                          ? "bg-white text-black"
+                          : "bg-white/10 text-white/60")
+                      }
+                    >
+                      {isDone ? <Check className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                    </span>
+                    <span className={isDone ? "text-white/90" : isActive ? "text-white" : "text-white/60"}>{label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mx-auto mt-6 w-full max-w-xl">
             <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/10 backdrop-blur">
-              <div className="absolute inset-y-0 left-0 w-2/3 animate-[pulse_1.8s_ease-in-out_infinite] bg-gradient-to-r from-white/80 to-white/40"></div>
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-white/80 to-white/40 transition-[width] duration-500"
+                style={{ width: `${percent}%` }}
+              />
             </div>
-            <p className="mt-3 text-xs text-white/60">This usually takes 10–30 seconds</p>
+            <p className="mt-3 text-center text-xs text-white/60">This typically takes about 7 seconds</p>
           </div>
         </div>
       </div>
-
-      {/* Globe removed for a cleaner minimal loading view */}
     </div>
   );
 }
