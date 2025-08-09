@@ -15,6 +15,7 @@ interface SearchInputProps {
   selectedCountry?: string;
   onCountryChange?: (country: string) => void;
   align?: 'left' | 'center';
+  submitLabel?: string;
 }
 
 const countries = [
@@ -82,6 +83,7 @@ export function SearchInput({
   selectedCountry = "de",
   onCountryChange,
   align = "center",
+  submitLabel = "Compare Prices",
 }: SearchInputProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -275,86 +277,85 @@ export function SearchInput({
   return (
     <div className={`relative w-full ${align === 'left' ? '' : 'mx-auto'}`}>
       <form onSubmit={handleSubmit}>
-        <div className="p-2 bg-background border rounded-xl shadow-lg">
-          {/* Responsive flex/grid for input and button */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full items-stretch">
-            {/* Country selector and input */}
-            <div className="flex flex-row gap-3 flex-1 items-center">
-              {/* Country Selector with label inside button */}
-              <div className="flex flex-col items-center flex-shrink-0 w-28">
-                <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={openCountrySelect}
-                      className="w-full h-12 justify-between border-0 focus-visible:ring-0 flex flex-col items-center px-2 py-1 group"
-                      style={{ height: '56px', minHeight: '56px' }}
-                    >
-                      <span className="text-xs font-normal leading-none mb-0.5 transition-colors group-hover:text-white group-focus:text-white text-muted-foreground">Country</span>
-                      <div className="flex flex-row items-center gap-2">
-                        <span className="text-lg">{selectedCountryData?.flag}</span>
-                        <span className="text-lg font-bold uppercase tracking-wide">{selectedCountryData?.code}</span>
-                        <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-1" />
-                      </div>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0">
-                    <Command>
-                      <CommandInput placeholder="Search country..." />
-                      <CommandList>
-                        <CommandEmpty>No country found.</CommandEmpty>
-                        <CommandGroup>
-                          {countries.map((country) => (
-                            <CommandItem
-                              key={country.code}
-                              value={`${country.name} ${country.code}`}
-                              onSelect={() => {
-                                onCountryChange?.(country.code);
-                                setOpenCountrySelect(false);
-                              }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{country.flag}</span>
-                                <span>{country.name}</span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Input */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  ref={inputRef}
-                  type="text"
-                  placeholder={placeholder || "Paste a product URL or enter keywords (e.g., iPhone 16 Pro Max, Amazon, etc.)"}
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onFocus={() => {
-                    if (isLocalSearchHistoryEnabled && suggestions.length > 0) {
-                      setShowSuggestions(true);
-                    }
-                  }}
-                  onKeyDown={handleKeyDown}
-                  className="pl-10 border-0 focus-visible:ring-0 h-12 text-base"
-                  disabled={isLoading}
-                />
-              </div>
+        {/* Glass container */}
+        <div className="relative overflow-hidden rounded-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.25)] focus-within:outline-none focus-within:ring-0 [&_*:focus-visible]:ring-0 [&_*:focus-visible]:ring-offset-0">
+          {/* subtle inner sheen */}
+          <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(120%_60%_at_15%_-20%,rgba(255,255,255,0.18),rgba(255,255,255,0))]" />
+
+          <div className="relative flex w-full items-stretch gap-2 p-1.5">
+            {/* Country selector */}
+            <div className="flex items-center">
+              <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    role="combobox"
+                    aria-expanded={openCountrySelect}
+                    className="h-12 px-4 rounded-full text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  >
+                    <span className="text-lg mr-2">{selectedCountryData?.flag}</span>
+                    <span className="text-sm font-semibold uppercase tracking-wide">{selectedCountryData?.code}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0 border-white/10 bg-white/10 backdrop-blur-md">
+                  <Command>
+                    <CommandInput placeholder="Search country..." />
+                    <CommandList>
+                      <CommandEmpty>No country found.</CommandEmpty>
+                      <CommandGroup>
+                        {countries.map((country) => (
+                          <CommandItem
+                            key={country.code}
+                            value={`${country.name} ${country.code}`}
+                            onSelect={() => {
+                              onCountryChange?.(country.code);
+                              setOpenCountrySelect(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{country.flag}</span>
+                              <span>{country.name}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
+
+            {/* Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60" />
+              <Input
+                ref={inputRef}
+                type="text"
+                placeholder={placeholder || "Paste a product URL"}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onFocus={() => {
+                  if (isLocalSearchHistoryEnabled && suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                onKeyDown={handleKeyDown}
+                className="h-12 rounded-full border-0 bg-transparent pl-12 pr-4 text-base text-white placeholder:text-white/60 focus-visible:ring-0"
+                disabled={isLoading}
+              />
+            </div>
+
             {/* Button */}
-            <div className="flex-shrink-0 flex items-center justify-center w-full sm:w-auto">
+            <div className="flex items-center">
               <Button
                 type="submit"
                 size="lg"
                 disabled={isLoading}
-                className="bg-brand-gradient hover:bg-brand-gradient-reverse transition-all duration-300 h-12 px-8 w-full sm:w-auto"
+                variant="outline"
+                className="h-12 rounded-full bg-white text-black border border-black/10 px-6 hover:bg-white/90 hover:text-black focus-visible:ring-0 focus-visible:ring-offset-0"
               >
-                {isLoading ? "Searching..." : "Compare Prices"}
+                {isLoading ? "Searching..." : submitLabel}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
@@ -368,10 +369,10 @@ export function SearchInput({
         suggestions.length > 0 && (
           <div
             ref={suggestionsRef}
-            className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-2 z-50 max-h-80 overflow-y-auto rounded-xl border border-white/10 bg-white/10 backdrop-blur-md shadow-xl"
           >
             <div className="p-2">
-              <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-white/80">
                 <Clock className="h-4 w-4" />
                 Recent searches
               </div>
@@ -379,9 +380,9 @@ export function SearchInput({
                 <button
                   key={index}
                   onClick={() => handleSuggestionSelect(suggestion)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors ${
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm text-white/90 hover:bg-white/10 transition-colors ${
                     index === focusedIndex
-                      ? "bg-accent text-accent-foreground"
+                      ? "bg-white/10"
                       : ""
                   }`}
                 >

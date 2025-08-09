@@ -4832,7 +4832,7 @@ const registerBusiness$1 = async (req, res) => {
         name: business.name,
         domain: business.domain,
         email: business.email,
-        affiliateId: business.affiliate_id
+        affiliateId: business.affiliateId
       },
       message: "Business registered successfully. You can now log in with your email and password."
     });
@@ -5922,7 +5922,7 @@ async function createServer() {
           "'self'",
           "https://api.searchapi.io",
           "https://n8n.srv824584.hstgr.cloud",
-          "https://pavlo4.netlify.app",
+          "https://paaav.vercel.app",
           "http://localhost:5746",
           "http://localhost:5747",
           "http://localhost:8082",
@@ -5957,7 +5957,7 @@ async function createServer() {
     "http://localhost:8082",
     "http://localhost:8083",
     "http://localhost:8084",
-    "https://pavlo4.netlify.app",
+    "https://paaav.vercel.app",
     "https://app.pavlo.com",
     // Assuming this is your custom domain
     "http://127.0.0.1:8083",
@@ -6035,7 +6035,9 @@ async function createServer() {
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", getBusinessStats);
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
-  app.post("/api/track-event", trackEvent);
+  const openCors = cors({ origin: true, credentials: false });
+  app.options("/api/track-event", openCors);
+  app.post("/api/track-event", openCors, trackEvent);
   app.get("/api/tracking-events", getTrackingEvents);
   app.post("/api/test-tracking", async (req, res) => {
     try {

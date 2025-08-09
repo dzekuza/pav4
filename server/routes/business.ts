@@ -99,7 +99,7 @@ export const registerBusiness: RequestHandler = async (req, res) => {
         name: business.name,
         domain: business.domain,
         email: business.email,
-        affiliateId: business.affiliate_id,
+        affiliateId: business.affiliateId,
       },
       message: "Business registered successfully. You can now log in with your email and password." 
     });

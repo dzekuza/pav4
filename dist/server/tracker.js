@@ -10,7 +10,7 @@
 
   // Configuration
   const config = {
-    apiUrl: 'https://pavlo4.netlify.app/api',
+    apiUrl: 'https://paaav.vercel.app/api',
     businessId: businessId,
     affiliateId: affiliateId,
     platform: platform,

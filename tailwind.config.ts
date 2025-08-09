@@ -73,7 +73,14 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Inter', 'Space Grotesk', 'Arial', 'sans-serif'],
+        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Noto Sans", "Ubuntu", "Cantarell", "Helvetica Neue", "Arial", "sans-serif"],
+      },
+      lineHeight: {
+        tighter: "1.1",
+        tight: "1.25",
+        snug: "1.35",
+        normal: "1.5",
+        relaxed: "1.65",
       },
       keyframes: {
         "accordion-down": {

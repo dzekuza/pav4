@@ -127,7 +127,26 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Improve text rendering + font features */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga" 1, "calt" 1, "rlig" 1;
+    /* Fix global line height/spacing */
+    line-height: 1.5;
+    letter-spacing: 0em;
+    font-kerning: normal;
+  }
+
+  /* Tighten headings to avoid excessive line spacing */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  /* Comfortable reading for paragraphs and list items */
+  p, li {
+    line-height: 1.65;
   }
 
   .bg-brand-gradient {

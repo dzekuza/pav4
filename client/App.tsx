@@ -14,6 +14,7 @@ import Favorites from "./pages/Favorites";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import DemoLanding from "./pages/DemoLanding";
 import { UrlRedirectHandler } from "./components/UrlRedirectHandler";
 import NewSearchResults from "./pages/NewSearchResults";
 import { BusinessRegistration } from "./components/BusinessRegistration";
@@ -44,7 +45,7 @@ const router = createBrowserRouter([
     element: (
       <>
         <UrlRedirectHandler />
-        <Index />
+        <DemoLanding />
       </>
     ),
   },
@@ -69,6 +70,10 @@ const router = createBrowserRouter([
   {
     path: "/history",
     element: <History />,
+  },
+  {
+    path: "/demo-landing",
+    element: <DemoLanding />,
   },
   {
     path: "/favorites",
