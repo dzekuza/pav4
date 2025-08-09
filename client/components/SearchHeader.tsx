@@ -36,17 +36,12 @@ export function SearchHeader({
   // Show loading state while checking authentication
   if (isLoading || isBusinessLoading) {
     return (
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-white/10 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-brand-gradient rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-brand-gradient bg-clip-text text-transparent">
-                  {title}
-                </span>
+                <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
               </Link>
               {showBackButton && (
                 <Button variant="ghost" size="sm" asChild>
@@ -69,17 +64,12 @@ export function SearchHeader({
   // Render business navigation if logged in as business
   if (isBusiness && business) {
     return (
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-white/10 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link to="/business/dashboard" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-brand-gradient rounded-lg flex items-center justify-center">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-bold bg-brand-gradient bg-clip-text text-transparent">
-                  {business.name}
-                </span>
+                <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
               </Link>
             </div>
             <nav className="flex items-center space-x-4">
@@ -104,17 +94,12 @@ export function SearchHeader({
   }
 
   return (
-    <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-white/10 backdrop-blur-xl">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-brand-gradient rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-brand-gradient bg-clip-text text-transparent">
-                {title}
-              </span>
+              <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
             </Link>
             {showBackButton && (
               <></>
@@ -127,7 +112,7 @@ export function SearchHeader({
               variant="ghost"
               size="sm"
               asChild
-              className="hidden md:flex"
+              className="hidden md:flex text-white hover:text-white"
             >
               <Link to="/business/register">
                 <Building2 className="mr-2 h-4 w-4" />
@@ -138,7 +123,7 @@ export function SearchHeader({
               variant="ghost"
               size="sm"
               asChild
-              className="hidden md:flex"
+              className="hidden md:flex text-white hover:text-white"
             >
               <Link to="/business-login">
                 <Building2 className="mr-2 h-4 w-4" />
@@ -226,6 +211,7 @@ export function SearchHeader({
               <Button 
                 variant="outline" 
                 size="sm"
+                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                 onClick={() => {
                   console.log("Sign in button clicked, navigating to /login");
                   window.location.href = "/login";

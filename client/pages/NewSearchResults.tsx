@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ArrowLeft, RefreshCw, ExternalLink, Star, AlertCircle, Heart, Search, Package, Truck, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
+import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { SearchHeader } from "../components/SearchHeader";
 import { SearchInput } from "../components/SearchInput";
@@ -398,19 +399,24 @@ const NewSearchResults = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="relative min-h-screen overflow-hidden">
+        <div className="absolute inset-0 -z-20"><HeroWave /></div>
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/20 to-transparent" />
+        </div>
+        <SearchHeader />
+        <div className="max-w-6xl mx-auto px-6 py-10">
           <Button onClick={handleBack} variant="ghost" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
           
-          <Alert className="mb-4">
+          <Alert className="mb-4 border-white/10 bg-white/10 backdrop-blur-md text-white">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
           
-          <Button onClick={handleRefresh} className="w-full">
+          <Button onClick={handleRefresh} className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
@@ -421,13 +427,15 @@ const NewSearchResults = () => {
 
   if (!searchData) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="relative min-h-screen overflow-hidden">
+        <div className="absolute inset-0 -z-20"><HeroWave /></div>
+        <SearchHeader />
+        <div className="max-w-6xl mx-auto px-6 py-10">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-xl font-semibold text-white mb-4">
               No search data available
             </h2>
-            <Button onClick={handleBack}>
+            <Button onClick={handleBack} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
@@ -438,10 +446,15 @@ const NewSearchResults = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Use same wave background as landing */}
+      <div className="absolute inset-0 -z-20"><HeroWave /></div>
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black" />
+      </div>
       <SearchHeader />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <Button onClick={handleBack} variant="ghost" className="mb-6">
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        <Button onClick={handleBack} variant="ghost" className="mb-6 text-white hover:text-white">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Search
         </Button>
@@ -461,11 +474,11 @@ const NewSearchResults = () => {
 
         {/* Main Product - Mobile Responsive */}
         {mainProduct && !isArrayResponse && !location.state?.isKeywordSearch && (
-          <Card className="mb-8">
+          <Card className="mb-8 border-white/10 bg-white/5 backdrop-blur-xl text-white">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Original Product</span>
-                <Badge variant="secondary">Found</Badge>
+                <Badge variant="secondary" className="bg-white text-black">Found</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -486,19 +499,19 @@ const NewSearchResults = () => {
                 {/* Product Details */}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base sm:text-lg font-semibold line-clamp-2">{mainProduct.title}</h3>
-                  <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">
+                  <p className="text-xl sm:text-2xl font-bold text-green-400 mt-1">
                     {mainProduct.currency}{mainProduct.price}
                   </p>
                   <div className="flex items-center mt-2">
-                    <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                    <span className="ml-1 text-sm text-gray-600">Original Price</span>
+                    <Star className="h-4 w-4 text-yellow-300 fill-current" />
+                    <span className="ml-1 text-sm text-white/70">Original Price</span>
                   </div>
                 </div>
                 
                 {/* View Product Button */}
                 {mainProduct.url && (
                   <div className="flex-shrink-0 w-full sm:w-auto">
-                    <Button asChild className="w-full sm:w-auto">
+                    <Button asChild className="w-full sm:w-auto rounded-full bg-white text-black hover:bg-white/90">
                       <a 
                         href={mainProduct.url} 
                         target="_blank" 
@@ -520,7 +533,7 @@ const NewSearchResults = () => {
         {suggestions.length > 0 && (
           <>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
                 Results ({suggestions.length})
               </h2>
               <Button onClick={handleRefresh} variant="outline" className="w-full sm:w-auto">
@@ -535,7 +548,7 @@ const NewSearchResults = () => {
                 const price = extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0');
                 const currency = extractCurrency(suggestion.standardPrice || suggestion.discountPrice || '');
                 return (
-                  <Card key={index} className="hover:shadow-lg transition-shadow">
+                  <Card key={index} className="hover:shadow-lg transition-shadow border-white/10 bg-white/5 backdrop-blur-xl text-white">
                     <CardContent className="p-4">
                       <div className="flex items-start space-x-3">
                         {/* Small favicon image */}
@@ -543,7 +556,7 @@ const NewSearchResults = () => {
                           <img 
                             src={suggestion.image || "/placeholder.svg"} 
                             alt={suggestion.site || 'Store'}
-                            className="w-8 h-8 object-cover rounded border"
+                            className="w-8 h-8 object-cover rounded border border-white/20"
                             onError={(e) => {
                               e.currentTarget.src = "/placeholder.svg";
                             }}
@@ -551,7 +564,7 @@ const NewSearchResults = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           {/* Reseller name above product name */}
-                          <p className="text-xs font-medium text-blue-600 mb-1 capitalize">
+                          <p className="text-xs font-medium text-white/80 mb-1 capitalize">
                             {suggestion.merchant || suggestion.site || 'Unknown Store'}
                           </p>
                           {/* Product name */}
@@ -561,19 +574,19 @@ const NewSearchResults = () => {
                           {/* Price */}
                           {(suggestion.standardPrice || suggestion.discountPrice) && (
                             <div className="flex items-center gap-2 mb-2">
-                              <p className="text-lg font-bold text-gray-700">
+                              <p className="text-lg font-bold text-white">
                                 {suggestion.standardPrice || suggestion.discountPrice}
                               </p>
                             </div>
                           )}
                           {/* Additional details */}
-                          <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+                          <div className="flex flex-col gap-2 text-xs text-white/70">
                             {/* Stock status */}
                             {suggestion.stock && (
                               <div className={`flex items-center gap-1 ${
                                 suggestion.stock.toLowerCase().includes('in stock') 
-                                  ? 'text-green-600' 
-                                  : 'text-orange-600'
+                                  ? 'text-green-400' 
+                                  : 'text-orange-400'
                               }`}>
                                 {suggestion.stock.toLowerCase().includes('in stock') ? (
                                   <CheckCircle className="h-3 w-3 fill-current" />
@@ -588,7 +601,7 @@ const NewSearchResults = () => {
                             {/* Rating */}
                             {suggestion.rating && (
                               <div className="flex items-center gap-1">
-                                <Star className="h-3 w-3 fill-current text-yellow-400" />
+                                <Star className="h-3 w-3 fill-current text-yellow-300" />
                                 <span>{suggestion.rating}</span>
                                 {suggestion.reviewsCount && (
                                   <span className="text-xs">
@@ -607,7 +620,7 @@ const NewSearchResults = () => {
                           </div>
                           {/* Details */}
                           {suggestion.details && (
-                            <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+                            <p className="text-xs text-white/60 mt-2 line-clamp-1">
                               {suggestion.details}
                             </p>
                           )}
@@ -615,7 +628,7 @@ const NewSearchResults = () => {
                         {/* Action buttons - Mobile responsive */}
                         {suggestion.link && (
                           <div className="flex flex-col gap-2 flex-shrink-0">
-                            <Button asChild size="sm" variant="outline" className="flex-shrink-0">
+                            <Button asChild size="sm" variant="outline" className="flex-shrink-0 rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                               <a 
                                 href={suggestion.link} 
                                 target="_blank" 
@@ -638,7 +651,7 @@ const NewSearchResults = () => {
                                 className={`h-4 w-4 ${
                                   favoriteStates.get(`${suggestion.site}-${suggestion.title}`)?.isFavorited
                                     ? "fill-red-500 text-red-500" 
-                                    : "text-gray-400 hover:text-red-500"
+                                    : "text-gray-300 hover:text-red-500"
                                 }`} 
                               />
                             </Button>
@@ -654,10 +667,10 @@ const NewSearchResults = () => {
         )}
 
         {suggestions.length === 0 && (
-          <Card>
+          <Card className="border-white/10 bg-white/5 backdrop-blur-xl text-white">
             <CardContent className="p-8 text-center">
-              <p className="text-gray-500 mb-4">No price comparisons found</p>
-              <Button onClick={handleRefresh}>
+              <p className="text-white/70 mb-4">No price comparisons found</p>
+              <Button onClick={handleRefresh} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Try Again
               </Button>
@@ -666,11 +679,11 @@ const NewSearchResults = () => {
         )}
 
         {suggestions.length > 0 && suggestions.filter((s: any) => extractPrice(s.standardPrice || s.discountPrice || '0') > 0).length === 0 && (
-          <Card>
+          <Card className="border-white/10 bg-white/5 backdrop-blur-xl text-white">
             <CardContent className="p-8 text-center">
-              <p className="text-gray-500 mb-4">No price comparisons with available prices found</p>
-              <p className="text-sm text-gray-400 mb-4">All found results have unavailable prices</p>
-              <Button onClick={handleRefresh}>
+              <p className="text-white/70 mb-4">No price comparisons with available prices found</p>
+              <p className="text-sm text-white/60 mb-4">All found results have unavailable prices</p>
+              <Button onClick={handleRefresh} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Try Again
               </Button>
