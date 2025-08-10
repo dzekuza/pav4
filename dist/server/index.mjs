@@ -5457,6 +5457,8 @@ const verifyBusinessTracking = async (req, res) => {
     const trackingScripts = [
       "https://pavlo4.netlify.app/tracker.js",
       "https://pavlo4.netlify.app/shopify-tracker.js",
+      "https://pavlo4.netlify.app/shopify-tracker-enhanced.js",
+      "https://pavlo4.netlify.app/shopify-tracker-loader.js",
       "https://pavlo4.netlify.app/woocommerce-tracker.js",
       "https://pavlo4.netlify.app/magento-tracker.js",
       "https://pavlo4.netlify.app/event-tracker.js"
@@ -5473,7 +5475,7 @@ const verifyBusinessTracking = async (req, res) => {
       let errorMessage = "No tracking script found on the page. Please add the tracking script to your website's HTML head section.";
       let instructions = {
         step1: "Add this script to your website's <head> section:",
-        script: `<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"><\/script>`,
+        script: `<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"><\/script>`,
         step2: "Make sure the script is placed before the closing </head> tag",
         step3: "Refresh the page and try verification again"
       };
@@ -5481,7 +5483,7 @@ const verifyBusinessTracking = async (req, res) => {
         errorMessage = "Google Tag Manager detected but no tracking script found. Please add the tracking script via GTM or directly in HTML.";
         instructions = {
           step1: "For Google Tag Manager implementation:",
-          script: `<script src="https://pavlo4.netlify.app/shopify-tracker.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"><\/script>`,
+          script: `<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"><\/script>`,
           step2: "1. Go to your GTM container",
           step3: "2. Create a new Custom HTML tag with this code:"
         };
@@ -5895,9 +5897,10 @@ const trackEvent = async (req, res) => {
       referrer,
       timestamp,
       url,
-      data
+      data,
+      page_title
     } = req.body;
-    console.log("Track event request:", { event_type, business_id, affiliate_id, platform });
+    console.log("Track event request:", { event_type, business_id, affiliate_id, platform, url });
     if (!event_type || !business_id || !affiliate_id) {
       console.log("Missing required fields:", { event_type, business_id, affiliate_id });
       return res.status(400).json({
@@ -5923,7 +5926,7 @@ const trackEvent = async (req, res) => {
         eventType: event_type,
         businessId: parseInt(business_id),
         affiliateId: affiliate_id,
-        platform: platform || "universal",
+        platform: platform || "shopify",
         sessionId: session_id,
         userAgent: user_agent,
         referrer,
@@ -5934,7 +5937,7 @@ const trackEvent = async (req, res) => {
       }
     });
     console.log("Tracking event created:", trackingEvent.id);
-    if (event_type === "purchase_click" || event_type === "conversion") {
+    if (event_type === "page_view" || event_type === "product_view") {
       console.log("Updating business visits...");
       await prisma$3.business.update({
         where: { id: parseInt(business_id) },
@@ -5945,8 +5948,20 @@ const trackEvent = async (req, res) => {
         }
       });
     }
-    if (event_type === "conversion") {
+    if (event_type === "add_to_cart") {
+      console.log("Updating business clicks...");
+      await prisma$3.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalVisits: {
+            increment: 1
+          }
+        }
+      });
+    }
+    if (event_type === "conversion" || event_type === "purchase") {
       console.log("Updating business purchases...");
+      const totalAmount = parseFloat(data?.total_amount || data?.amount || "0");
       await prisma$3.business.update({
         where: { id: parseInt(business_id) },
         data: {
@@ -5954,7 +5969,7 @@ const trackEvent = async (req, res) => {
             increment: 1
           },
           totalRevenue: {
-            increment: parseFloat(data?.total_amount || "0")
+            increment: totalAmount
           }
         }
       });
@@ -6002,6 +6017,192 @@ const getTrackingEvents = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to get tracking events"
+    });
+  }
+};
+const generateVerificationToken = async (req, res) => {
+  try {
+    const { businessId, domain } = req.body;
+    if (!businessId || !domain) {
+      return res.status(400).json({
+        success: false,
+        error: "Business ID and domain are required"
+      });
+    }
+    const business = await prisma$3.business.findUnique({
+      where: { id: parseInt(businessId) }
+    });
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found"
+      });
+    }
+    const verificationToken = `pricehunt_verify_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await prisma$3.domainVerification.create({
+      data: {
+        businessId: parseInt(businessId),
+        domain: domain.toLowerCase(),
+        verificationToken,
+        status: "pending",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3)
+        // 24 hours
+      }
+    });
+    res.json({
+      success: true,
+      verificationToken,
+      instructions: {
+        method: "txt",
+        record: `pricehunt-verification=${verificationToken}`,
+        domain,
+        ttl: 300
+      }
+    });
+  } catch (error) {
+    console.error("Error generating verification token:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to generate verification token"
+    });
+  }
+};
+const verifyDomain = async (req, res) => {
+  try {
+    const { businessId, domain, verificationToken } = req.body;
+    if (!businessId || !domain || !verificationToken) {
+      return res.status(400).json({
+        success: false,
+        error: "Business ID, domain, and verification token are required"
+      });
+    }
+    const verification = await prisma$3.domainVerification.findFirst({
+      where: {
+        businessId: parseInt(businessId),
+        domain: domain.toLowerCase(),
+        verificationToken,
+        status: "pending",
+        expiresAt: {
+          gt: /* @__PURE__ */ new Date()
+        }
+      }
+    });
+    if (!verification) {
+      return res.status(404).json({
+        success: false,
+        error: "Verification token not found or expired"
+      });
+    }
+    const dns = require("dns").promises;
+    const expectedRecord = `pricehunt-verification=${verificationToken}`;
+    try {
+      const txtRecords = await dns.resolveTxt(domain);
+      const found = txtRecords.some(
+        (records) => records.some((record) => record === expectedRecord)
+      );
+      if (found) {
+        await prisma$3.domainVerification.update({
+          where: { id: verification.id },
+          data: { status: "verified", verifiedAt: /* @__PURE__ */ new Date() }
+        });
+        await prisma$3.business.update({
+          where: { id: parseInt(businessId) },
+          data: {
+            domain: domain.toLowerCase(),
+            domainVerified: true,
+            domainVerifiedAt: /* @__PURE__ */ new Date()
+          }
+        });
+        res.json({
+          success: true,
+          message: "Domain verified successfully!",
+          domain: domain.toLowerCase()
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: "TXT record not found. Please add the TXT record and try again.",
+          expectedRecord
+        });
+      }
+    } catch (dnsError) {
+      res.status(400).json({
+        success: false,
+        error: "Failed to resolve DNS records. Please check the domain and try again."
+      });
+    }
+  } catch (error) {
+    console.error("Error verifying domain:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to verify domain"
+    });
+  }
+};
+const checkDomainVerification = async (req, res) => {
+  try {
+    const { domain } = req.query;
+    if (!domain) {
+      return res.status(400).json({
+        success: false,
+        error: "Domain parameter is required"
+      });
+    }
+    const verification = await prisma$3.domainVerification.findFirst({
+      where: {
+        domain: domain.toString().toLowerCase(),
+        status: "verified"
+      },
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            affiliateId: true
+          }
+        }
+      }
+    });
+    if (verification) {
+      res.json({
+        success: true,
+        verified: true,
+        business: verification.business
+      });
+    } else {
+      res.json({
+        success: true,
+        verified: false
+      });
+    }
+  } catch (error) {
+    console.error("Error checking domain verification:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to check domain verification"
+    });
+  }
+};
+const getVerificationStatus = async (req, res) => {
+  try {
+    const { businessId } = req.params;
+    const verifications = await prisma$3.domainVerification.findMany({
+      where: {
+        businessId: parseInt(businessId)
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+    res.json({
+      success: true,
+      verifications
+    });
+  } catch (error) {
+    console.error("Error getting verification status:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get verification status"
     });
   }
 };
@@ -6205,6 +6406,10 @@ async function createServer() {
   app.post("/api/business/register", registerBusiness$1);
   app.get("/api/business/active", cache(300), getActiveBusinesses);
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain);
+  app.post("/api/domain-verification/generate-token", requireBusinessAuth, generateVerificationToken);
+  app.post("/api/domain-verification/verify", requireBusinessAuth, verifyDomain);
+  app.get("/api/domain-verification/check", checkDomainVerification);
+  app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getVerificationStatus);
   app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);
   app.get("/api/admin/business/stats", requireAuth, requireAdmin, getBusinessStats$1);
   app.get("/api/admin/business/:id/stats", requireAuth, requireAdmin, getBusinessDetailedStats);

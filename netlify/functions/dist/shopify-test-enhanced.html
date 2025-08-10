@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceHunt Shopify Tracker Test - Enhanced</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .debug-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .log-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PriceHunt Shopify Tracker Test - Enhanced</h1>
+        <p>This page tests the enhanced Shopify tracker for godislove.lt</p>
+
+        <!-- Status Section -->
+        <div class="test-section">
+            <h3>Tracker Status</h3>
+            <div id="status-container">
+                <div class="status warning">Checking tracker status...</div>
+            </div>
+            <button class="test-button" onclick="checkStatus()">Check Status</button>
+        </div>
+
+        <!-- Test Events Section -->
+        <div class="test-section">
+            <h3>Test Events</h3>
+            <button class="test-button" onclick="testPageView()">Test Page View</button>
+            <button class="test-button" onclick="testProductView()">Test Product View</button>
+            <button class="test-button" onclick="testAddToCart()">Test Add to Cart</button>
+            <button class="test-button" onclick="testProductClick()">Test Product Click</button>
+            <button class="test-button" onclick="testCheckoutStart()">Test Checkout Start</button>
+        </div>
+
+        <!-- Debug Section -->
+        <div class="test-section">
+            <h3>Debug Information</h3>
+            <button class="test-button" onclick="showConfig()">Show Config</button>
+            <button class="test-button" onclick="showEventsSent()">Show Events Sent</button>
+            <button class="test-button" onclick="clearLog()">Clear Log</button>
+            <div class="debug-section">
+                <h4>Configuration:</h4>
+                <pre id="config-output">Click "Show Config" to see configuration</pre>
+            </div>
+            <div class="debug-section">
+                <h4>Events Sent:</h4>
+                <pre id="events-output">Click "Show Events Sent" to see events</pre>
+            </div>
+        </div>
+
+        <!-- Console Log Section -->
+        <div class="test-section">
+            <h3>Console Log</h3>
+            <div class="log-output" id="log-output">Tracker logs will appear here...</div>
+        </div>
+
+        <!-- Mock Product Section -->
+        <div class="test-section">
+            <h3>Mock Product (for testing)</h3>
+            <div style="border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+                <h4>Test Product</h4>
+                <p>Price: $29.99</p>
+                <button class="test-button" data-product-id="12345" data-product-name="Test Product" data-price="29.99" onclick="mockAddToCart(this)">
+                    Add to Cart
+                </button>
+                <a href="/products/test-product" class="test-button" style="text-decoration: none; display: inline-block;">
+                    View Product
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- PriceHunt Enhanced Shopify Integration -->
+    <script src="https://paaav.vercel.app/shopify-tracker-enhanced.js" data-business-id="3" data-affiliate-id="aff_godislovelt_1754470536768" data-debug="true"></script>
+
+    <script>
+        // Override console.log to capture logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const logOutput = document.getElementById('log-output');
+
+        function addToLog(message, type = 'log') {
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}\n`;
+            logOutput.textContent += logEntry;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToLog(args.join(' '), 'warn');
+        };
+
+        // Test functions
+        function checkStatus() {
+            const statusContainer = document.getElementById('status-container');
+            
+            if (window.PriceHuntTracker) {
+                const config = window.PriceHuntTracker.getConfig();
+                statusContainer.innerHTML = `
+                    <div class="status success">
+                        ✅ Tracker is loaded and ready<br>
+                        Business ID: ${config.businessId}<br>
+                        Affiliate ID: ${config.affiliateId}<br>
+                        Session ID: ${config.sessionId}<br>
+                        Debug Mode: ${config.debug ? 'Enabled' : 'Disabled'}
+                    </div>
+                `;
+            } else {
+                statusContainer.innerHTML = `
+                    <div class="status error">
+                        ❌ Tracker not loaded. Check console for errors.
+                    </div>
+                `;
+            }
+        }
+
+        function testPageView() {
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackPageView();
+                addToLog('Manual page view test triggered', 'info');
+            } else {
+                addToLog('Tracker not available', 'error');
+            }
+        }
+
+        function testProductView() {
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackProductView();
+                addToLog('Manual product view test triggered', 'info');
+            } else {
+                addToLog('Tracker not available', 'error');
+            }
+        }
+
+        function testAddToCart() {
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('add_to_cart', {
+                    product_id: 'test-123',
+                    product_name: 'Test Product',
+                    product_price: '29.99',
+                    quantity: 1
+                });
+                addToLog('Manual add to cart test triggered', 'info');
+            } else {
+                addToLog('Tracker not available', 'error');
+            }
+        }
+
+        function testProductClick() {
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('product_click', {
+                    product_id: 'test-123',
+                    product_name: 'Test Product',
+                    product_price: '29.99'
+                });
+                addToLog('Manual product click test triggered', 'info');
+            } else {
+                addToLog('Tracker not available', 'error');
+            }
+        }
+
+        function testCheckoutStart() {
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('checkout_start', {
+                    form_action: '/checkout'
+                });
+                addToLog('Manual checkout start test triggered', 'info');
+            } else {
+                addToLog('Tracker not available', 'error');
+            }
+        }
+
+        function showConfig() {
+            if (window.PriceHuntTracker) {
+                const config = window.PriceHuntTracker.getConfig();
+                document.getElementById('config-output').textContent = JSON.stringify(config, null, 2);
+            } else {
+                document.getElementById('config-output').textContent = 'Tracker not available';
+            }
+        }
+
+        function showEventsSent() {
+            if (window.PriceHuntTracker) {
+                const events = window.PriceHuntTracker.getEventsSent();
+                document.getElementById('events-output').textContent = JSON.stringify(events, null, 2);
+            } else {
+                document.getElementById('events-output').textContent = 'Tracker not available';
+            }
+        }
+
+        function clearLog() {
+            logOutput.textContent = 'Log cleared...\n';
+        }
+
+        function mockAddToCart(button) {
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackAddToCart(button);
+                addToLog('Mock add to cart triggered', 'info');
+            } else {
+                addToLog('Tracker not available', 'error');
+            }
+        }
+
+        // Auto-check status when page loads
+        window.addEventListener('load', function() {
+            setTimeout(checkStatus, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -38,6 +38,9 @@
     
     // Track initial product data if available
     trackInitialProduct();
+    
+    // Set up mutation observer for dynamically added content
+    setupMutationObserver();
   }
 
   // Generate unique session ID
@@ -109,18 +112,27 @@
       
       // Check for add to cart buttons
       if (isAddToCartButton(target)) {
+        log('Add to cart button clicked', 'info');
         trackAddToCart(target);
       }
       
       // Check for product clicks
       if (isProductLink(target)) {
+        log('Product link clicked', 'info');
         trackProductClick(target);
+      }
+      
+      // Check for any link clicks (for general navigation tracking)
+      if (target.tagName === 'A' && target.href) {
+        log('Link clicked: ' + target.href, 'info');
+        trackLinkClick(target);
       }
     });
 
     // Track form submissions (checkout)
     document.addEventListener('submit', function(e) {
       if (isCheckoutForm(e.target)) {
+        log('Checkout form submitted', 'info');
         trackCheckoutStart(e.target);
       }
     });
@@ -128,32 +140,62 @@
     // Track AJAX add to cart (for dynamic cart updates)
     if (window.Shopify && window.Shopify.onCartUpdate) {
       window.Shopify.onCartUpdate = function(cart) {
+        log('Cart updated via AJAX', 'info');
         trackCartUpdate(cart);
       };
     }
+    
+    // Listen for Shopify AJAX cart events
+    document.addEventListener('cart:updated', function(e) {
+      log('Cart updated event detected', 'info');
+      trackCartUpdate(e.detail || {});
+    });
+    
+    // Listen for Shopify add to cart events
+    document.addEventListener('cart:added', function(e) {
+      log('Product added to cart event detected', 'info');
+      trackAddToCartEvent(e.detail || {});
+    });
+  }
 
-    // Shopify-specific tracking
-    document.addEventListener('DOMContentLoaded', function() {
-      // Track product page views
-      if (window.Shopify && window.Shopify.theme) {
-        const product = window.Shopify.theme.product;
-        if (product) {
-          window.PriceHuntTracker.track('product_view', {
-            product_id: product.id,
-            product_name: product.title,
-            product_price: product.price
+  // Set up mutation observer for dynamically added content
+  function setupMutationObserver() {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+              // Re-attach event listeners to new elements
+              attachEventListenersToElement(node);
+            }
           });
         }
-      }
-      
-      // Track add to cart
-      document.addEventListener('click', function(e) {
-        if (e.target.matches('[data-action="add-to-cart"], .add-to-cart, [class*="cart"]')) {
-          window.PriceHuntTracker.track('add_to_cart', {
-            product_id: e.target.getAttribute('data-product-id'),
-            product_name: e.target.getAttribute('data-product-name')
-          });
-        }
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  // Attach event listeners to a specific element
+  function attachEventListenersToElement(element) {
+    // Find add to cart buttons in the element
+    const addToCartButtons = element.querySelectorAll('[data-action="add-to-cart"], .add-to-cart, [class*="cart"], button[type="submit"]');
+    addToCartButtons.forEach(button => {
+      button.addEventListener('click', function(e) {
+        log('Add to cart button clicked (dynamic)', 'info');
+        trackAddToCart(button);
+      });
+    });
+
+    // Find product links in the element
+    const productLinks = element.querySelectorAll('a[href*="/products/"]');
+    productLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        log('Product link clicked (dynamic)', 'info');
+        trackProductClick(link);
       });
     });
   }
@@ -166,23 +208,55 @@
       '[class*="cart"]',
       '[class*="add"]',
       'button[type="submit"]',
-      'input[type="submit"]'
+      'input[type="submit"]',
+      '[data-testid*="add-to-cart"]',
+      '[aria-label*="add to cart"]',
+      '[title*="add to cart"]'
     ];
     
-    return selectors.some(selector => element.matches(selector)) ||
-           element.textContent.toLowerCase().includes('add to cart') ||
-           element.textContent.toLowerCase().includes('buy now');
+    // Check selectors
+    if (selectors.some(selector => element.matches(selector))) {
+      return true;
+    }
+    
+    // Check text content
+    const text = element.textContent.toLowerCase();
+    if (text.includes('add to cart') || 
+        text.includes('buy now') || 
+        text.includes('add to bag') ||
+        text.includes('purchase')) {
+      return true;
+    }
+    
+    // Check parent elements
+    const parent = element.closest('button, input, a');
+    if (parent && isAddToCartButton(parent)) {
+      return true;
+    }
+    
+    return false;
   }
 
   // Check if element is a product link
   function isProductLink(element) {
-    const href = element.href || element.getAttribute('href');
-    if (!href) return false;
+    // If it's a link with product URL
+    if (element.tagName === 'A' && element.href) {
+      return element.href.includes('/products/');
+    }
     
-    return href.includes('/products/') || 
-           element.closest('a[href*="/products/"]') ||
-           element.closest('.product-item') ||
-           element.closest('[class*="product"]');
+    // If it's inside a product link
+    const parentLink = element.closest('a[href*="/products/"]');
+    if (parentLink) {
+      return true;
+    }
+    
+    // If it's inside a product container
+    const productContainer = element.closest('.product-item, .product-card, [class*="product"]');
+    if (productContainer) {
+      return true;
+    }
+    
+    return false;
   }
 
   // Check if form is checkout form
@@ -212,6 +286,24 @@
     sendEvent(eventData);
   }
 
+  // Track add to cart event from Shopify events
+  function trackAddToCartEvent(detail) {
+    const eventData = {
+      event_type: 'add_to_cart',
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      product_id: detail.id || detail.product_id,
+      product_name: detail.title || detail.product_name,
+      product_price: detail.price || detail.product_price,
+      product_variant_id: detail.variant_id,
+      quantity: detail.quantity || 1,
+      timestamp: Date.now()
+    };
+
+    sendEvent(eventData);
+  }
+
   // Track product click
   function trackProductClick(link) {
     const productData = extractProductData(link);
@@ -225,6 +317,21 @@
       product_name: productData.name,
       product_price: productData.price,
       product_url: link.href || link.getAttribute('href'),
+      timestamp: Date.now()
+    };
+
+    sendEvent(eventData);
+  }
+
+  // Track link click
+  function trackLinkClick(link) {
+    const eventData = {
+      event_type: 'link_click',
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      link_url: link.href,
+      link_text: link.textContent.trim(),
       timestamp: Date.now()
     };
 
@@ -252,8 +359,8 @@
       business_id: config.businessId,
       affiliate_id: config.affiliateId,
       session_id: config.sessionId,
-      cart_total: cart.total_price,
-      item_count: cart.item_count,
+      cart_total: cart.total_price || cart.total,
+      item_count: cart.item_count || cart.items?.length || 0,
       timestamp: Date.now()
     };
 
@@ -304,6 +411,34 @@
     if (!data.price) {
       const metaPrice = document.querySelector('meta[property="product:price:amount"]');
       if (metaPrice) data.price = metaPrice.getAttribute('content');
+    }
+
+    // Try to get data from JSON-LD structured data
+    if (!data.id || !data.name) {
+      const jsonLd = document.querySelector('script[type="application/ld+json"]');
+      if (jsonLd) {
+        try {
+          const structuredData = JSON.parse(jsonLd.textContent);
+          if (structuredData['@type'] === 'Product') {
+            if (!data.id) data.id = structuredData.sku || structuredData.gtin;
+            if (!data.name) data.name = structuredData.name;
+            if (!data.price) data.price = structuredData.offers?.price;
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors
+        }
+      }
+    }
+
+    // Try to get data from product form
+    if (!data.id || !data.variantId) {
+      const productForm = element.closest('form[action*="/cart/add"]');
+      if (productForm) {
+        const variantInput = productForm.querySelector('input[name="id"]');
+        if (variantInput && !data.variantId) {
+          data.variantId = variantInput.value;
+        }
+      }
     }
 
     return data;
@@ -359,6 +494,7 @@
     trackProductView: trackInitialProduct,
     trackAddToCart: trackAddToCart,
     trackProductClick: trackProductClick,
+    trackLinkClick: trackLinkClick,
     trackCheckoutStart: trackCheckoutStart,
     trackCartUpdate: trackCartUpdate
   };
