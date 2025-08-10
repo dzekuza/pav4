@@ -82,8 +82,6 @@ model Business {
   updatedAt           DateTime             @updatedAt
   affiliateId         String               @unique
   trackingVerified    Boolean              @default(false)
-  domainVerified      Boolean              @default(false)
-  domainVerifiedAt    DateTime?
   clicks              BusinessClick[]
   conversions         BusinessConversion[]
   commissionRates     CommissionRate[]

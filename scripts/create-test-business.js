@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -14,6 +15,9 @@ async function createTestBusiness() {
       return;
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash('testpassword123', 12);
+
     // Create test business
     const business = await prisma.business.create({
       data: {
@@ -23,7 +27,7 @@ async function createTestBusiness() {
         website: 'https://test-business.com',
         description: 'Test business for tracking functionality',
         email: 'test@test-business.com',
-        password: 'testpassword123',
+        password: hashedPassword,
         affiliateId: 'test-affiliate-123',
         isActive: true,
         isVerified: true,
@@ -33,6 +37,9 @@ async function createTestBusiness() {
     });
 
     console.log('Test business created successfully:', business);
+    console.log('Login credentials:');
+    console.log('Email: test@test-business.com');
+    console.log('Password: testpassword123');
   } catch (error) {
     console.error('Error creating test business:', error);
   } finally {

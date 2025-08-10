@@ -219,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setIsVerifying(true);
     try {
+      console.log('Generating verification token for domain:', domain.trim());
       const response = await fetch('/api/domain-verification/generate-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -229,7 +230,16 @@ document.addEventListener('DOMContentLoaded', function() {
         })
       });
 
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
+      console.log('Response data:', data);
       
       if (data.success) {
         setVerificationToken(data.verificationToken);
@@ -246,9 +256,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     } catch (error) {
       console.error('Error generating verification token:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate verification token";
       toast({
         title: "Error",
-        description: "Failed to generate verification token",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -268,6 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setIsVerifying(true);
     try {
+      console.log('Verifying domain:', domain.trim(), 'with token:', verificationToken);
       const response = await fetch('/api/domain-verification/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -279,7 +291,16 @@ document.addEventListener('DOMContentLoaded', function() {
         })
       });
 
+      console.log('Verification response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
+      console.log('Verification response data:', data);
       
       if (data.success) {
         toast({
@@ -297,9 +318,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     } catch (error) {
       console.error('Error verifying domain:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to verify domain";
       toast({
         title: "Error",
-        description: "Failed to verify domain",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
