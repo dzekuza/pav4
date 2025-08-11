@@ -47,8 +47,18 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
       return false;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return false;
+    }
+
+    // Check for uppercase, lowercase, and number
+    const hasUpperCase = /[A-Z]/.test(formData.password);
+    const hasLowerCase = /[a-z]/.test(formData.password);
+    const hasNumber = /\d/.test(formData.password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      setError("Password must contain uppercase, lowercase, and number");
       return false;
     }
 
@@ -176,7 +186,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
                   <Input
                     id="password-register"
                     type="password"
-                    placeholder="Create a password (min. 6 characters)"
+                    placeholder="Create a password (min. 8 chars, uppercase, lowercase, number)"
                     value={formData.password}
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)

@@ -30,10 +30,30 @@ export const register: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return res
         .status(400)
-        .json({ error: "Password must be at least 6 characters long" });
+        .json({ error: "Password must be at least 8 characters long" });
+    }
+
+    // Check for uppercase, lowercase, and number
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      return res
+        .status(400)
+        .json({ 
+          error: "Password must contain uppercase, lowercase, and number",
+          details: [{
+            type: "field",
+            value: password,
+            msg: "Password must be at least 8 characters with uppercase, lowercase, and number",
+            path: "password",
+            location: "body"
+          }]
+        });
     }
 
     // Check if user already exists
