@@ -902,6 +902,146 @@ export async function createServer() {
         }
     });
 
+    // Business activity endpoints
+    app.get("/api/business/activity/clicks", async (req, res) => {
+        try {
+            // Check for business authentication
+            let token = req.cookies.business_token;
+            
+            if (!token) {
+                const authHeader = req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    token = authHeader.substring(7);
+                }
+            }
+
+            if (!token) {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: "Not authenticated" 
+                });
+            }
+
+            const decoded = verifyBusinessToken(token);
+            if (!decoded || decoded.type !== "business") {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: "Invalid token" 
+                });
+            }
+
+            // Get click logs for this business
+            const clicksResult = await sql`
+                SELECT id, product_url as "productUrl", product_title as "productTitle", 
+                       product_price as "productPrice", retailer, session_id as "sessionId",
+                       referrer, utm_source as "utmSource", utm_medium as "utmMedium", 
+                       utm_campaign as "utmCampaign", ip_address as "ipAddress", 
+                       user_agent as "userAgent", timestamp
+                FROM business_clicks 
+                WHERE business_id = ${decoded.businessId}
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `;
+            
+            res.json({ success: true, clicks: clicksResult });
+        } catch (error) {
+            console.error("Error getting business clicks:", error);
+            res.status(500).json({ success: false, error: "Failed to get business clicks" });
+        }
+    });
+
+    app.get("/api/business/activity/conversions", async (req, res) => {
+        try {
+            // Check for business authentication
+            let token = req.cookies.business_token;
+            
+            if (!token) {
+                const authHeader = req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    token = authHeader.substring(7);
+                }
+            }
+
+            if (!token) {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: "Not authenticated" 
+                });
+            }
+
+            const decoded = verifyBusinessToken(token);
+            if (!decoded || decoded.type !== "business") {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: "Invalid token" 
+                });
+            }
+
+            // Get conversions for this business
+            const conversionsResult = await sql`
+                SELECT id, product_url as "productUrl", product_title as "productTitle", 
+                       product_price as "productPrice", retailer, session_id as "sessionId",
+                       referrer, utm_source as "utmSource", utm_medium as "utmMedium", 
+                       utm_campaign as "utmCampaign", ip_address as "ipAddress", 
+                       user_agent as "userAgent", timestamp
+                FROM business_conversions 
+                WHERE business_id = ${decoded.businessId}
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `;
+            
+            res.json({ success: true, conversions: conversionsResult });
+        } catch (error) {
+            console.error("Error getting business conversions:", error);
+            res.status(500).json({ success: false, error: "Failed to get business conversions" });
+        }
+    });
+
+    app.get("/api/business/activity/events", async (req, res) => {
+        try {
+            // Check for business authentication
+            let token = req.cookies.business_token;
+            
+            if (!token) {
+                const authHeader = req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    token = authHeader.substring(7);
+                }
+            }
+
+            if (!token) {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: "Not authenticated" 
+                });
+            }
+
+            const decoded = verifyBusinessToken(token);
+            if (!decoded || decoded.type !== "business") {
+                return res.status(401).json({ 
+                    success: false, 
+                    error: "Invalid token" 
+                });
+            }
+
+            // Get tracking events for this business
+            const eventsResult = await sql`
+                SELECT id, event_type as "eventType", platform, session_id as "sessionId",
+                       user_agent as "userAgent", referrer, timestamp, url, event_data as "eventData",
+                       ip_address as "ipAddress"
+                FROM tracking_event 
+                WHERE business_id = ${decoded.businessId}
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `;
+            
+            res.json({ success: true, events: eventsResult });
+        } catch (error) {
+            console.error("Error getting business events:", error);
+            res.status(500).json({ success: false, error: "Failed to get business events" });
+        }
+    });
+
     // Track event endpoint
     app.post("/api/track-event", async (req, res) => {
         try {
