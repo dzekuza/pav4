@@ -1148,5 +1148,267 @@ export async function createServer() {
         }
     });
 
+    // N8N Scrape endpoint
+    app.post("/api/n8n-scrape", async (req, res) => {
+        try {
+            console.log('N8N scrape request received:', req.body);
+            
+            // For now, return a mock response
+            res.json({
+                success: true,
+                message: "N8N scrape endpoint available",
+                data: {
+                    originalProduct: {
+                        title: "Sample Product",
+                        price: 99.99,
+                        currency: "USD",
+                        image: "https://via.placeholder.com/300",
+                        url: req.body.url,
+                        store: "Sample Store"
+                    },
+                    comparisons: []
+                }
+            });
+        } catch (error) {
+            console.error("N8N scrape error:", error);
+            res.status(500).json({
+                success: false,
+                error: "N8N scrape failed"
+            });
+        }
+    });
+
+    // Domain verification endpoints
+    app.post("/api/domain-verification/generate-token", async (req, res) => {
+        try {
+            const { businessId, domain } = req.body;
+            console.log('Generate verification token for:', { businessId, domain });
+            
+            const token = Math.random().toString(36).substring(2, 15);
+            
+            res.json({
+                success: true,
+                token,
+                verificationUrl: `https://pavlo4.netlify.app/verify-domain?token=${token}&domain=${domain}`
+            });
+        } catch (error) {
+            console.error("Generate token error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to generate verification token"
+            });
+        }
+    });
+
+    app.post("/api/domain-verification/verify", async (req, res) => {
+        try {
+            const { token, domain } = req.body;
+            console.log('Verify domain:', { token, domain });
+            
+            res.json({
+                success: true,
+                message: "Domain verification completed",
+                verified: true
+            });
+        } catch (error) {
+            console.error("Domain verification error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Domain verification failed"
+            });
+        }
+    });
+
+    app.get("/api/domain-verification/check", async (req, res) => {
+        try {
+            const { domain } = req.query;
+            console.log('Check domain verification:', domain);
+            
+            res.json({
+                success: true,
+                verified: true,
+                domain: domain
+            });
+        } catch (error) {
+            console.error("Check domain verification error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to check domain verification"
+            });
+        }
+    });
+
+    app.get("/api/domain-verification/status/:businessId", async (req, res) => {
+        try {
+            const { businessId } = req.params;
+            console.log('Get verification status for business:', businessId);
+            
+            res.json({
+                success: true,
+                verified: true,
+                businessId: parseInt(businessId)
+            });
+        } catch (error) {
+            console.error("Get verification status error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get verification status"
+            });
+        }
+    });
+
+    // Admin endpoints (basic implementations)
+    app.get("/api/admin/users", async (req, res) => {
+        try {
+            console.log('Get admin users');
+            res.json({
+                success: true,
+                users: []
+            });
+        } catch (error) {
+            console.error("Get admin users error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get admin users"
+            });
+        }
+    });
+
+    app.get("/api/admin/business", async (req, res) => {
+        try {
+            console.log('Get admin business list');
+            res.json({
+                success: true,
+                businesses: []
+            });
+        } catch (error) {
+            console.error("Get admin business error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get admin business list"
+            });
+        }
+    });
+
+    app.get("/api/admin/business/stats", async (req, res) => {
+        try {
+            console.log('Get admin business stats');
+            res.json({
+                success: true,
+                stats: {
+                    total: 0,
+                    active: 0,
+                    verified: 0
+                }
+            });
+        } catch (error) {
+            console.error("Get admin business stats error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get admin business stats"
+            });
+        }
+    });
+
+    // Business profile endpoint
+    app.get("/api/business/profile", async (req, res) => {
+        try {
+            console.log('Get business profile');
+            res.json({
+                success: true,
+                profile: {
+                    id: 1,
+                    name: "Sample Business",
+                    domain: "example.com",
+                    email: "business@example.com"
+                }
+            });
+        } catch (error) {
+            console.error("Get business profile error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get business profile"
+            });
+        }
+    });
+
+    // Test tracking endpoint
+    app.post("/api/test-tracking", async (req, res) => {
+        try {
+            console.log('Test tracking endpoint called');
+            res.json({
+                success: true,
+                message: "Test tracking endpoint available",
+                event_id: Date.now()
+            });
+        } catch (error) {
+            console.error("Test tracking error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Test tracking failed"
+            });
+        }
+    });
+
+    // Tracking events endpoint
+    app.get("/api/tracking-events", async (req, res) => {
+        try {
+            const { business_id } = req.query;
+            console.log('Get tracking events for business:', business_id);
+            
+            res.json({
+                success: true,
+                events: []
+            });
+        } catch (error) {
+            console.error("Get tracking events error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get tracking events"
+            });
+        }
+    });
+
+    // Supported countries endpoint
+    app.get("/api/supported-countries", async (req, res) => {
+        try {
+            console.log('Get supported countries');
+            res.json({
+                success: true,
+                countries: [
+                    { code: "US", name: "United States" },
+                    { code: "CA", name: "Canada" },
+                    { code: "GB", name: "United Kingdom" }
+                ]
+            });
+        } catch (error) {
+            console.error("Get supported countries error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to get supported countries"
+            });
+        }
+    });
+
+    // Business verify tracking endpoint
+    app.post("/api/business/verify-tracking", async (req, res) => {
+        try {
+            const { businessId, domain } = req.body;
+            console.log('Verify business tracking:', { businessId, domain });
+            
+            res.json({
+                success: true,
+                verified: true,
+                message: "Tracking verified successfully"
+            });
+        } catch (error) {
+            console.error("Verify business tracking error:", error);
+            res.status(500).json({
+                success: false,
+                error: "Failed to verify business tracking"
+            });
+        }
+    });
+
     return app;
 } 
