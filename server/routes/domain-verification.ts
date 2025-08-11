@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import { prisma } from '../services/database';
+import { promises as dns } from 'dns';
 
 // Generate a unique verification token for a domain
 export const generateVerificationToken: RequestHandler = async (req, res) => {
@@ -34,7 +35,19 @@ export const generateVerificationToken: RequestHandler = async (req, res) => {
       });
     }
 
-    // Check if there's already a valid verification token for this business-domain combination
+    // Check if domain is already verified
+    const verifiedVerification = await prisma.domainVerification.findFirst({
+      where: {
+        businessId: parseInt(businessId),
+        domain: domain.toLowerCase(),
+        status: 'verified'
+      },
+      orderBy: {
+        verifiedAt: 'desc'
+      }
+    });
+
+    // Check if there's already a valid pending verification token for this business-domain combination
     const existingVerification = await prisma.domainVerification.findFirst({
       where: {
         businessId: parseInt(businessId),
@@ -51,11 +64,19 @@ export const generateVerificationToken: RequestHandler = async (req, res) => {
 
     let verificationToken: string;
     let verificationRecord: any;
+    let isExisting = false;
+    let isVerified = false;
 
-    if (existingVerification) {
-      // Use existing token if it's still valid
+    if (verifiedVerification) {
+      // Domain is already verified, return the verified token
+      verificationToken = verifiedVerification.verificationToken;
+      verificationRecord = verifiedVerification;
+      isVerified = true;
+    } else if (existingVerification) {
+      // Use existing pending token if it's still valid
       verificationToken = existingVerification.verificationToken;
       verificationRecord = existingVerification;
+      isExisting = true;
     } else {
       // Generate new token only if no valid one exists
       verificationToken = `pricehunt_verify_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -75,7 +96,8 @@ export const generateVerificationToken: RequestHandler = async (req, res) => {
     res.json({
       success: true,
       verificationToken,
-      isExisting: !!existingVerification,
+      isExisting,
+      isVerified,
       instructions: {
         method: 'txt',
         record: `pricehunt-verification=${verificationToken}`,
@@ -114,16 +136,23 @@ export const verifyDomain: RequestHandler = async (req, res) => {
       });
     }
 
-    // Check if verification record exists and is valid
+    // Check if verification record exists and is valid (either pending or verified)
     const verification = await prisma.domainVerification.findFirst({
       where: {
         businessId: parseInt(businessId),
         domain: domain.toLowerCase(),
         verificationToken,
-        status: 'pending',
-        expiresAt: {
-          gt: new Date()
-        }
+        OR: [
+          {
+            status: 'pending',
+            expiresAt: {
+              gt: new Date()
+            }
+          },
+          {
+            status: 'verified'
+          }
+        ]
       }
     });
 
@@ -135,11 +164,11 @@ export const verifyDomain: RequestHandler = async (req, res) => {
     }
 
     // Verify TXT record
-    const dns = require('dns').promises;
     const expectedRecord = `pricehunt-verification=${verificationToken}`;
     
     try {
       const txtRecords = await dns.resolveTxt(domain);
+      
       const found = txtRecords.some(records => 
         records.some(record => record === expectedRecord)
       );
@@ -149,6 +178,19 @@ export const verifyDomain: RequestHandler = async (req, res) => {
         await prisma.domainVerification.update({
           where: { id: verification.id },
           data: { status: 'verified', verifiedAt: new Date() }
+        });
+
+        // Clean up old pending verification records for this domain
+        await prisma.domainVerification.updateMany({
+          where: {
+            businessId: parseInt(businessId),
+            domain: domain.toLowerCase(),
+            status: 'pending',
+            id: {
+              not: verification.id
+            }
+          },
+          data: { status: 'expired' }
         });
 
         // Update business domain if it's different
@@ -237,6 +279,8 @@ export const checkDomainVerification: RequestHandler = async (req, res) => {
     });
   }
 };
+
+
 
 // Get verification status for a business
 export const getVerificationStatus: RequestHandler = async (req, res) => {

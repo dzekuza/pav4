@@ -72,7 +72,8 @@ import {
   generateVerificationToken,
   verifyDomain,
   checkDomainVerification,
-  getVerificationStatus
+  getVerificationStatus,
+
 } from "./routes/domain-verification";
 
 // Load environment variables
@@ -314,7 +315,8 @@ export async function createServer() {
   app.post("/api/domain-verification/generate-token", requireBusinessAuth, generateVerificationToken);
   app.post("/api/domain-verification/verify", requireBusinessAuth, verifyDomain);
   app.get("/api/domain-verification/check", checkDomainVerification);
-  app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getVerificationStatus);
+
+app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getVerificationStatus);
 
   // Admin business routes
   app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);

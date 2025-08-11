@@ -106,7 +106,7 @@ export function BusinessRegistration() {
           name: formData.name,
           domain: domain,
           website: formData.website,
-          email: `${domain.replace(/[^a-zA-Z0-9]/g, '')}@${domain}`, // Generate email from domain
+          email: formData.email,
           password: formData.password,
         }),
       });
@@ -186,6 +186,22 @@ export function BusinessRegistration() {
                 />
                 <p className="text-sm text-white/70">
                   Enter your website URL where customers can purchase products
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-white">Email Address *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="your-email@example.com"
+                  required
+                />
+                <p className="text-sm text-white/70">
+                  This will be your login email address
                 </p>
               </div>
 

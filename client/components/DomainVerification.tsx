@@ -80,7 +80,12 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
 
       if (data.success) {
         setVerificationToken(data.verificationToken);
-        if (data.isExisting) {
+        if (data.isVerified) {
+          toast({
+            title: "Domain Already Verified",
+            description: "Your domain is already verified and ready to use.",
+          });
+        } else if (data.isExisting) {
           toast({
             title: "Existing Token Found",
             description: "Using your existing verification token. No need to add a new DNS record.",
