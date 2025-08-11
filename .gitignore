@@ -13,3 +13,7 @@ node_modules
 *.heapsnapshot
 .env.vercel
 .env.local
+
+# Build artifacts
+dist/
+dist-*/
