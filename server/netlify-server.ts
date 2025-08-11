@@ -1065,7 +1065,7 @@ export async function createServer() {
                 console.log('Missing required fields:', { event_type, business_id, affiliate_id });
                 return res.status(400).json({
                     success: false,
-                    error: "Missing required fields: event_type, business_id, affiliate_id"
+                    error: "Missing requiredd fields: event_type, business_id, affiliate_id"
                 });
             }
 
