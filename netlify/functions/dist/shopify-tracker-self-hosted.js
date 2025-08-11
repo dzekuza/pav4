@@ -13,7 +13,7 @@
         businessId: '3', // Update this to your business ID
         affiliateId: 'aff_godislovelt_1754470536768', // Update this to your affiliate ID
         debug: true, // Set to false in production
-        apiEndpoint: 'https://paaav.vercel.app/api/track-event'
+        apiEndpoint: 'https://pavlo4.netlify.app/api/track-event'
     };
     
     // Generate session ID

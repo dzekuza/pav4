@@ -6,7 +6,7 @@
 [build.environment]
   SECRETS_SCAN_ENABLED = "false"
   SECRETS_SCAN_OMIT_KEYS = "DATABASE_URL,GEMINI_API_KEY,N8N_WEBHOOK_URL"
-  NPM_FLAGS = "--include=dev"
+  NPM_FLAGS = "--production=false"
 
 [functions]
   external_node_modules = ["express", "@netlify/neon", "bcryptjs", "jsonwebtoken", "cors", "helmet", "compression", "cookie-parser"]

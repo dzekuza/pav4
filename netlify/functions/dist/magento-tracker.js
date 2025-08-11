@@ -4,7 +4,7 @@
 
   // Load the main tracker first
   const mainScript = document.createElement('script');
-  mainScript.src = 'https://paaav.vercel.app/tracker.js';
+  mainScript.src = 'https://pavlo4.netlify.app/tracker.js';
   mainScript.async = true;
   mainScript.setAttribute('data-business-id', document.currentScript.getAttribute('data-business-id'));
   mainScript.setAttribute('data-affiliate-id', document.currentScript.getAttribute('data-affiliate-id'));

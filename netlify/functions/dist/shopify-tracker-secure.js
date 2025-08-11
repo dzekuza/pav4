@@ -28,7 +28,7 @@
     // Check domain verification
     async function checkDomainVerification() {
         try {
-            const response = await fetch(`https://paaav.vercel.app/api/domain-verification/check?domain=${encodeURIComponent(currentDomain)}`);
+            const response = await fetch(`https://pavlo4.netlify.app/api/domain-verification/check?domain=${encodeURIComponent(currentDomain)}`);
             const data = await response.json();
             
             if (data.success && data.verified) {
@@ -47,7 +47,7 @@
     // Load the full tracking script
     function loadTrackingScript(business) {
         const trackingScript = document.createElement('script');
-        trackingScript.src = 'https://paaav.vercel.app/shopify-tracker-enhanced.js';
+        trackingScript.src = 'https://pavlo4.netlify.app/shopify-tracker-enhanced.js';
         trackingScript.setAttribute('data-business-id', business.id);
         trackingScript.setAttribute('data-affiliate-id', business.affiliateId);
         if (debug) {
@@ -94,7 +94,7 @@
             <div style="color: #92400e; margin-top: 8px; font-size: 13px;">
                 Please verify your domain ownership to use PriceHunt tracking.
                 <br><br>
-                <a href="https://paaav.vercel.app/business-integrate" target="_blank" style="color: #7c3aed; text-decoration: none; font-weight: 500;">
+                <a href="https://pavlo4.netlify.app/business-integrate" target="_blank" style="color: #7c3aed; text-decoration: none; font-weight: 500;">
                     Verify Domain →
                 </a>
             </div>
