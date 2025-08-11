@@ -181,6 +181,15 @@ export async function createServer() {
 
     const app = express();
 
+    // Normalize Netlify Functions base path so Express routes like /api/* match
+    const netlifyBasePath = "/.netlify/functions/server";
+    app.use((req, _res, next) => {
+        if (req.url.startsWith(netlifyBasePath)) {
+            req.url = req.url.slice(netlifyBasePath.length) || "/";
+        }
+        next();
+    });
+
     // Trust Netlify/Heroku/Cloud proxy for correct req.ip and rate limiting
     app.set('trust proxy', 1);
 
