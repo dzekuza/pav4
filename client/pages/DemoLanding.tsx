@@ -83,9 +83,9 @@ const DemoLanding: React.FC = () => {
       )}
 
       {/* Content overlay */}
-      <div className="relative z-10">
+      <div className="relative z-10 h-full flex flex-col">
         {/* Top navbar elements */}
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             {/* Logo left */}
             <div className="flex items-center space-x-4">
@@ -117,11 +117,11 @@ const DemoLanding: React.FC = () => {
         </div>
 
         {/* Middle-centered hero section with heading + search */}
-        <section className="container mx-auto px-6 h-full flex flex-col items-center justify-center text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-sm">
+        <section className="container mx-auto px-6 flex-1 flex flex-col items-center justify-center text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-sm mb-4 md:mb-8">
             Find best prices
           </h1>
-          <div ref={searchBlockRef} className="mt-8 w-full max-w-3xl">
+          <div ref={searchBlockRef} className="w-full max-w-3xl">
             <SearchInput
               value={searchUrl}
               onChange={setSearchUrl}
