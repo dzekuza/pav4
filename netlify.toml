@@ -8,7 +8,7 @@
   SECRETS_SCAN_OMIT_KEYS = "DATABASE_URL,GEMINI_API_KEY,N8N_WEBHOOK_URL"
 
 [functions]
-  external_node_modules = ["express"]
+  external_node_modules = ["express", "@netlify/neon", "bcryptjs", "jsonwebtoken", "cors", "helmet", "compression", "cookie-parser"]
   node_bundler = "esbuild"
   
 [[redirects]]
