@@ -7,11 +7,9 @@ node_modules
 
 # Local Netlify folder
 .netlify
-.vercel
 
 # Ignore heap snapshots
 *.heapsnapshot
-.env.vercel
 .env.local
 
 # Build artifacts
