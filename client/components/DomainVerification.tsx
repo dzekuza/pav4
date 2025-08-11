@@ -80,10 +80,17 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
 
       if (data.success) {
         setVerificationToken(data.verificationToken);
-        toast({
-          title: "Verification Token Generated",
-          description: "Please add the TXT record to your DNS settings",
-        });
+        if (data.isExisting) {
+          toast({
+            title: "Existing Token Found",
+            description: "Using your existing verification token. No need to add a new DNS record.",
+          });
+        } else {
+          toast({
+            title: "Verification Token Generated",
+            description: "Please add the TXT record to your DNS settings",
+          });
+        }
         loadVerificationStatus();
       } else {
         toast({

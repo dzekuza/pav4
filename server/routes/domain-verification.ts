@@ -34,23 +34,48 @@ export const generateVerificationToken: RequestHandler = async (req, res) => {
       });
     }
 
-    // Generate unique verification token
-    const verificationToken = `pricehunt_verify_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Store verification attempt
-    await prisma.domainVerification.create({
-      data: {
+    // Check if there's already a valid verification token for this business-domain combination
+    const existingVerification = await prisma.domainVerification.findFirst({
+      where: {
         businessId: parseInt(businessId),
         domain: domain.toLowerCase(),
-        verificationToken,
         status: 'pending',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
+
+    let verificationToken: string;
+    let verificationRecord: any;
+
+    if (existingVerification) {
+      // Use existing token if it's still valid
+      verificationToken = existingVerification.verificationToken;
+      verificationRecord = existingVerification;
+    } else {
+      // Generate new token only if no valid one exists
+      verificationToken = `pricehunt_verify_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store new verification attempt
+      verificationRecord = await prisma.domainVerification.create({
+        data: {
+          businessId: parseInt(businessId),
+          domain: domain.toLowerCase(),
+          verificationToken,
+          status: 'pending',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        }
+      });
+    }
 
     res.json({
       success: true,
       verificationToken,
+      isExisting: !!existingVerification,
       instructions: {
         method: 'txt',
         record: `pricehunt-verification=${verificationToken}`,
@@ -126,13 +151,11 @@ export const verifyDomain: RequestHandler = async (req, res) => {
           data: { status: 'verified', verifiedAt: new Date() }
         });
 
-        // Update business with verified domain
+        // Update business domain if it's different
         await prisma.business.update({
           where: { id: parseInt(businessId) },
           data: { 
-            domain: domain.toLowerCase(),
-            domainVerified: true,
-            domainVerifiedAt: new Date()
+            domain: domain.toLowerCase()
           }
         });
 

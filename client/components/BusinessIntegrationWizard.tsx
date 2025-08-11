@@ -243,10 +243,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (data.success) {
         setVerificationToken(data.verificationToken);
-        toast({
-          title: "Verification Token Generated",
-          description: "Please add the TXT record to your domain DNS settings",
-        });
+        if (data.isExisting) {
+          toast({
+            title: "Existing Token Found",
+            description: "Using your existing verification token. No need to add a new DNS record.",
+          });
+        } else {
+          toast({
+            title: "Verification Token Generated",
+            description: "Please add the TXT record to your domain DNS settings",
+          });
+        }
       } else {
         toast({
           title: "Error",

@@ -9,6 +9,7 @@ import { SearchHeader } from './SearchHeader';
 interface BusinessRegistrationData {
   name: string;
   website: string;
+  email: string;
   password: string;
   confirmPassword: string;
 }
@@ -17,6 +18,7 @@ export function BusinessRegistration() {
   const [formData, setFormData] = useState<BusinessRegistrationData>({
     name: '',
     website: '',
+    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -32,10 +34,20 @@ export function BusinessRegistration() {
   };
 
   const validateForm = () => {
-    if (!formData.name || !formData.website || !formData.password) {
+    if (!formData.name || !formData.website || !formData.email || !formData.password) {
       toast({
         title: "Validation Error",
-        description: "Business name, app URL, and password are required fields.",
+        description: "Business name, app URL, email, and password are required fields.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate email format
+    if (!formData.email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
         variant: "destructive",
       });
       return false;
@@ -111,6 +123,7 @@ export function BusinessRegistration() {
         setFormData({
           name: '',
           website: '',
+          email: '',
           password: '',
           confirmPassword: '',
         });
