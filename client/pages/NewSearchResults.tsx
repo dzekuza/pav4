@@ -7,7 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ArrowLeft, RefreshCw, ExternalLink, Star, AlertCircle, Heart, Search, Package, Truck, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
-import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
+import HeroWave from "../components/ui/dynamic-wave-canvas-background";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { SearchHeader } from "../components/SearchHeader";
 import { SearchInput } from "../components/SearchInput";
@@ -15,7 +15,7 @@ import { LoadingSkeleton, SearchLoadingState } from "../components/LoadingSkelet
 import { useFavorites } from "../hooks/use-favorites";
 import { useAuthModal } from '../hooks/use-auth-modal';
 import { AuthModal } from '../components/AuthModal';
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "../hooks/use-auth";
 
 // Helper functions
 function extractPrice(priceString: string): number {

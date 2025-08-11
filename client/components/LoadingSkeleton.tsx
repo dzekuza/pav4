@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "./ui/skeleton";
 import { Search, Loader2, Check } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
+import { Card, CardContent } from "./ui/card";
+import HeroWave from "./ui/dynamic-wave-canvas-background";
 
 interface LoadingSkeletonProps {
   count?: number;

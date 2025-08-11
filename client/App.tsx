@@ -70,7 +70,7 @@ const router = createBrowserRouter([
     element: (
       <>
         <UrlRedirectHandler />
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingSkeleton variant="default" />}>
           <NewSearchResults />
         </Suspense>
       </>
