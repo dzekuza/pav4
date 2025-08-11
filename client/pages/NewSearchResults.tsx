@@ -120,17 +120,34 @@ const NewSearchResults = () => {
     try {
       console.log("Starting search with URL:", url, "Country:", userCountry, "GL:", gl);
       
+      // Detect if input is a URL or keywords
+      let isUrl = false;
+      try {
+        const u = new URL(url.trim());
+        isUrl = !!u.protocol && !!u.host;
+      } catch {
+        isUrl = false;
+      }
+
+      // Prepare request body based on input type
+      const requestBody: any = {
+        requestId: requestId,
+        userLocation: { country: userCountry },
+        gl: gl // Pass the gl parameter for country-specific search
+      };
+
+      if (isUrl) {
+        requestBody.url = url;
+      } else {
+        requestBody.keywords = url;
+      }
+      
       const response = await fetch("/api/n8n-scrape", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          url: url,
-          requestId: requestId,
-          userLocation: { country: userCountry },
-          gl: gl // Pass the gl parameter for country-specific search
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -199,16 +216,33 @@ const NewSearchResults = () => {
     setError(null);
 
     try {
+      // Detect if originalUrl is a URL or keywords
+      let isUrl = false;
+      try {
+        const u = new URL(originalUrl || "https://example.com");
+        isUrl = !!u.protocol && !!u.host;
+      } catch {
+        isUrl = false;
+      }
+
+      // Prepare request body based on input type
+      const requestBody: any = {
+        requestId: requestId 
+      };
+
+      if (isUrl) {
+        requestBody.url = originalUrl || "https://example.com";
+      } else {
+        requestBody.keywords = originalUrl || "example product";
+      }
+
       // For now, we'll use the same POST request as refresh since n8n webhook doesn't support GET with requestId
       const response = await fetch("/api/n8n-scrape", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          url: originalUrl || "https://example.com", // Fallback URL
-          requestId: requestId 
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (response.ok) {

@@ -176,7 +176,7 @@ export default function Index() {
             on any product
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Paste any product URL and we'll instantly find the cheapest prices
+            Paste any product URL or enter keywords and we'll instantly find the cheapest prices
             across hundreds of retailers. Save money on every purchase with
             AI-powered price comparison.
           </p>

@@ -184,7 +184,7 @@ export const sanitizeInput: RequestHandler = (req, res, next) => {
   next();
 };
 
-// URL validation middleware
+// URL and keyword validation middleware
 export const validateUrl: RequestHandler = (req, res, next) => {
   // Only apply validation to scraping routes
   if (!req.path.includes('/scrape') && !req.path.includes('/n8n')) {
@@ -192,7 +192,19 @@ export const validateUrl: RequestHandler = (req, res, next) => {
   }
   
   const url = req.body?.url || req.query?.url;
+  const keywords = req.body?.keywords || req.query?.keywords;
   
+  // Allow either URL or keywords, but not both
+  if (url && keywords) {
+    return res.status(400).json({ error: 'Cannot provide both URL and keywords' });
+  }
+  
+  // If neither URL nor keywords provided, that's also valid (will be handled by the route)
+  if (!url && !keywords) {
+    return next();
+  }
+  
+  // Validate URL if provided
   if (url) {
     try {
       const parsedUrl = new URL(url);
@@ -219,6 +231,18 @@ export const validateUrl: RequestHandler = (req, res, next) => {
       
     } catch (error) {
       return res.status(400).json({ error: 'Invalid URL format' });
+    }
+  }
+  
+  // Validate keywords if provided
+  if (keywords) {
+    if (typeof keywords !== 'string' || keywords.trim().length === 0) {
+      return res.status(400).json({ error: 'Keywords must be a non-empty string' });
+    }
+    
+    // Basic keyword validation - ensure it's not too long
+    if (keywords.length > 500) {
+      return res.status(400).json({ error: 'Keywords too long (max 500 characters)' });
     }
   }
   

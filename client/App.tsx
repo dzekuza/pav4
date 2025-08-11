@@ -5,10 +5,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
 import LoadingSkeleton from "@/components/ui/loading-skeleton";
+import AppLoader from "@/components/AppLoader";
+import { initializeTracking } from "@/lib/tracking";
+
 const Index = lazy(() => import("./pages/Index"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const History = lazy(() => import("./pages/History"));
@@ -32,14 +35,8 @@ const BusinessSettingsDashboard = lazy(() => import("./pages/BusinessSettingsDas
 const BusinessIntegrate = lazy(() => import("./pages/BusinessIntegrate"));
 const BusinessActivity = lazy(() => import("./pages/BusinessActivity"));
 const BusinessConnect = lazy(() => import("./pages/BusinessConnect"));
-import { initializeTracking } from "@/lib/tracking";
-// import NewLanding from "./pages/NewLanding";
-// import NewSearch from "./pages/NewSearch";
 
 const queryClient = new QueryClient();
-
-// Initialize tracking on app load
-initializeTracking();
 
 // Create router with future flags to suppress warnings
 const router = createBrowserRouter([
@@ -109,23 +106,51 @@ const router = createBrowserRouter([
   } as any,
 });
 
-const App = () => (
-  <>
-    {/* <StagewiseToolbar config={{ plugins: [ReactPlugin] }} /> */}
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <BusinessAuthProvider>
-            <Toaster />
-            <Sonner />
-            <Suspense fallback={null}>
-              <RouterProvider router={router} />
-            </Suspense>
-          </BusinessAuthProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </>
-);
+const App = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    // Initialize tracking
+    initializeTracking();
+    
+    // Simulate app initialization time
+    const timer = setTimeout(() => {
+      setIsTransitioning(true);
+      // Add a small delay for the fade-out transition
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+    }, 2000); // Show loader for 2 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className={`transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <AppLoader />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <BusinessAuthProvider>
+              <Toaster />
+              <Sonner />
+              <Suspense fallback={null}>
+                <RouterProvider router={router} />
+              </Suspense>
+            </BusinessAuthProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </>
+  );
+};
 
 export default App;

@@ -84,15 +84,32 @@ const SearchResults = () => {
       setLoadingStep(2);
       await new Promise(resolve => setTimeout(resolve, 1500));
 
+      // Detect if input is a URL or keywords
+      let isUrl = false;
+      try {
+        const u = new URL(searchUrl.trim());
+        isUrl = !!u.protocol && !!u.host;
+      } catch {
+        isUrl = false;
+      }
+
+      // Prepare request body based on input type
+      const requestBody: any = {
+        requestId: requestId,
+        userLocation: { country: userCountry },
+        gl: gl // Pass the gl parameter for country-specific search
+      };
+
+      if (isUrl) {
+        requestBody.url = searchUrl;
+      } else {
+        requestBody.keywords = searchUrl;
+      }
+
       const response = await fetch("/api/n8n-scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          url: searchUrl, 
-          requestId: requestId,
-          userLocation: { country: userCountry },
-          gl: gl // Pass the gl parameter for country-specific search
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

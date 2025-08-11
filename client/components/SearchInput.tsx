@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: (url: string) => void;
+  onSubmit: (input: string) => void;
   placeholder?: string;
   isLoading?: boolean;
   selectedCountry?: string;
@@ -78,7 +78,7 @@ export function SearchInput({
   value,
   onChange,
   onSubmit,
-  placeholder = "Paste any product URL (e.g., https://amazon.com/product/...)",
+  placeholder = "Paste a product URL or enter keywords (e.g., iPhone 16 Pro Max, Amazon, etc.)",
   isLoading = false,
   selectedCountry = "de",
   onCountryChange,
