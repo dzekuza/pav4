@@ -205,7 +205,7 @@ export default function BusinessAnalyticsDashboard() {
       <div className="space-y-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-200 rounded"></div>
             ))}
@@ -219,7 +219,7 @@ export default function BusinessAnalyticsDashboard() {
   return (
     <div className="space-y-6 text-white">
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">Total Visits</CardTitle>
@@ -317,7 +317,7 @@ export default function BusinessAnalyticsDashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>
               <CardTitle className="text-white">Daily Visits</CardTitle>

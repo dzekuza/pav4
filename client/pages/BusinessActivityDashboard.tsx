@@ -306,7 +306,7 @@ export default function BusinessActivityDashboard() {
       <div className="space-y-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-200 rounded"></div>
             ))}
@@ -335,7 +335,7 @@ export default function BusinessActivityDashboard() {
   return (
     <div className="space-y-6 text-white">
       {/* Activity Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
@@ -403,7 +403,7 @@ export default function BusinessActivityDashboard() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">Page Views</CardTitle>
@@ -476,7 +476,7 @@ export default function BusinessActivityDashboard() {
           <CardTitle className="text-white">Key Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-white/5 rounded-lg">
               <div className="text-2xl font-bold text-green-400">
                 {stats.totalPurchases > 0 ? stats.conversionRate.toFixed(1) : '0'}%
@@ -545,7 +545,7 @@ export default function BusinessActivityDashboard() {
         <Button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="bg-white/10 text-white hover:bg-white/20 rounded-full ml-auto"
+          className="bg-white/10 text-white hover:bg-white/20 rounded-full sm:ml-auto w-full sm:w-auto"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -563,16 +563,17 @@ export default function BusinessActivityDashboard() {
               <p>No activity found for the selected filter.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/20 hover:bg-white/5">
-                  <TableHead className="text-white border-b border-white/20 pb-3">Type</TableHead>
-                  <TableHead className="text-white border-b border-white/20 pb-3">Product</TableHead>
-                  <TableHead className="text-white border-b border-white/20 pb-3">Status</TableHead>
-                  <TableHead className="text-white border-b border-white/20 pb-3">Amount</TableHead>
-                  <TableHead className="text-white border-b border-white/20 pb-3">Date</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/20 hover:bg-white/5">
+                    <TableHead className="text-white border-b border-white/20 pb-3">Type</TableHead>
+                    <TableHead className="text-white border-b border-white/20 pb-3">Product</TableHead>
+                    <TableHead className="text-white border-b border-white/20 pb-3">Status</TableHead>
+                    <TableHead className="text-white border-b border-white/20 pb-3 hidden sm:table-cell">Amount</TableHead>
+                    <TableHead className="text-white border-b border-white/20 pb-3">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredActivities.slice(0, 20).map((activity, index) => (
                   <TableRow 
@@ -586,12 +587,13 @@ export default function BusinessActivityDashboard() {
                       </div>
                     </TableCell>
                     <TableCell className="py-4">
-                      <div className="max-w-xs truncate">
+                      <div className="max-w-[150px] sm:max-w-xs truncate">
                         <a 
                           href={activity.productUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-white hover:underline transition-colors duration-200"
+                          title={activity.productName}
                         >
                           {activity.productName}
                         </a>
@@ -600,7 +602,7 @@ export default function BusinessActivityDashboard() {
                     <TableCell className="py-4">
                       {getStatusBadge(activity.status)}
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 hidden sm:table-cell">
                       <span className="text-white">{activity.amount ? `$${activity.amount.toFixed(2)}` : '-'}</span>
                     </TableCell>
                     <TableCell className="py-4">
@@ -613,6 +615,7 @@ export default function BusinessActivityDashboard() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
