@@ -65,7 +65,7 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
 
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/domain-verification/generate', {
+      const response = await fetch('/api/domain-verification/generate-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -5,7 +5,7 @@ type HeroWaveProps = {
   quality?: "high" | "medium" | "low"; // affects internal scale
 };
 
-const HeroWave: React.FC<HeroWaveProps> = ({ fps = 30, quality = "medium" }) => {
+const HeroWave: React.FC<HeroWaveProps> = ({ fps = 20, quality = "low" }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {

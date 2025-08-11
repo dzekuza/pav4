@@ -5,11 +5,20 @@ import { prisma } from '../services/database';
 export const generateVerificationToken: RequestHandler = async (req, res) => {
   try {
     const { businessId, domain } = req.body;
+    const authenticatedBusiness = (req as any).business;
 
     if (!businessId || !domain) {
       return res.status(400).json({
         success: false,
         error: 'Business ID and domain are required'
+      });
+    }
+
+    // Validate that the authenticated user owns this business
+    if (!authenticatedBusiness || authenticatedBusiness.id !== parseInt(businessId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'You can only verify domains for your own business'
       });
     }
 
@@ -63,11 +72,20 @@ export const generateVerificationToken: RequestHandler = async (req, res) => {
 export const verifyDomain: RequestHandler = async (req, res) => {
   try {
     const { businessId, domain, verificationToken } = req.body;
+    const authenticatedBusiness = (req as any).business;
 
     if (!businessId || !domain || !verificationToken) {
       return res.status(400).json({
         success: false,
         error: 'Business ID, domain, and verification token are required'
+      });
+    }
+
+    // Validate that the authenticated user owns this business
+    if (!authenticatedBusiness || authenticatedBusiness.id !== parseInt(businessId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'You can only verify domains for your own business'
       });
     }
 

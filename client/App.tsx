@@ -8,6 +8,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
+import LoadingSkeleton from "@/components/ui/loading-skeleton";
 const Index = lazy(() => import("./pages/Index"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 const History = lazy(() => import("./pages/History"));
@@ -47,7 +48,7 @@ const router = createBrowserRouter([
     element: (
       <>
         <UrlRedirectHandler />
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingSkeleton variant="landing" />}>
           <DemoLanding />
         </Suspense>
       </>
