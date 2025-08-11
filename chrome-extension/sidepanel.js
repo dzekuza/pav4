@@ -1,34 +1,34 @@
 // Side Panel JavaScript for PriceHunt Extension
 class PriceHuntSidePanel {
   constructor() {
-    this.currentUrl = '';
+    this.currentUrl = "";
     this.detectedProduct = null;
-    this.selectedCountry = 'de'; // Default to Germany
+    this.selectedCountry = "de"; // Default to Germany
     this.init();
   }
 
   async init() {
-    console.log('PriceHunt Side Panel initialized');
-    
+    console.log("PriceHunt Side Panel initialized");
+
     // Load saved country preference
     await this.loadCountryPreference();
-    
+
     // Set up event listeners
     this.setupEventListeners();
-    
+
     // Initialize the panel
     await this.initializePanel();
   }
 
   async loadCountryPreference() {
     try {
-      const result = await chrome.storage.sync.get(['selectedCountry']);
+      const result = await chrome.storage.sync.get(["selectedCountry"]);
       if (result.selectedCountry) {
         this.selectedCountry = result.selectedCountry;
-        document.getElementById('countrySelect').value = this.selectedCountry;
+        document.getElementById("countrySelect").value = this.selectedCountry;
       }
     } catch (error) {
-      console.error('Error loading country preference:', error);
+      console.error("Error loading country preference:", error);
     }
   }
 
@@ -36,60 +36,63 @@ class PriceHuntSidePanel {
     try {
       await chrome.storage.sync.set({ selectedCountry: this.selectedCountry });
     } catch (error) {
-      console.error('Error saving country preference:', error);
+      console.error("Error saving country preference:", error);
     }
   }
 
   setupEventListeners() {
     // Country selection
-    document.getElementById('countrySelect').addEventListener('change', (e) => {
+    document.getElementById("countrySelect").addEventListener("change", (e) => {
       this.selectedCountry = e.target.value;
       this.saveCountryPreference();
-      console.log('Country changed to:', this.selectedCountry);
+      console.log("Country changed to:", this.selectedCountry);
     });
 
     // Search button
-    document.getElementById('searchBtn').addEventListener('click', () => {
+    document.getElementById("searchBtn").addEventListener("click", () => {
       this.handleSearch(false);
     });
 
     // Similar products button
-    document.getElementById('similarBtn').addEventListener('click', () => {
+    document.getElementById("similarBtn").addEventListener("click", () => {
       this.handleSearch(true);
     });
 
     // Quick actions
-    document.getElementById('openApp').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'https://pavlo4.netlify.app' });
+    document.getElementById("openApp").addEventListener("click", () => {
+      chrome.tabs.create({ url: "https://pavlo4.netlify.app" });
     });
 
-    document.getElementById('viewHistory').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'https://pavlo4.netlify.app/history' });
+    document.getElementById("viewHistory").addEventListener("click", () => {
+      chrome.tabs.create({ url: "https://pavlo4.netlify.app/history" });
     });
 
     // Footer links
-    document.getElementById('settingsLink').addEventListener('click', (e) => {
+    document.getElementById("settingsLink").addEventListener("click", (e) => {
       e.preventDefault();
       chrome.runtime.openOptionsPage();
     });
 
-    document.getElementById('helpLink').addEventListener('click', (e) => {
+    document.getElementById("helpLink").addEventListener("click", (e) => {
       e.preventDefault();
-      chrome.tabs.create({ url: 'https://pavlo4.netlify.app/help' });
+      chrome.tabs.create({ url: "https://pavlo4.netlify.app/help" });
     });
   }
 
   async initializePanel() {
     try {
       // Get current tab
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       if (!tab) {
         this.showNoProduct();
         return;
       }
 
       this.currentUrl = tab.url;
-      console.log('Current URL:', this.currentUrl);
+      console.log("Current URL:", this.currentUrl);
 
       // Check if it's a supported site
       if (!this.isSupportedSite(this.currentUrl)) {
@@ -98,49 +101,93 @@ class PriceHuntSidePanel {
       }
 
       // Update page info
-      document.getElementById('pageUrl').textContent = this.currentUrl;
+      document.getElementById("pageUrl").textContent = this.currentUrl;
 
       // Try to detect product
       await this.detectProduct();
     } catch (error) {
-      console.error('Error initializing panel:', error);
+      console.error("Error initializing panel:", error);
       this.showNoProduct();
     }
   }
 
   isSupportedSite(url) {
     const supportedDomains = [
-      'amazon.com', 'amazon.co.uk', 'amazon.de', 'amazon.fr', 'amazon.it', 'amazon.es', 'amazon.ca', 'amazon.com.au', 'amazon.co.jp',
-      'ebay.com', 'ebay.co.uk', 'ebay.de', 'ebay.fr', 'ebay.it', 'ebay.es', 'ebay.ca', 'ebay.com.au',
-      'walmart.com', 'walmart.ca',
-      'target.com',
-      'bestbuy.com', 'bestbuy.ca',
-      'apple.com', 'apple.co.uk', 'apple.de', 'apple.fr', 'apple.it', 'apple.es', 'apple.ca', 'apple.com.au', 'apple.co.jp',
-      'playstation.com', 'playstation.co.uk', 'playstation.de', 'playstation.fr', 'playstation.it', 'playstation.es', 'playstation.ca', 'playstation.com.au', 'playstation.co.jp',
-      'newegg.com', 'newegg.ca',
-      'costco.com', 'costco.ca',
-      'livelarq.com', 'larq.com',
-      'sonos.com', 'sonos.co.uk', 'sonos.de', 'sonos.fr', 'sonos.it', 'sonos.es', 'sonos.ca', 'sonos.com.au', 'sonos.co.jp'
+      "amazon.com",
+      "amazon.co.uk",
+      "amazon.de",
+      "amazon.fr",
+      "amazon.it",
+      "amazon.es",
+      "amazon.ca",
+      "amazon.com.au",
+      "amazon.co.jp",
+      "ebay.com",
+      "ebay.co.uk",
+      "ebay.de",
+      "ebay.fr",
+      "ebay.it",
+      "ebay.es",
+      "ebay.ca",
+      "ebay.com.au",
+      "walmart.com",
+      "walmart.ca",
+      "target.com",
+      "bestbuy.com",
+      "bestbuy.ca",
+      "apple.com",
+      "apple.co.uk",
+      "apple.de",
+      "apple.fr",
+      "apple.it",
+      "apple.es",
+      "apple.ca",
+      "apple.com.au",
+      "apple.co.jp",
+      "playstation.com",
+      "playstation.co.uk",
+      "playstation.de",
+      "playstation.fr",
+      "playstation.it",
+      "playstation.es",
+      "playstation.ca",
+      "playstation.com.au",
+      "playstation.co.jp",
+      "newegg.com",
+      "newegg.ca",
+      "costco.com",
+      "costco.ca",
+      "livelarq.com",
+      "larq.com",
+      "sonos.com",
+      "sonos.co.uk",
+      "sonos.de",
+      "sonos.fr",
+      "sonos.it",
+      "sonos.es",
+      "sonos.ca",
+      "sonos.com.au",
+      "sonos.co.jp",
     ];
 
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
-      
+
       // Check exact domain matches
       if (supportedDomains.includes(hostname)) {
         return true;
       }
-      
+
       // Check for subdomain matches (e.g., www.amazon.com)
-      const domainParts = hostname.split('.');
+      const domainParts = hostname.split(".");
       if (domainParts.length >= 2) {
-        const mainDomain = domainParts.slice(-2).join('.');
+        const mainDomain = domainParts.slice(-2).join(".");
         if (supportedDomains.includes(mainDomain)) {
           return true;
         }
       }
-      
+
       // Check for e-commerce patterns
       const ecommercePatterns = [
         /shop\./,
@@ -148,103 +195,114 @@ class PriceHuntSidePanel {
         /buy\./,
         /product/,
         /item/,
-        /purchase/
+        /purchase/,
       ];
-      
-      return ecommercePatterns.some(pattern => pattern.test(url));
+
+      return ecommercePatterns.some((pattern) => pattern.test(url));
     } catch (error) {
-      console.error('Error checking supported site:', error);
+      console.error("Error checking supported site:", error);
       return false;
     }
   }
 
   async detectProduct() {
     try {
-      console.log('Detecting product from current page...');
-      
+      console.log("Detecting product from current page...");
+
       // Send message to content script to detect product
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       if (!tab) {
-        throw new Error('No active tab found');
+        throw new Error("No active tab found");
       }
 
-      const response = await chrome.tabs.sendMessage(tab.id, { action: 'detectProduct' });
-      
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: "detectProduct",
+      });
+
       if (response && response.success && response.product) {
         this.detectedProduct = response.product;
-        console.log('Product detected:', this.detectedProduct);
-        
+        console.log("Product detected:", this.detectedProduct);
+
         // Update UI
-        document.getElementById('pageTitle').textContent = this.detectedProduct.title;
-        document.getElementById('searchBtn').disabled = false;
-        document.getElementById('similarBtn').disabled = false;
-        
+        document.getElementById("pageTitle").textContent =
+          this.detectedProduct.title;
+        document.getElementById("searchBtn").disabled = false;
+        document.getElementById("similarBtn").disabled = false;
+
         // Hide no product message
-        document.getElementById('noProduct').classList.add('hidden');
-        document.getElementById('currentPage').classList.remove('hidden');
+        document.getElementById("noProduct").classList.add("hidden");
+        document.getElementById("currentPage").classList.remove("hidden");
       } else {
-        console.log('No product detected');
+        console.log("No product detected");
         this.showNoProduct();
       }
     } catch (error) {
-      console.error('Error detecting product:', error);
+      console.error("Error detecting product:", error);
       this.showNoProduct();
     }
   }
 
   showNoProduct() {
-    document.getElementById('currentPage').classList.add('hidden');
-    document.getElementById('results').classList.add('hidden');
-    document.getElementById('similarResults').classList.add('hidden');
-    document.getElementById('noProduct').classList.remove('hidden');
+    document.getElementById("currentPage").classList.add("hidden");
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("similarResults").classList.add("hidden");
+    document.getElementById("noProduct").classList.remove("hidden");
   }
 
   async handleSearch(findSimilar = false) {
     if (!this.detectedProduct) {
-      console.error('No product detected');
+      console.error("No product detected");
       return;
     }
 
-    const searchBtn = document.getElementById('searchBtn');
-    const similarBtn = document.getElementById('similarBtn');
-    const loader = document.getElementById('loader');
-    const similarLoader = document.getElementById('similarLoader');
+    const searchBtn = document.getElementById("searchBtn");
+    const similarBtn = document.getElementById("similarBtn");
+    const loader = document.getElementById("loader");
+    const similarLoader = document.getElementById("similarLoader");
 
     try {
       // Show loading state
       if (findSimilar) {
-        similarBtn.classList.add('loading');
-        similarLoader.classList.remove('hidden');
+        similarBtn.classList.add("loading");
+        similarLoader.classList.remove("hidden");
         similarBtn.disabled = true;
       } else {
-        searchBtn.classList.add('loading');
-        loader.classList.remove('hidden');
+        searchBtn.classList.add("loading");
+        loader.classList.remove("hidden");
         searchBtn.disabled = true;
       }
 
-      console.log(`Searching for ${findSimilar ? 'similar' : 'price comparison'} products...`);
-      console.log('Selected country:', this.selectedCountry);
+      console.log(
+        `Searching for ${findSimilar ? "similar" : "price comparison"} products...`,
+      );
+      console.log("Selected country:", this.selectedCountry);
 
       // Make API request
-      const response = await fetch('https://pavlo4.netlify.app/api/n8n-scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        "https://pavlo4.netlify.app/api/n8n-scrape",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: this.currentUrl,
+            fromExtension: true,
+            findSimilar: findSimilar,
+            gl: this.selectedCountry,
+          }),
         },
-        body: JSON.stringify({
-          url: this.currentUrl,
-          fromExtension: true,
-          findSimilar: findSimilar,
-          gl: this.selectedCountry
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('API response:', data);
+      console.log("API response:", data);
 
       if (data.error) {
         throw new Error(data.error);
@@ -256,122 +314,123 @@ class PriceHuntSidePanel {
       } else {
         this.displayPriceResults(data);
       }
-
     } catch (error) {
-      console.error('Search error:', error);
+      console.error("Search error:", error);
       this.showError(error.message);
     } finally {
       // Hide loading state
       if (findSimilar) {
-        similarBtn.classList.remove('loading');
-        similarLoader.classList.add('hidden');
+        similarBtn.classList.remove("loading");
+        similarLoader.classList.add("hidden");
         similarBtn.disabled = false;
       } else {
-        searchBtn.classList.remove('loading');
-        loader.classList.add('hidden');
+        searchBtn.classList.remove("loading");
+        loader.classList.add("hidden");
         searchBtn.disabled = false;
       }
     }
   }
 
   displayPriceResults(data) {
-    const resultsDiv = document.getElementById('results');
-    const resultsList = document.getElementById('resultsList');
-    const resultsCount = document.getElementById('resultsCount');
+    const resultsDiv = document.getElementById("results");
+    const resultsList = document.getElementById("resultsList");
+    const resultsCount = document.getElementById("resultsCount");
 
     // Hide other sections
-    document.getElementById('similarResults').classList.add('hidden');
-    document.getElementById('noProduct').classList.add('hidden');
+    document.getElementById("similarResults").classList.add("hidden");
+    document.getElementById("noProduct").classList.add("hidden");
 
     // Clear previous results
-    resultsList.innerHTML = '';
+    resultsList.innerHTML = "";
 
     if (data.suggestions && data.suggestions.length > 0) {
       resultsCount.textContent = `${data.suggestions.length} results`;
-      
-      data.suggestions.forEach(suggestion => {
-        const resultItem = document.createElement('div');
-        resultItem.className = 'result-item';
+
+      data.suggestions.forEach((suggestion) => {
+        const resultItem = document.createElement("div");
+        resultItem.className = "result-item";
         resultItem.innerHTML = `
-          <div class="result-title">${suggestion.title || 'Product'}</div>
-          <div class="result-price">${suggestion.standardPrice || suggestion.discountPrice || 'Price not available'}</div>
+          <div class="result-title">${suggestion.title || "Product"}</div>
+          <div class="result-price">${suggestion.standardPrice || suggestion.discountPrice || "Price not available"}</div>
           <div class="result-store">
             <div class="result-store-icon"></div>
-            ${suggestion.site || suggestion.merchant || 'Unknown store'}
+            ${suggestion.site || suggestion.merchant || "Unknown store"}
           </div>
         `;
-        
+
         if (suggestion.link) {
-          resultItem.addEventListener('click', () => {
+          resultItem.addEventListener("click", () => {
             chrome.tabs.create({ url: suggestion.link });
           });
         }
-        
+
         resultsList.appendChild(resultItem);
       });
     } else {
-      resultsCount.textContent = '0 results';
-      resultsList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">No price comparisons found</div>';
+      resultsCount.textContent = "0 results";
+      resultsList.innerHTML =
+        '<div style="text-align: center; color: #6b7280; padding: 20px;">No price comparisons found</div>';
     }
 
-    resultsDiv.classList.remove('hidden');
+    resultsDiv.classList.remove("hidden");
   }
 
   displaySimilarResults(data) {
-    const resultsDiv = document.getElementById('similarResults');
-    const resultsList = document.getElementById('similarResultsList');
-    const resultsCount = document.getElementById('similarResultsCount');
+    const resultsDiv = document.getElementById("similarResults");
+    const resultsList = document.getElementById("similarResultsList");
+    const resultsCount = document.getElementById("similarResultsCount");
 
     // Hide other sections
-    document.getElementById('results').classList.add('hidden');
-    document.getElementById('noProduct').classList.add('hidden');
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("noProduct").classList.add("hidden");
 
     // Clear previous results
-    resultsList.innerHTML = '';
+    resultsList.innerHTML = "";
 
     if (data.suggestions && data.suggestions.length > 0) {
       resultsCount.textContent = `${data.suggestions.length} similar products`;
-      
-      data.suggestions.forEach(suggestion => {
-        const resultItem = document.createElement('div');
-        resultItem.className = 'result-item';
+
+      data.suggestions.forEach((suggestion) => {
+        const resultItem = document.createElement("div");
+        resultItem.className = "result-item";
         resultItem.innerHTML = `
-          <div class="result-title">${suggestion.title || 'Similar Product'}</div>
-          <div class="result-price">${suggestion.standardPrice || suggestion.discountPrice || 'Price not available'}</div>
+          <div class="result-title">${suggestion.title || "Similar Product"}</div>
+          <div class="result-price">${suggestion.standardPrice || suggestion.discountPrice || "Price not available"}</div>
           <div class="result-store">
             <div class="result-store-icon"></div>
-            ${suggestion.site || suggestion.merchant || 'Unknown store'}
+            ${suggestion.site || suggestion.merchant || "Unknown store"}
           </div>
         `;
-        
+
         if (suggestion.link) {
-          resultItem.addEventListener('click', () => {
+          resultItem.addEventListener("click", () => {
             chrome.tabs.create({ url: suggestion.link });
           });
         }
-        
+
         resultsList.appendChild(resultItem);
       });
     } else {
-      resultsCount.textContent = '0 similar products';
-      resultsList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">No similar products found</div>';
+      resultsCount.textContent = "0 similar products";
+      resultsList.innerHTML =
+        '<div style="text-align: center; color: #6b7280; padding: 20px;">No similar products found</div>';
     }
 
-    resultsDiv.classList.remove('hidden');
+    resultsDiv.classList.remove("hidden");
   }
 
   showError(message) {
-    const resultsDiv = document.getElementById('results');
-    const resultsList = document.getElementById('resultsList');
-    const resultsCount = document.getElementById('resultsCount');
+    const resultsDiv = document.getElementById("results");
+    const resultsList = document.getElementById("resultsList");
+    const resultsCount = document.getElementById("resultsCount");
 
-    resultsCount.textContent = 'Error';
+    resultsCount.textContent = "Error";
     resultsList.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">${message}</div>`;
-    resultsDiv.style.display = 'block';
+    resultsDiv.style.display = "block";
   }
 }
 
 // Initialize the side panel when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   new PriceHuntSidePanel();
-}); 
+});

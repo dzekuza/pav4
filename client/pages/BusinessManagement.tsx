@@ -1,13 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { useToast } from '../hooks/use-toast';
-import { BusinessStatsModal } from '../components/BusinessStatsModal';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Lock, Eye, EyeOff, Globe } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../hooks/use-toast";
+import { BusinessStatsModal } from "../components/BusinessStatsModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Lock, Eye, EyeOff, Globe } from "lucide-react";
 
 interface Business {
   id: number;
@@ -42,11 +55,13 @@ export function BusinessManagement() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [stats, setStats] = useState<BusinessStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(
+    null,
+  );
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const { toast } = useToast();
@@ -58,10 +73,10 @@ export function BusinessManagement() {
 
   const fetchBusinesses = async () => {
     try {
-      const response = await fetch('/api/admin/business', {
-        credentials: 'include',
+      const response = await fetch("/api/admin/business", {
+        credentials: "include",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setBusinesses(data.businesses);
@@ -73,7 +88,7 @@ export function BusinessManagement() {
         });
       }
     } catch (error) {
-      console.error('Error fetching businesses:', error);
+      console.error("Error fetching businesses:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -86,34 +101,34 @@ export function BusinessManagement() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/business/stats', {
-        credentials: 'include',
+      const response = await fetch("/api/admin/business/stats", {
+        credentials: "include",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats);
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
     }
   };
 
   const handleToggleActive = async (businessId: number, isActive: boolean) => {
     try {
       const response = await fetch(`/api/admin/business/${businessId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ isActive: !isActive }),
       });
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: `Business ${isActive ? 'deactivated' : 'activated'} successfully`,
+          description: `Business ${isActive ? "deactivated" : "activated"} successfully`,
         });
         fetchBusinesses();
         fetchStats();
@@ -125,7 +140,7 @@ export function BusinessManagement() {
         });
       }
     } catch (error) {
-      console.error('Error updating business status:', error);
+      console.error("Error updating business status:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -137,8 +152,8 @@ export function BusinessManagement() {
   const handleVerify = async (businessId: number) => {
     try {
       const response = await fetch(`/api/admin/business/${businessId}/verify`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -156,7 +171,7 @@ export function BusinessManagement() {
         });
       }
     } catch (error) {
-      console.error('Error verifying business:', error);
+      console.error("Error verifying business:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -165,9 +180,15 @@ export function BusinessManagement() {
     }
   };
 
-  const handleUpdateCommission = async (businessId: number, currentRate: number) => {
-    const newRate = prompt(`Enter new commission rate (current: ${currentRate}%):`, currentRate.toString());
-    
+  const handleUpdateCommission = async (
+    businessId: number,
+    currentRate: number,
+  ) => {
+    const newRate = prompt(
+      `Enter new commission rate (current: ${currentRate}%):`,
+      currentRate.toString(),
+    );
+
     if (!newRate || isNaN(parseFloat(newRate))) {
       return;
     }
@@ -183,14 +204,17 @@ export function BusinessManagement() {
     }
 
     try {
-      const response = await fetch(`/api/admin/business/${businessId}/commission`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/admin/business/${businessId}/commission`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ adminCommissionRate: rate }),
         },
-        credentials: 'include',
-        body: JSON.stringify({ adminCommissionRate: rate }),
-      });
+      );
 
       if (response.ok) {
         toast({
@@ -207,7 +231,7 @@ export function BusinessManagement() {
         });
       }
     } catch (error) {
-      console.error('Error updating commission:', error);
+      console.error("Error updating commission:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -217,14 +241,18 @@ export function BusinessManagement() {
   };
 
   const handleDelete = async (businessId: number) => {
-    if (!confirm('Are you sure you want to delete this business? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this business? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       const response = await fetch(`/api/admin/business/${businessId}`, {
-        method: 'DELETE',
-        credentials: 'include',
+        method: "DELETE",
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -242,7 +270,7 @@ export function BusinessManagement() {
         });
       }
     } catch (error) {
-      console.error('Error deleting business:', error);
+      console.error("Error deleting business:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -295,14 +323,17 @@ export function BusinessManagement() {
     setIsUpdatingPassword(true);
 
     try {
-      const response = await fetch(`/api/admin/business/${selectedBusiness.id}/password`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/admin/business/${selectedBusiness.id}/password`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ password: newPassword }),
         },
-        credentials: 'include',
-        body: JSON.stringify({ password: newPassword }),
-      });
+      );
 
       if (response.ok) {
         toast({
@@ -310,8 +341,8 @@ export function BusinessManagement() {
           description: "Business password updated successfully",
         });
         setShowPasswordModal(false);
-        setNewPassword('');
-        setConfirmPassword('');
+        setNewPassword("");
+        setConfirmPassword("");
         setSelectedBusiness(null);
       } else {
         const data = await response.json();
@@ -322,7 +353,7 @@ export function BusinessManagement() {
         });
       }
     } catch (error) {
-      console.error('Error updating password:', error);
+      console.error("Error updating password:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -364,7 +395,9 @@ export function BusinessManagement() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Businesses</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Businesses
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalBusinesses}</div>
@@ -372,7 +405,9 @@ export function BusinessManagement() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Active Businesses</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Businesses
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.activeBusinesses}</div>
@@ -380,10 +415,14 @@ export function BusinessManagement() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Verified Businesses</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Verified Businesses
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.verifiedBusinesses}</div>
+              <div className="text-2xl font-bold">
+                {stats.verifiedBusinesses}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -405,8 +444,8 @@ export function BusinessManagement() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       {business.logo && (
-                        <img 
-                          src={business.logo} 
+                        <img
+                          src={business.logo}
                           alt={business.name}
                           className="w-6 h-6 rounded"
                         />
@@ -433,54 +472,80 @@ export function BusinessManagement() {
               </CardHeader>
               <CardContent>
                 {business.description && (
-                  <p className="text-sm text-gray-600 mb-4">{business.description}</p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {business.description}
+                  </p>
                 )}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   {business.category && (
                     <div>
-                      <span className="font-medium">Category:</span> {business.category}
+                      <span className="font-medium">Category:</span>{" "}
+                      {business.category}
                     </div>
                   )}
                   <div>
-                    <span className="font-medium">Admin Commission:</span> {business.adminCommissionRate}%
+                    <span className="font-medium">Admin Commission:</span>{" "}
+                    {business.adminCommissionRate}%
                   </div>
                   {business.country && (
                     <div>
-                      <span className="font-medium">Country:</span> {business.country}
+                      <span className="font-medium">Country:</span>{" "}
+                      {business.country}
                     </div>
                   )}
                   <div>
-                    <span className="font-medium">Registered:</span> {new Date(business.createdAt).toLocaleDateString()}
+                    <span className="font-medium">Registered:</span>{" "}
+                    {new Date(business.createdAt).toLocaleDateString()}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4 p-4 bg-muted rounded-lg">
                   <div>
-                    <span className="font-medium">Total Visits:</span> {business.totalVisits.toLocaleString()}
+                    <span className="font-medium">Total Visits:</span>{" "}
+                    {business.totalVisits.toLocaleString()}
                   </div>
                   <div>
-                    <span className="font-medium">Total Purchases:</span> {business.totalPurchases.toLocaleString()}
+                    <span className="font-medium">Total Purchases:</span>{" "}
+                    {business.totalPurchases.toLocaleString()}
                   </div>
                   <div>
-                    <span className="font-medium">Total Revenue:</span> ${business.totalRevenue.toLocaleString()}
+                    <span className="font-medium">Total Revenue:</span> $
+                    {business.totalRevenue.toLocaleString()}
                   </div>
                   <div>
-                    <span className="font-medium">Conversion Rate:</span> {business.totalVisits > 0 ? ((business.totalPurchases / business.totalVisits) * 100).toFixed(1) : 0}%
+                    <span className="font-medium">Conversion Rate:</span>{" "}
+                    {business.totalVisits > 0
+                      ? (
+                          (business.totalPurchases / business.totalVisits) *
+                          100
+                        ).toFixed(1)
+                      : 0}
+                    %
                   </div>
                 </div>
 
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Business URL Information</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">
+                    Business URL Information
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium text-blue-700">Domain:</span> 
-                      <span className="ml-2 font-mono text-blue-600">{business.domain}</span>
+                      <span className="font-medium text-blue-700">Domain:</span>
+                      <span className="ml-2 font-mono text-blue-600">
+                        {business.domain}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-medium text-blue-700">Website:</span> 
-                      <a href={business.website} target="_blank" rel="noopener noreferrer" 
-                         className="ml-2 text-blue-600 hover:text-blue-800 underline">
+                      <span className="font-medium text-blue-700">
+                        Website:
+                      </span>
+                      <a
+                        href={business.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                      >
                         {business.website}
                       </a>
                     </div>
@@ -491,12 +556,14 @@ export function BusinessManagement() {
                   <Button
                     variant={business.isActive ? "destructive" : "default"}
                     size="sm"
-                    onClick={() => handleToggleActive(business.id, business.isActive)}
+                    onClick={() =>
+                      handleToggleActive(business.id, business.isActive)
+                    }
                     className="flex-1 sm:flex-none"
                   >
                     {business.isActive ? "Deactivate" : "Activate"}
                   </Button>
-                  
+
                   {!business.isVerified && (
                     <Button
                       variant="outline"
@@ -507,16 +574,21 @@ export function BusinessManagement() {
                       Verify
                     </Button>
                   )}
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleUpdateCommission(business.id, business.adminCommissionRate)}
+                    onClick={() =>
+                      handleUpdateCommission(
+                        business.id,
+                        business.adminCommissionRate,
+                      )
+                    }
                     className="flex-1 sm:flex-none"
                   >
                     Set Commission
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -528,7 +600,7 @@ export function BusinessManagement() {
                   >
                     View Stats
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -541,7 +613,7 @@ export function BusinessManagement() {
                     <Lock className="h-4 w-4 mr-1" />
                     Update Password
                   </Button>
-                  
+
                   <Button
                     variant="destructive"
                     size="sm"
@@ -573,9 +645,13 @@ export function BusinessManagement() {
         <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Update Password for {selectedBusiness.name}</DialogTitle>
+              <DialogTitle>
+                Update Password for {selectedBusiness.name}
+              </DialogTitle>
               <DialogDescription>
-                Set a new password for this business account. The password must be at least 8 characters long and contain uppercase, lowercase, and a number.
+                Set a new password for this business account. The password must
+                be at least 8 characters long and contain uppercase, lowercase,
+                and a number.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -596,7 +672,11 @@ export function BusinessManagement() {
                     className="absolute right-0 top-0 h-full px-3"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -615,8 +695,8 @@ export function BusinessManagement() {
                   variant="outline"
                   onClick={() => {
                     setShowPasswordModal(false);
-                    setNewPassword('');
-                    setConfirmPassword('');
+                    setNewPassword("");
+                    setConfirmPassword("");
                     setSelectedBusiness(null);
                   }}
                 >
@@ -635,4 +715,4 @@ export function BusinessManagement() {
       )}
     </div>
   );
-} 
+}

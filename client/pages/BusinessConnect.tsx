@@ -1,12 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useBusinessAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useBusinessAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
   Link,
@@ -16,15 +22,15 @@ import {
   ExternalLink,
   Plus,
   Trash2,
-  RefreshCw
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+  RefreshCw,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ConnectedPage {
   id: string;
   url: string;
   domain: string;
-  status: 'active' | 'pending' | 'error';
+  status: "active" | "pending" | "error";
   addedAt: string;
   verifying?: boolean;
 }
@@ -33,22 +39,22 @@ export default function BusinessConnect() {
   const navigate = useNavigate();
   const { business, isBusinessLoading, isBusiness } = useBusinessAuth();
   const { toast } = useToast();
-  const [newPageUrl, setNewPageUrl] = useState('');
+  const [newPageUrl, setNewPageUrl] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [connectedPages, setConnectedPages] = useState<ConnectedPage[]>([
     {
-      id: '1',
-      url: 'https://example.com',
-      domain: 'example.com',
-      status: 'active',
-      addedAt: '2024-01-15'
-    }
+      id: "1",
+      url: "https://example.com",
+      domain: "example.com",
+      status: "active",
+      addedAt: "2024-01-15",
+    },
   ]);
 
   // Redirect to business login if not authenticated
   useEffect(() => {
     if (!isBusinessLoading && !isBusiness) {
-      navigate('/business-login');
+      navigate("/business-login");
     }
   }, [isBusinessLoading, isBusiness, navigate]);
 
@@ -84,13 +90,14 @@ export default function BusinessConnect() {
     // Basic URL validation
     try {
       const url = new URL(newPageUrl);
-      if (!url.protocol.startsWith('http')) {
-        throw new Error('Invalid protocol');
+      if (!url.protocol.startsWith("http")) {
+        throw new Error("Invalid protocol");
       }
     } catch {
       toast({
         title: "Invalid URL",
-        description: "Please enter a valid URL starting with http:// or https://",
+        description:
+          "Please enter a valid URL starting with http:// or https://",
         variant: "destructive",
       });
       return;
@@ -103,47 +110,52 @@ export default function BusinessConnect() {
       id: Date.now().toString(),
       url: newPageUrl,
       domain: new URL(newPageUrl).hostname,
-      status: 'pending',
-      addedAt: new Date().toISOString().split('T')[0]
+      status: "pending",
+      addedAt: new Date().toISOString().split("T")[0],
     };
 
     setConnectedPages([...connectedPages, newPage]);
-    setNewPageUrl('');
+    setNewPageUrl("");
     setIsAdding(false);
 
     toast({
       title: "Page Added",
-      description: "The page has been added. Click 'Verify' to check if the tracking script is installed.",
+      description:
+        "The page has been added. Click 'Verify' to check if the tracking script is installed.",
     });
   };
 
   const verifyPage = async (pageId: string) => {
-    const page = connectedPages.find(p => p.id === pageId);
+    const page = connectedPages.find((p) => p.id === pageId);
     if (!page) return;
 
     // Update page to show verifying state
-    setConnectedPages(connectedPages.map(p =>
-      p.id === pageId ? { ...p, verifying: true } : p
-    ));
+    setConnectedPages(
+      connectedPages.map((p) =>
+        p.id === pageId ? { ...p, verifying: true } : p,
+      ),
+    );
 
     try {
-      const response = await fetch('/api/business/verify-tracking', {
-        method: 'POST',
+      const response = await fetch("/api/business/verify-tracking", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          pageUrl: page.url
-        })
+          pageUrl: page.url,
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
         // Update page status to active
-        setConnectedPages(connectedPages.map(p =>
-          p.id === pageId ? { ...p, status: 'active', verifying: false } : p
-        ));
+        setConnectedPages(
+          connectedPages.map((p) =>
+            p.id === pageId ? { ...p, status: "active", verifying: false } : p,
+          ),
+        );
 
         toast({
           title: "Verification Successful!",
@@ -151,26 +163,32 @@ export default function BusinessConnect() {
         });
       } else {
         // Update page status to error
-        setConnectedPages(connectedPages.map(p =>
-          p.id === pageId ? { ...p, status: 'error', verifying: false } : p
-        ));
+        setConnectedPages(
+          connectedPages.map((p) =>
+            p.id === pageId ? { ...p, status: "error", verifying: false } : p,
+          ),
+        );
 
         toast({
           title: "Verification Failed",
-          description: data.error || "Could not verify tracking script. Please check the installation.",
+          description:
+            data.error ||
+            "Could not verify tracking script. Please check the installation.",
           variant: "destructive",
         });
 
         // Show detailed instructions if provided
         if (data.instructions) {
-          console.log('Installation instructions:', data.instructions);
+          console.log("Installation instructions:", data.instructions);
         }
       }
     } catch (error) {
-      console.error('Verification error:', error);
-      setConnectedPages(connectedPages.map(p =>
-        p.id === pageId ? { ...p, status: 'error', verifying: false } : p
-      ));
+      console.error("Verification error:", error);
+      setConnectedPages(
+        connectedPages.map((p) =>
+          p.id === pageId ? { ...p, status: "error", verifying: false } : p,
+        ),
+      );
 
       toast({
         title: "Verification Error",
@@ -181,7 +199,7 @@ export default function BusinessConnect() {
   };
 
   const removePage = (pageId: string) => {
-    setConnectedPages(connectedPages.filter(page => page.id !== pageId));
+    setConnectedPages(connectedPages.filter((page) => page.id !== pageId));
     toast({
       title: "Page Removed",
       description: "The page has been removed from your connected pages",
@@ -190,18 +208,22 @@ export default function BusinessConnect() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-100 text-green-800">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Active
-        </Badge>;
-      case 'pending':
+      case "active":
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+      case "pending":
         return <Badge variant="secondary">Pending</Badge>;
-      case 'error':
-        return <Badge variant="destructive">
-          <AlertCircle className="h-3 w-3 mr-1" />
-          Error
-        </Badge>;
+      case "error":
+        return (
+          <Badge variant="destructive">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Error
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">Unknown</Badge>;
     }
@@ -214,7 +236,7 @@ export default function BusinessConnect() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate('/business/integrate')}
+            onClick={() => navigate("/business/integrate")}
             className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -257,7 +279,7 @@ export default function BusinessConnect() {
                     onClick={handleAddPage}
                     disabled={isAdding || !newPageUrl.trim()}
                   >
-                    {isAdding ? 'Adding...' : 'Add Page'}
+                    {isAdding ? "Adding..." : "Add Page"}
                   </Button>
                 </div>
               </div>
@@ -287,7 +309,9 @@ export default function BusinessConnect() {
               <div className="text-center py-8 text-gray-500">
                 <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                 <p>No pages connected yet</p>
-                <p className="text-sm">Add your first page using the form above</p>
+                <p className="text-sm">
+                  Add your first page using the form above
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -313,7 +337,7 @@ export default function BusinessConnect() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {page.status === 'pending' && (
+                        {page.status === "pending" && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -326,7 +350,7 @@ export default function BusinessConnect() {
                                 Verifying...
                               </>
                             ) : (
-                              'Verify'
+                              "Verify"
                             )}
                           </Button>
                         )}
@@ -363,7 +387,9 @@ export default function BusinessConnect() {
                 </div>
                 <div>
                   <h3 className="font-medium">Add your pages</h3>
-                  <p className="text-sm text-gray-600">Enter the URLs of the pages you want to track</p>
+                  <p className="text-sm text-gray-600">
+                    Enter the URLs of the pages you want to track
+                  </p>
                 </div>
               </div>
 
@@ -373,7 +399,9 @@ export default function BusinessConnect() {
                 </div>
                 <div>
                   <h3 className="font-medium">Install tracking script</h3>
-                  <p className="text-sm text-gray-600">Copy and paste the tracking script into your website's HTML</p>
+                  <p className="text-sm text-gray-600">
+                    Copy and paste the tracking script into your website's HTML
+                  </p>
                 </div>
               </div>
 
@@ -383,7 +411,9 @@ export default function BusinessConnect() {
                 </div>
                 <div>
                   <h3 className="font-medium">Verify integration</h3>
-                  <p className="text-sm text-gray-600">Click "Verify" to check that tracking is working correctly</p>
+                  <p className="text-sm text-gray-600">
+                    Click "Verify" to check that tracking is working correctly
+                  </p>
                 </div>
               </div>
             </div>
@@ -392,4 +422,4 @@ export default function BusinessConnect() {
       </div>
     </div>
   );
-} 
+}

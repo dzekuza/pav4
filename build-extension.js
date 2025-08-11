@@ -1,38 +1,36 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuration
-const EXTENSION_DIR = path.join(__dirname, 'chrome-extension');
-const BUILD_DIR = path.join(__dirname, 'dist', 'chrome-extension');
+const EXTENSION_DIR = path.join(__dirname, "chrome-extension");
+const BUILD_DIR = path.join(__dirname, "dist", "chrome-extension");
 
 // Files to copy
 const FILES_TO_COPY = [
-  'manifest.json',
-  'background.js',
-  'content.js',
-  'content.css',
-  'popup.html',
-  'popup.css',
-  'popup.js',
-  'sidepanel.html',
-  'sidepanel.css',
-  'sidepanel.js',
-  'options.html',
-  'options.css',
-  'options.js',
-  'overlay.html'
+  "manifest.json",
+  "background.js",
+  "content.js",
+  "content.css",
+  "popup.html",
+  "popup.css",
+  "popup.js",
+  "sidepanel.html",
+  "sidepanel.css",
+  "sidepanel.js",
+  "options.html",
+  "options.css",
+  "options.js",
+  "overlay.html",
 ];
 
 // Directories to copy
-const DIRS_TO_COPY = [
-  'icons'
-];
+const DIRS_TO_COPY = ["icons"];
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
@@ -49,13 +47,13 @@ function copyFile(src, dest) {
 
 function copyDir(src, dest) {
   ensureDir(dest);
-  
+
   const items = fs.readdirSync(src);
-  
+
   for (const item of items) {
     const srcPath = path.join(src, item);
     const destPath = path.join(dest, item);
-    
+
     if (fs.statSync(srcPath).isDirectory()) {
       copyDir(srcPath, destPath);
     } else {
@@ -65,40 +63,40 @@ function copyDir(src, dest) {
 }
 
 function buildExtension() {
-  console.log('🚀 Building Chrome Extension...\n');
-  
+  console.log("🚀 Building Chrome Extension...\n");
+
   // Clean build directory
   if (fs.existsSync(BUILD_DIR)) {
     fs.rmSync(BUILD_DIR, { recursive: true });
   }
-  
+
   // Create build directory
   ensureDir(BUILD_DIR);
-  
+
   // Copy files
   for (const file of FILES_TO_COPY) {
     const srcPath = path.join(EXTENSION_DIR, file);
     const destPath = path.join(BUILD_DIR, file);
-    
+
     if (fs.existsSync(srcPath)) {
       copyFile(srcPath, destPath);
     } else {
       console.log(`⚠️  Warning: ${file} not found`);
     }
   }
-  
+
   // Copy directories
   for (const dir of DIRS_TO_COPY) {
     const srcPath = path.join(EXTENSION_DIR, dir);
     const destPath = path.join(BUILD_DIR, dir);
-    
+
     if (fs.existsSync(srcPath)) {
       copyDir(srcPath, destPath);
     } else {
       console.log(`⚠️  Warning: ${dir} directory not found`);
     }
   }
-  
+
   // Create README for installation
   const readmeContent = `# PriceHunt Chrome Extension - Built Version
 
@@ -140,20 +138,20 @@ This is the built version of the PriceHunt Chrome Extension.
 For more information, visit: https://pavlo4.netlify.app
 `;
 
-  fs.writeFileSync(path.join(BUILD_DIR, 'README.md'), readmeContent);
-  
-  console.log('\n✅ Chrome Extension built successfully!');
+  fs.writeFileSync(path.join(BUILD_DIR, "README.md"), readmeContent);
+
+  console.log("\n✅ Chrome Extension built successfully!");
   console.log(`📁 Build location: ${BUILD_DIR}`);
-  console.log('\n📋 Next steps:');
-  console.log('1. Open Chrome and go to chrome://extensions/');
+  console.log("\n📋 Next steps:");
+  console.log("1. Open Chrome and go to chrome://extensions/");
   console.log('2. Enable "Developer mode"');
   console.log('3. Click "Load unpacked" and select the build folder');
-  console.log('4. Visit a supported retailer and test the extension');
-  console.log('\n🎯 Test URLs:');
-  console.log('- https://www.amazon.com/dp/B08N5WRWNW');
-  console.log('- https://www.ebay.com/itm/example');
-  console.log('- https://www.walmart.com/ip/example');
+  console.log("4. Visit a supported retailer and test the extension");
+  console.log("\n🎯 Test URLs:");
+  console.log("- https://www.amazon.com/dp/B08N5WRWNW");
+  console.log("- https://www.ebay.com/itm/example");
+  console.log("- https://www.walmart.com/ip/example");
 }
 
 // Run the build
-buildExtension(); 
+buildExtension();

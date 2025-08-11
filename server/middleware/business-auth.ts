@@ -16,46 +16,46 @@ export function verifyBusinessToken(token: string) {
 export const requireBusinessAuth = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Check for token in cookies or Authorization header
     let token = req.cookies.business_token;
-    
+
     if (!token) {
       const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
       }
     }
 
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        error: "Authentication required" 
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
       });
     }
 
     const decoded = verifyBusinessToken(token);
     if (!decoded || decoded.type !== "business") {
-      return res.status(401).json({ 
-        success: false, 
-        error: "Invalid token" 
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
       });
     }
 
     const business = await businessService.findBusinessById(decoded.businessId);
     if (!business) {
-      return res.status(401).json({ 
-        success: false, 
-        error: "Business not found" 
+      return res.status(401).json({
+        success: false,
+        error: "Business not found",
       });
     }
 
     if (!business.isActive) {
-      return res.status(401).json({ 
-        success: false, 
-        error: "Business account is deactivated" 
+      return res.status(401).json({
+        success: false,
+        error: "Business account is deactivated",
       });
     }
 
@@ -70,9 +70,9 @@ export const requireBusinessAuth = async (
     next();
   } catch (error) {
     console.error("Business auth error:", error);
-    res.status(401).json({ 
-      success: false, 
-      error: "Authentication failed" 
+    res.status(401).json({
+      success: false,
+      error: "Authentication failed",
     });
   }
-}; 
+};

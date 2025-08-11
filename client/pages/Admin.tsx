@@ -11,7 +11,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Users, Search, Shield, Calendar, LogOut, ExternalLink } from "lucide-react";
+import {
+  Users,
+  Search,
+  Shield,
+  Calendar,
+  LogOut,
+  ExternalLink,
+} from "lucide-react";
 import { AdminUsersResponse } from "@shared/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AffiliateManager } from "@/components/AffiliateManager";
@@ -101,7 +108,9 @@ export default function Admin() {
     setFilterLoading(true);
     setFilterError("");
     try {
-      const res = await fetch("/api/admin/settings/suggestion-filter", { credentials: "include" });
+      const res = await fetch("/api/admin/settings/suggestion-filter", {
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setFilterEnabled(data.enabled);
@@ -140,7 +149,11 @@ export default function Admin() {
   if (isLoading || loadingUsers) {
     return (
       <div className="relative min-h-screen overflow-hidden text-white">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+        <img
+          src="/pagebg.png"
+          alt=""
+          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+        />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center">
@@ -154,7 +167,11 @@ export default function Admin() {
   if (!admin) {
     return (
       <div className="relative min-h-screen overflow-hidden text-white">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+        <img
+          src="/pagebg.png"
+          alt=""
+          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+        />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
           <Alert variant="destructive" className="max-w-md mx-auto">
@@ -172,16 +189,26 @@ export default function Admin() {
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-            <p className="text-white/70">Manage users and monitor system activity</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Admin Dashboard
+            </h1>
+            <p className="text-white/70">
+              Manage users and monitor system activity
+            </p>
             {admin && (
-              <p className="text-sm text-white/60 mt-1">Logged in as: {admin.email}</p>
+              <p className="text-sm text-white/60 mt-1">
+                Logged in as: {admin.email}
+              </p>
             )}
             <div className="mt-4 flex items-center gap-3">
               <Switch
@@ -190,11 +217,18 @@ export default function Admin() {
                 onCheckedChange={handleToggleFilter}
                 id="suggestion-filter-toggle"
               />
-              <label htmlFor="suggestion-filter-toggle" className="text-sm text-white">
+              <label
+                htmlFor="suggestion-filter-toggle"
+                className="text-sm text-white"
+              >
                 Show only suggestions from registered businesses
               </label>
-              {filterLoading && <span className="text-xs ml-2 text-white/60">Saving...</span>}
-              {filterError && <span className="text-xs text-red-300 ml-2">{filterError}</span>}
+              {filterLoading && (
+                <span className="text-xs ml-2 text-white/60">Saving...</span>
+              )}
+              {filterError && (
+                <span className="text-xs text-red-300 ml-2">{filterError}</span>
+              )}
             </div>
           </div>
           <Button
@@ -231,18 +265,24 @@ export default function Admin() {
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               <Card className="border-white/10 bg-white/5 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white">Total Users</CardTitle>
+                  <CardTitle className="text-sm font-medium text-white">
+                    Total Users
+                  </CardTitle>
                   <Users className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{totalUsers}</div>
-                  <p className="text-xs text-white/70">{adminUsers} admin{adminUsers !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-white/70">
+                    {adminUsers} admin{adminUsers !== 1 ? "s" : ""}
+                  </p>
                 </CardContent>
               </Card>
 
               <Card className="border-white/10 bg-white/5 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white">Total Searches</CardTitle>
+                  <CardTitle className="text-sm font-medium text-white">
+                    Total Searches
+                  </CardTitle>
                   <Search className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
@@ -253,11 +293,17 @@ export default function Admin() {
 
               <Card className="border-white/10 bg-white/5 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white">Avg. Searches/User</CardTitle>
+                  <CardTitle className="text-sm font-medium text-white">
+                    Avg. Searches/User
+                  </CardTitle>
                   <Calendar className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalUsers > 0 ? Math.round(totalSearches / totalUsers) : 0}</div>
+                  <div className="text-2xl font-bold">
+                    {totalUsers > 0
+                      ? Math.round(totalSearches / totalUsers)
+                      : 0}
+                  </div>
                   <p className="text-xs text-white/70">Per registered user</p>
                 </CardContent>
               </Card>
@@ -267,12 +313,16 @@ export default function Admin() {
             <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>
                 <CardTitle className="text-white">Registered Users</CardTitle>
-                <CardDescription className="text-white/80">All users registered in the system</CardDescription>
+                <CardDescription className="text-white/80">
+                  All users registered in the system
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {users.length === 0 ? (
-                    <p className="text-center text-white/70 py-8">No users found</p>
+                    <p className="text-center text-white/70 py-8">
+                      No users found
+                    </p>
                   ) : (
                     users.map((user) => (
                       <div
@@ -281,16 +331,22 @@ export default function Admin() {
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-white">{user.email}</span>
+                            <span className="font-medium text-white">
+                              {user.email}
+                            </span>
                             {user.isAdmin && (
                               <Badge variant="secondary">Admin</Badge>
                             )}
                           </div>
                           <div className="text-sm text-white/70">
-                            Joined {new Date(user.createdAt).toLocaleDateString()} • {user.searchCount} searches
+                            Joined{" "}
+                            {new Date(user.createdAt).toLocaleDateString()} •{" "}
+                            {user.searchCount} searches
                           </div>
                         </div>
-                        <div className="text-right text-sm text-white/70">ID: {user.id.toString().slice(0, 8)}...</div>
+                        <div className="text-right text-sm text-white/70">
+                          ID: {user.id.toString().slice(0, 8)}...
+                        </div>
                       </div>
                     ))
                   )}
@@ -307,4 +363,3 @@ export default function Admin() {
     </div>
   );
 }
-

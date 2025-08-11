@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Globe, Shield, CheckCircle, AlertCircle, Search } from "lucide-react";
+import {
+  MapPin,
+  Globe,
+  Shield,
+  CheckCircle,
+  AlertCircle,
+  Search,
+} from "lucide-react";
 import { LocationInfo } from "@shared/api";
 
 interface LocationPermissionProps {
@@ -18,11 +31,20 @@ interface SupportedCountry {
   timeZone: string;
 }
 
-export function LocationPermission({ onLocationDetected, onSkip }: LocationPermissionProps) {
-  const [status, setStatus] = useState<"idle" | "detecting" | "success" | "error" | "manual">("idle");
+export function LocationPermission({
+  onLocationDetected,
+  onSkip,
+}: LocationPermissionProps) {
+  const [status, setStatus] = useState<
+    "idle" | "detecting" | "success" | "error" | "manual"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
-  const [detectedLocation, setDetectedLocation] = useState<LocationInfo | null>(null);
-  const [supportedCountries, setSupportedCountries] = useState<SupportedCountry[]>([]);
+  const [detectedLocation, setDetectedLocation] = useState<LocationInfo | null>(
+    null,
+  );
+  const [supportedCountries, setSupportedCountries] = useState<
+    SupportedCountry[]
+  >([]);
   const [loadingCountries, setLoadingCountries] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -39,30 +61,138 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
       } else {
         // Fallback to common countries if API fails
         setSupportedCountries([
-          { country: "United States", countryCode: "US", region: "North America", currency: "$", timeZone: "America/New_York" },
-          { country: "Germany", countryCode: "DE", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
-          { country: "United Kingdom", countryCode: "GB", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
-          { country: "France", countryCode: "FR", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
-          { country: "Spain", countryCode: "ES", region: "Western Europe", currency: "€", timeZone: "Europe/Madrid" },
-          { country: "Italy", countryCode: "IT", region: "Western Europe", currency: "€", timeZone: "Europe/Rome" },
-          { country: "Lithuania", countryCode: "LT", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
-          { country: "Latvia", countryCode: "LV", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
-          { country: "Estonia", countryCode: "EE", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
+          {
+            country: "United States",
+            countryCode: "US",
+            region: "North America",
+            currency: "$",
+            timeZone: "America/New_York",
+          },
+          {
+            country: "Germany",
+            countryCode: "DE",
+            region: "Western Europe",
+            currency: "€",
+            timeZone: "Europe/Berlin",
+          },
+          {
+            country: "United Kingdom",
+            countryCode: "GB",
+            region: "Western Europe",
+            currency: "£",
+            timeZone: "Europe/London",
+          },
+          {
+            country: "France",
+            countryCode: "FR",
+            region: "Western Europe",
+            currency: "€",
+            timeZone: "Europe/Paris",
+          },
+          {
+            country: "Spain",
+            countryCode: "ES",
+            region: "Western Europe",
+            currency: "€",
+            timeZone: "Europe/Madrid",
+          },
+          {
+            country: "Italy",
+            countryCode: "IT",
+            region: "Western Europe",
+            currency: "€",
+            timeZone: "Europe/Rome",
+          },
+          {
+            country: "Lithuania",
+            countryCode: "LT",
+            region: "Baltic",
+            currency: "€",
+            timeZone: "Europe/Vilnius",
+          },
+          {
+            country: "Latvia",
+            countryCode: "LV",
+            region: "Baltic",
+            currency: "€",
+            timeZone: "Europe/Riga",
+          },
+          {
+            country: "Estonia",
+            countryCode: "EE",
+            region: "Baltic",
+            currency: "€",
+            timeZone: "Europe/Tallinn",
+          },
         ]);
       }
     } catch (err) {
       console.error("Failed to fetch supported countries:", err);
       // Use fallback countries
       setSupportedCountries([
-        { country: "United States", countryCode: "US", region: "North America", currency: "$", timeZone: "America/New_York" },
-        { country: "Germany", countryCode: "DE", region: "Western Europe", currency: "€", timeZone: "Europe/Berlin" },
-        { country: "United Kingdom", countryCode: "GB", region: "Western Europe", currency: "£", timeZone: "Europe/London" },
-        { country: "France", countryCode: "FR", region: "Western Europe", currency: "€", timeZone: "Europe/Paris" },
-        { country: "Spain", countryCode: "ES", region: "Western Europe", currency: "€", timeZone: "Europe/Madrid" },
-        { country: "Italy", countryCode: "IT", region: "Western Europe", currency: "€", timeZone: "Europe/Rome" },
-        { country: "Lithuania", countryCode: "LT", region: "Baltic", currency: "€", timeZone: "Europe/Vilnius" },
-        { country: "Latvia", countryCode: "LV", region: "Baltic", currency: "€", timeZone: "Europe/Riga" },
-        { country: "Estonia", countryCode: "EE", region: "Baltic", currency: "€", timeZone: "Europe/Tallinn" },
+        {
+          country: "United States",
+          countryCode: "US",
+          region: "North America",
+          currency: "$",
+          timeZone: "America/New_York",
+        },
+        {
+          country: "Germany",
+          countryCode: "DE",
+          region: "Western Europe",
+          currency: "€",
+          timeZone: "Europe/Berlin",
+        },
+        {
+          country: "United Kingdom",
+          countryCode: "GB",
+          region: "Western Europe",
+          currency: "£",
+          timeZone: "Europe/London",
+        },
+        {
+          country: "France",
+          countryCode: "FR",
+          region: "Western Europe",
+          currency: "€",
+          timeZone: "Europe/Paris",
+        },
+        {
+          country: "Spain",
+          countryCode: "ES",
+          region: "Western Europe",
+          currency: "€",
+          timeZone: "Europe/Madrid",
+        },
+        {
+          country: "Italy",
+          countryCode: "IT",
+          region: "Western Europe",
+          currency: "€",
+          timeZone: "Europe/Rome",
+        },
+        {
+          country: "Lithuania",
+          countryCode: "LT",
+          region: "Baltic",
+          currency: "€",
+          timeZone: "Europe/Vilnius",
+        },
+        {
+          country: "Latvia",
+          countryCode: "LV",
+          region: "Baltic",
+          currency: "€",
+          timeZone: "Europe/Riga",
+        },
+        {
+          country: "Estonia",
+          countryCode: "EE",
+          region: "Baltic",
+          currency: "€",
+          timeZone: "Europe/Tallinn",
+        },
       ]);
     } finally {
       setLoadingCountries(false);
@@ -71,16 +201,67 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
 
   const getCountryFlag = (countryCode: string) => {
     const flagMap: { [key: string]: string } = {
-      US: "🇺🇸", DE: "🇩🇪", GB: "🇬🇧", FR: "🇫🇷", ES: "🇪🇸", IT: "🇮🇹",
-      LT: "🇱🇹", LV: "🇱🇻", EE: "🇪🇪", PL: "🇵🇱", NL: "🇳🇱", BE: "🇧🇪",
-      AT: "🇦🇹", CH: "🇨🇭", SE: "🇸🇪", NO: "🇳🇴", DK: "🇩🇰", FI: "🇫🇮",
-      CZ: "🇨🇿", HU: "🇭🇺", RO: "🇷🇴", BG: "🇧🇬", HR: "🇭🇷", SK: "🇸🇰",
-      SI: "🇸🇮", IE: "🇮🇪", PT: "🇵🇹", GR: "🇬🇷", CY: "🇨🇾", MT: "🇲🇹",
-      LU: "🇱🇺", CA: "🇨🇦", MX: "🇲🇽", JP: "🇯🇵", KR: "🇰🇷", AU: "🇦🇺",
-      NZ: "🇳🇿", IN: "🇮🇳", SG: "🇸🇬", MY: "🇲🇾", TH: "🇹🇭", VN: "🇻🇳",
-      PH: "🇵🇭", ID: "🇮🇩", HK: "🇭🇰", TW: "🇹🇼", BR: "🇧🇷", AR: "🇦🇷",
-      CL: "🇨🇱", CO: "🇨🇴", PE: "🇵🇪", VE: "🇻🇪", ZA: "🇿🇦", EG: "🇪🇬",
-      NG: "🇳🇬", KE: "🇰🇪", GH: "🇬🇭", IL: "🇮🇱", AE: "🇦🇪", SA: "🇸🇦", TR: "🇹🇷"
+      US: "🇺🇸",
+      DE: "🇩🇪",
+      GB: "🇬🇧",
+      FR: "🇫🇷",
+      ES: "🇪🇸",
+      IT: "🇮🇹",
+      LT: "🇱🇹",
+      LV: "🇱🇻",
+      EE: "🇪🇪",
+      PL: "🇵🇱",
+      NL: "🇳🇱",
+      BE: "🇧🇪",
+      AT: "🇦🇹",
+      CH: "🇨🇭",
+      SE: "🇸🇪",
+      NO: "🇳🇴",
+      DK: "🇩🇰",
+      FI: "🇫🇮",
+      CZ: "🇨🇿",
+      HU: "🇭🇺",
+      RO: "🇷🇴",
+      BG: "🇧🇬",
+      HR: "🇭🇷",
+      SK: "🇸🇰",
+      SI: "🇸🇮",
+      IE: "🇮🇪",
+      PT: "🇵🇹",
+      GR: "🇬🇷",
+      CY: "🇨🇾",
+      MT: "🇲🇹",
+      LU: "🇱🇺",
+      CA: "🇨🇦",
+      MX: "🇲🇽",
+      JP: "🇯🇵",
+      KR: "🇰🇷",
+      AU: "🇦🇺",
+      NZ: "🇳🇿",
+      IN: "🇮🇳",
+      SG: "🇸🇬",
+      MY: "🇲🇾",
+      TH: "🇹🇭",
+      VN: "🇻🇳",
+      PH: "🇵🇭",
+      ID: "🇮🇩",
+      HK: "🇭🇰",
+      TW: "🇹🇼",
+      BR: "🇧🇷",
+      AR: "🇦🇷",
+      CL: "🇨🇱",
+      CO: "🇨🇴",
+      PE: "🇵🇪",
+      VE: "🇻🇪",
+      ZA: "🇿🇦",
+      EG: "🇪🇬",
+      NG: "🇳🇬",
+      KE: "🇰🇪",
+      GH: "🇬🇭",
+      IL: "🇮🇱",
+      AE: "🇦🇪",
+      SA: "🇸🇦",
+      TR: "🇹🇷",
     };
     return flagMap[countryCode] || "🌍";
   };
@@ -100,24 +281,28 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
         try {
           // Use reverse geocoding to get country from coordinates
           const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`,
           );
-          
+
           if (!response.ok) {
             throw new Error("Failed to get location data");
           }
 
           const data = await response.json();
           const countryCode = data.countryCode;
-          
+
           // Find the country in supported countries
-          const location = supportedCountries.find(c => c.countryCode === countryCode);
+          const location = supportedCountries.find(
+            (c) => c.countryCode === countryCode,
+          );
           if (location) {
             setDetectedLocation(location);
             setStatus("success");
           } else {
             // If detected country is not supported, default to US
-            const defaultLocation = supportedCountries.find(c => c.countryCode === "US") || supportedCountries[0];
+            const defaultLocation =
+              supportedCountries.find((c) => c.countryCode === "US") ||
+              supportedCountries[0];
             setDetectedLocation(defaultLocation);
             setStatus("success");
           }
@@ -130,7 +315,7 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
         setError("Location access denied or unavailable");
         setStatus("error");
       },
-      { timeout: 10000, enableHighAccuracy: false }
+      { timeout: 10000, enableHighAccuracy: false },
     );
   };
 
@@ -138,8 +323,8 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
     onLocationDetected(country);
   };
 
-  const filteredCountries = supportedCountries.filter(country =>
-    country.country.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCountries = supportedCountries.filter((country) =>
+    country.country.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -151,45 +336,50 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
           </div>
           <CardTitle>Detect Your Location</CardTitle>
           <CardDescription>
-            We'll use your location to show you the best prices and local retailers
+            We'll use your location to show you the best prices and local
+            retailers
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {status === "idle" && (
             <>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Shield className="h-4 w-4" />
+                <Shield className="h-5 w-5" />
                 <span>Your location is only used to find better prices</span>
               </div>
-              
+
               <div className="space-y-3">
-                <Button 
+                <Button
                   onClick={detectBrowserLocation}
                   className="w-full"
                   size="lg"
                 >
-                  <Globe className="mr-2 h-4 w-4" />
+                  <Globe className="mr-2 h-5 w-5" />
                   Detect My Location
                 </Button>
-                
+
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or select manually</span>
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or select manually
+                    </span>
                   </div>
                 </div>
-                
+
                 {loadingCountries ? (
                   <div className="text-center py-4">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-sm text-muted-foreground mt-2">Loading countries...</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Loading countries...
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <input
                         type="text"
                         placeholder="Search country..."
@@ -198,7 +388,7 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                         className="w-full pl-10 pr-4 py-2 border rounded-md text-sm"
                       />
                     </div>
-                    
+
                     <div className="max-h-60 overflow-y-auto space-y-1">
                       {filteredCountries.map((country) => (
                         <Button
@@ -208,7 +398,9 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                           onClick={() => selectManualLocation(country)}
                           className="w-full justify-start"
                         >
-                          <span className="mr-2">{getCountryFlag(country.countryCode)}</span>
+                          <span className="mr-2">
+                            {getCountryFlag(country.countryCode)}
+                          </span>
                           {country.country}
                         </Button>
                       ))}
@@ -239,7 +431,7 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                   {detectedLocation.country}
                 </Badge>
               </div>
-              <Button 
+              <Button
                 onClick={() => onLocationDetected(detectedLocation)}
                 className="w-full"
               >
@@ -254,10 +446,12 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                 <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="font-medium text-red-600 dark:text-red-400">Location detection failed</p>
+                <p className="font-medium text-red-600 dark:text-red-400">
+                  Location detection failed
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">{error}</p>
               </div>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => setStatus("manual")}
                 className="w-full"
@@ -273,7 +467,7 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                 Select your country to get localized results:
               </p>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search country..."
@@ -291,7 +485,9 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
                     onClick={() => selectManualLocation(country)}
                     className="w-full justify-start"
                   >
-                    <span className="mr-2">{getCountryFlag(country.countryCode)}</span>
+                    <span className="mr-2">
+                      {getCountryFlag(country.countryCode)}
+                    </span>
                     {country.country}
                   </Button>
                 ))}
@@ -300,8 +496,8 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
           )}
 
           <div className="pt-4 border-t">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={onSkip}
               className="w-full text-muted-foreground"
             >
@@ -312,4 +508,4 @@ export function LocationPermission({ onLocationDetected, onSkip }: LocationPermi
       </Card>
     </div>
   );
-} 
+}

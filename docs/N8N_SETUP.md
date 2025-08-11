@@ -23,13 +23,17 @@ The workflow consists of the following nodes:
 ## Workflow Configuration
 
 ### HTML Extract Node
+
 Extracts the following data using CSS selectors:
+
 - **Title**: `meta[property="og:title"]` (content attribute)
 - **Price**: `[itemprop="price"], .price, .product-price, [class*="price"]`
 - **Image**: `meta[property="og:image"]` (content attribute)
 
 ### Search API Integration
+
 Uses SearchAPI.io to find similar products:
+
 - **API Key**: `DzqyetWqB73LnNL7v96cWb7i`
 - **Engine**: Google
 - **Query**: Shortened product title (first 6 words)
@@ -37,6 +41,7 @@ Uses SearchAPI.io to find similar products:
 ## Environment Setup
 
 1. **Set N8N Webhook URL**:
+
    ```bash
    echo 'N8N_WEBHOOK_URL="https://your-n8n-instance.com/webhook/start-scrape"' >> .env
    ```
@@ -46,6 +51,7 @@ Uses SearchAPI.io to find similar products:
 ## Testing
 
 ### With Mock Data (Default)
+
 When the N8N webhook URL is not configured, the system uses mock data for testing:
 
 ```bash
@@ -55,6 +61,7 @@ curl -X POST http://localhost:8080/api/n8n-scrape \
 ```
 
 ### With Real N8N Workflow
+
 1. Deploy the N8N workflow to your instance
 2. Update the `N8N_WEBHOOK_URL` in your `.env` file
 3. Test with a real product URL
@@ -92,4 +99,4 @@ Visit `/new` to use the N8N-powered scraping system.
 - **More Reliable**: Better handling of different website structures
 - **Faster**: Optimized extraction process
 - **Extensible**: Easy to modify and extend the workflow
-- **Search Integration**: Automatic discovery of similar products 
+- **Search Integration**: Automatic discovery of similar products

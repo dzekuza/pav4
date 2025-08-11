@@ -5,6 +5,7 @@ This guide explains how to set up affiliate tracking and Google Tag Manager (GTM
 ## 🎯 Overview
 
 The implementation includes:
+
 - **Google Tag Manager (GTM)** integration for analytics
 - **Affiliate link generation** for major retailers
 - **Cross-domain tracking** with UTM parameters
@@ -14,6 +15,7 @@ The implementation includes:
 ## 📋 Prerequisites
 
 1. **Google Tag Manager Account**
+
    - Create a GTM account at [tagmanager.google.com](https://tagmanager.google.com)
    - Get your GTM container ID (format: `GTM-XXXXXXX`)
 
@@ -33,30 +35,42 @@ The implementation includes:
 ### 1. Configure Google Tag Manager
 
 #### Update GTM Container ID
+
 Replace `GTM-XXXXXXX` in `index.html` with your actual GTM container ID:
 
 ```html
 <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','YOUR-GTM-CONTAINER-ID');</script>
+<script>
+  (function (w, d, s, l, i) {
+    w[l] = w[l] || [];
+    w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+    var f = d.getElementsByTagName(s)[0],
+      j = d.createElement(s),
+      dl = l != "dataLayer" ? "&l=" + l : "";
+    j.async = true;
+    j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+    f.parentNode.insertBefore(j, f);
+  })(window, document, "script", "dataLayer", "YOUR-GTM-CONTAINER-ID");
+</script>
 <!-- End Google Tag Manager -->
 ```
 
 #### Create GTM Triggers
+
 In your GTM container, create the following triggers:
 
 1. **Affiliate Click Trigger**
+
    - Event name: `affiliate_click`
    - Fires on: Custom Event
 
 2. **Product Search Trigger**
+
    - Event name: `product_search`
    - Fires on: Custom Event
 
 3. **Price Comparison Trigger**
+
    - Event name: `price_comparison`
    - Fires on: Custom Event
 
@@ -70,15 +84,15 @@ Update the affiliate configuration in `client/lib/tracking.ts`:
 
 ```typescript
 const AFFILIATE_CONFIG: AffiliateConfig = {
-  amazonTag: 'your-amazon-tag-20',
-  ebayPartnerId: 'your-ebay-partner-id',
-  walmartAffiliateId: 'your-walmart-affiliate-id',
-  targetAffiliateId: 'your-target-affiliate-id',
-  bestbuyAffiliateId: 'your-bestbuy-affiliate-id',
-  appleAffiliateId: 'your-apple-affiliate-id',
-  playstationAffiliateId: 'your-playstation-affiliate-id',
-  neweggAffiliateId: 'your-newegg-affiliate-id',
-  costcoAffiliateId: 'your-costco-affiliate-id',
+  amazonTag: "your-amazon-tag-20",
+  ebayPartnerId: "your-ebay-partner-id",
+  walmartAffiliateId: "your-walmart-affiliate-id",
+  targetAffiliateId: "your-target-affiliate-id",
+  bestbuyAffiliateId: "your-bestbuy-affiliate-id",
+  appleAffiliateId: "your-apple-affiliate-id",
+  playstationAffiliateId: "your-playstation-affiliate-id",
+  neweggAffiliateId: "your-newegg-affiliate-id",
+  costcoAffiliateId: "your-costco-affiliate-id",
 };
 ```
 
@@ -92,6 +106,7 @@ The database schema has been updated with new tables:
 - `BusinessConversion` - Tracks business-specific conversions
 
 Run the database migration:
+
 ```bash
 npx prisma db push
 ```
@@ -99,6 +114,7 @@ npx prisma db push
 ## 📊 Tracking Events
 
 ### 1. Product Search Tracking
+
 ```typescript
 trackProductSearch({
   productUrl: "https://amazon.com/product",
@@ -108,11 +124,12 @@ trackProductSearch({
   referrer: "google.com",
   utmSource: "google",
   utmMedium: "cpc",
-  utmCampaign: "summer_sale"
+  utmCampaign: "summer_sale",
 });
 ```
 
 ### 2. Affiliate Click Tracking
+
 ```typescript
 trackAffiliateClick({
   productUrl: "https://amazon.com/product",
@@ -123,11 +140,12 @@ trackAffiliateClick({
   referrer: "pricehunt.com",
   utmSource: "pricehunt",
   utmMedium: "price_comparison",
-  utmCampaign: "product_search"
+  utmCampaign: "product_search",
 });
 ```
 
 ### 3. Price Comparison Tracking
+
 ```typescript
 trackPriceComparison({
   productUrl: "https://amazon.com/product",
@@ -143,6 +161,7 @@ trackPriceComparison({
 ```
 
 ### 4. Conversion Tracking
+
 ```typescript
 trackConversion({
   productUrl: "https://amazon.com/product",
@@ -153,7 +172,7 @@ trackConversion({
   referrer: "pricehunt.com",
   utmSource: "pricehunt",
   utmMedium: "price_comparison",
-  utmCampaign: "product_search"
+  utmCampaign: "product_search",
 });
 ```
 
@@ -162,14 +181,17 @@ trackConversion({
 The system automatically generates affiliate links for supported retailers:
 
 ### Amazon
+
 - Adds `tag` parameter with your Amazon Associates tag
 - Example: `https://amazon.com/product?tag=your-tag-20&ref=pricehunt`
 
 ### eBay
+
 - Adds `partner` parameter with your eBay Partner Network ID
 - Example: `https://ebay.com/product?partner=your-partner-id&ref=pricehunt`
 
 ### Other Retailers
+
 - Adds `affiliate` parameter with your affiliate ID
 - Example: `https://walmart.com/product?affiliate=your-affiliate-id&ref=pricehunt`
 
@@ -178,6 +200,7 @@ The system automatically generates affiliate links for supported retailers:
 ### API Endpoints
 
 1. **Get Affiliate Statistics**
+
    ```
    GET /api/affiliate/stats?startDate=2024-01-01&endDate=2024-12-31&retailer=amazon
    ```
@@ -188,6 +211,7 @@ The system automatically generates affiliate links for supported retailers:
    ```
 
 ### Sample Response
+
 ```json
 {
   "success": true,
@@ -216,12 +240,14 @@ The system automatically captures and stores UTM parameters:
 ## 🔒 Privacy & Compliance
 
 ### Data Collection
+
 - Session IDs for user journey tracking
 - IP addresses for fraud prevention
 - User agents for analytics
 - Referrer information for attribution
 
 ### GDPR Compliance
+
 - Session data is stored in sessionStorage
 - No persistent user tracking without consent
 - Data can be anonymized or deleted on request
@@ -229,17 +255,20 @@ The system automatically captures and stores UTM parameters:
 ## 🚀 Testing
 
 ### 1. Test GTM Integration
+
 1. Open browser developer tools
 2. Go to the Network tab
 3. Click on a product link
 4. Verify GTM events are firing
 
 ### 2. Test Affiliate Links
+
 1. Click "View Deal" on any product
 2. Verify affiliate parameters are added to URL
 3. Check that tracking data is sent to backend
 
 ### 3. Test Conversion Tracking
+
 1. Simulate a purchase on retailer site
 2. Verify conversion event is tracked
 3. Check database for conversion record
@@ -267,16 +296,19 @@ COSTCO_AFFILIATE_ID="your-costco-affiliate-id"
 ### Common Issues
 
 1. **GTM not loading**
+
    - Check CSP settings in `index.html`
    - Verify GTM container ID is correct
    - Check browser console for errors
 
 2. **Affiliate links not working**
+
    - Verify affiliate IDs are correct
    - Check that retailer domains are supported
    - Test with a simple product URL
 
 3. **Tracking events not firing**
+
    - Check browser console for JavaScript errors
    - Verify dataLayer is available
    - Test with GTM preview mode
@@ -289,6 +321,7 @@ COSTCO_AFFILIATE_ID="your-costco-affiliate-id"
 ## 📞 Support
 
 For issues or questions:
+
 1. Check browser console for errors
 2. Verify all configuration steps are complete
 3. Test with GTM preview mode
@@ -296,4 +329,4 @@ For issues or questions:
 
 ---
 
-**Note**: This implementation provides comprehensive tracking for affiliate marketing and user behavior analysis. Make sure to comply with all applicable privacy laws and affiliate program terms of service. 
+**Note**: This implementation provides comprehensive tracking for affiliate marketing and user behavior analysis. Make sure to comply with all applicable privacy laws and affiliate program terms of service.

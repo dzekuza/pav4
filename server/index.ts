@@ -20,12 +20,21 @@ import {
   getUserSearchHistory,
   getAllUsers,
 } from "./routes/auth";
-import { requireAuth, requireAdmin, optionalAuth, clearRLSContext } from "./middleware/auth";
+import {
+  requireAuth,
+  requireAdmin,
+  optionalAuth,
+  clearRLSContext,
+} from "./middleware/auth";
 import { requireAdminAuth } from "./middleware/admin-auth";
 import { promoteUserToAdmin } from "./routes/admin-auth";
 import { healthCheckHandler } from "./routes/health";
 import { getLocationHandler } from "./services/location";
-import { gracefulShutdown, checkDatabaseConnection, businessService } from "./services/database";
+import {
+  gracefulShutdown,
+  checkDatabaseConnection,
+  businessService,
+} from "./services/database";
 import {
   registerBusiness,
   getAllBusinesses,
@@ -73,7 +82,6 @@ import {
   verifyDomain,
   checkDomainVerification,
   getVerificationStatus,
-
 } from "./routes/domain-verification";
 
 // Load environment variables
@@ -86,79 +94,88 @@ console.log("NODE_ENV:", process.env.NODE_ENV);
 export async function createServer() {
   // Check database connection on startup
   const dbStatus = await checkDatabaseConnection();
-  console.log('Database status:', dbStatus.status, dbStatus.message);
+  console.log("Database status:", dbStatus.status, dbStatus.message);
 
   const app = express();
 
   // Trust Netlify/Heroku/Cloud proxy for correct req.ip and rate limiting
-  app.set('trust proxy', 1);
+  app.set("trust proxy", 1);
 
   // Security middleware
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "blob:",
-          "https://pavlo4.netlify.app",
-          "https://www.googletagmanager.com",
-          "https://www.google-analytics.com",
-          "https://esm.sh",
-          "https://unpkg.com",
-          "https://cdn.jsdelivr.net"
-        ],
-        // For completeness include script-src-elem with same policy
-        scriptSrcElem: [
-          "'self'",
-          "'unsafe-inline'",
-          "blob:",
-          "https://pavlo4.netlify.app",
-          "https://www.googletagmanager.com",
-          "https://www.google-analytics.com",
-          "https://esm.sh",
-          "https://unpkg.com",
-          "https://cdn.jsdelivr.net"
-        ],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://rsms.me"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: [
-          "'self'",
-          "https://api.searchapi.io",
-          "https://n8n.srv824584.hstgr.cloud",
-          "https://pavlo4.netlify.app",
-          "http://localhost:5746",
-          "http://localhost:5747",
-          "http://localhost:8082",
-          "http://localhost:8083",
-          "http://localhost:8084",
-          "ws://localhost:5746",
-          "ws://localhost:5747",
-          "ws://localhost:8082",
-          "ws://localhost:8083",
-          "ws://localhost:8084"
-        ],
-        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://rsms.me"],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "blob:",
+            "https://pavlo4.netlify.app",
+            "https://www.googletagmanager.com",
+            "https://www.google-analytics.com",
+            "https://esm.sh",
+            "https://unpkg.com",
+            "https://cdn.jsdelivr.net",
+          ],
+          // For completeness include script-src-elem with same policy
+          scriptSrcElem: [
+            "'self'",
+            "'unsafe-inline'",
+            "blob:",
+            "https://pavlo4.netlify.app",
+            "https://www.googletagmanager.com",
+            "https://www.google-analytics.com",
+            "https://esm.sh",
+            "https://unpkg.com",
+            "https://cdn.jsdelivr.net",
+          ],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://fonts.googleapis.com",
+            "https://rsms.me",
+          ],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: [
+            "'self'",
+            "https://api.searchapi.io",
+            "https://n8n.srv824584.hstgr.cloud",
+            "https://pavlo4.netlify.app",
+            "http://localhost:5746",
+            "http://localhost:5747",
+            "http://localhost:8082",
+            "http://localhost:8083",
+            "http://localhost:8084",
+            "ws://localhost:5746",
+            "ws://localhost:5747",
+            "ws://localhost:8082",
+            "ws://localhost:8083",
+            "ws://localhost:8084",
+          ],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "https://rsms.me"],
+        },
       },
-    },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true
-    }
-  }));
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    }),
+  );
 
   // Compression middleware
-  app.use(compression({
-    filter: (req, res) => {
-      if (req.headers['x-no-compression']) {
-        return false;
-      }
-      return compression.filter(req, res);
-    },
-    level: 6,
-  }));
+  app.use(
+    compression({
+      filter: (req, res) => {
+        if (req.headers["x-no-compression"]) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
+      level: 6,
+    }),
+  );
 
   // CORS configuration
   const allowedOrigins = [
@@ -171,12 +188,15 @@ export async function createServer() {
     "https://pavlo4.netlify.app",
     "https://app.pavlo.com", // Assuming this is your custom domain
     "http://127.0.0.1:8083",
-    "http://[::1]:8083"
+    "http://[::1]:8083",
   ];
 
   const corsOptions = {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some(allowedOrigin => origin.startsWith(allowedOrigin))) {
+      if (
+        !origin ||
+        allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))
+      ) {
         callback(null, true);
       } else {
         console.error(`CORS error: Origin ${origin} not allowed`);
@@ -184,9 +204,9 @@ export async function createServer() {
       }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['Set-Cookie'],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"],
   };
 
   app.use(cors(corsOptions));
@@ -208,23 +228,21 @@ export async function createServer() {
   app.get("/api/demo", cache(300), handleDemo); // Cache for 5 minutes
   app.get("/api/location", cache(600), getLocationHandler); // Cache for 10 minutes
   app.post("/api/location", getLocationHandler);
-  app.get("/api/supported-countries", cache(3600), (req, res) => { // Cache for 1 hour
+  app.get("/api/supported-countries", cache(3600), (req, res) => {
+    // Cache for 1 hour
     const { getSupportedCountries } = require("./services/location");
     const countries = getSupportedCountries();
     res.json({ countries });
   });
 
   // Authentication routes without rate limiting
-  app.post("/api/auth/register",
+  app.post(
+    "/api/auth/register",
     validateRegistration,
     handleValidationErrors,
-    register
+    register,
   );
-  app.post("/api/auth/login",
-    validateLogin,
-    handleValidationErrors,
-    login
-  );
+  app.post("/api/auth/login", validateLogin, handleValidationErrors, login);
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
 
@@ -247,15 +265,17 @@ export async function createServer() {
   app.use("/api/sales", salesRouter);
 
   // Business authentication routes without rate limiting
-  app.post("/api/business/auth/register",
+  app.post(
+    "/api/business/auth/register",
     validateBusinessRegistration,
     handleValidationErrors,
-    registerBusinessAuth
+    registerBusinessAuth,
   );
-  app.post("/api/business/auth/login",
+  app.post(
+    "/api/business/auth/login",
     validateLogin,
     handleValidationErrors,
-    loginBusiness
+    loginBusiness,
   );
   app.get("/api/business/auth/me", getCurrentBusiness);
   app.post("/api/business/auth/logout", logoutBusiness);
@@ -272,36 +292,36 @@ export async function createServer() {
   // Test tracking route
   app.post("/api/test-tracking", async (req, res) => {
     try {
-      console.log('Test tracking route called');
+      console.log("Test tracking route called");
       const { prisma } = await import("./services/database");
-      
+
       const testEvent = await prisma.trackingEvent.create({
         data: {
-          eventType: 'test',
+          eventType: "test",
           businessId: 1,
-          affiliateId: 'test-affiliate-123',
-          platform: 'test',
-          sessionId: 'test-session',
-          userAgent: 'test-agent',
-          referrer: 'test-referrer',
+          affiliateId: "test-affiliate-123",
+          platform: "test",
+          sessionId: "test-session",
+          userAgent: "test-agent",
+          referrer: "test-referrer",
           timestamp: new Date(),
-          url: 'test-url',
+          url: "test-url",
           eventData: { test: true },
-          ipAddress: '127.0.0.1'
-        }
+          ipAddress: "127.0.0.1",
+        },
       });
-      
+
       res.json({
         success: true,
         message: "Test tracking event created",
-        event_id: testEvent.id
+        event_id: testEvent.id,
       });
     } catch (error) {
       console.error("Test tracking error:", error);
       res.status(500).json({
         success: false,
         error: "Test tracking failed",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -312,21 +332,63 @@ export async function createServer() {
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
 
   // Domain verification routes
-  app.post("/api/domain-verification/generate-token", requireBusinessAuth, generateVerificationToken);
-  app.post("/api/domain-verification/verify", requireBusinessAuth, verifyDomain);
+  app.post(
+    "/api/domain-verification/generate-token",
+    requireBusinessAuth,
+    generateVerificationToken,
+  );
+  app.post(
+    "/api/domain-verification/verify",
+    requireBusinessAuth,
+    verifyDomain,
+  );
   app.get("/api/domain-verification/check", checkDomainVerification);
 
-app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getVerificationStatus);
+  app.get(
+    "/api/domain-verification/status/:businessId",
+    requireBusinessAuth,
+    getVerificationStatus,
+  );
 
   // Admin business routes
   app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);
-  app.get("/api/admin/business/stats", requireAuth, requireAdmin, getBusinessStats);
-  app.get("/api/admin/business/:id/stats", requireAuth, requireAdmin, getBusinessDetailedStats);
+  app.get(
+    "/api/admin/business/stats",
+    requireAuth,
+    requireAdmin,
+    getBusinessStats,
+  );
+  app.get(
+    "/api/admin/business/:id/stats",
+    requireAuth,
+    requireAdmin,
+    getBusinessDetailedStats,
+  );
   app.put("/api/admin/business/:id", requireAuth, requireAdmin, updateBusiness);
-  app.put("/api/admin/business/:id/commission", requireAuth, requireAdmin, updateBusinessCommission);
-  app.put("/api/admin/business/:id/password", requireAuth, requireAdmin, updateBusinessPassword);
-  app.delete("/api/admin/business/:id", requireAuth, requireAdmin, deleteBusiness);
-  app.post("/api/admin/business/:id/verify", requireAuth, requireAdmin, verifyBusiness);
+  app.put(
+    "/api/admin/business/:id/commission",
+    requireAuth,
+    requireAdmin,
+    updateBusinessCommission,
+  );
+  app.put(
+    "/api/admin/business/:id/password",
+    requireAuth,
+    requireAdmin,
+    updateBusinessPassword,
+  );
+  app.delete(
+    "/api/admin/business/:id",
+    requireAuth,
+    requireAdmin,
+    deleteBusiness,
+  );
+  app.post(
+    "/api/admin/business/:id/verify",
+    requireAuth,
+    requireAdmin,
+    verifyBusiness,
+  );
 
   // Favorites routes
   app.use("/api/favorites", favoritesRouter);
@@ -340,39 +402,27 @@ app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getV
   app.get("/api/legacy/search-history", getSearchHistory);
 
   // Public search routes without rate limiting
-  app.post("/api/scrape",
-    validateUrl,
-    (req, res) => {
-      req.url = '/n8n-scrape';
-      n8nScrapeRouter(req, res, () => { });
-    }
-  );
-  
+  app.post("/api/scrape", validateUrl, (req, res) => {
+    req.url = "/n8n-scrape";
+    n8nScrapeRouter(req, res, () => {});
+  });
+
   // Redirect routes - mount before catch-all to ensure priority
   app.use("/api", redirectRouter);
   app.use("/api", trackSaleRouter);
   app.use("/api", trackProductVisitRouter);
-  
-  app.use("/api",
-    validateUrl,
-    n8nScrapeRouter
-  ); // N8N scraping routes (public)
+
+  app.use("/api", validateUrl, n8nScrapeRouter); // N8N scraping routes (public)
 
   // TestSprite compatibility routes with rate limiting and validation
-  app.post("/api/scrape-product",
-    validateUrl,
-    (req, res) => {
-      req.url = '/n8n-scrape';
-      n8nScrapeRouter(req, res, () => { });
-    }
-  );
-  app.post("/api/n8n-webhook-scrape",
-    validateUrl,
-    (req, res) => {
-      req.url = '/n8n-scrape';
-      n8nScrapeRouter(req, res, () => { });
-    }
-  );
+  app.post("/api/scrape-product", validateUrl, (req, res) => {
+    req.url = "/n8n-scrape";
+    n8nScrapeRouter(req, res, () => {});
+  });
+  app.post("/api/n8n-webhook-scrape", validateUrl, (req, res) => {
+    req.url = "/n8n-scrape";
+    n8nScrapeRouter(req, res, () => {});
+  });
   app.get("/api/location-info", getLocationHandler);
 
   // Health check route
@@ -380,66 +430,89 @@ app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getV
 
   // Test tracking page
   app.get("/test-tracking.html", (req, res) => {
-    res.sendFile('public/test-tracking.html', { root: process.cwd() });
+    res.sendFile("public/test-tracking.html", { root: process.cwd() });
   });
 
   // Affiliate/product redirect route for tracking
-  app.get('/go/:affiliateId/:productId', async (req, res) => {
+  app.get("/go/:affiliateId/:productId", async (req, res) => {
     const { affiliateId, productId } = req.params;
     // Look up the real product URL
-    const productUrl = await businessService.getProductUrlByAffiliateAndProductId(affiliateId, productId);
+    const productUrl =
+      await businessService.getProductUrlByAffiliateAndProductId(
+        affiliateId,
+        productId,
+      );
     if (!productUrl) {
-      return res.status(404).send('Product not found');
+      return res.status(404).send("Product not found");
     }
     // Log the click
     await businessService.logClick({
       affiliateId,
       productId,
       userId: req.user?.id,
-      userAgent: req.get('User-Agent'),
-      referrer: req.get('Referer'),
+      userAgent: req.get("User-Agent"),
+      referrer: req.get("Referer"),
       ip: req.ip,
     });
     // Build redirect URL with UTM parameters and a unique token
     const utmParams = new URLSearchParams({
-      utm_source: 'pavlo4',
-      utm_medium: 'affiliate',
-      utm_campaign: 'product_suggestion',
+      utm_source: "pavlo4",
+      utm_medium: "affiliate",
+      utm_campaign: "product_suggestion",
       aff_token: Math.random().toString(36).slice(2, 12),
     });
-    const redirectUrl = productUrl + (productUrl.includes('?') ? '&' : '?') + utmParams.toString();
+    const redirectUrl =
+      productUrl +
+      (productUrl.includes("?") ? "&" : "?") +
+      utmParams.toString();
     return res.redirect(302, redirectUrl);
   });
 
   // Admin: Get suggestion filter state
-  app.get("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, async (req, res) => {
-    try {
-      const enabled = await businessService.getSuggestionFilterEnabled();
-      res.json({ enabled });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to get suggestion filter state" });
-    }
-  });
+  app.get(
+    "/api/admin/settings/suggestion-filter",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const enabled = await businessService.getSuggestionFilterEnabled();
+        res.json({ enabled });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ error: "Failed to get suggestion filter state" });
+      }
+    },
+  );
 
   // Admin: Set suggestion filter state
-  app.post("/api/admin/settings/suggestion-filter", requireAuth, requireAdmin, express.json(), async (req, res) => {
-    try {
-      const { enabled } = req.body;
-      if (typeof enabled !== "boolean") {
-        return res.status(400).json({ error: "'enabled' must be a boolean" });
+  app.post(
+    "/api/admin/settings/suggestion-filter",
+    requireAuth,
+    requireAdmin,
+    express.json(),
+    async (req, res) => {
+      try {
+        const { enabled } = req.body;
+        if (typeof enabled !== "boolean") {
+          return res.status(400).json({ error: "'enabled' must be a boolean" });
+        }
+        await businessService.setSuggestionFilterEnabled(enabled);
+        res.json({ success: true });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ error: "Failed to set suggestion filter state" });
       }
-      await businessService.setSuggestionFilterEnabled(enabled);
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to set suggestion filter state" });
-    }
-  });
+    },
+  );
 
   // Business: Get user activity (click logs)
   app.get("/api/business/activity", requireBusinessAuth, async (req, res) => {
     try {
       const businessId = (req as any).business?.id;
-      if (!businessId) return res.status(401).json({ error: "Not authenticated as business" });
+      if (!businessId)
+        return res.status(401).json({ error: "Not authenticated as business" });
       const logs = await businessService.getBusinessClickLogs(businessId);
       res.json({ logs });
     } catch (err) {
@@ -454,40 +527,45 @@ app.get("/api/domain-verification/status/:businessId", requireBusinessAuth, getV
   app.get("/api/business/activity/conversions", getBusinessConversions);
 
   // Business: Get tracking events activity
-  app.get("/api/business/activity/events", requireBusinessAuth, async (req, res) => {
-    try {
-      const businessId = (req as any).business?.id;
-      if (!businessId) {
-        return res.status(401).json({ error: "Not authenticated as business" });
+  app.get(
+    "/api/business/activity/events",
+    requireBusinessAuth,
+    async (req, res) => {
+      try {
+        const businessId = (req as any).business?.id;
+        if (!businessId) {
+          return res
+            .status(401)
+            .json({ error: "Not authenticated as business" });
+        }
+
+        const { limit = 100, offset = 0 } = req.query;
+        const { prisma } = await import("./services/database");
+
+        const events = await prisma.trackingEvent.findMany({
+          where: {
+            businessId: businessId,
+          },
+          orderBy: {
+            timestamp: "desc",
+          },
+          take: parseInt(limit as string),
+          skip: parseInt(offset as string),
+        });
+
+        res.json({
+          success: true,
+          events: events,
+        });
+      } catch (error) {
+        console.error("Error getting business tracking events:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to get tracking events",
+        });
       }
-
-      const { limit = 100, offset = 0 } = req.query;
-      const { prisma } = await import("./services/database");
-      
-      const events = await prisma.trackingEvent.findMany({
-        where: {
-          businessId: businessId
-        },
-        orderBy: {
-          timestamp: 'desc'
-        },
-        take: parseInt(limit as string),
-        skip: parseInt(offset as string)
-      });
-
-      res.json({
-        success: true,
-        events: events
-      });
-
-    } catch (error) {
-      console.error("Error getting business tracking events:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to get tracking events"
-      });
-    }
-  });
+    },
+  );
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {

@@ -134,7 +134,7 @@
   }
 
   #root:empty::after {
-    content: '';
+    content: "";
     width: 50px;
     height: 50px;
     border: 3px solid rgba(255, 255, 255, 0.3);
@@ -144,29 +144,41 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @keyframes background-gradient {
     0% {
-      transform: translate(calc(var(--tx-1) * 100px), calc(var(--ty-1) * 100px)) scale(1);
+      transform: translate(calc(var(--tx-1) * 100px), calc(var(--ty-1) * 100px))
+        scale(1);
     }
     25% {
-      transform: translate(calc(var(--tx-2) * 100px), calc(var(--ty-2) * 100px)) scale(1.1);
+      transform: translate(calc(var(--tx-2) * 100px), calc(var(--ty-2) * 100px))
+        scale(1.1);
     }
     50% {
-      transform: translate(calc(var(--tx-3) * 100px), calc(var(--ty-3) * 100px)) scale(0.9);
+      transform: translate(calc(var(--tx-3) * 100px), calc(var(--ty-3) * 100px))
+        scale(0.9);
     }
     75% {
-      transform: translate(calc(var(--tx-4) * 100px), calc(var(--ty-4) * 100px)) scale(1.05);
+      transform: translate(calc(var(--tx-4) * 100px), calc(var(--ty-4) * 100px))
+        scale(1.05);
     }
     100% {
-      transform: translate(calc(var(--tx-1) * 100px), calc(var(--ty-1) * 100px)) scale(1);
+      transform: translate(calc(var(--tx-1) * 100px), calc(var(--ty-1) * 100px))
+        scale(1);
     }
   }
 
   .animate-background-gradient {
-    animation: background-gradient var(--animation-duration, 5s) infinite ease-in-out;
+    animation: background-gradient var(--animation-duration, 5s) infinite
+      ease-in-out;
+  }
+
+  html, body {
+    overflow-x: hidden;
   }
 
   body {
@@ -176,7 +188,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "liga" 1, "calt" 1, "rlig" 1;
+    font-feature-settings:
+      "liga" 1,
+      "calt" 1,
+      "rlig" 1;
     /* Fix global line height/spacing */
     line-height: 1.5;
     letter-spacing: 0em;
@@ -184,22 +199,36 @@
   }
 
   /* Tighten headings to avoid excessive line spacing */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     line-height: 1.15;
     letter-spacing: -0.01em;
   }
 
   /* Comfortable reading for paragraphs and list items */
-  p, li {
+  p,
+  li {
     line-height: 1.65;
   }
 
   .bg-brand-gradient {
-    background: linear-gradient(135deg, hsl(var(--brand-gradient-from)), hsl(var(--brand-gradient-to)));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--brand-gradient-from)),
+      hsl(var(--brand-gradient-to))
+    );
   }
 
   .progress-bar {
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
+    background: linear-gradient(
+      90deg,
+      hsl(var(--primary)),
+      hsl(var(--primary) / 0.8)
+    );
   }
 
   .sidebar-wrapper {
@@ -215,11 +244,19 @@
   }
 
   .progress-indicator {
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.6));
+    background: linear-gradient(
+      90deg,
+      hsl(var(--primary)),
+      hsl(var(--primary) / 0.6)
+    );
   }
 
   .chart-indicator {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--primary) / 0.8)
+    );
   }
 
   .chart-legend-item {
@@ -232,12 +269,12 @@
       padding-left: 1rem;
       padding-right: 1rem;
     }
-    
+
     .mobile-text-sm {
       font-size: 0.875rem;
       line-height: 1.25rem;
     }
-    
+
     .mobile-text-xs {
       font-size: 0.75rem;
       line-height: 1rem;
@@ -297,17 +334,46 @@
     .mobile-card {
       margin-bottom: 0.75rem;
     }
-    
+
     .mobile-card-content {
       padding: 0.75rem;
     }
-    
+
     .mobile-flex-col {
       flex-direction: column;
     }
-    
+
     .mobile-space-y {
       margin-top: 0.5rem;
     }
+  }
+
+  /* Icon rendering improvements */
+  svg {
+    shape-rendering: geometricPrecision;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ensure icons are crisp on all devices */
+  .lucide {
+    display: inline-block;
+    vertical-align: middle;
+    shape-rendering: geometricPrecision;
+  }
+
+  /* Improve flag emoji rendering */
+  .flag-emoji {
+    font-family:
+      "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+      "Android Emoji", "EmojiSymbols", "EmojiOne Mozilla", "Twemoji Mozilla",
+      "Segoe UI Symbol", sans-serif;
+    font-feature-settings:
+      "liga" 1,
+      "calt" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

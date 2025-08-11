@@ -1,4 +1,12 @@
-import { ArrowLeft, TrendingUp, User, LogOut, Shield, Building2, Heart } from "lucide-react";
+import {
+  ArrowLeft,
+  TrendingUp,
+  User,
+  LogOut,
+  Shield,
+  Building2,
+  Heart,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -24,7 +32,8 @@ export function SearchHeader({
   title = "PriceHunt",
 }: SearchHeaderProps) {
   const { isAuthenticated, user, logout, isAdmin, isLoading } = useAuth();
-  const { isBusiness, business, isBusinessLoading, logoutBusiness } = useBusinessAuth();
+  const { isBusiness, business, isBusinessLoading, logoutBusiness } =
+    useBusinessAuth();
   const { favorites } = useFavorites();
   const navigate = useNavigate();
 
@@ -41,12 +50,16 @@ export function SearchHeader({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-2">
-                <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
+                <img
+                  src="/ipicklogo.png"
+                  alt="ipick.io"
+                  className="h-8 w-auto"
+                />
               </Link>
               {showBackButton && (
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    <ArrowLeft className="mr-2 h-5 w-5" />
                     New Search
                   </Link>
                 </Button>
@@ -75,7 +88,9 @@ export function SearchHeader({
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="p-0 rounded-full h-9 w-9">
             <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-white text-black">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-white text-black">
+                {initials}
+              </AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -129,13 +144,11 @@ export function SearchHeader({
             <Link to="/" className="flex items-center space-x-2">
               <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
             </Link>
-            {showBackButton && (
-              <></>
-            )}
+            {showBackButton && <></>}
           </div>
 
           <nav className="flex items-center space-x-2 sm:space-x-4">
-            {(isAuthenticated || isBusiness) ? (
+            {isAuthenticated || isBusiness ? (
               <ProfileDropdown />
             ) : (
               <>

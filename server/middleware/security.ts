@@ -1,13 +1,13 @@
 import { RequestHandler } from "express";
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import { body, validationResult } from 'express-validator';
-import mcache from 'memory-cache';
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import { body, validationResult } from "express-validator";
+import mcache from "memory-cache";
 
 // Rate limiting middleware
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 attempts per window
-  message: { error: 'Too many login attempts, please try again later' },
+  message: { error: "Too many login attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
@@ -16,7 +16,7 @@ export const authRateLimit = rateLimit({
 export const apiRateLimit = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute
-  message: { error: 'Too many requests, please try again later' },
+  message: { error: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -24,69 +24,72 @@ export const apiRateLimit = rateLimit({
 export const businessRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts per window
-  message: { error: 'Too many business operations, please try again later' },
+  message: { error: "Too many business operations, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 // Input validation middleware
 export const validateRegistration = [
-  body('email')
+  body("email")
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email address'),
-  body('password')
+    .withMessage("Please provide a valid email address"),
+  body("password")
     .isLength({ min: 8 })
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must be at least 8 characters with uppercase, lowercase, and number'),
+    .withMessage(
+      "Password must be at least 8 characters with uppercase, lowercase, and number",
+    ),
 ];
 
 export const validateBusinessRegistration = [
-  body('email')
+  body("email")
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email address'),
-  body('password')
+    .withMessage("Please provide a valid email address"),
+  body("password")
     .isLength({ min: 8 })
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must be at least 8 characters with uppercase, lowercase, and number'),
-  body('name')
+    .withMessage(
+      "Password must be at least 8 characters with uppercase, lowercase, and number",
+    ),
+  body("name")
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('Business name must be between 2 and 100 characters'),
-  body('domain')
+    .withMessage("Business name must be between 2 and 100 characters"),
+  body("domain")
     .isFQDN()
-    .withMessage('Please provide a valid domain (e.g., example.com)'),
-  body('website')
-    .custom((value) => {
-      // Accept if it's a valid URL (with protocol)
-      try {
-        new URL(value);
-        return true;
-      } catch {}
-      // Accept if it's a valid FQDN (plain domain)
-      const fqdnRegex = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.[A-Za-z]{2,}$/;
-      if (fqdnRegex.test(value)) return true;
-      throw new Error('Please provide a valid website URL or domain (e.g., example.com or https://example.com)');
-    }),
+    .withMessage("Please provide a valid domain (e.g., example.com)"),
+  body("website").custom((value) => {
+    // Accept if it's a valid URL (with protocol)
+    try {
+      new URL(value);
+      return true;
+    } catch {}
+    // Accept if it's a valid FQDN (plain domain)
+    const fqdnRegex = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.[A-Za-z]{2,}$/;
+    if (fqdnRegex.test(value)) return true;
+    throw new Error(
+      "Please provide a valid website URL or domain (e.g., example.com or https://example.com)",
+    );
+  }),
 ];
 
 export const validateLogin = [
-  body('email')
+  body("email")
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email address'),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required'),
+    .withMessage("Please provide a valid email address"),
+  body("password").notEmpty().withMessage("Password is required"),
 ];
 
 export const handleValidationErrors: RequestHandler = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
-      error: 'Validation failed', 
-      details: errors.array() 
+    return res.status(400).json({
+      error: "Validation failed",
+      details: errors.array(),
     });
   }
   next();
@@ -97,12 +100,12 @@ export const cache = (duration: number) => {
   return (req: any, res: any, next: any) => {
     const key = `__express__${req.originalUrl || req.url}`;
     const cachedBody = mcache.get(key);
-    
+
     if (cachedBody) {
       res.send(cachedBody);
       return;
     }
-    
+
     res.sendResponse = res.send;
     res.send = (body: any) => {
       mcache.put(key, body, duration * 1000);
@@ -115,49 +118,52 @@ export const cache = (duration: number) => {
 // Security headers middleware
 export const securityHeaders: RequestHandler = (req, res, next) => {
   // Prevent clickjacking
-  res.setHeader('X-Frame-Options', 'DENY');
-  
+  res.setHeader("X-Frame-Options", "DENY");
+
   // Prevent MIME type sniffing
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  
+  res.setHeader("X-Content-Type-Options", "nosniff");
+
   // XSS protection
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+
   // Referrer policy
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
   // Permissions policy
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
+  res.setHeader(
+    "Permissions-Policy",
+    "geolocation=(), microphone=(), camera=()",
+  );
+
   next();
 };
 
 // Request logging middleware
 export const requestLogger: RequestHandler = (req, res, next) => {
   const start = Date.now();
-  
-  res.on('finish', () => {
+
+  res.on("finish", () => {
     const duration = Date.now() - start;
     const logData = {
       method: req.method,
       url: req.url,
       status: res.statusCode,
       duration: `${duration}ms`,
-      userAgent: req.get('User-Agent'),
+      userAgent: req.get("User-Agent"),
       ip: req.ip || req.connection.remoteAddress,
       timestamp: new Date().toISOString(),
     };
-    
+
     // Log security-relevant events
     if (res.statusCode === 401 || res.statusCode === 403) {
-      console.warn('Security event:', logData);
+      console.warn("Security event:", logData);
     } else if (res.statusCode >= 400) {
-      console.error('Error event:', logData);
+      console.error("Error event:", logData);
     } else {
-      console.log('Request:', logData);
+      console.log("Request:", logData);
     }
   });
-  
+
   next();
 };
 
@@ -165,86 +171,113 @@ export const requestLogger: RequestHandler = (req, res, next) => {
 export const sanitizeInput: RequestHandler = (req, res, next) => {
   // Sanitize body
   if (req.body) {
-    Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string') {
+    Object.keys(req.body).forEach((key) => {
+      if (typeof req.body[key] === "string") {
         req.body[key] = req.body[key].trim();
       }
     });
   }
-  
+
   // Sanitize query parameters
   if (req.query) {
-    Object.keys(req.query).forEach(key => {
-      if (typeof req.query[key] === 'string') {
+    Object.keys(req.query).forEach((key) => {
+      if (typeof req.query[key] === "string") {
         req.query[key] = (req.query[key] as string).trim();
       }
     });
   }
-  
+
   next();
 };
 
 // URL and keyword validation middleware
 export const validateUrl: RequestHandler = (req, res, next) => {
   // Only apply validation to scraping routes
-  if (!req.path.includes('/scrape') && !req.path.includes('/n8n')) {
+  if (!req.path.includes("/scrape") && !req.path.includes("/n8n")) {
     return next();
   }
-  
+
   const url = req.body?.url || req.query?.url;
   const keywords = req.body?.keywords || req.query?.keywords;
-  
+
   // Allow either URL or keywords, but not both
   if (url && keywords) {
-    return res.status(400).json({ error: 'Cannot provide both URL and keywords' });
+    return res
+      .status(400)
+      .json({ error: "Cannot provide both URL and keywords" });
   }
-  
+
   // If neither URL nor keywords provided, that's also valid (will be handled by the route)
   if (!url && !keywords) {
     return next();
   }
-  
+
   // Validate URL if provided
   if (url) {
     try {
       const parsedUrl = new URL(url);
-      
+
       // Check for allowed protocols
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        return res.status(400).json({ error: 'Invalid URL protocol' });
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ error: "Invalid URL protocol" });
       }
-      
+
       // Check for allowed domains (optional)
       const allowedDomains = [
-        'amazon.com', 'amazon.co.uk', 'amazon.de', 'amazon.fr', 'amazon.it', 'amazon.es',
-        'ebay.com', 'ebay.co.uk', 'ebay.de', 'ebay.fr', 'ebay.it', 'ebay.es',
-        'walmart.com', 'bestbuy.com', 'target.com', 'apple.com', 'playstation.com',
-        'newegg.com', 'costco.com', 'larq.com', 'livelarq.com', 'sonos.com',
-        'shopify.com', 'etsy.com', 'aliexpress.com', 'banggood.com', 'gearbest.com'
+        "amazon.com",
+        "amazon.co.uk",
+        "amazon.de",
+        "amazon.fr",
+        "amazon.it",
+        "amazon.es",
+        "ebay.com",
+        "ebay.co.uk",
+        "ebay.de",
+        "ebay.fr",
+        "ebay.it",
+        "ebay.es",
+        "walmart.com",
+        "bestbuy.com",
+        "target.com",
+        "apple.com",
+        "playstation.com",
+        "newegg.com",
+        "costco.com",
+        "larq.com",
+        "livelarq.com",
+        "sonos.com",
+        "shopify.com",
+        "etsy.com",
+        "aliexpress.com",
+        "banggood.com",
+        "gearbest.com",
       ];
-      
-      const hostname = parsedUrl.hostname.toLowerCase().replace('www.', '');
-      if (!allowedDomains.some(domain => hostname.includes(domain))) {
+
+      const hostname = parsedUrl.hostname.toLowerCase().replace("www.", "");
+      if (!allowedDomains.some((domain) => hostname.includes(domain))) {
         console.warn(`Attempted access to non-whitelisted domain: ${hostname}`);
         // Don't block, just log for monitoring
       }
-      
     } catch (error) {
-      return res.status(400).json({ error: 'Invalid URL format' });
+      return res.status(400).json({ error: "Invalid URL format" });
     }
   }
-  
+
   // Validate keywords if provided
   if (keywords) {
-    if (typeof keywords !== 'string' || keywords.trim().length === 0) {
-      return res.status(400).json({ error: 'Keywords must be a non-empty string' });
+    if (typeof keywords !== "string" || keywords.trim().length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Keywords must be a non-empty string" });
     }
-    
+
     // Basic keyword validation - ensure it's not too long
     if (keywords.length > 500) {
-      return res.status(400).json({ error: 'Keywords too long (max 500 characters)' });
+      return res
+        .status(400)
+        .json({ error: "Keywords too long (max 500 characters)" });
     }
   }
-  
+
   next();
-}; 
+};

@@ -1,12 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
-import { Copy, Check, ExternalLink, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
-import { useToast } from '../hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Badge } from "./ui/badge";
+import {
+  Copy,
+  Check,
+  ExternalLink,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
+import { useToast } from "../hooks/use-toast";
 
 interface DomainVerificationProps {
   businessId: string;
@@ -16,7 +29,7 @@ interface DomainVerificationProps {
 interface VerificationStatus {
   id: number;
   domain: string;
-  status: 'pending' | 'verified' | 'expired';
+  status: "pending" | "verified" | "expired";
   verificationToken: string;
   expiresAt: string;
   verifiedAt?: string;
@@ -25,13 +38,15 @@ interface VerificationStatus {
 
 export const DomainVerification: React.FC<DomainVerificationProps> = ({
   businessId,
-  currentDomain
+  currentDomain,
 }) => {
-  const [domain, setDomain] = useState(currentDomain || '');
-  const [verificationToken, setVerificationToken] = useState('');
+  const [domain, setDomain] = useState(currentDomain || "");
+  const [verificationToken, setVerificationToken] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus[]>([]);
+  const [verificationStatus, setVerificationStatus] = useState<
+    VerificationStatus[]
+  >([]);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
@@ -42,14 +57,16 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
 
   const loadVerificationStatus = async () => {
     try {
-      const response = await fetch(`/api/domain-verification/status/${businessId}`);
+      const response = await fetch(
+        `/api/domain-verification/status/${businessId}`,
+      );
       const data = await response.json();
-      
+
       if (data.success) {
         setVerificationStatus(data.verifications);
       }
     } catch (error) {
-      console.error('Failed to load verification status:', error);
+      console.error("Failed to load verification status:", error);
     }
   };
 
@@ -58,22 +75,22 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
       toast({
         title: "Domain Required",
         description: "Please enter a domain to verify",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/domain-verification/generate-token', {
-        method: 'POST',
+      const response = await fetch("/api/domain-verification/generate-token", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           businessId,
-          domain
-        })
+          domain,
+        }),
       });
 
       const data = await response.json();
@@ -88,7 +105,8 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
         } else if (data.isExisting) {
           toast({
             title: "Existing Token Found",
-            description: "Using your existing verification token. No need to add a new DNS record.",
+            description:
+              "Using your existing verification token. No need to add a new DNS record.",
           });
         } else {
           toast({
@@ -101,14 +119,14 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
         toast({
           title: "Error",
           description: data.error,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to generate verification token",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
@@ -120,23 +138,23 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
       toast({
         title: "No Token",
         description: "Please generate a verification token first",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setIsVerifying(true);
     try {
-      const response = await fetch('/api/domain-verification/verify', {
-        method: 'POST',
+      const response = await fetch("/api/domain-verification/verify", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           businessId,
           domain,
-          verificationToken
-        })
+          verificationToken,
+        }),
       });
 
       const data = await response.json();
@@ -146,20 +164,20 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
           title: "Domain Verified!",
           description: "Your domain has been successfully verified",
         });
-        setVerificationToken('');
+        setVerificationToken("");
         loadVerificationStatus();
       } else {
         toast({
           title: "Verification Failed",
           description: data.error,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to verify domain",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsVerifying(false);
@@ -176,24 +194,41 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
         description: "TXT record copied to clipboard",
       });
     } catch (err) {
-      console.error('Failed to copy: ', err);
+      console.error("Failed to copy: ", err);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'verified':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Verified</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800"><RefreshCw className="h-3 w-3 mr-1" />Pending</Badge>;
-      case 'expired':
-        return <Badge className="bg-red-100 text-red-800"><AlertCircle className="h-3 w-3 mr-1" />Expired</Badge>;
+      case "verified":
+        return (
+          <Badge className="bg-green-100 text-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Verified
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "expired":
+        return (
+          <Badge className="bg-red-100 text-red-800">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Expired
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const isDomainVerified = verificationStatus.some(v => v.domain === domain && v.status === 'verified');
+  const isDomainVerified = verificationStatus.some(
+    (v) => v.domain === domain && v.status === "verified",
+  );
 
   return (
     <div className="space-y-6">
@@ -231,7 +266,7 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
                     Generating...
                   </>
                 ) : (
-                  'Generate Token'
+                  "Generate Token"
                 )}
               </Button>
             </div>
@@ -243,7 +278,8 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Add this TXT record to your DNS settings to verify domain ownership:
+                  Add this TXT record to your DNS settings to verify domain
+                  ownership:
                 </AlertDescription>
               </Alert>
 
@@ -253,10 +289,18 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyToClipboard(`pricehunt-verification=${verificationToken}`)}
+                    onClick={() =>
+                      copyToClipboard(
+                        `pricehunt-verification=${verificationToken}`,
+                      )
+                    }
                   >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? 'Copied!' : 'Copy'}
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    {copied ? "Copied!" : "Copy"}
                   </Button>
                 </div>
                 <div className="font-mono text-sm bg-white p-2 rounded border">
@@ -265,7 +309,9 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">DNS Setup Instructions:</h4>
+                <h4 className="font-medium text-blue-900 mb-2">
+                  DNS Setup Instructions:
+                </h4>
                 <ol className="text-sm text-blue-800 space-y-1">
                   <li>1. Log into your domain registrar or DNS provider</li>
                   <li>2. Add a new TXT record with the value above</li>
@@ -286,7 +332,7 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
                     Verifying...
                   </>
                 ) : (
-                  'Verify Domain'
+                  "Verify Domain"
                 )}
               </Button>
             </div>
@@ -305,7 +351,8 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
                     <div>
                       <div className="font-medium">{verification.domain}</div>
                       <div className="text-sm text-gray-600">
-                        Created: {new Date(verification.createdAt).toLocaleDateString()}
+                        Created:{" "}
+                        {new Date(verification.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -322,7 +369,8 @@ export const DomainVerification: React.FC<DomainVerificationProps> = ({
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                <strong>Domain verified successfully!</strong> You can now use PriceHunt tracking scripts on this domain.
+                <strong>Domain verified successfully!</strong> You can now use
+                PriceHunt tracking scripts on this domain.
               </AlertDescription>
             </Alert>
           )}

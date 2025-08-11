@@ -11,5 +11,3 @@ export function GlobeDemo() {
     </div>
   );
 }
-
-

@@ -158,7 +158,9 @@ interface BusinessAuthContextType {
   logoutBusiness: () => Promise<void>;
 }
 
-const BusinessAuthContext = createContext<BusinessAuthContextType | undefined>(undefined);
+const BusinessAuthContext = createContext<BusinessAuthContextType | undefined>(
+  undefined,
+);
 
 export function BusinessAuthProvider({ children }: { children: ReactNode }) {
   const [business, setBusiness] = useState<Business | null>(null);
@@ -170,7 +172,9 @@ export function BusinessAuthProvider({ children }: { children: ReactNode }) {
 
   const checkBusinessAuth = async () => {
     try {
-      const response = await fetch("/api/business/auth/me", { credentials: "include" });
+      const response = await fetch("/api/business/auth/me", {
+        credentials: "include",
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.business) {
@@ -190,7 +194,10 @@ export function BusinessAuthProvider({ children }: { children: ReactNode }) {
 
   const logoutBusiness = async () => {
     try {
-      await fetch("/api/business/auth/logout", { method: "POST", credentials: "include" });
+      await fetch("/api/business/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch {}
     setBusiness(null);
   };
@@ -202,13 +209,19 @@ export function BusinessAuthProvider({ children }: { children: ReactNode }) {
     logoutBusiness,
   };
 
-  return <BusinessAuthContext.Provider value={value}>{children}</BusinessAuthContext.Provider>;
+  return (
+    <BusinessAuthContext.Provider value={value}>
+      {children}
+    </BusinessAuthContext.Provider>
+  );
 }
 
 export function useBusinessAuth() {
   const context = useContext(BusinessAuthContext);
   if (context === undefined) {
-    throw new Error("useBusinessAuth must be used within a BusinessAuthProvider");
+    throw new Error(
+      "useBusinessAuth must be used within a BusinessAuthProvider",
+    );
   }
   return context;
 }

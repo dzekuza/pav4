@@ -1,11 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { useToast } from '../hooks/use-toast';
-import { SearchHeader } from '../components/SearchHeader';
-import { TrendingUp, Users, ShoppingCart, DollarSign, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../hooks/use-toast";
+import { SearchHeader } from "../components/SearchHeader";
+import {
+  TrendingUp,
+  Users,
+  ShoppingCart,
+  DollarSign,
+  LogOut,
+} from "lucide-react";
 
 interface BusinessStats {
   id: number;
@@ -33,16 +45,16 @@ export default function BusinessDashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/business/auth/stats', {
-        credentials: 'include',
+      const response = await fetch("/api/business/auth/stats", {
+        credentials: "include",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats);
       } else if (response.status === 401) {
         // Redirect to login if not authenticated
-        navigate('/business-login');
+        navigate("/business-login");
         return;
       } else {
         toast({
@@ -52,7 +64,7 @@ export default function BusinessDashboard() {
         });
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -65,13 +77,13 @@ export default function BusinessDashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/business/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
+      await fetch("/api/business/auth/logout", {
+        method: "POST",
+        credentials: "include",
       });
-      navigate('/business-login');
+      navigate("/business-login");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -100,8 +112,13 @@ export default function BusinessDashboard() {
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="p-6 text-center">
-              <p className="text-gray-500">Unable to load business statistics.</p>
-              <Button onClick={() => navigate('/business-login')} className="mt-4">
+              <p className="text-gray-500">
+                Unable to load business statistics.
+              </p>
+              <Button
+                onClick={() => navigate("/business-login")}
+                className="mt-4"
+              >
                 Back to Login
               </Button>
             </CardContent>
@@ -113,23 +130,36 @@ export default function BusinessDashboard() {
 
   return (
     <div className="min-h-screen relative overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader showBackButton={false} />
-      
+
       <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
             <p className="text-white/70">{stats.domain}</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => navigate('/business/dashboard/activity')} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+            <Button
+              onClick={() => navigate("/business/dashboard/activity")}
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+            >
               User Activity
             </Button>
-            <Button onClick={() => navigate('/business/dashboard/integrate')} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+            <Button
+              onClick={() => navigate("/business/dashboard/integrate")}
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+            >
               Integrate
             </Button>
-            <Button onClick={handleLogout} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+            <Button
+              onClick={handleLogout}
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Logout
             </Button>
@@ -140,11 +170,15 @@ export default function BusinessDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Visits</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Total Visits
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalVisits.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.totalVisits.toLocaleString()}
+              </div>
               <p className="text-xs text-white/80">
                 Users who visited your products
               </p>
@@ -153,40 +187,46 @@ export default function BusinessDashboard() {
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Purchases</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Total Purchases
+              </CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
-              <p className="text-xs text-white/80">
-                Successful purchases made
-              </p>
+              <div className="text-2xl font-bold">
+                {stats.totalPurchases.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Successful purchases made</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Total Revenue
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-white/80">
-                Total sales revenue
-              </p>
+              <div className="text-2xl font-bold">
+                ${stats.totalRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Total sales revenue</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Conversion Rate
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
-              <p className="text-xs text-white/80">
-                Visit to purchase ratio
-              </p>
+              <div className="text-2xl font-bold">
+                {stats.conversionRate.toFixed(1)}%
+              </div>
+              <p className="text-xs text-white/80">Visit to purchase ratio</p>
             </CardContent>
           </Card>
         </div>
@@ -202,16 +242,28 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">Average Order Value</span>
-                <span className="text-sm font-bold text-white">${stats.averageOrderValue.toFixed(2)}</span>
+                <span className="text-sm font-medium text-white">
+                  Average Order Value
+                </span>
+                <span className="text-sm font-bold text-white">
+                  ${stats.averageOrderValue.toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">Commission Rate</span>
-                <Badge variant="outline" className="text-white border-white/30">{stats.adminCommissionRate}%</Badge>
+                <span className="text-sm font-medium text-white">
+                  Commission Rate
+                </span>
+                <Badge variant="outline" className="text-white border-white/30">
+                  {stats.adminCommissionRate}%
+                </Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">Projected Fee</span>
-                <span className="text-sm font-bold text-white">${stats.projectedFee.toFixed(2)}</span>
+                <span className="text-sm font-medium text-white">
+                  Projected Fee
+                </span>
+                <span className="text-sm font-bold text-white">
+                  ${stats.projectedFee.toFixed(2)}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -226,38 +278,54 @@ export default function BusinessDashboard() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">Total Visits</span>
-                  <span className="text-sm text-white">{stats.totalVisits.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-white">
+                    Total Visits
+                  </span>
+                  <span className="text-sm text-white">
+                    {stats.totalVisits.toLocaleString()}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${Math.min((stats.totalVisits / 1000) * 100, 100)}%` }}
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min((stats.totalVisits / 1000) * 100, 100)}%`,
+                    }}
                   ></div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">Total Purchases</span>
-                  <span className="text-sm text-white">{stats.totalPurchases.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-white">
+                    Total Purchases
+                  </span>
+                  <span className="text-sm text-white">
+                    {stats.totalPurchases.toLocaleString()}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-600 h-2 rounded-full" 
-                    style={{ width: `${Math.min((stats.totalPurchases / 100) * 100, 100)}%` }}
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min((stats.totalPurchases / 100) * 100, 100)}%`,
+                    }}
                   ></div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">Conversion Rate</span>
-                  <span className="text-sm text-white">{stats.conversionRate.toFixed(1)}%</span>
+                  <span className="text-sm font-medium text-white">
+                    Conversion Rate
+                  </span>
+                  <span className="text-sm text-white">
+                    {stats.conversionRate.toFixed(1)}%
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-purple-600 h-2 rounded-full" 
+                  <div
+                    className="bg-purple-600 h-2 rounded-full"
                     style={{ width: `${Math.min(stats.conversionRate, 100)}%` }}
                   ></div>
                 </div>
@@ -268,4 +336,4 @@ export default function BusinessDashboard() {
       </div>
     </div>
   );
-} 
+}

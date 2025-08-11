@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
   AlertCircle,
@@ -21,9 +27,9 @@ import {
   Eye,
   Activity,
   Globe,
-  Settings
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+  Settings,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface BusinessStats {
   id: number;
@@ -46,20 +52,24 @@ interface TestResult {
   timestamp: string;
   event: string;
   details: string;
-  status: 'success' | 'error' | 'pending';
+  status: "success" | "error" | "pending";
 }
 
 interface BusinessIntegrationWizardProps {
   business: BusinessStats;
 }
 
-export default function BusinessIntegrationWizard({ business }: BusinessIntegrationWizardProps) {
+export default function BusinessIntegrationWizard({
+  business,
+}: BusinessIntegrationWizardProps) {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
-  const [domain, setDomain] = useState(business.domain || '');
+  const [domain, setDomain] = useState(business.domain || "");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationToken, setVerificationToken] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
+  const [verificationToken, setVerificationToken] = useState("");
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
+    null,
+  );
   const [isTesting, setIsTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -67,8 +77,10 @@ export default function BusinessIntegrationWizard({ business }: BusinessIntegrat
   // Cleanup any running timers on unmount
   useEffect(() => {
     return () => {
-      if ((window as any).__ph_pollInterval) clearInterval((window as any).__ph_pollInterval);
-      if ((window as any).__ph_stopTimeout) clearTimeout((window as any).__ph_stopTimeout);
+      if ((window as any).__ph_pollInterval)
+        clearInterval((window as any).__ph_pollInterval);
+      if ((window as any).__ph_stopTimeout)
+        clearTimeout((window as any).__ph_stopTimeout);
     };
   }, []);
 
@@ -76,38 +88,58 @@ export default function BusinessIntegrationWizard({ business }: BusinessIntegrat
   useEffect(() => {
     if (domain && !selectedPlatform) {
       const domainLower = domain.toLowerCase();
-      if (domainLower.includes('shopify') || domainLower.includes('myshopify.com')) {
-        setSelectedPlatform(platforms.find(p => p.id === 'shopify') || null);
-      } else if (domainLower.includes('woocommerce') || domainLower.includes('wordpress')) {
-        setSelectedPlatform(platforms.find(p => p.id === 'woocommerce') || null);
-      } else if (domainLower.includes('magento')) {
-        setSelectedPlatform(platforms.find(p => p.id === 'magento') || null);
+      if (
+        domainLower.includes("shopify") ||
+        domainLower.includes("myshopify.com")
+      ) {
+        setSelectedPlatform(platforms.find((p) => p.id === "shopify") || null);
+      } else if (
+        domainLower.includes("woocommerce") ||
+        domainLower.includes("wordpress")
+      ) {
+        setSelectedPlatform(
+          platforms.find((p) => p.id === "woocommerce") || null,
+        );
+      } else if (domainLower.includes("magento")) {
+        setSelectedPlatform(platforms.find((p) => p.id === "magento") || null);
       }
     }
   }, [domain, selectedPlatform]);
 
   const platforms: Platform[] = [
     {
-      id: 'shopify',
-      name: 'Shopify',
-      description: 'Modern one-line integration with automatic enhanced tracking',
-      icon: '🛍️',
-      features: ['Simple one-line script', 'Automatic enhanced loading', 'AJAX cart support', 'Comprehensive debugging', 'Debug functions'],
+      id: "shopify",
+      name: "Shopify",
+      description:
+        "Modern one-line integration with automatic enhanced tracking",
+      icon: "🛍️",
+      features: [
+        "Simple one-line script",
+        "Automatic enhanced loading",
+        "AJAX cart support",
+        "Comprehensive debugging",
+        "Debug functions",
+      ],
       get scriptTemplate() {
         return `<!-- PriceHunt Shopify Integration -->
-<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${business?.affiliateId || 'YOUR_AFFILIATE_ID'}" data-debug="true"></script>
+<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}" data-debug="true"></script>
 <!-- End PriceHunt Shopify Integration -->`;
-      }
+      },
     },
     {
-      id: 'woocommerce',
-      name: 'WooCommerce',
-      description: 'WordPress e-commerce plugin',
-      icon: '🛒',
-      features: ['Product tracking', 'Purchase tracking', 'Cart tracking', 'User behavior'],
+      id: "woocommerce",
+      name: "WooCommerce",
+      description: "WordPress e-commerce plugin",
+      icon: "🛒",
+      features: [
+        "Product tracking",
+        "Purchase tracking",
+        "Cart tracking",
+        "User behavior",
+      ],
       get scriptTemplate() {
         return `<!-- PriceHunt WooCommerce Integration -->
-<script src="https://pavlo4.netlify.app/woocommerce-tracker.js" data-business-id="${business?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${business?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://pavlo4.netlify.app/woocommerce-tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
 <script>
 // WooCommerce-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -134,17 +166,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- End PriceHunt WooCommerce Integration -->`;
-      }
+      },
     },
     {
-      id: 'magento',
-      name: 'Magento',
-      description: 'Enterprise e-commerce platform',
-      icon: '🏢',
-      features: ['Product tracking', 'Purchase tracking', 'Cart tracking', 'User behavior'],
+      id: "magento",
+      name: "Magento",
+      description: "Enterprise e-commerce platform",
+      icon: "🏢",
+      features: [
+        "Product tracking",
+        "Purchase tracking",
+        "Cart tracking",
+        "User behavior",
+      ],
       get scriptTemplate() {
         return `<!-- PriceHunt Magento Integration -->
-<script src="https://pavlo4.netlify.app/magento-tracker.js" data-business-id="${business?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${business?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://pavlo4.netlify.app/magento-tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
 <script>
 // Magento-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -171,17 +208,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- End PriceHunt Magento Integration -->`;
-      }
+      },
     },
     {
-      id: 'custom',
-      name: 'Custom Website',
-      description: 'Any website with custom tracking',
-      icon: '🌐',
-      features: ['Basic tracking', 'Page views', 'User behavior', 'Custom events'],
+      id: "custom",
+      name: "Custom Website",
+      description: "Any website with custom tracking",
+      icon: "🌐",
+      features: [
+        "Basic tracking",
+        "Page views",
+        "User behavior",
+        "Custom events",
+      ],
       get scriptTemplate() {
         return `<!-- PriceHunt Custom Integration -->
-<script src="https://pavlo4.netlify.app/tracker.js" data-business-id="${business?.id || 'YOUR_BUSINESS_ID'}" data-affiliate-id="${business?.affiliateId || 'YOUR_AFFILIATE_ID'}"></script>
+<script src="https://pavlo4.netlify.app/tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
 <script>
 // Custom website tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -203,8 +245,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!-- End PriceHunt Custom Integration -->`;
-      }
-    }
+      },
+    },
   ];
 
   const generateVerificationToken = async () => {
@@ -219,28 +261,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setIsVerifying(true);
     try {
-      console.log('Generating verification token for domain:', domain.trim());
-      const response = await fetch('/api/domain-verification/generate-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      console.log("Generating verification token for domain:", domain.trim());
+      const response = await fetch("/api/domain-verification/generate-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           businessId: business.id,
-          domain: domain.trim()
-        })
+          domain: domain.trim(),
+        }),
       });
 
-      console.log('Response status:', response.status);
-      
+      console.log("Response status:", response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        console.error("Server error response:", errorText);
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
-      
+      console.log("Response data:", data);
+
       if (data.success) {
         setVerificationToken(data.verificationToken);
         if (data.isVerified) {
@@ -251,12 +295,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (data.isExisting) {
           toast({
             title: "Existing Token Found",
-            description: "Using your existing verification token. No need to add a new DNS record.",
+            description:
+              "Using your existing verification token. No need to add a new DNS record.",
           });
         } else {
           toast({
             title: "Verification Token Generated",
-            description: "Please add the TXT record to your domain DNS settings",
+            description:
+              "Please add the TXT record to your domain DNS settings",
           });
         }
       } else {
@@ -267,8 +313,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     } catch (error) {
-      console.error('Error generating verification token:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to generate verification token";
+      console.error("Error generating verification token:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to generate verification token";
       toast({
         title: "Error",
         description: errorMessage,
@@ -291,29 +340,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setIsVerifying(true);
     try {
-      console.log('Verifying domain:', domain.trim(), 'with token:', verificationToken);
-      const response = await fetch('/api/domain-verification/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      console.log(
+        "Verifying domain:",
+        domain.trim(),
+        "with token:",
+        verificationToken,
+      );
+      const response = await fetch("/api/domain-verification/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           businessId: business.id,
           domain: domain.trim(),
-          verificationToken
-        })
+          verificationToken,
+        }),
       });
 
-      console.log('Verification response status:', response.status);
-      
+      console.log("Verification response status:", response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        console.error("Server error response:", errorText);
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
-      console.log('Verification response data:', data);
-      
+      console.log("Verification response data:", data);
+
       if (data.success) {
         toast({
           title: "Domain Verified!",
@@ -324,13 +380,15 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         toast({
           title: "Verification Failed",
-          description: data.error || "Please check your DNS settings and try again",
+          description:
+            data.error || "Please check your DNS settings and try again",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error verifying domain:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to verify domain";
+      console.error("Error verifying domain:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to verify domain";
       toast({
         title: "Error",
         description: errorMessage,
@@ -363,7 +421,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!domain) {
       toast({
         title: "Error",
-        description: "No website domain found. Please verify your domain first.",
+        description:
+          "No website domain found. Please verify your domain first.",
         variant: "destructive",
       });
       return;
@@ -373,32 +432,37 @@ document.addEventListener('DOMContentLoaded', function() {
     setTestResults([]);
 
     // Start polling for real tracking events
-    if ((window as any).__ph_pollInterval) clearInterval((window as any).__ph_pollInterval);
-    if ((window as any).__ph_stopTimeout) clearTimeout((window as any).__ph_stopTimeout);
+    if ((window as any).__ph_pollInterval)
+      clearInterval((window as any).__ph_pollInterval);
+    if ((window as any).__ph_stopTimeout)
+      clearTimeout((window as any).__ph_stopTimeout);
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/tracking-events${business?.id ? `?business_id=${business.id}` : ''}` , {
-          credentials: 'include'
-        });
+        const response = await fetch(
+          `/api/tracking-events${business?.id ? `?business_id=${business.id}` : ""}`,
+          {
+            credentials: "include",
+          },
+        );
 
         if (response.ok) {
           const data = await response.json();
-          
+
           if (data.success && data.events.length > 0) {
             // Convert tracking events to test results
             const newEvents = data.events.map((event: any) => ({
-                timestamp: event.timestamp,
-                event: event.eventType,
-                details: `Event from ${event.url || 'unknown page'}`,
-                status: 'success' as const
+              timestamp: event.timestamp,
+              event: event.eventType,
+              details: `Event from ${event.url || "unknown page"}`,
+              status: "success" as const,
             }));
 
             setTestResults(newEvents);
           }
         }
       } catch (error) {
-        console.error('Error fetching tracking events:', error);
+        console.error("Error fetching tracking events:", error);
       }
     }, 4000); // Poll every 4 seconds to reduce load
     (window as any).__ph_pollInterval = pollInterval;
@@ -408,11 +472,12 @@ document.addEventListener('DOMContentLoaded', function() {
       clearInterval(pollInterval);
       (window as any).__ph_pollInterval = undefined;
       setIsTesting(false);
-      
+
       if (testResults.length === 0) {
         toast({
           title: "No Events Detected",
-          description: "No tracking events were detected. Make sure the tracking script is installed on your website.",
+          description:
+            "No tracking events were detected. Make sure the tracking script is installed on your website.",
           variant: "destructive",
         });
       } else {
@@ -427,20 +492,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const generateTestEvents = async () => {
     try {
-      const response = await fetch('/api/test-tracking', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_id: business?.id })
+      const response = await fetch("/api/test-tracking", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ business_id: business?.id }),
       });
 
       if (response.ok) {
         const data = await response.json();
         toast({
           title: "Test Events Created",
-          description: data.message || "Test tracking events have been created successfully.",
+          description:
+            data.message ||
+            "Test tracking events have been created successfully.",
         });
-        
+
         // Start polling for the new events
         startTesting();
       } else {
@@ -451,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     } catch (error) {
-      console.error('Error generating test events:', error);
+      console.error("Error generating test events:", error);
       toast({
         title: "Error",
         description: "Failed to create test events. Please try again.",
@@ -462,15 +529,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const openTestWebsite = () => {
     if (domain) {
-      const url = domain.startsWith('http') ? domain : `https://${domain}`;
-      window.open(url, '_blank');
+      const url = domain.startsWith("http") ? domain : `https://${domain}`;
+      window.open(url, "_blank");
     }
   };
 
   const getStepStatus = (step: number) => {
-    if (step < currentStep) return 'completed';
-    if (step === currentStep) return 'current';
-    return 'pending';
+    if (step < currentStep) return "completed";
+    if (step === currentStep) return "current";
+    return "pending";
   };
 
   const canProceedToNext = () => {
@@ -490,12 +557,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const nextStep = () => {
     if (canProceedToNext()) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   return (
@@ -514,28 +581,46 @@ document.addEventListener('DOMContentLoaded', function() {
       <div className="flex items-center justify-between mb-8">
         {[1, 2, 3, 4].map((step) => (
           <div key={step} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              getStepStatus(step) === 'completed' ? 'bg-green-500 text-black' :
-              getStepStatus(step) === 'current' ? 'bg-white text-black' :
-              'bg-white/10 text-white/60'
-            }`}>
-              {getStepStatus(step) === 'completed' ? (
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                getStepStatus(step) === "completed"
+                  ? "bg-green-500 text-black"
+                  : getStepStatus(step) === "current"
+                    ? "bg-white text-black"
+                    : "bg-white/10 text-white/60"
+              }`}
+            >
+              {getStepStatus(step) === "completed" ? (
                 <CheckCircle className="h-4 w-4" />
               ) : (
                 <span className="text-sm font-medium">{step}</span>
               )}
             </div>
-            <span className={`ml-2 text-sm font-medium ${
-              getStepStatus(step) === 'current' ? 'text-white' :
-              getStepStatus(step) === 'completed' ? 'text-green-400' :
-              'text-white/60'
-            }`}>
-              {step === 1 ? 'Verify Domain' : step === 2 ? 'Choose Platform' : step === 3 ? 'Add Script' : 'Test Tracking'}
+            <span
+              className={`ml-2 text-sm font-medium ${
+                getStepStatus(step) === "current"
+                  ? "text-white"
+                  : getStepStatus(step) === "completed"
+                    ? "text-green-400"
+                    : "text-white/60"
+              }`}
+            >
+              {step === 1
+                ? "Verify Domain"
+                : step === 2
+                  ? "Choose Platform"
+                  : step === 3
+                    ? "Add Script"
+                    : "Test Tracking"}
             </span>
             {step < 4 && (
-              <div className={`w-16 h-0.5 mx-4 ${
-                getStepStatus(step + 1) === 'completed' ? 'bg-green-500' : 'bg-white/20'
-              }`} />
+              <div
+                className={`w-16 h-0.5 mx-4 ${
+                  getStepStatus(step + 1) === "completed"
+                    ? "bg-green-500"
+                    : "bg-white/20"
+                }`}
+              />
             )}
           </div>
         ))}
@@ -550,18 +635,25 @@ document.addEventListener('DOMContentLoaded', function() {
               Verify Domain Ownership
             </CardTitle>
             <CardDescription className="text-white/80">
-              Verify that you own the domain where you'll install the tracking script
+              Verify that you own the domain where you'll install the tracking
+              script
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {business.domainVerified ? (
               <div className="text-center py-8">
                 <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">Domain Already Verified!</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Domain Already Verified!
+                </h3>
                 <p className="text-white/70 mb-4">
-                  Your domain <strong>{business.domain}</strong> has been verified and is ready for integration.
+                  Your domain <strong>{business.domain}</strong> has been
+                  verified and is ready for integration.
                 </p>
-                <Button onClick={() => setCurrentStep(2)} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+                <Button
+                  onClick={() => setCurrentStep(2)}
+                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                >
                   Continue to Platform Selection
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -570,7 +662,9 @@ document.addEventListener('DOMContentLoaded', function() {
               <>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="domain" className="text-white">Website Domain</Label>
+                    <Label htmlFor="domain" className="text-white">
+                      Website Domain
+                    </Label>
                     <Input
                       id="domain"
                       type="text"
@@ -580,11 +674,12 @@ document.addEventListener('DOMContentLoaded', function() {
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
                     <p className="text-sm text-white/70 mt-1">
-                      Enter your domain without http:// or https:// (e.g., mysite.com)
+                      Enter your domain without http:// or https:// (e.g.,
+                      mysite.com)
                     </p>
                   </div>
 
-                  <Button 
+                  <Button
                     onClick={generateVerificationToken}
                     disabled={isVerifying || !domain.trim()}
                     className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
@@ -606,9 +701,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 {verificationToken && (
                   <div className="border border-white/10 bg-white/5 rounded-lg p-4 space-y-4">
                     <div>
-                      <h4 className="font-medium text-white mb-2">📋 DNS Verification Instructions:</h4>
+                      <h4 className="font-medium text-white mb-2">
+                        📋 DNS Verification Instructions:
+                      </h4>
                       <ol className="text-sm text-white/80 space-y-2">
-                        <li>1. Log into your domain registrar or DNS provider</li>
+                        <li>
+                          1. Log into your domain registrar or DNS provider
+                        </li>
                         <li>2. Add a new TXT record to your domain</li>
                         <li>3. Use the following values:</li>
                       </ol>
@@ -617,12 +716,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div className="bg-black/40 border border-white/10 rounded-lg p-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="font-medium text-white">Record Type:</span>
+                          <span className="font-medium text-white">
+                            Record Type:
+                          </span>
                           <div className="text-white/80">TXT</div>
                         </div>
                         <div>
-                          <span className="font-medium text-white">Name/Host:</span>
-                          <div className="text-white/80">@ (or leave empty)</div>
+                          <span className="font-medium text-white">
+                            Name/Host:
+                          </span>
+                          <div className="text-white/80">
+                            @ (or leave empty)
+                          </div>
                         </div>
                         <div>
                           <span className="font-medium text-white">Value:</span>
@@ -638,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button 
+                      <Button
                         onClick={verifyDomain}
                         disabled={isVerifying}
                         className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
@@ -655,9 +760,9 @@ document.addEventListener('DOMContentLoaded', function() {
                           </>
                         )}
                       </Button>
-                      <Button 
+                      <Button
                         variant="outline"
-                        onClick={() => setVerificationToken('')}
+                        onClick={() => setVerificationToken("")}
                         className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                       >
                         Generate New Token
@@ -668,12 +773,23 @@ document.addEventListener('DOMContentLoaded', function() {
                       <div className="flex items-start gap-2">
                         <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
                         <div className="text-sm text-white/80">
-                          <p className="font-medium text-white mb-1">Important Notes:</p>
+                          <p className="font-medium text-white mb-1">
+                            Important Notes:
+                          </p>
                           <ul className="space-y-1">
-                            <li>• DNS changes can take up to 24 hours to propagate</li>
-                            <li>• Most DNS providers update within 5-30 minutes</li>
-                            <li>• Make sure to add the TXT record exactly as shown</li>
-                            <li>• You can verify the record using online DNS lookup tools</li>
+                            <li>
+                              • DNS changes can take up to 24 hours to propagate
+                            </li>
+                            <li>
+                              • Most DNS providers update within 5-30 minutes
+                            </li>
+                            <li>
+                              • Make sure to add the TXT record exactly as shown
+                            </li>
+                            <li>
+                              • You can verify the record using online DNS
+                              lookup tools
+                            </li>
                           </ul>
                         </div>
                       </div>
@@ -695,7 +811,8 @@ document.addEventListener('DOMContentLoaded', function() {
               Choose Your Platform
             </CardTitle>
             <CardDescription className="text-white/80">
-              Select the platform your website is built on to get the appropriate tracking script
+              Select the platform your website is built on to get the
+              appropriate tracking script
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -705,15 +822,17 @@ document.addEventListener('DOMContentLoaded', function() {
                   key={platform.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-all ${
                     selectedPlatform?.id === platform.id
-                      ? 'border-white bg-white/10'
-                      : 'border-white/10 hover:border-white/20 bg-white/5'
+                      ? "border-white bg-white/10"
+                      : "border-white/10 hover:border-white/20 bg-white/5"
                   }`}
                   onClick={() => setSelectedPlatform(platform)}
                 >
                   <div className="flex items-start gap-3">
                     <div className="text-2xl">{platform.icon}</div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-white">{platform.name}</h3>
+                      <h3 className="font-semibold text-white">
+                        {platform.name}
+                      </h3>
                       <p className="text-sm text-white/70 mb-2">
                         {platform.description}
                       </p>
@@ -721,7 +840,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         {platform.features.map((feature, index) => (
                           <div key={index} className="flex items-center gap-2">
                             <CheckCircle className="h-3 w-3 text-green-400" />
-                            <span className="text-xs text-white/70">{feature}</span>
+                            <span className="text-xs text-white/70">
+                              {feature}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -752,19 +873,25 @@ document.addEventListener('DOMContentLoaded', function() {
           <CardContent className="space-y-4">
             {/* Business Info Display */}
             <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-              <h4 className="font-medium text-white mb-2">📋 Your Business Information:</h4>
+              <h4 className="font-medium text-white mb-2">
+                📋 Your Business Information:
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
                 <div>
-                  <span className="font-medium text-white">Business Name:</span> {business?.name}
+                  <span className="font-medium text-white">Business Name:</span>{" "}
+                  {business?.name}
                 </div>
                 <div>
-                  <span className="font-medium text-white">Website:</span> {domain || business?.domain}
+                  <span className="font-medium text-white">Website:</span>{" "}
+                  {domain || business?.domain}
                 </div>
                 <div>
-                  <span className="font-medium text-white">Business ID:</span> {business?.id}
+                  <span className="font-medium text-white">Business ID:</span>{" "}
+                  {business?.id}
                 </div>
                 <div>
-                  <span className="font-medium text-white">Affiliate ID:</span> {business?.affiliateId}
+                  <span className="font-medium text-white">Affiliate ID:</span>{" "}
+                  {business?.affiliateId}
                 </div>
               </div>
             </div>
@@ -772,17 +899,21 @@ document.addEventListener('DOMContentLoaded', function() {
             {selectedPlatform && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-white">Tracking Script for {selectedPlatform.name}</h4>
+                  <h4 className="font-medium text-white">
+                    Tracking Script for {selectedPlatform.name}
+                  </h4>
                   <Button
                     size="sm"
-                    onClick={() => copyToClipboard(selectedPlatform.scriptTemplate)}
+                    onClick={() =>
+                      copyToClipboard(selectedPlatform.scriptTemplate)
+                    }
                     className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   >
                     <Copy className="h-4 w-4 mr-2" />
-                    {copiedScript ? 'Copied!' : 'Copy Script'}
+                    {copiedScript ? "Copied!" : "Copy Script"}
                   </Button>
                 </div>
-                
+
                 <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-white">
                   <pre className="text-xs overflow-x-auto">
                     <code>{selectedPlatform.scriptTemplate}</code>
@@ -790,28 +921,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <h5 className="font-medium text-white mb-2">✅ Installation Instructions:</h5>
+                  <h5 className="font-medium text-white mb-2">
+                    ✅ Installation Instructions:
+                  </h5>
                   <ol className="text-sm text-white/80 space-y-1">
                     <li>1. Copy the simplified script above</li>
                     <li>2. Add it to your website's &lt;head&gt; section</li>
-                    <li>3. For Shopify: Add to theme.liquid file in your theme</li>
-                    <li>4. For WooCommerce: Add to header.php or use a plugin</li>
+                    <li>
+                      3. For Shopify: Add to theme.liquid file in your theme
+                    </li>
+                    <li>
+                      4. For WooCommerce: Add to header.php or use a plugin
+                    </li>
                     <li>5. For Magento: Add to default_head_blocks.xml</li>
                     <li>6. For Custom: Add to your main HTML template</li>
-                    <li>7. The loader will automatically fetch the full tracking script</li>
+                    <li>
+                      7. The loader will automatically fetch the full tracking
+                      script
+                    </li>
                   </ol>
                 </div>
 
                 <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <h5 className="font-medium text-white mb-2">⚠️ Important Notes:</h5>
+                  <h5 className="font-medium text-white mb-2">
+                    ⚠️ Important Notes:
+                  </h5>
                   <ul className="text-sm text-white/80 space-y-1">
                     <li>• Simple one-line script - no complex code needed</li>
                     <li>• Automatically loads enhanced tracking features</li>
-                    <li>• Tracks product views, cart additions, and purchases</li>
+                    <li>
+                      • Tracks product views, cart additions, and purchases
+                    </li>
                     <li>• Enhanced debugging available in browser console</li>
                     <li>• Use PriceHuntDebug functions for testing</li>
                     <li>• Make sure to test the script after installation</li>
-                    <li>• Contact support if you need help with installation</li>
+                    <li>
+                      • Contact support if you need help with installation
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -841,21 +987,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     Open your website to test the tracking script
                   </p>
                   <div className="flex gap-2">
-                    <Button onClick={openTestWebsite} disabled={!domain} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+                    <Button
+                      onClick={openTestWebsite}
+                      disabled={!domain}
+                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                    >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Open {domain || business?.domain}
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={startTesting}
                       disabled={isTesting || !domain}
                       className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                     >
                       <Play className="h-4 w-4 mr-2" />
-                      {isTesting ? 'Testing...' : 'Start Test'}
+                      {isTesting ? "Testing..." : "Start Test"}
                     </Button>
-                    <Button 
-                      variant="secondary" 
+                    <Button
+                      variant="secondary"
                       onClick={generateTestEvents}
                       disabled={isTesting}
                       className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
@@ -867,7 +1017,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <h5 className="font-medium text-white mb-2">⚠️ Testing Instructions:</h5>
+                  <h5 className="font-medium text-white mb-2">
+                    ⚠️ Testing Instructions:
+                  </h5>
                   <ul className="text-sm text-white/80 space-y-1">
                     <li>• Open your website in a new tab</li>
                     <li>• Browse through different pages</li>
@@ -889,19 +1041,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div className="text-center py-8 text-white/70">
                       <Activity className="h-8 w-8 mx-auto mb-2 text-white/50" />
                       <p>No tracking events yet</p>
-                      <p className="text-xs">Start testing to see events here</p>
+                      <p className="text-xs">
+                        Start testing to see events here
+                      </p>
                     </div>
                   ) : (
                     testResults.map((result, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5">
-                        <div className={`w-2 h-2 rounded-full ${
-                          result.status === 'success' ? 'bg-green-400' :
-                          result.status === 'error' ? 'bg-red-400' :
-                          'bg-yellow-400'
-                        }`} />
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                      >
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            result.status === "success"
+                              ? "bg-green-400"
+                              : result.status === "error"
+                                ? "bg-red-400"
+                                : "bg-yellow-400"
+                          }`}
+                        />
                         <div className="flex-1">
-                          <div className="font-medium text-sm text-white">{result.event}</div>
-                          <div className="text-xs text-white/70">{result.details}</div>
+                          <div className="font-medium text-sm text-white">
+                            {result.event}
+                          </div>
+                          <div className="text-xs text-white/70">
+                            {result.details}
+                          </div>
                         </div>
                         <div className="text-xs text-white/60">
                           {new Date(result.timestamp).toLocaleTimeString()}
@@ -915,7 +1080,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             {testResults.length > 0 && (
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                <h5 className="font-medium text-white mb-2">✅ Tracking Status:</h5>
+                <h5 className="font-medium text-white mb-2">
+                  ✅ Tracking Status:
+                </h5>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/80">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-400" />
@@ -951,13 +1118,13 @@ document.addEventListener('DOMContentLoaded', function() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Previous
         </Button>
-        
+
         <Button
           onClick={nextStep}
           disabled={!canProceedToNext()}
           className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
         >
-          {currentStep === 4 ? 'Finish Setup' : 'Next Step'}
+          {currentStep === 4 ? "Finish Setup" : "Next Step"}
           <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>

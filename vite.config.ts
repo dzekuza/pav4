@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8083,
     headers: {
-      'X-Frame-Options': 'SAMEORIGIN',
-      'Content-Security-Policy': "frame-ancestors 'self'",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Content-Security-Policy": "frame-ancestors 'self'",
     },
   },
   build: {
@@ -20,10 +20,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor_react: ["react", "react-dom"],
           vendor_router: ["react-router-dom"],
-          vendor_ui: [
-            "lucide-react",
-            "@tanstack/react-query",
-          ],
+          vendor_ui: ["lucide-react", "@tanstack/react-query"],
         },
       },
     },
@@ -59,7 +56,7 @@ function copyRedirectsPlugin(): Plugin {
       // Copy _redirects file to build output
       const redirectsPath = path.resolve(__dirname, "public/_redirects");
       const outputPath = path.resolve(__dirname, "dist/spa/_redirects");
-      
+
       if (fs.existsSync(redirectsPath)) {
         fs.copyFileSync(redirectsPath, outputPath);
         console.log("Copied _redirects file to build output");

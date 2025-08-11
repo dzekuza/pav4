@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
+import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
   Settings,
   User,
   Building2,
@@ -21,9 +27,9 @@ import {
   EyeOff,
   Save,
   Edit,
-  Trash2
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+  Trash2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface BusinessStats {
   id: number;
@@ -72,31 +78,31 @@ export default function BusinessSettingsDashboard() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<BusinessSettings>({
     businessInfo: {
-      name: stats?.name || '',
-      domain: stats?.domain || '',
-      email: 'business@example.com',
-      phone: '+1 (555) 123-4567',
-      address: '123 Business St, City, State 12345',
-      country: 'United States',
-      category: 'E-commerce',
-      description: 'Your business description here'
+      name: stats?.name || "",
+      domain: stats?.domain || "",
+      email: "business@example.com",
+      phone: "+1 (555) 123-4567",
+      address: "123 Business St, City, State 12345",
+      country: "United States",
+      category: "E-commerce",
+      description: "Your business description here",
     },
     trackingSettings: {
       enableTracking: true,
       enableNotifications: true,
       enableAnalytics: true,
-      trackingCode: 'YOUR_TRACKING_CODE'
+      trackingCode: "YOUR_TRACKING_CODE",
     },
     commissionSettings: {
       commissionRate: stats?.adminCommissionRate || 10,
       autoPayout: false,
-      payoutThreshold: 100
+      payoutThreshold: 100,
     },
     securitySettings: {
       twoFactorAuth: false,
       sessionTimeout: 30,
-      ipWhitelist: []
-    }
+      ipWhitelist: [],
+    },
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -104,14 +110,14 @@ export default function BusinessSettingsDashboard() {
   const handleSaveSettings = async (section: string) => {
     setIsLoading(true);
     try {
-      if (section === 'Profile') {
+      if (section === "Profile") {
         // Call the business profile update endpoint
-        const response = await fetch('/api/business/profile', {
-          method: 'PUT',
+        const response = await fetch("/api/business/profile", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          credentials: 'include',
+          credentials: "include",
           body: JSON.stringify({
             name: settings.businessInfo.name,
             domain: settings.businessInfo.domain,
@@ -120,33 +126,37 @@ export default function BusinessSettingsDashboard() {
             address: settings.businessInfo.address,
             country: settings.businessInfo.country,
             category: settings.businessInfo.category,
-            description: settings.businessInfo.description
-          })
+            description: settings.businessInfo.description,
+          }),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to save profile settings');
+          throw new Error(errorData.error || "Failed to save profile settings");
         }
 
         const data = await response.json();
         toast({
           title: "Profile Updated",
-          description: data.message || "Business profile has been updated successfully.",
+          description:
+            data.message || "Business profile has been updated successfully.",
         });
       } else {
         // For other sections, simulate API call for now
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         toast({
           title: "Settings Saved",
           description: `${section} settings have been updated successfully.`,
         });
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error("Error saving settings:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save settings. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save settings. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -154,13 +164,17 @@ export default function BusinessSettingsDashboard() {
     }
   };
 
-  const updateSettings = (section: keyof BusinessSettings, field: string, value: any) => {
-    setSettings(prev => ({
+  const updateSettings = (
+    section: keyof BusinessSettings,
+    field: string,
+    value: any,
+  ) => {
+    setSettings((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -204,7 +218,9 @@ export default function BusinessSettingsDashboard() {
                   <Input
                     id="business-name"
                     value={settings.businessInfo.name}
-                    onChange={(e) => updateSettings('businessInfo', 'name', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "name", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -212,7 +228,9 @@ export default function BusinessSettingsDashboard() {
                   <Input
                     id="domain"
                     value={settings.businessInfo.domain}
-                    onChange={(e) => updateSettings('businessInfo', 'domain', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "domain", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -221,7 +239,9 @@ export default function BusinessSettingsDashboard() {
                     id="email"
                     type="email"
                     value={settings.businessInfo.email}
-                    onChange={(e) => updateSettings('businessInfo', 'email', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "email", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -229,7 +249,9 @@ export default function BusinessSettingsDashboard() {
                   <Input
                     id="phone"
                     value={settings.businessInfo.phone}
-                    onChange={(e) => updateSettings('businessInfo', 'phone', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "phone", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
@@ -237,7 +259,9 @@ export default function BusinessSettingsDashboard() {
                   <Input
                     id="address"
                     value={settings.businessInfo.address}
-                    onChange={(e) => updateSettings('businessInfo', 'address', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "address", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -245,7 +269,9 @@ export default function BusinessSettingsDashboard() {
                   <Input
                     id="country"
                     value={settings.businessInfo.country}
-                    onChange={(e) => updateSettings('businessInfo', 'country', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "country", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -253,7 +279,9 @@ export default function BusinessSettingsDashboard() {
                   <Input
                     id="category"
                     value={settings.businessInfo.category}
-                    onChange={(e) => updateSettings('businessInfo', 'category', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings("businessInfo", "category", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
@@ -262,12 +290,18 @@ export default function BusinessSettingsDashboard() {
                     id="description"
                     className="w-full min-h-[140px] px-3 py-2 rounded-md border border-white/10 bg-white/5 text-white placeholder:text-white/60 backdrop-blur-sm focus-visible:outline-none focus-visible:ring-0"
                     value={settings.businessInfo.description}
-                    onChange={(e) => updateSettings('businessInfo', 'description', e.target.value)}
+                    onChange={(e) =>
+                      updateSettings(
+                        "businessInfo",
+                        "description",
+                        e.target.value,
+                      )
+                    }
                   />
                 </div>
               </div>
-              <Button 
-                onClick={() => handleSaveSettings('Profile')}
+              <Button
+                onClick={() => handleSaveSettings("Profile")}
                 disabled={isLoading}
                 className="w-full md:w-auto"
               >
@@ -301,7 +335,13 @@ export default function BusinessSettingsDashboard() {
                   </div>
                   <Switch
                     checked={settings.trackingSettings.enableTracking}
-                    onCheckedChange={(checked) => updateSettings('trackingSettings', 'enableTracking', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSettings(
+                        "trackingSettings",
+                        "enableTracking",
+                        checked,
+                      )
+                    }
                   />
                 </div>
                 <Separator />
@@ -314,7 +354,13 @@ export default function BusinessSettingsDashboard() {
                   </div>
                   <Switch
                     checked={settings.trackingSettings.enableNotifications}
-                    onCheckedChange={(checked) => updateSettings('trackingSettings', 'enableNotifications', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSettings(
+                        "trackingSettings",
+                        "enableNotifications",
+                        checked,
+                      )
+                    }
                   />
                 </div>
                 <Separator />
@@ -327,12 +373,18 @@ export default function BusinessSettingsDashboard() {
                   </div>
                   <Switch
                     checked={settings.trackingSettings.enableAnalytics}
-                    onCheckedChange={(checked) => updateSettings('trackingSettings', 'enableAnalytics', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSettings(
+                        "trackingSettings",
+                        "enableAnalytics",
+                        checked,
+                      )
+                    }
                   />
                 </div>
               </div>
-              <Button 
-                onClick={() => handleSaveSettings('Tracking')}
+              <Button
+                onClick={() => handleSaveSettings("Tracking")}
                 disabled={isLoading}
                 className="w-full md:w-auto"
               >
@@ -365,7 +417,13 @@ export default function BusinessSettingsDashboard() {
                     min="0"
                     max="100"
                     value={settings.commissionSettings.commissionRate}
-                    onChange={(e) => updateSettings('commissionSettings', 'commissionRate', parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      updateSettings(
+                        "commissionSettings",
+                        "commissionRate",
+                        parseFloat(e.target.value),
+                      )
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -375,7 +433,13 @@ export default function BusinessSettingsDashboard() {
                     type="number"
                     min="0"
                     value={settings.commissionSettings.payoutThreshold}
-                    onChange={(e) => updateSettings('commissionSettings', 'payoutThreshold', parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      updateSettings(
+                        "commissionSettings",
+                        "payoutThreshold",
+                        parseFloat(e.target.value),
+                      )
+                    }
                   />
                 </div>
               </div>
@@ -388,11 +452,13 @@ export default function BusinessSettingsDashboard() {
                 </div>
                 <Switch
                   checked={settings.commissionSettings.autoPayout}
-                  onCheckedChange={(checked) => updateSettings('commissionSettings', 'autoPayout', checked)}
+                  onCheckedChange={(checked) =>
+                    updateSettings("commissionSettings", "autoPayout", checked)
+                  }
                 />
               </div>
-              <Button 
-                onClick={() => handleSaveSettings('Commission')}
+              <Button
+                onClick={() => handleSaveSettings("Commission")}
                 disabled={isLoading}
                 className="w-full md:w-auto"
               >
@@ -426,19 +492,33 @@ export default function BusinessSettingsDashboard() {
                   </div>
                   <Switch
                     checked={settings.securitySettings.twoFactorAuth}
-                    onCheckedChange={(checked) => updateSettings('securitySettings', 'twoFactorAuth', checked)}
+                    onCheckedChange={(checked) =>
+                      updateSettings(
+                        "securitySettings",
+                        "twoFactorAuth",
+                        checked,
+                      )
+                    }
                   />
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
+                  <Label htmlFor="session-timeout">
+                    Session Timeout (minutes)
+                  </Label>
                   <Input
                     id="session-timeout"
                     type="number"
                     min="5"
                     max="480"
                     value={settings.securitySettings.sessionTimeout}
-                    onChange={(e) => updateSettings('securitySettings', 'sessionTimeout', parseInt(e.target.value))}
+                    onChange={(e) =>
+                      updateSettings(
+                        "securitySettings",
+                        "sessionTimeout",
+                        parseInt(e.target.value),
+                      )
+                    }
                   />
                 </div>
                 <Separator />
@@ -458,13 +538,17 @@ export default function BusinessSettingsDashboard() {
                       size="icon"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
               </div>
-              <Button 
-                onClick={() => handleSaveSettings('Security')}
+              <Button
+                onClick={() => handleSaveSettings("Security")}
                 disabled={isLoading}
                 className="w-full md:w-auto"
               >
@@ -477,4 +561,4 @@ export default function BusinessSettingsDashboard() {
       </Tabs>
     </div>
   );
-} 
+}

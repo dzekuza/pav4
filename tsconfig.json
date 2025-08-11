@@ -41,11 +41,11 @@
     "vite.config.server.ts"
   ],
   "exclude": [
-    "node_modules", 
-    "dist", 
-    "**/*.test.ts", 
-    "**/*.test.tsx", 
-    "**/*.spec.ts", 
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
     "**/*.spec.tsx",
     "**/test-*.html",
     "**/test-*.js",

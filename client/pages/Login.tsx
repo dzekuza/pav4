@@ -23,7 +23,11 @@ export default function Login() {
   if (isLoading) {
     return (
       <div className="relative min-h-screen overflow-hidden text-white">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+        <img
+          src="/pagebg.png"
+          alt=""
+          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+        />
         <SearchHeader />
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center">
@@ -36,7 +40,11 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader />
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-md mx-auto">

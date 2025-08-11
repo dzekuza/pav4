@@ -731,15 +731,15 @@ function getLocationByCountryCode(countryCode: string): LocationInfo {
   if (supportedCountry) {
     return supportedCountry;
   }
-  
+
   // Fallback to US if country is not supported
   return SEARCH_API_SUPPORTED_COUNTRIES["US"];
 }
 
 // Get list of all supported countries
 export function getSupportedCountries(): LocationInfo[] {
-  return Object.values(SEARCH_API_SUPPORTED_COUNTRIES).sort((a, b) => 
-    a.country.localeCompare(b.country)
+  return Object.values(SEARCH_API_SUPPORTED_COUNTRIES).sort((a, b) =>
+    a.country.localeCompare(b.country),
   );
 }
 
@@ -748,7 +748,7 @@ export function isCountrySupported(countryCode: string): boolean {
   // Convert to lowercase for comparison since gl codes are lowercase
   const normalizedCode = countryCode.toLowerCase();
   return Object.values(SEARCH_API_SUPPORTED_COUNTRIES).some(
-    (country: any) => country.countryCode === normalizedCode
+    (country: any) => country.countryCode === normalizedCode,
   );
 }
 
@@ -767,19 +767,19 @@ export function getLocalDealers(location: LocationInfo): LocalDealer[] {
 export const getLocationHandler: RequestHandler = async (req, res) => {
   try {
     // If it's a POST request with location data, validate and use that
-    if (req.method === 'POST' && req.body && req.body.location) {
+    if (req.method === "POST" && req.body && req.body.location) {
       const userLocation = req.body.location as LocationInfo;
-      
+
       // Validate that the country is supported
       if (!isCountrySupported(userLocation.countryCode)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Country not supported by SearchAPI",
-          message: `Country code '${userLocation.countryCode}' is not supported. Please choose from the supported countries list.`
+          message: `Country code '${userLocation.countryCode}' is not supported. Please choose from the supported countries list.`,
         });
       }
-      
+
       const dealers = getLocalDealers(userLocation);
-      
+
       res.json({
         location: userLocation,
         localDealers: dealers.slice(0, 5), // Return top 5 local dealers
@@ -817,7 +817,7 @@ export const getLocationHandler: RequestHandler = async (req, res) => {
     res.json({
       location: SEARCH_API_SUPPORTED_COUNTRIES["US"],
       localDealers: [],
-      error: "Failed to detect location"
+      error: "Failed to detect location",
     });
   }
 };

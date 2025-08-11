@@ -113,7 +113,7 @@ export function SearchLoadingState() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-              <AnimatedGradientBackground />
+      <AnimatedGradientBackground />
       <div className="relative z-10 flex min-h-screen items-center justify-center px-6">
         <div className="w-full max-w-2xl">
           {/* Spinner */}
@@ -125,8 +125,12 @@ export function SearchLoadingState() {
             </div>
           </div>
 
-          <h2 className="text-center text-2xl font-semibold text-white">Preparing your results…</h2>
-          <p className="mt-2 text-center text-white/70">We are working through a few quick steps</p>
+          <h2 className="text-center text-2xl font-semibold text-white">
+            Preparing your results…
+          </h2>
+          <p className="mt-2 text-center text-white/70">
+            We are working through a few quick steps
+          </p>
 
           {/* Steps */}
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
@@ -142,13 +146,27 @@ export function SearchLoadingState() {
                         (isDone
                           ? "bg-green-500/90 text-black"
                           : isActive
-                          ? "bg-white text-black"
-                          : "bg-white/10 text-white/60")
+                            ? "bg-white text-black"
+                            : "bg-white/10 text-white/60")
                       }
                     >
-                      {isDone ? <Check className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
+                      {isDone ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      )}
                     </span>
-                    <span className={isDone ? "text-white/90" : isActive ? "text-white" : "text-white/60"}>{label}</span>
+                    <span
+                      className={
+                        isDone
+                          ? "text-white/90"
+                          : isActive
+                            ? "text-white"
+                            : "text-white/60"
+                      }
+                    >
+                      {label}
+                    </span>
                   </li>
                 );
               })}
@@ -163,7 +181,9 @@ export function SearchLoadingState() {
                 style={{ width: `${percent}%` }}
               />
             </div>
-            <p className="mt-3 text-center text-xs text-white/60">This typically takes about 7 seconds</p>
+            <p className="mt-3 text-center text-xs text-white/60">
+              This typically takes about 7 seconds
+            </p>
           </div>
         </div>
       </div>
@@ -175,7 +195,7 @@ export function SearchLoadingOverlay({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) {
     return null;
   }
-  
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-background border rounded-2xl p-6 sm:p-8 shadow-2xl max-w-md mx-4">
@@ -189,24 +209,26 @@ export function SearchLoadingOverlay({ isVisible }: { isVisible: boolean }) {
             {/* Rotating border effect */}
             <div className="absolute inset-0 border-2 border-primary/20 rounded-full animate-spin"></div>
           </div>
-          
-          <h3 className="text-lg sm:text-xl font-bold mb-2">Finding the best deals...</h3>
+
+          <h3 className="text-lg sm:text-xl font-bold mb-2">
+            Finding the best deals...
+          </h3>
           <p className="text-muted-foreground mb-6 mobile-text-sm">
             Scanning retailers and comparing prices
           </p>
-          
+
           {/* Progress dots */}
           <div className="flex justify-center gap-2 mb-6">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:0.2s]"></div>
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse [animation-delay:0.4s]"></div>
           </div>
-          
+
           {/* Animated progress bar */}
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full animate-pulse w-3/5"></div>
           </div>
-          
+
           <p className="text-xs text-muted-foreground mt-4">
             This usually takes 10-30 seconds
           </p>

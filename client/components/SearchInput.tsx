@@ -2,9 +2,26 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Clock, ArrowRight, Globe, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface SearchInputProps {
   value: string;
@@ -14,7 +31,7 @@ interface SearchInputProps {
   isLoading?: boolean;
   selectedCountry?: string;
   onCountryChange?: (country: string) => void;
-  align?: 'left' | 'center';
+  align?: "left" | "center";
   submitLabel?: string;
 }
 
@@ -71,7 +88,7 @@ const countries = [
   { code: "py", name: "Paraguay", flag: "🇵🇾" },
   { code: "pe", name: "Peru", flag: "🇵🇪" },
   { code: "uy", name: "Uruguay", flag: "🇺🇾" },
-  { code: "ve", name: "Venezuela", flag: "🇻🇪" }
+  { code: "ve", name: "Venezuela", flag: "🇻🇪" },
 ];
 
 export function SearchInput({
@@ -104,19 +121,19 @@ export function SearchInput({
   useEffect(() => {
     const detectUserCountry = async () => {
       try {
-        const response = await fetch('/api/location', {
-          method: 'GET',
+        const response = await fetch("/api/location", {
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           if (data.location && data.location.countryCode) {
             const countryCode = data.location.countryCode.toLowerCase();
             setDetectedCountry(countryCode);
-            
+
             // Only update the country if no country is currently selected or if it's different
             if (!selectedCountry || selectedCountry !== countryCode) {
               onCountryChange?.(countryCode);
@@ -124,7 +141,7 @@ export function SearchInput({
           }
         }
       } catch (error) {
-        console.log('Failed to detect user location:', error);
+        console.log("Failed to detect user location:", error);
         // Keep the default country if detection fails
       }
     };
@@ -272,20 +289,20 @@ export function SearchInput({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const selectedCountryData = countries.find(c => c.code === selectedCountry);
+  const selectedCountryData = countries.find((c) => c.code === selectedCountry);
 
   return (
-    <div className={`relative w-full ${align === 'left' ? '' : 'mx-auto'}`}>
+    <div className={`relative w-full ${align === "left" ? "" : "mx-auto"}`}>
       <form onSubmit={handleSubmit}>
-        {/* Glass container */}
-        <div className="relative overflow-hidden rounded-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.25)] focus-within:outline-none focus-within:ring-0 [&_*:focus-visible]:ring-0 [&_*:focus-visible]:ring-offset-0">
-          {/* subtle inner sheen */}
-          <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(120%_60%_at_15%_-20%,rgba(255,255,255,0.18),rgba(255,255,255,0))]" />
-
+        {/* Container */}
+        <div className="relative overflow-hidden rounded-full border border-white/10 focus-within:outline-none focus-within:ring-0 [&_*:focus-visible]:ring-0 [&_*:focus-visible]:ring-offset-0">
           <div className="relative flex w-full items-stretch gap-1 sm:gap-1.5 p-1.5">
             {/* Country selector */}
             <div className="flex items-center">
-              <Popover open={openCountrySelect} onOpenChange={setOpenCountrySelect}>
+              <Popover
+                open={openCountrySelect}
+                onOpenChange={setOpenCountrySelect}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
@@ -293,9 +310,13 @@ export function SearchInput({
                     aria-expanded={openCountrySelect}
                     className="h-12 pl-2 pr-0 sm:px-4 rounded-full text-white hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
                   >
-                    <span className="text-lg mr-0 sm:mr-2">{selectedCountryData?.flag}</span>
-                    <span className="hidden sm:inline text-sm font-semibold uppercase tracking-wide">{selectedCountryData?.code}</span>
-                    <ChevronDown className="ml-2 h-4 w-4 opacity-60 hidden sm:inline" />
+                    <span className="text-xl mr-0 sm:mr-2 flag-emoji">
+                      {selectedCountryData?.flag}
+                    </span>
+                    <span className="hidden sm:inline text-sm font-semibold uppercase tracking-wide">
+                      {selectedCountryData?.code}
+                    </span>
+                    <ChevronDown className="ml-2 h-5 w-5 opacity-60 hidden sm:inline" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0 border-white/10 bg-white/10 backdrop-blur-md">
@@ -314,7 +335,9 @@ export function SearchInput({
                             }}
                           >
                             <div className="flex items-center gap-2">
-                              <span className="text-lg">{country.flag}</span>
+                              <span className="text-xl flag-emoji">
+                                {country.flag}
+                              </span>
                               <span>{country.name}</span>
                             </div>
                           </CommandItem>
@@ -355,7 +378,9 @@ export function SearchInput({
                 variant="outline"
                 className="h-12 rounded-full bg-white text-black border border-black/10 w-12 sm:w-auto px-0 sm:px-6 justify-center hover:bg-white/90 hover:text-black focus-visible:ring-0 focus-visible:ring-offset-0"
               >
-                <span className="hidden sm:inline">{isLoading ? "Searching..." : submitLabel}</span>
+                <span className="hidden sm:inline">
+                  {isLoading ? "Searching..." : submitLabel}
+                </span>
                 <ArrowRight className="h-5 w-5 sm:ml-2" />
               </Button>
             </div>
@@ -373,7 +398,7 @@ export function SearchInput({
           >
             <div className="p-2">
               <div className="flex items-center gap-2 px-3 py-2 text-sm text-white/80">
-                <Clock className="h-4 w-4" />
+                <Clock className="h-5 w-5" />
                 Recent searches
               </div>
               {suggestions.map((suggestion, index) => (
@@ -381,9 +406,7 @@ export function SearchInput({
                   key={index}
                   onClick={() => handleSuggestionSelect(suggestion)}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm text-white/90 hover:bg-white/10 transition-colors ${
-                    index === focusedIndex
-                      ? "bg-white/10"
-                      : ""
+                    index === focusedIndex ? "bg-white/10" : ""
                   }`}
                 >
                   <div className="truncate">{suggestion}</div>

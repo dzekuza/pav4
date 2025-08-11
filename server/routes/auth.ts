@@ -42,18 +42,18 @@ export const register: RequestHandler = async (req, res) => {
     const hasNumber = /\d/.test(password);
 
     if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-      return res
-        .status(400)
-        .json({ 
-          error: "Password must contain uppercase, lowercase, and number",
-          details: [{
+      return res.status(400).json({
+        error: "Password must contain uppercase, lowercase, and number",
+        details: [
+          {
             type: "field",
             value: password,
             msg: "Password must be at least 8 characters with uppercase, lowercase, and number",
             path: "password",
-            location: "body"
-          }]
-        });
+            location: "body",
+          },
+        ],
+      });
     }
 
     // Check if user already exists
@@ -158,10 +158,10 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
   try {
     // Check for token in cookies or Authorization header
     let token = req.cookies.auth_token;
-    
+
     if (!token) {
       const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
       }
     }
@@ -170,7 +170,7 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
       // Return null user instead of 401 for unauthenticated requests
       return res.json({
         user: null,
-        authenticated: false
+        authenticated: false,
       });
     }
 
@@ -178,17 +178,20 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
     if (!decoded) {
       return res.json({
         user: null,
-        authenticated: false
+        authenticated: false,
       });
     }
 
     // Handle both string and number user IDs
-    const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
-    
+    const userId =
+      typeof decoded.userId === "string"
+        ? parseInt(decoded.userId, 10)
+        : decoded.userId;
+
     if (isNaN(userId)) {
       return res.json({
         user: null,
-        authenticated: false
+        authenticated: false,
       });
     }
 
@@ -196,7 +199,7 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
     if (!user) {
       return res.json({
         user: null,
-        authenticated: false
+        authenticated: false,
       });
     }
 
@@ -206,14 +209,14 @@ export const getCurrentUser: RequestHandler = async (req, res) => {
         email: user.email,
         isAdmin: user.isAdmin,
       },
-      authenticated: true
+      authenticated: true,
     });
   } catch (error) {
     console.error("Get current user error:", error);
     // Return null user instead of 500 error
     res.json({
       user: null,
-      authenticated: false
+      authenticated: false,
     });
   }
 };
@@ -223,10 +226,10 @@ export const addToSearchHistory: RequestHandler = async (req, res) => {
   try {
     // Check for token in cookies or Authorization header
     let token = req.cookies.auth_token;
-    
+
     if (!token) {
       const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
       }
     }
@@ -241,8 +244,11 @@ export const addToSearchHistory: RequestHandler = async (req, res) => {
     }
 
     // Handle both string and number user IDs
-    const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
-    
+    const userId =
+      typeof decoded.userId === "string"
+        ? parseInt(decoded.userId, 10)
+        : decoded.userId;
+
     if (isNaN(userId)) {
       return res.status(401).json({ error: "Invalid user ID in token" });
     }
@@ -277,10 +283,10 @@ export const getUserSearchHistory: RequestHandler = async (req, res) => {
   try {
     // Check for token in cookies or Authorization header
     let token = req.cookies.auth_token;
-    
+
     if (!token) {
       const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
       }
     }
@@ -295,8 +301,11 @@ export const getUserSearchHistory: RequestHandler = async (req, res) => {
     }
 
     // Handle both string and number user IDs
-    const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
-    
+    const userId =
+      typeof decoded.userId === "string"
+        ? parseInt(decoded.userId, 10)
+        : decoded.userId;
+
     if (isNaN(userId)) {
       return res.status(401).json({ error: "Invalid user ID in token" });
     }
@@ -338,9 +347,9 @@ export const getAllUsers: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getting all users:", error);
-    res.json({ 
+    res.json({
       users: [],
-      error: "Failed to get users"
+      error: "Failed to get users",
     });
   }
 };

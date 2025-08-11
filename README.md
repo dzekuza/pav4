@@ -5,6 +5,7 @@ A comprehensive web application that scrapes product information from URLs and p
 ## 🚀 Features
 
 ### Core Functionality
+
 - **Product Scraping**: Extract product information (title, price, image) from any product URL
 - **Price Comparison**: Find similar products across multiple retailers using Google Shopping API
 - **n8n Webhook Integration**: Automated product analysis and price comparison via n8n workflows
@@ -13,6 +14,7 @@ A comprehensive web application that scrapes product information from URLs and p
 - **Multi-country Support**: Support for 50+ countries with proper localization
 
 ### Advanced Features
+
 - **AI-Powered Title Cleaning**: Use Gemini API to clean product titles for better search results
 - **Google Shopping Integration**: Direct integration with Google Shopping for real-time price data
 - **n8n Automation**: Automated workflow for product analysis and price comparison
@@ -24,16 +26,18 @@ A comprehensive web application that scrapes product information from URLs and p
 ## 🏗️ Architecture
 
 ### Tech Stack
+
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Node.js + Express + TypeScript
 - **Database**: PostgreSQL (for user management and search history)
-- **APIs**: 
+- **APIs**:
   - SearchAPI (Google Shopping)
   - Gemini API (Google AI)
   - n8n Webhook Automation
   - Puppeteer (Web scraping)
 
 ### Project Structure
+
 ```
 ├── client/                 # React frontend
 │   ├── components/        # React components
@@ -52,7 +56,8 @@ A comprehensive web application that scrapes product information from URLs and p
 ## 🔧 Installation
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - PostgreSQL database
 - SearchAPI key (Google Shopping API)
 - Gemini API key (optional, for AI features)
@@ -61,18 +66,21 @@ A comprehensive web application that scrapes product information from URLs and p
 ### Setup
 
 1. **Clone the repository**
+
 ```bash
 git clone <repository-url>
 cd price-comparison-app
 ```
 
 2. **Install dependencies**
+
 ```bash
 npm install
 ```
 
 3. **Environment Configuration**
-Create a `.env` file in the root directory:
+   Create a `.env` file in the root directory:
+
 ```env
 # Database
 DATABASE_URL=postgresql://username:password@localhost:5432/price_comparison
@@ -88,6 +96,7 @@ FRONTEND_URL=http://localhost:8080
 ```
 
 4. **Database Setup**
+
 ```bash
 # Run database migrations
 npx prisma migrate dev
@@ -97,6 +106,7 @@ npx prisma generate
 ```
 
 5. **Start Development Server**
+
 ```bash
 npm run dev
 ```
@@ -108,6 +118,7 @@ The application will be available at `http://localhost:8080`
 ### Core Endpoints
 
 #### 1. n8n Webhook Product Scraping
+
 ```http
 POST /api/n8n-scrape
 Content-Type: application/json
@@ -122,6 +133,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "mainProduct": {
@@ -144,6 +156,7 @@ Content-Type: application/json
 ```
 
 #### 2. Legacy Product Scraping
+
 ```http
 POST /api/scrape
 Content-Type: application/json
@@ -155,6 +168,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "originalProduct": {
@@ -186,11 +200,13 @@ Content-Type: application/json
 ```
 
 #### 3. Health Check
+
 ```http
 GET /api/health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -208,11 +224,13 @@ GET /api/health
 ```
 
 #### 4. Location Detection
+
 ```http
 GET /api/location
 ```
 
 **Response:**
+
 ```json
 {
   "country": "Germany",
@@ -224,6 +242,7 @@ GET /api/location
 ### Authentication Endpoints
 
 #### Register User
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -235,6 +254,7 @@ Content-Type: application/json
 ```
 
 #### Login
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -246,6 +266,7 @@ Content-Type: application/json
 ```
 
 #### Get Current User
+
 ```http
 GET /api/auth/me
 Authorization: Bearer <token>
@@ -254,6 +275,7 @@ Authorization: Bearer <token>
 ### Search History Endpoints
 
 #### Save Search History
+
 ```http
 POST /api/search-history
 Authorization: Bearer <token>
@@ -267,6 +289,7 @@ Content-Type: application/json
 ```
 
 #### Get User Search History
+
 ```http
 GET /api/search-history
 Authorization: Bearer <token>
@@ -275,6 +298,7 @@ Authorization: Bearer <token>
 ## 🔍 How It Works
 
 ### 1. n8n Webhook Integration
+
 1. **URL Input**: User provides a product URL
 2. **n8n Webhook Call**: Send URL to n8n automation workflow
 3. **Automated Processing**: n8n extracts product data and searches for comparisons
@@ -282,12 +306,14 @@ Authorization: Bearer <token>
 5. **Display Results**: Show original product and price comparisons
 
 ### 2. Legacy Product Scraping Process
+
 1. **URL Input**: User provides a product URL
 2. **Puppeteer Scraping**: Extract product data using headless browser
 3. **Data Extraction**: Parse title, price, image, and store information
 4. **Validation**: Verify the extracted data is valid
 
 ### 3. Price Comparison Process
+
 1. **Title Cleaning**: Use Gemini API to clean product titles for better search
 2. **SearchAPI Query**: Search Google Shopping for similar products
 3. **Result Filtering**: Filter results by relevance and price range
@@ -295,6 +321,7 @@ Authorization: Bearer <token>
 5. **Assessment**: Generate price and quality assessments
 
 ### 4. Smart Features
+
 - **Country Detection**: Automatically detect user location for localized results
 - **Rate Limiting**: Prevent API abuse with intelligent rate limiting
 - **Fallback Strategies**: Multiple fallback options when primary APIs fail
@@ -314,14 +341,14 @@ The application supports 50+ countries with proper ISO country code mapping:
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes | - |
-| `SEARCH_API_KEY` | SearchAPI key for Google Shopping | Yes | - |
-| `GEMINI_API_KEY` | Gemini API key for AI features | No | - |
-| `N8N_WEBHOOK_URL` | n8n webhook URL for automation | No | https://n8n.srv824584.hstgr.cloud/webhook/new-test |
-| `NODE_ENV` | Environment (development/production) | No | development |
-| `FRONTEND_URL` | Frontend URL for CORS | No | http://localhost:8080 |
+| Variable          | Description                          | Required | Default                                            |
+| ----------------- | ------------------------------------ | -------- | -------------------------------------------------- |
+| `DATABASE_URL`    | PostgreSQL connection string         | Yes      | -                                                  |
+| `SEARCH_API_KEY`  | SearchAPI key for Google Shopping    | Yes      | -                                                  |
+| `GEMINI_API_KEY`  | Gemini API key for AI features       | No       | -                                                  |
+| `N8N_WEBHOOK_URL` | n8n webhook URL for automation       | No       | https://n8n.srv824584.hstgr.cloud/webhook/new-test |
+| `NODE_ENV`        | Environment (development/production) | No       | development                                        |
+| `FRONTEND_URL`    | Frontend URL for CORS                | No       | http://localhost:8080                              |
 
 ### API Rate Limits
 
@@ -333,6 +360,7 @@ The application supports 50+ countries with proper ISO country code mapping:
 ## 🚀 Deployment
 
 ### Production Build
+
 ```bash
 # Build frontend and server
 npm run build
@@ -342,6 +370,7 @@ npm start
 ```
 
 ### Docker Deployment
+
 ```bash
 # Build Docker image
 docker build -t price-comparison-app .
@@ -351,6 +380,7 @@ docker run -p 8080:8080 price-comparison-app
 ```
 
 ### Environment Setup
+
 1. Set up PostgreSQL database
 2. Configure environment variables
 3. Set up reverse proxy (nginx recommended)
@@ -359,6 +389,7 @@ docker run -p 8080:8080 price-comparison-app
 ## 🧪 Testing
 
 ### TestSprite Integration
+
 The project includes comprehensive testing with TestSprite:
 
 ```bash
@@ -376,6 +407,7 @@ npm run test:all
 ```
 
 ### Manual Testing
+
 ```bash
 # Unit tests
 npm test
@@ -388,6 +420,7 @@ npm run test:e2e
 ```
 
 ### API Testing
+
 ```bash
 # Test n8n webhook endpoint
 curl -X POST http://localhost:8080/api/n8n-scrape \
@@ -401,6 +434,7 @@ curl http://localhost:8080/api/health
 ## 📊 Monitoring
 
 ### Health Checks
+
 - Database connectivity
 - API key validity
 - Service status
@@ -408,6 +442,7 @@ curl http://localhost:8080/api/health
 - n8n webhook availability
 
 ### Logging
+
 - Request/response logging
 - Error tracking
 - Performance metrics
@@ -417,18 +452,21 @@ curl http://localhost:8080/api/health
 ## 🔒 Security
 
 ### Authentication
+
 - JWT-based authentication
 - Password hashing with bcrypt
 - Session management
 - Role-based access control
 
 ### Data Protection
+
 - Input validation and sanitization
 - SQL injection prevention
 - XSS protection
 - Rate limiting
 
 ### API Security
+
 - CORS configuration
 - Request validation
 - Error message sanitization
@@ -444,6 +482,7 @@ curl http://localhost:8080/api/health
 5. Submit a pull request
 
 ### Development Guidelines
+
 - Follow TypeScript best practices
 - Write comprehensive tests with TestSprite
 - Update documentation
@@ -474,6 +513,7 @@ A: Verify your DATABASE_URL and ensure PostgreSQL is running.
 A: Ensure database migrations are up to date and Prisma client is regenerated.
 
 ### Getting Help
+
 - Check the [Issues](https://github.com/your-repo/issues) page
 - Create a new issue with detailed information
 - Contact the development team
@@ -481,6 +521,7 @@ A: Ensure database migrations are up to date and Prisma client is regenerated.
 ## 🔄 Changelog
 
 ### v1.1.0 (2025-01-XX)
+
 - Added n8n webhook integration for automated product analysis
 - Implemented TestSprite testing framework
 - Fixed Prisma database type issues
@@ -489,6 +530,7 @@ A: Ensure database migrations are up to date and Prisma client is regenerated.
 - Improved frontend components for better UX
 
 ### v1.0.0 (2025-07-19)
+
 - Initial release
 - Product scraping functionality
 - Google Shopping integration
@@ -505,4 +547,4 @@ A: Ensure database migrations are up to date and Prisma client is regenerated.
 - [TestSprite](https://testsprite.com/) for comprehensive testing
 - [Puppeteer](https://pptr.dev/) for web scraping
 - [Express](https://expressjs.com/) for the backend framework
-- [React](https://reactjs.org/) for the frontend framework 
+- [React](https://reactjs.org/) for the frontend framework

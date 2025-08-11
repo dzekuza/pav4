@@ -94,7 +94,10 @@ class PriceHuntContentScript {
         product = this.detectNeweggProduct();
       } else if (hostname.includes("costco.com")) {
         product = this.detectCostcoProduct();
-      } else if (hostname.includes("livelarq.com") || hostname.includes("larq.com")) {
+      } else if (
+        hostname.includes("livelarq.com") ||
+        hostname.includes("larq.com")
+      ) {
         console.log("Content script: Using LARQ detection");
         product = this.detectLarqProduct();
       } else if (hostname.includes("sonos.com")) {
@@ -115,9 +118,14 @@ class PriceHuntContentScript {
           timestamp: Date.now(),
           source: hostname,
         };
-        console.log("Content script: Product detected successfully:", this.productInfo);
+        console.log(
+          "Content script: Product detected successfully:",
+          this.productInfo,
+        );
       } else {
-        console.log("Content script: No product detected or incomplete product info");
+        console.log(
+          "Content script: No product detected or incomplete product info",
+        );
         this.productInfo = null;
       }
 
@@ -245,60 +253,60 @@ class PriceHuntContentScript {
   detectLarqProduct() {
     const selectors = {
       title: [
-        'h1', 
-        '.product-title', 
-        '.product-name', 
+        "h1",
+        ".product-title",
+        ".product-name",
         '[data-testid="product-title"]',
-        '.product-details h1',
-        '.product-info h1',
-        '.product-header h1',
-        '.pdp-title',
-        '.product__title'
+        ".product-details h1",
+        ".product-info h1",
+        ".product-header h1",
+        ".pdp-title",
+        ".product__title",
       ],
       price: [
-        '.price', 
-        '.cost', 
-        '.amount', 
-        '[data-testid="price"]', 
-        '.product-price',
-        '.price-current',
-        '.price__current',
-        '.product__price',
-        '.pdp-price',
-        '.price-display',
+        ".price",
+        ".cost",
+        ".amount",
+        '[data-testid="price"]',
+        ".product-price",
+        ".price-current",
+        ".price__current",
+        ".product__price",
+        ".pdp-price",
+        ".price-display",
         '[data-testid="price-amount"]',
-        '.product-price .amount'
+        ".product-price .amount",
       ],
       image: [
-        '.product-image img', 
-        '.main-image img', 
+        ".product-image img",
+        ".main-image img",
         '[data-testid="product-image"]',
-        '.product__image img',
-        '.pdp-image img',
-        '.product-gallery img',
-        '.hero-image img',
-        '.product-hero img',
-        '.product-image-container img'
+        ".product__image img",
+        ".pdp-image img",
+        ".product-gallery img",
+        ".hero-image img",
+        ".product-hero img",
+        ".product-image-container img",
       ],
       rating: [
-        '.rating', 
-        '.stars', 
-        '.review-rating', 
+        ".rating",
+        ".stars",
+        ".review-rating",
         '[data-testid="rating"]',
-        '.product-rating',
-        '.reviews-rating',
-        '.star-rating',
-        '.rating-stars'
+        ".product-rating",
+        ".reviews-rating",
+        ".star-rating",
+        ".rating-stars",
       ],
       availability: [
-        '.availability', 
-        '.stock', 
-        '.in-stock', 
+        ".availability",
+        ".stock",
+        ".in-stock",
         '[data-testid="availability"]',
-        '.product-availability',
-        '.stock-status',
-        '.inventory-status',
-        '.add-to-cart'
+        ".product-availability",
+        ".stock-status",
+        ".inventory-status",
+        ".add-to-cart",
       ],
     };
 
@@ -309,9 +317,11 @@ class PriceHuntContentScript {
     const selectors = {
       title: 'h1, .product-title, .product-name, [data-testid="product-title"]',
       price: '.price, .cost, .amount, [data-testid="price"], .product-price',
-      image: '.product-image img, .main-image img, [data-testid="product-image"]',
+      image:
+        '.product-image img, .main-image img, [data-testid="product-image"]',
       rating: '.rating, .stars, .review-rating, [data-testid="rating"]',
-      availability: '.availability, .stock, .in-stock, [data-testid="availability"]',
+      availability:
+        '.availability, .stock, .in-stock, [data-testid="availability"]',
     };
 
     return this.extractProductInfo(selectors);
@@ -321,60 +331,60 @@ class PriceHuntContentScript {
     // Enhanced generic selectors for other e-commerce sites
     const selectors = {
       title: [
-        'h1', 
-        '.product-title', 
-        '.product-name', 
+        "h1",
+        ".product-title",
+        ".product-name",
         '[itemprop="name"]',
         '[data-testid="product-title"]',
-        '.pdp-title',
-        '.product__title',
-        '.product-details h1',
-        '.product-info h1',
-        '.product-header h1'
+        ".pdp-title",
+        ".product__title",
+        ".product-details h1",
+        ".product-info h1",
+        ".product-header h1",
       ],
       price: [
-        '.price', 
-        '.cost', 
-        '.amount', 
+        ".price",
+        ".cost",
+        ".amount",
         '[itemprop="price"]',
         '[data-testid="price"]',
-        '.product-price',
-        '.price-current',
-        '.price__current',
-        '.product__price',
-        '.pdp-price',
-        '.price-display'
+        ".product-price",
+        ".price-current",
+        ".price__current",
+        ".product__price",
+        ".pdp-price",
+        ".price-display",
       ],
       image: [
-        '.product-image img', 
-        '.main-image img', 
+        ".product-image img",
+        ".main-image img",
         '[itemprop="image"]',
         '[data-testid="product-image"]',
-        '.product__image img',
-        '.pdp-image img',
-        '.product-gallery img',
-        '.hero-image img',
-        '.product-hero img'
+        ".product__image img",
+        ".pdp-image img",
+        ".product-gallery img",
+        ".hero-image img",
+        ".product-hero img",
       ],
       rating: [
-        '.rating', 
-        '.stars', 
-        '.review-rating', 
+        ".rating",
+        ".stars",
+        ".review-rating",
         '[itemprop="ratingValue"]',
         '[data-testid="rating"]',
-        '.product-rating',
-        '.reviews-rating',
-        '.star-rating'
+        ".product-rating",
+        ".reviews-rating",
+        ".star-rating",
       ],
       availability: [
-        '.availability', 
-        '.stock', 
-        '.in-stock', 
+        ".availability",
+        ".stock",
+        ".in-stock",
         '[itemprop="availability"]',
         '[data-testid="availability"]',
-        '.product-availability',
-        '.stock-status',
-        '.inventory-status'
+        ".product-availability",
+        ".stock-status",
+        ".inventory-status",
       ],
     };
 
@@ -406,7 +416,8 @@ class PriceHuntContentScript {
     for (const selector of selectors.image) {
       const imageElement = document.querySelector(selector);
       if (imageElement) {
-        product.image = imageElement.src || imageElement.getAttribute("data-src");
+        product.image =
+          imageElement.src || imageElement.getAttribute("data-src");
         if (product.image) break;
       }
     }

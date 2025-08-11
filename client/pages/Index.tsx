@@ -15,72 +15,72 @@ export default function Index() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState("de"); // Default to Germany
   const navigate = useNavigate();
-  
-  const { 
-    location, 
-    showLocationPermission, 
-    handleLocationDetected, 
-    handleLocationSkip 
+
+  const {
+    location,
+    showLocationPermission,
+    handleLocationDetected,
+    handleLocationSkip,
   } = useLocation();
 
   // Map country codes to full country names for the API
   const getCountryName = (countryCode: string): string => {
     const countryMap: { [key: string]: string } = {
-      'us': 'United States',
-      'de': 'Germany',
-      'uk': 'United Kingdom',
-      'lt': 'Lithuania',
-      'lv': 'Latvia',
-      'ee': 'Estonia',
-      'fr': 'France',
-      'es': 'Spain',
-      'it': 'Italy',
-      'pl': 'Poland',
-      'cz': 'Czech Republic',
-      'sk': 'Slovakia',
-      'hu': 'Hungary',
-      'ro': 'Romania',
-      'bg': 'Bulgaria',
-      'hr': 'Croatia',
-      'si': 'Slovenia',
-      'at': 'Austria',
-      'be': 'Belgium',
-      'nl': 'Netherlands',
-      'dk': 'Denmark',
-      'se': 'Sweden',
-      'no': 'Norway',
-      'fi': 'Finland',
-      'is': 'Iceland',
-      'ie': 'Ireland',
-      'pt': 'Portugal',
-      'gr': 'Greece',
-      'cy': 'Cyprus',
-      'mt': 'Malta',
-      'lu': 'Luxembourg',
-      'ae': 'United Arab Emirates',
-      'ai': 'Anguilla',
-      'ar': 'Argentina',
-      'au': 'Australia',
-      'bm': 'Bermuda',
-      'br': 'Brazil',
-      'ca': 'Canada',
-      'cl': 'Chile',
-      'co': 'Colombia',
-      'cr': 'Costa Rica',
-      'do': 'Dominican Republic',
-      'ec': 'Ecuador',
-      'sv': 'El Salvador',
-      'gt': 'Guatemala',
-      'hn': 'Honduras',
-      'mx': 'Mexico',
-      'ni': 'Nicaragua',
-      'pa': 'Panama',
-      'py': 'Paraguay',
-      'pe': 'Peru',
-      'uy': 'Uruguay',
-      've': 'Venezuela'
+      us: "United States",
+      de: "Germany",
+      uk: "United Kingdom",
+      lt: "Lithuania",
+      lv: "Latvia",
+      ee: "Estonia",
+      fr: "France",
+      es: "Spain",
+      it: "Italy",
+      pl: "Poland",
+      cz: "Czech Republic",
+      sk: "Slovakia",
+      hu: "Hungary",
+      ro: "Romania",
+      bg: "Bulgaria",
+      hr: "Croatia",
+      si: "Slovenia",
+      at: "Austria",
+      be: "Belgium",
+      nl: "Netherlands",
+      dk: "Denmark",
+      se: "Sweden",
+      no: "Norway",
+      fi: "Finland",
+      is: "Iceland",
+      ie: "Ireland",
+      pt: "Portugal",
+      gr: "Greece",
+      cy: "Cyprus",
+      mt: "Malta",
+      lu: "Luxembourg",
+      ae: "United Arab Emirates",
+      ai: "Anguilla",
+      ar: "Argentina",
+      au: "Australia",
+      bm: "Bermuda",
+      br: "Brazil",
+      ca: "Canada",
+      cl: "Chile",
+      co: "Colombia",
+      cr: "Costa Rica",
+      do: "Dominican Republic",
+      ec: "Ecuador",
+      sv: "El Salvador",
+      gt: "Guatemala",
+      hn: "Honduras",
+      mx: "Mexico",
+      ni: "Nicaragua",
+      pa: "Panama",
+      py: "Paraguay",
+      pe: "Peru",
+      uy: "Uruguay",
+      ve: "Venezuela",
     };
-    return countryMap[countryCode] || 'Germany';
+    return countryMap[countryCode] || "Germany";
   };
 
   const handleSearch = (input: string) => {
@@ -144,7 +144,7 @@ export default function Index() {
       title: "Lightning Fast",
       description: "Get results in seconds with our optimized scraping",
     },
-    ];
+  ];
 
   const recentSearches = [
     { product: "Sony WH-1000XM5 Headphones", savings: "$45" },
@@ -176,9 +176,9 @@ export default function Index() {
             on any product
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Paste any product URL or enter keywords and we'll instantly find the cheapest prices
-            across hundreds of retailers. Save money on every purchase with
-            AI-powered price comparison.
+            Paste any product URL or enter keywords and we'll instantly find the
+            cheapest prices across hundreds of retailers. Save money on every
+            purchase with AI-powered price comparison.
           </p>
           {/* Search Form */}
           <div className="mb-12 max-w-2xl mx-auto">

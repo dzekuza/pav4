@@ -1,10 +1,14 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
-const AnimatedGradientBackground = lazy(() => import("@/components/ui/animated-gradient-background"));
+const AnimatedGradientBackground = lazy(
+  () => import("@/components/ui/animated-gradient-background"),
+);
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/SearchInput";
 import { useNavigate } from "react-router-dom";
-const Globe = lazy(() => import("@/components/ui/globe").then(m => ({ default: m.Globe })));
+const Globe = lazy(() =>
+  import("@/components/ui/globe").then((m) => ({ default: m.Globe })),
+);
 
 const DemoLanding: React.FC = () => {
   const [searchUrl, setSearchUrl] = useState("");
@@ -65,9 +69,13 @@ const DemoLanding: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative h-screen overflow-hidden">
       {isClient ? (
-        <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />}>
+        <Suspense
+          fallback={
+            <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
+          }
+        >
           <AnimatedGradientBackground />
         </Suspense>
       ) : (
@@ -82,7 +90,11 @@ const DemoLanding: React.FC = () => {
             {/* Logo left */}
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-2">
-                <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
+                <img
+                  src="/ipicklogo.png"
+                  alt="ipick.io"
+                  className="h-8 w-auto"
+                />
               </Link>
             </div>
             {/* Top-right buttons */}
@@ -105,7 +117,7 @@ const DemoLanding: React.FC = () => {
         </div>
 
         {/* Middle-centered hero section with heading + search */}
-        <section className="container mx-auto px-6 min-h-screen flex flex-col items-center justify-start text-center pt-32 md:pt-40">
+        <section className="container mx-auto px-6 h-full flex flex-col items-center justify-center text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-sm">
             Find best prices
           </h1>
@@ -137,10 +149,12 @@ const DemoLanding: React.FC = () => {
 
       {/* Globe fixed to bottom as last element (fill container, centered) */}
       {isClient && (
-        <div className="pointer-events-none fixed bottom-0 left-1/2 z-[1] -translate-x-1/2 aspect-square h-[500px] md:h-[700px] translate-y-96">
-          <Suspense fallback={
-            <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full animate-pulse" />
-          }>
+        <div className="pointer-events-none fixed bottom-0 left-1/2 z-[1] -translate-x-1/2 aspect-square h-[400px] md:h-[600px] translate-y-32 md:translate-y-64">
+          <Suspense
+            fallback={
+              <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full animate-pulse" />
+            }
+          >
             <Globe className="top-0" />
           </Suspense>
         </div>
@@ -150,5 +164,3 @@ const DemoLanding: React.FC = () => {
 };
 
 export default DemoLanding;
-
-

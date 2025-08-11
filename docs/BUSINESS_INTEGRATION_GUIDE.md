@@ -391,8 +391,8 @@ https://paaav.vercel.app/business-integrate
 <!-- PriceHunt Sales Tracking Script -->
 <script src="https://paaav.vercel.app/tracker.js"></script>
 <script>
-  const sessionId = "session_" + Date.now() + "_" +
-    Math.random().toString(36).substr(2, 9);
+  const sessionId =
+    "session_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 
   window.trackerInit({
     storeId: 1,
@@ -457,6 +457,7 @@ GET /api/sales/stats/business/{businessId}
    [PriceHunt] Event sent successfully: add_to_cart
    ```
 5. **Use debug functions** in console:
+
    ```javascript
    // Check tracker status
    PriceHuntDebug.getTrackerStatus();
@@ -490,9 +491,9 @@ curl -X POST https://paaav.vercel.app/api/sales/track \
 ### **3. Check Database**
 
 ```sql
-SELECT id, "orderId", "businessId", "productTitle", 
-       "productPrice", "retailer", status, "commissionAmount" 
-FROM sales 
+SELECT id, "orderId", "businessId", "productTitle",
+       "productPrice", "retailer", status, "commissionAmount"
+FROM sales
 ORDER BY id DESC LIMIT 5;
 ```
 
@@ -592,11 +593,13 @@ PriceHuntDebug.getEventsSent();
 ## 🚀 **Next Steps**
 
 1. **Deploy to Production**
+
    - Update affiliate configuration
    - Configure real GTM IDs
    - Set up production webhooks
 
 2. **Business Dashboard**
+
    - Monitor sales analytics
    - Track commission payments
    - View performance metrics

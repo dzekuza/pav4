@@ -1,12 +1,12 @@
-import React, { useMemo, useRef } from "react"
+import React, { useMemo, useRef } from "react";
 
-import { cn } from "@/lib/utils"
-import { useDimensions } from "@/hooks/use-debounced-dimensions"
+import { cn } from "@/lib/utils";
+import { useDimensions } from "@/hooks/use-debounced-dimensions";
 
 interface AnimatedGradientProps {
-  colors?: string[]
-  speed?: number
-  blur?: "light" | "medium" | "heavy"
+  colors?: string[];
+  speed?: number;
+  blur?: "light" | "medium" | "heavy";
 }
 
 type AnimatedGradientBackgroundProps = {
@@ -15,28 +15,28 @@ type AnimatedGradientBackgroundProps = {
 };
 
 const randomInt = (min: number, max: number) => {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
 const AnimatedGradient: React.FC<AnimatedGradientProps> = ({
   colors = ["#1a1a2e", "#16213e", "#0f3460", "#533483", "#7209b7"],
   speed = 5,
   blur = "light",
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const dimensions = useDimensions(containerRef)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dimensions = useDimensions(containerRef);
 
   const circleSize = useMemo(
     () => Math.max(dimensions.width, dimensions.height),
-    [dimensions.width, dimensions.height]
-  )
+    [dimensions.width, dimensions.height],
+  );
 
   const blurClass =
     blur === "light"
       ? "blur-2xl"
       : blur === "medium"
         ? "blur-3xl"
-        : "blur-[100px]"
+        : "blur-[100px]";
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
@@ -55,7 +55,7 @@ const AnimatedGradient: React.FC<AnimatedGradientProps> = ({
             "--ty-3": Math.random() - 0.5,
             "--tx-4": Math.random() - 0.5,
             "--ty-4": Math.random() - 0.5,
-          } as React.CSSProperties
+          } as React.CSSProperties;
 
           return (
             <svg
@@ -68,20 +68,20 @@ const AnimatedGradient: React.FC<AnimatedGradientProps> = ({
             >
               <circle cx="50" cy="50" r="50" fill={color} />
             </svg>
-          )
+          );
         })}
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Main export that matches HeroWave interface
-const AnimatedGradientBackground: React.FC<AnimatedGradientBackgroundProps> = ({ 
+const AnimatedGradientBackground: React.FC<AnimatedGradientBackgroundProps> = ({
   fps, // unused but kept for compatibility
-  quality = "low" // unused but kept for compatibility
+  quality = "low", // unused but kept for compatibility
 }) => {
-  return <AnimatedGradient speed={5} blur="medium" />
-}
+  return <AnimatedGradient speed={5} blur="medium" />;
+};
 
-export default AnimatedGradientBackground
-export { AnimatedGradient }
+export default AnimatedGradientBackground;
+export { AnimatedGradient };

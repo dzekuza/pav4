@@ -21,14 +21,17 @@ This creates the extension files in `dist/chrome-extension/`
 ### Step 2: Load the Extension in Chrome
 
 1. **Open Chrome Extensions Page**:
+
    - Open Chrome
    - Go to `chrome://extensions/`
    - Or navigate to: Chrome Menu → More Tools → Extensions
 
 2. **Enable Developer Mode**:
+
    - Toggle the "Developer mode" switch in the top-right corner
 
 3. **Load the Extension**:
+
    - Click "Load unpacked"
    - Navigate to your project directory
    - Select the `dist/chrome-extension` folder
@@ -71,20 +74,24 @@ Visit any of these supported retailer websites:
 ## 🔍 Features
 
 ### Auto-Detection
+
 - Automatically detects products on supported retailer websites
 - Shows product information in the extension popup
 - Updates badge icon to indicate product detection
 
 ### Price Comparison
+
 - Compares prices across multiple retailers
 - Shows savings and alternative options
 - Direct links to other retailers
 
 ### Search History
+
 - Tracks your price comparison searches
 - Accessible through the extension popup
 
 ### Settings
+
 - Customize notifications and auto-detection
 - Set minimum savings threshold
 - Choose which stores to include
@@ -95,6 +102,7 @@ Visit any of these supported retailer websites:
 
 **Problem**: Extension doesn't appear in Chrome
 **Solution**:
+
 - Make sure Developer mode is enabled
 - Check that you selected the correct folder (`dist/chrome-extension`)
 - Try refreshing the extensions page
@@ -103,6 +111,7 @@ Visit any of these supported retailer websites:
 
 **Problem**: Extension shows "No product detected"
 **Solution**:
+
 - Ensure you're on a supported retailer website
 - Refresh the page and try again
 - Check the browser console for errors
@@ -111,6 +120,7 @@ Visit any of these supported retailer websites:
 
 **Problem**: "Failed to compare prices" error
 **Solution**:
+
 - Verify the backend server is running at `https://pavlo4.netlify.app`
 - Check the browser console for API errors
 - Ensure the product URL is accessible
@@ -119,6 +129,7 @@ Visit any of these supported retailer websites:
 
 **Problem**: Extension icon appears as a puzzle piece
 **Solution**:
+
 - The extension uses SVG icons which should work in modern Chrome
 - If issues persist, convert SVG to PNG using online tools
 
@@ -126,6 +137,7 @@ Visit any of these supported retailer websites:
 
 **Problem**: Extension shows permission errors
 **Solution**:
+
 - The extension requires minimal permissions for functionality
 - Check that all permissions are granted in Chrome settings
 
@@ -146,6 +158,7 @@ Visit any of these supported retailer websites:
 ## 📱 Supported Features
 
 ### Product Detection
+
 - ✅ Amazon product pages
 - ✅ eBay product pages
 - ✅ Walmart product pages
@@ -158,6 +171,7 @@ Visit any of these supported retailer websites:
 - ✅ Generic e-commerce sites
 
 ### Price Comparison
+
 - ✅ Real-time price fetching
 - ✅ Multiple retailer comparison
 - ✅ Savings calculation
@@ -165,6 +179,7 @@ Visit any of these supported retailer websites:
 - ✅ Price history (when available)
 
 ### User Experience
+
 - ✅ Auto-detection on page load
 - ✅ Context menu integration
 - ✅ Badge notifications
@@ -189,4 +204,4 @@ Once you've completed the installation and testing, you should be able to:
 4. Click "Compare Prices" to find better deals
 5. View price comparisons and click to visit other retailers
 
-**Happy Shopping with PriceHunt!** 🛍️💰 
+**Happy Shopping with PriceHunt!** 🛍️💰

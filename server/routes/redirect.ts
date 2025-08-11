@@ -73,4 +73,4 @@ router.get("/redirect", async (req, res) => {
   res.redirect(302, url.toString());
 });
 
-export default router; 
+export default router;

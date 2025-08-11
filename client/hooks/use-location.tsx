@@ -31,7 +31,7 @@ export function useLocation() {
         }
 
         const data: LocationResponse = await response.json();
-        
+
         // If server detected a specific location (not default US), use it
         if (data.location && data.location.country !== "United States") {
           setLocation(data.location);
@@ -66,7 +66,7 @@ export function useLocation() {
         },
         body: JSON.stringify({ location: userLocation }),
       });
-      
+
       if (response.ok) {
         const data: LocationResponse = await response.json();
         setLocalDealers(data.localDealers);
@@ -92,7 +92,7 @@ export function useLocation() {
       currency: "$",
       timeZone: "America/New_York",
     };
-    
+
     setLocation(defaultLocation);
     setShowLocationPermission(false);
     localStorage.setItem("user_location", JSON.stringify(defaultLocation));

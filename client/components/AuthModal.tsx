@@ -32,7 +32,7 @@ export function AuthModal({
   const handleSuccess = async () => {
     setIsLoading(true);
     // Small delay to ensure auth state is updated
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     setIsLoading(false);
     onSuccess?.();
     onClose();
@@ -51,12 +51,9 @@ export function AuthModal({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <AuthForms
-            onSuccess={handleSuccess}
-            defaultTab={defaultTab}
-          />
+          <AuthForms onSuccess={handleSuccess} defaultTab={defaultTab} />
         </div>
       </DialogContent>
     </Dialog>
   );
-} 
+}

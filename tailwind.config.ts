@@ -64,8 +64,8 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        black: '#000',
-        white: '#fff',
+        black: "#000",
+        white: "#fff",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -73,7 +73,19 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Noto Sans", "Ubuntu", "Cantarell", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: [
+          "Inter",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Roboto",
+          "Noto Sans",
+          "Ubuntu",
+          "Cantarell",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
       },
       lineHeight: {
         tighter: "1.1",

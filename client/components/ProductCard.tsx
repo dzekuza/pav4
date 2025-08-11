@@ -1,8 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Star, TrendingUp, MapPin, ShoppingCart } from "lucide-react";
-import { generateAffiliateLink, trackAffiliateClick, trackSale, getStoredUtmParameters } from "@/lib/tracking";
+import {
+  ExternalLink,
+  Star,
+  TrendingUp,
+  MapPin,
+  ShoppingCart,
+} from "lucide-react";
+import {
+  generateAffiliateLink,
+  trackAffiliateClick,
+  trackSale,
+  getStoredUtmParameters,
+} from "@/lib/tracking";
 
 interface ProductCardProps {
   title: string;
@@ -28,7 +39,7 @@ interface ProductCardProps {
   showBuyNow?: boolean; // New prop to show Buy Now button
 }
 
-export function ProductCard({ 
+export function ProductCard({
   title,
   price,
   currency,
@@ -47,13 +58,13 @@ export function ProductCard({
   affiliateId,
   productId,
   businessId,
-  onFavoriteToggle, 
-  isFavorited, 
-  showBuyNow = false 
+  onFavoriteToggle,
+  isFavorited,
+  showBuyNow = false,
 }: ProductCardProps) {
   const handleViewDeal = () => {
     // Generate affiliate link
-    const affiliateUrl = generateAffiliateLink(url, store || 'unknown');
+    const affiliateUrl = generateAffiliateLink(url, store || "unknown");
 
     // Track the click
     const utmParams = getStoredUtmParameters();
@@ -62,7 +73,7 @@ export function ProductCard({
       productTitle: title,
       productPrice: `${price} ${currency}`,
       retailer: store,
-      sessionId: sessionStorage.getItem('pricehunt_session_id') || undefined,
+      sessionId: sessionStorage.getItem("pricehunt_session_id") || undefined,
       referrer: document.referrer,
       utmSource: utmParams.utm_source,
       utmMedium: utmParams.utm_medium,
@@ -70,17 +81,19 @@ export function ProductCard({
     });
 
     // Open the affiliate link
-    window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+    window.open(affiliateUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleBuyNow = async () => {
     try {
       // Generate affiliate link
-      const affiliateUrl = generateAffiliateLink(url, store || 'unknown');
+      const affiliateUrl = generateAffiliateLink(url, store || "unknown");
 
       // Track the purchase intent
       const utmParams = getStoredUtmParameters();
-      const sessionId = sessionStorage.getItem('pricehunt_session_id') || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const sessionId =
+        sessionStorage.getItem("pricehunt_session_id") ||
+        `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Track affiliate click with purchase intent
       trackAffiliateClick({
@@ -115,36 +128,35 @@ export function ProductCard({
         });
 
         if (saleTracked) {
-          console.log('Sale tracked successfully for business:', businessId);
+          console.log("Sale tracked successfully for business:", businessId);
         }
       }
 
       // Open the affiliate link
-      window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
-
+      window.open(affiliateUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
-      console.error('Error tracking purchase:', error);
+      console.error("Error tracking purchase:", error);
       // Fallback to regular affiliate link
-      const affiliateUrl = generateAffiliateLink(url, store || 'unknown');
-      window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+      const affiliateUrl = generateAffiliateLink(url, store || "unknown");
+      window.open(affiliateUrl, "_blank", "noopener,noreferrer");
     }
   };
 
   const getRetailerName = (url: string): string => {
     try {
       const hostname = new URL(url).hostname.toLowerCase();
-      if (hostname.includes('amazon')) return 'Amazon';
-      if (hostname.includes('ebay')) return 'eBay';
-      if (hostname.includes('walmart')) return 'Walmart';
-      if (hostname.includes('target')) return 'Target';
-      if (hostname.includes('bestbuy')) return 'Best Buy';
-      if (hostname.includes('apple')) return 'Apple';
-      if (hostname.includes('playstation')) return 'PlayStation';
-      if (hostname.includes('newegg')) return 'Newegg';
-      if (hostname.includes('costco')) return 'Costco';
-      return hostname.replace('www.', '').split('.')[0];
+      if (hostname.includes("amazon")) return "Amazon";
+      if (hostname.includes("ebay")) return "eBay";
+      if (hostname.includes("walmart")) return "Walmart";
+      if (hostname.includes("target")) return "Target";
+      if (hostname.includes("bestbuy")) return "Best Buy";
+      if (hostname.includes("apple")) return "Apple";
+      if (hostname.includes("playstation")) return "PlayStation";
+      if (hostname.includes("newegg")) return "Newegg";
+      if (hostname.includes("costco")) return "Costco";
+      return hostname.replace("www.", "").split(".")[0];
     } catch {
-      return 'Store';
+      return "Store";
     }
   };
 
@@ -199,8 +211,11 @@ export function ProductCard({
                 className="p-1 h-8 w-8"
               >
                 <Star
-                  className={`w-4 h-4 ${isFavorited ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
-                    }`}
+                  className={`w-4 h-4 ${
+                    isFavorited
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-400"
+                  }`}
                 />
               </Button>
             )}
@@ -241,9 +256,7 @@ export function ProductCard({
         </div>
 
         {distance && (
-          <div className="mt-2 text-xs text-gray-500">
-            {distance}
-          </div>
+          <div className="mt-2 text-xs text-gray-500">{distance}</div>
         )}
       </CardContent>
     </Card>

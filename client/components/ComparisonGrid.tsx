@@ -58,7 +58,7 @@ export function ComparisonGrid({
   function extractProductId(url: string): string {
     try {
       const u = new URL(url);
-      const parts = u.pathname.split('/').filter(Boolean);
+      const parts = u.pathname.split("/").filter(Boolean);
       return parts[parts.length - 1] || url;
     } catch {
       return url;

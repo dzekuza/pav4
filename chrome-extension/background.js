@@ -304,7 +304,7 @@ class PriceHuntBackground {
       // Clear all extension storage
       await chrome.storage.local.clear();
       await chrome.storage.sync.clear();
-      
+
       // Clear session storage for all tabs
       const tabs = await chrome.tabs.query({});
       for (const tab of tabs) {
@@ -314,37 +314,40 @@ class PriceHuntBackground {
             func: () => {
               sessionStorage.clear();
               localStorage.clear();
-            }
+            },
           });
         } catch (error) {
           // Skip tabs that can't be accessed
           console.log(`Cannot clear storage for tab ${tab.id}:`, error.message);
         }
       }
-      
+
       // Clear browser cache for extension
       try {
-        await chrome.browsingData.remove({
-          "origins": [chrome.runtime.getURL("")]
-        }, {
-          "appcache": true,
-          "cache": true,
-          "cacheStorage": true,
-          "cookies": true,
-          "downloads": true,
-          "fileSystems": true,
-          "formData": true,
-          "history": true,
-          "indexedDB": true,
-          "localStorage": true,
-          "passwords": true,
-          "serviceWorkers": true,
-          "webSQL": true
-        });
+        await chrome.browsingData.remove(
+          {
+            origins: [chrome.runtime.getURL("")],
+          },
+          {
+            appcache: true,
+            cache: true,
+            cacheStorage: true,
+            cookies: true,
+            downloads: true,
+            fileSystems: true,
+            formData: true,
+            history: true,
+            indexedDB: true,
+            localStorage: true,
+            passwords: true,
+            serviceWorkers: true,
+            webSQL: true,
+          },
+        );
       } catch (error) {
         console.log("Browsing data clear not available:", error.message);
       }
-      
+
       return { success: true, message: "Cache cleared successfully" };
     } catch (error) {
       console.error("Error clearing cache:", error);

@@ -23,7 +23,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 
     if (!token) {
       const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
       }
     }
@@ -39,7 +39,10 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 
     try {
       // Handle both string and number user IDs
-      const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
+      const userId =
+        typeof decoded.userId === "string"
+          ? parseInt(decoded.userId, 10)
+          : decoded.userId;
 
       if (isNaN(userId)) {
         return res.status(401).json({ error: "Invalid user ID in token" });
@@ -63,7 +66,9 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
       next();
     } catch (dbError) {
       console.error("Database error in requireAuth:", dbError);
-      return res.status(500).json({ error: "Database error during authentication" });
+      return res
+        .status(500)
+        .json({ error: "Database error during authentication" });
     }
   } catch (error) {
     console.error("Auth middleware error:", error);
@@ -92,7 +97,7 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
 
     if (!token) {
       const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
+      if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
       }
     }
@@ -102,7 +107,10 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
       if (decoded) {
         try {
           // Handle both string and number user IDs
-          const userId = typeof decoded.userId === 'string' ? parseInt(decoded.userId, 10) : decoded.userId;
+          const userId =
+            typeof decoded.userId === "string"
+              ? parseInt(decoded.userId, 10)
+              : decoded.userId;
 
           if (!isNaN(userId)) {
             const user = await userService.findUserById(userId);
@@ -136,7 +144,7 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
 // Middleware to clear RLS context after request
 export const clearRLSContext: RequestHandler = async (req, res, next) => {
   // Clear RLS context after the request is complete
-  res.on('finish', async () => {
+  res.on("finish", async () => {
     try {
       await clearUserContext();
     } catch (error) {

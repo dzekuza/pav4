@@ -35,14 +35,14 @@ export function extractPriceImproved(text: string): {
     /(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)\s*€(?!\d)/g,
     /EUR\s*(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)(?!\d)/gi,
     /(\d{1,4}(?:[,\.]\d{3})*(?:[,\.]\d{2})?)\s*EUR(?!\d)/gi,
-    
+
     // Handle European decimal format (comma as decimal separator)
     /€\s*(\d{1,4}(?:\.\d{3})*(?:,\d{2})?)(?!\d)/g,
     /(\d{1,4}(?:\.\d{3})*(?:,\d{2})?)\s*€(?!\d)/g,
-    
+
     // Simple price patterns without currency symbol
     /(\d{1,4}(?:[,\.]\d{2})?)(?!\d)/g,
-    
+
     // Dollar patterns
     /\$\s*(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)(?!\d)/g,
     /(\d{1,4}(?:,\d{3})*(?:\.\d{2})?)\s*USD(?!\d)/gi,
@@ -81,7 +81,9 @@ export function extractPriceImproved(text: string): {
             price: normalizedPrice,
             pattern: pattern.source.substring(0, 30),
           });
-          console.log(`Valid price found: ${normalizedPrice} from pattern: ${pattern.source.substring(0, 30)}`);
+          console.log(
+            `Valid price found: ${normalizedPrice} from pattern: ${pattern.source.substring(0, 30)}`,
+          );
         } else {
           console.log(
             `Price ${normalizedPrice} is outside reasonable range (1-50000), skipping`,
@@ -155,7 +157,9 @@ function normalizePriceString(priceStr: string): number {
   }
 
   const result = parseFloat(normalized);
-  console.log(`Normalizing price: "${priceStr}" -> "${normalized}" -> ${result}`);
+  console.log(
+    `Normalizing price: "${priceStr}" -> "${normalized}" -> ${result}`,
+  );
   return result;
 }
 

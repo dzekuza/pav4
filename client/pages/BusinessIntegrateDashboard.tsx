@@ -1,6 +1,6 @@
-import React from 'react';
-import { useOutletContext } from 'react-router-dom';
-import BusinessIntegrationWizard from '@/components/BusinessIntegrationWizard';
+import React from "react";
+import { useOutletContext } from "react-router-dom";
+import BusinessIntegrationWizard from "@/components/BusinessIntegrationWizard";
 
 interface BusinessStats {
   id: number;
@@ -25,4 +25,4 @@ export default function BusinessIntegrateDashboard() {
       <BusinessIntegrationWizard business={stats} />
     </div>
   );
-} 
+}

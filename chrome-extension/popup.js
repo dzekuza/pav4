@@ -3,23 +3,23 @@ class PriceHuntPopup {
   constructor() {
     this.currentTab = null;
     this.productInfo = null;
-    
+
     // Immediately ensure current page section is visible
     this.forceShowCurrentPage();
-    
+
     this.init();
   }
 
   async init() {
     await this.getCurrentTab();
     this.setupEventListeners();
-    
+
     // Ensure current page section is visible by default
     this.showCurrentPageSection();
-    
+
     // Force show current page section after a short delay to ensure it's visible
     setTimeout(() => this.showCurrentPageSection(), 100);
-    
+
     await this.detectProduct();
   }
 
@@ -34,7 +34,7 @@ class PriceHuntPopup {
   setupEventListeners() {
     // Force show current page section
     this.forceShowCurrentPage();
-    
+
     // Detect URL button
     document.getElementById("detectBtn").addEventListener("click", () => {
       this.detectUrl();
@@ -104,10 +104,10 @@ class PriceHuntPopup {
 
     try {
       console.log("Manually detecting product on:", this.currentTab.url);
-      
+
       // Always show the current page section
       this.showCurrentPageSection();
-      
+
       // Always show the current page URL
       document.getElementById("pageTitle").textContent = "Detecting product...";
       document.getElementById("pageUrl").textContent = this.currentTab.url;
@@ -153,7 +153,10 @@ class PriceHuntPopup {
 
             if (response && response.product) {
               this.productInfo = response.product;
-              console.log("Product detected after injection:", this.productInfo);
+              console.log(
+                "Product detected after injection:",
+                this.productInfo,
+              );
               this.showProductDetected();
             } else {
               console.log("No product detected after injection");
@@ -184,7 +187,7 @@ class PriceHuntPopup {
 
     // Always show the current page section
     this.showCurrentPageSection();
-    
+
     // Always show the current page URL
     document.getElementById("pageTitle").textContent = "Detecting product...";
     document.getElementById("pageUrl").textContent = this.currentTab.url;
@@ -242,13 +245,13 @@ class PriceHuntPopup {
     similarBtn.disabled = false;
     searchBtn.textContent = "Compare Prices";
     similarBtn.textContent = "Find Similar";
-    
+
     // Show current page section and hide others
     this.showCurrentPageSection();
     document.getElementById("results").classList.add("hidden");
     document.getElementById("similarResults").classList.add("hidden");
     document.getElementById("noProduct").classList.add("hidden");
-    
+
     console.log("Product detected, buttons enabled");
   }
 
@@ -256,19 +259,19 @@ class PriceHuntPopup {
     // Show current page URL even if no product is detected
     const pageTitle = document.getElementById("pageTitle");
     const pageUrl = document.getElementById("pageUrl");
-    
+
     if (this.currentTab) {
       pageTitle.textContent = "No product detected";
       pageUrl.textContent = this.currentTab.url;
     }
-    
+
     // Disable buttons
     const searchBtn = document.getElementById("searchBtn");
     const similarBtn = document.getElementById("similarBtn");
-    
+
     if (searchBtn) searchBtn.disabled = true;
     if (similarBtn) similarBtn.disabled = true;
-    
+
     // Always show current page section and hide others
     this.showCurrentPageSection();
     document.getElementById("results").classList.add("hidden");
@@ -285,9 +288,9 @@ class PriceHuntPopup {
       currentPage.style.display = "block";
       currentPage.style.visibility = "visible";
       currentPage.style.opacity = "1";
-      
+
       // Also ensure the container is visible
-      const container = currentPage.closest('.container');
+      const container = currentPage.closest(".container");
       if (container) {
         container.style.display = "block";
       }
@@ -313,53 +316,58 @@ class PriceHuntPopup {
       // Show loading state on button
       const clearCacheBtn = document.getElementById("clearCache");
       const originalText = clearCacheBtn.innerHTML;
-      clearCacheBtn.innerHTML = '<span class="action-icon">⏳</span><span>Clearing...</span>';
+      clearCacheBtn.innerHTML =
+        '<span class="action-icon">⏳</span><span>Clearing...</span>';
       clearCacheBtn.disabled = true;
-      
+
       // Show loading message
       this.showMessage("Clearing cache...", "info");
-      
+
       // Use background script to clear cache comprehensively
-      const response = await chrome.runtime.sendMessage({ action: "clearCache" });
-      
+      const response = await chrome.runtime.sendMessage({
+        action: "clearCache",
+      });
+
       if (response.success) {
         // Reset extension state
         this.productInfo = null;
         this.currentTab = null;
-        
+
         // Clear any displayed results
         const resultsList = document.getElementById("resultsList");
-        const similarResultsList = document.getElementById("similarResultsList");
+        const similarResultsList =
+          document.getElementById("similarResultsList");
         if (resultsList) resultsList.innerHTML = "";
         if (similarResultsList) similarResultsList.innerHTML = "";
-        
+
         // Hide results sections
         const resultsSection = document.getElementById("results");
         const similarResultsSection = document.getElementById("similarResults");
         if (resultsSection) resultsSection.classList.add("hidden");
-        if (similarResultsSection) similarResultsSection.classList.add("hidden");
-        
+        if (similarResultsSection)
+          similarResultsSection.classList.add("hidden");
+
         // Reset page title and URL
         const pageTitle = document.getElementById("pageTitle");
         const pageUrl = document.getElementById("pageUrl");
         if (pageTitle) pageTitle.textContent = "Detecting product...";
-        if (pageUrl && this.currentTab) pageUrl.textContent = this.currentTab.url;
-        
+        if (pageUrl && this.currentTab)
+          pageUrl.textContent = this.currentTab.url;
+
         // Disable buttons
         const searchBtn = document.getElementById("searchBtn");
         const similarBtn = document.getElementById("similarBtn");
         if (searchBtn) searchBtn.disabled = true;
         if (similarBtn) similarBtn.disabled = true;
-        
+
         // Show success message
         this.showMessage("Cache cleared successfully!", "success");
-        
+
         // Re-detect product
         await this.detectProduct();
       } else {
         throw new Error(response.error || "Failed to clear cache");
       }
-      
     } catch (error) {
       console.error("Error clearing cache:", error);
       this.showMessage("Failed to clear cache", "error");
@@ -391,11 +399,12 @@ class PriceHuntPopup {
       `;
       document.body.appendChild(messageEl);
     }
-    
+
     messageEl.textContent = message;
-    messageEl.style.backgroundColor = type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#3b82f6";
+    messageEl.style.backgroundColor =
+      type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#3b82f6";
     messageEl.style.opacity = "1";
-    
+
     // Auto-hide after 3 seconds
     setTimeout(() => {
       messageEl.style.opacity = "0";
@@ -489,7 +498,9 @@ class PriceHuntPopup {
       }
     } catch (error) {
       console.error("Error finding similar products:", error);
-      this.showSimilarError("Failed to find similar products. Please try again.");
+      this.showSimilarError(
+        "Failed to find similar products. Please try again.",
+      );
     } finally {
       similarBtn.classList.remove("loading");
       similarBtn.disabled = false;
@@ -559,8 +570,14 @@ class PriceHuntPopup {
     item.className = "result-item";
     item.style.cursor = "pointer";
 
-    const storeName = this.extractStoreName(alternative.link || alternative.url);
-    const price = alternative.standardPrice || alternative.discountPrice || alternative.price || "Price not available";
+    const storeName = this.extractStoreName(
+      alternative.link || alternative.url,
+    );
+    const price =
+      alternative.standardPrice ||
+      alternative.discountPrice ||
+      alternative.price ||
+      "Price not available";
 
     item.innerHTML = `
             <div class="result-store">${storeName}</div>
@@ -579,7 +596,11 @@ class PriceHuntPopup {
     item.className = "similar-item";
 
     const storeName = this.extractStoreName(suggestion.link);
-    const price = suggestion.standardPrice || suggestion.discountPrice || suggestion.price || "Price not available";
+    const price =
+      suggestion.standardPrice ||
+      suggestion.discountPrice ||
+      suggestion.price ||
+      "Price not available";
     const image = suggestion.image || "/placeholder.svg";
 
     item.innerHTML = `
@@ -654,52 +675,63 @@ class PriceHuntPopup {
     // Check if it's a valid URL
     try {
       const urlObj = new URL(url);
-      
+
       // Allow any e-commerce site, not just predefined ones
       // Most e-commerce sites have product pages with common patterns
       const pathname = urlObj.pathname.toLowerCase();
-      
+
       // Common e-commerce patterns that indicate a product page
       const productPatterns = [
-        '/product/',
-        '/products/',
-        '/shop/',
-        '/item/',
-        '/p/',
-        '/dp/',
-        '/itm/',
-        '/ip/',
-        '/buy/',
-        '/purchase/',
-        '/bottle/',
-        '/headphones/',
-        '/keyboard/',
-        '/speaker/',
-        '/purification/',
-        '/en-us/shop/',
-        '/en-eu/products/'
+        "/product/",
+        "/products/",
+        "/shop/",
+        "/item/",
+        "/p/",
+        "/dp/",
+        "/itm/",
+        "/ip/",
+        "/buy/",
+        "/purchase/",
+        "/bottle/",
+        "/headphones/",
+        "/keyboard/",
+        "/speaker/",
+        "/purification/",
+        "/en-us/shop/",
+        "/en-eu/products/",
       ];
-      
+
       // Check if the URL contains any product patterns
-      const hasProductPattern = productPatterns.some(pattern => 
-        pathname.includes(pattern)
+      const hasProductPattern = productPatterns.some((pattern) =>
+        pathname.includes(pattern),
       );
-      
+
       // Also check for common e-commerce domains as a fallback
       const commonEcommerceDomains = [
-        "amazon.com", "ebay.com", "walmart.com", "target.com", 
-        "bestbuy.com", "apple.com", "playstation.com", "newegg.com", 
-        "costco.com", "sonos.com", "livelarq.com", "shopify.com",
-        "etsy.com", "wayfair.com", "home depot", "lowes.com"
+        "amazon.com",
+        "ebay.com",
+        "walmart.com",
+        "target.com",
+        "bestbuy.com",
+        "apple.com",
+        "playstation.com",
+        "newegg.com",
+        "costco.com",
+        "sonos.com",
+        "livelarq.com",
+        "shopify.com",
+        "etsy.com",
+        "wayfair.com",
+        "home depot",
+        "lowes.com",
       ];
-      
-      const isKnownDomain = commonEcommerceDomains.some(domain => 
-        urlObj.hostname.toLowerCase().includes(domain)
+
+      const isKnownDomain = commonEcommerceDomains.some((domain) =>
+        urlObj.hostname.toLowerCase().includes(domain),
       );
-      
+
       // Allow if it has product patterns OR is a known e-commerce domain
       return hasProductPattern || isKnownDomain;
-      
     } catch (error) {
       console.error("Error parsing URL:", error);
       return false;

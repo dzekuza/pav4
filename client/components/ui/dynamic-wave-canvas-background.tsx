@@ -68,7 +68,8 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 20, quality = "low" }) => {
     };
 
     // Respect reduced motion
-    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     const targetFps = prefersReducedMotion ? Math.min(15, fps) : fps;
     const frameInterval = 1000 / Math.max(10, Math.min(60, targetFps));
     let lastTs = 0;
@@ -112,12 +113,14 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 20, quality = "low" }) => {
           const blueAccent = 0.2 * fastSin(a * 1.5 + time * 0.2);
           const purpleAccent = 0.15 * fastCos(d * 2 + time * 0.1);
 
-          const r = Math.max(0, Math.min(1, baseVal + purpleAccent * 0.8)) * intensity;
-          const g = Math.max(0, Math.min(1, baseVal + blueAccent * 0.6)) * intensity;
+          const r =
+            Math.max(0, Math.min(1, baseVal + purpleAccent * 0.8)) * intensity;
+          const g =
+            Math.max(0, Math.min(1, baseVal + blueAccent * 0.6)) * intensity;
           const b =
             Math.max(
               0,
-              Math.min(1, baseVal + blueAccent * 1.2 + purpleAccent * 0.4)
+              Math.min(1, baseVal + blueAccent * 1.2 + purpleAccent * 0.4),
             ) * intensity;
 
           const index = (y * width + x) * 4;
@@ -140,7 +143,7 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 20, quality = "low" }) => {
           0,
           0,
           canvas.width,
-          canvas.height
+          canvas.height,
         );
       }
       rafId = requestAnimationFrame(render);
@@ -160,5 +163,3 @@ const HeroWave: React.FC<HeroWaveProps> = ({ fps = 20, quality = "low" }) => {
 };
 
 export default HeroWave;
-
-

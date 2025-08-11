@@ -1,20 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { useToast } from '../hooks/use-toast';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Badge } from './ui/badge';
-import { ArrowLeft, ArrowRight, Building2, Mail, Lock, Globe, Phone, MapPin, Tag } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { useToast } from "../hooks/use-toast";
+import { Textarea } from "./ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Badge } from "./ui/badge";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Mail,
+  Lock,
+  Globe,
+  Phone,
+  MapPin,
+  Tag,
+} from "lucide-react";
 
 interface BusinessRegistrationData {
   // Step 1: Authentication
   email: string;
   password: string;
   confirmPassword: string;
-  
+
   // Step 2: Business Information
   name: string;
   domain: string;
@@ -33,25 +55,28 @@ interface BusinessRegistrationWizardProps {
   onBack: () => void;
 }
 
-export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegistrationWizardProps) {
+export function BusinessRegistrationWizard({
+  onComplete,
+  onBack,
+}: BusinessRegistrationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<BusinessRegistrationData>({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    domain: '',
-    website: '',
-    description: '',
-    logo: '',
-    category: '',
-    country: '',
-    contactEmail: '',
-    contactPhone: '',
-    address: '',
+    email: "",
+    password: "",
+    confirmPassword: "",
+    name: "",
+    domain: "",
+    website: "",
+    description: "",
+    logo: "",
+    category: "",
+    country: "",
+    contactEmail: "",
+    contactPhone: "",
+    address: "",
   });
-  
+
   const { toast } = useToast();
 
   // Auto-generate website URL from domain
@@ -61,16 +86,22 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
       if (cleanDomain) {
         // Ensure the domain has a protocol
         let websiteUrl = cleanDomain;
-        if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+        if (
+          !websiteUrl.startsWith("http://") &&
+          !websiteUrl.startsWith("https://")
+        ) {
           websiteUrl = `https://${websiteUrl}`;
         }
-        setFormData(prev => ({ ...prev, website: websiteUrl }));
+        setFormData((prev) => ({ ...prev, website: websiteUrl }));
       }
     }
   }, [formData.domain]);
 
-  const updateFormData = (field: keyof BusinessRegistrationData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateFormData = (
+    field: keyof BusinessRegistrationData,
+    value: string,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const validateStep1 = (): boolean => {
@@ -136,7 +167,8 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
     }
 
     // Basic domain validation
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    const domainRegex =
+      /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
     if (!domainRegex.test(formData.domain)) {
       toast({
         title: "Invalid Domain",
@@ -152,7 +184,8 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
     } catch {
       toast({
         title: "Invalid Website URL",
-        description: "Please enter a valid website URL (e.g., https://example.com)",
+        description:
+          "Please enter a valid website URL (e.g., https://example.com)",
         variant: "destructive",
       });
       return false;
@@ -182,10 +215,10 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/business/auth/register', {
-        method: 'POST',
+      const response = await fetch("/api/business/auth/register", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: formData.email,
@@ -217,7 +250,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
         });
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -229,48 +262,66 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
   };
 
   const categories = [
-    'Electronics',
-    'Fashion',
-    'Home & Garden',
-    'Sports & Outdoors',
-    'Books & Media',
-    'Health & Beauty',
-    'Automotive',
-    'Food & Beverage',
-    'Toys & Games',
-    'Other',
+    "Electronics",
+    "Fashion",
+    "Home & Garden",
+    "Sports & Outdoors",
+    "Books & Media",
+    "Health & Beauty",
+    "Automotive",
+    "Food & Beverage",
+    "Toys & Games",
+    "Other",
   ];
 
   const countries = [
-    'United States',
-    'Canada',
-    'United Kingdom',
-    'Germany',
-    'France',
-    'Spain',
-    'Italy',
-    'Netherlands',
-    'Australia',
-    'Japan',
-    'Other',
+    "United States",
+    "Canada",
+    "United Kingdom",
+    "Germany",
+    "France",
+    "Spain",
+    "Italy",
+    "Netherlands",
+    "Australia",
+    "Japan",
+    "Other",
   ];
 
   return (
     <div className="relative max-w-2xl mx-auto p-6 text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100 rounded-2xl" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100 rounded-2xl"
+      />
       {/* Progress Indicator */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Badge variant={currentStep >= 1 ? "default" : "secondary"} className="bg-white text-black border-0">1</Badge>
-            <span className={currentStep >= 1 ? "font-medium" : "text-white/70"}>
+            <Badge
+              variant={currentStep >= 1 ? "default" : "secondary"}
+              className="bg-white text-black border-0"
+            >
+              1
+            </Badge>
+            <span
+              className={currentStep >= 1 ? "font-medium" : "text-white/70"}
+            >
               Account Setup
             </span>
           </div>
           <div className="flex-1 mx-4 h-px bg-white/20"></div>
           <div className="flex items-center gap-2">
-            <Badge variant={currentStep >= 2 ? "default" : "secondary"} className="bg-white text-black border-0">2</Badge>
-            <span className={currentStep >= 2 ? "font-medium" : "text-white/70"}>
+            <Badge
+              variant={currentStep >= 2 ? "default" : "secondary"}
+              className="bg-white text-black border-0"
+            >
+              2
+            </Badge>
+            <span
+              className={currentStep >= 2 ? "font-medium" : "text-white/70"}
+            >
               Business Information
             </span>
           </div>
@@ -281,13 +332,14 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Building2 className="h-5 w-5" />
-            {currentStep === 1 ? "Create Business Account" : "Business Information"}
+            {currentStep === 1
+              ? "Create Business Account"
+              : "Business Information"}
           </CardTitle>
           <CardDescription className="text-white/80">
-            {currentStep === 1 
+            {currentStep === 1
               ? "Step 1: Set up your business account credentials"
-              : "Step 2: Provide your business details"
-            }
+              : "Step 2: Provide your business details"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -304,7 +356,7 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                   type="email"
                   placeholder="business@example.com"
                   value={formData.email}
-                  onChange={(e) => updateFormData('email', e.target.value)}
+                  onChange={(e) => updateFormData("email", e.target.value)}
                   required
                 />
               </div>
@@ -319,13 +371,16 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                   type="password"
                   placeholder="Enter your password"
                   value={formData.password}
-                  onChange={(e) => updateFormData('password', e.target.value)}
+                  onChange={(e) => updateFormData("password", e.target.value)}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="flex items-center gap-2">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="flex items-center gap-2"
+                >
                   <Lock className="h-4 w-4" />
                   Confirm Password
                 </Label>
@@ -334,7 +389,9 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                   type="password"
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
-                  onChange={(e) => updateFormData('confirmPassword', e.target.value)}
+                  onChange={(e) =>
+                    updateFormData("confirmPassword", e.target.value)
+                  }
                   required
                 />
               </div>
@@ -344,19 +401,23 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
             <div className="space-y-4">
               <div>
                 <Label htmlFor="name">Business Name</Label>
-                 <Input
+                <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Amazon, Best Buy, Walmart"
                 />
               </div>
               <div>
                 <Label htmlFor="domain">Domain</Label>
-                 <Input
+                <Input
                   id="domain"
                   value={formData.domain}
-                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, domain: e.target.value })
+                  }
                   placeholder="amazon.com, bestbuy.com, walmart.com"
                 />
               </div>
@@ -365,65 +426,85 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                   <Globe className="h-4 w-4" />
                   Website URL (Auto-generated)
                 </Label>
-                 <Input
+                <Input
                   id="website"
                   value={formData.website}
                   readOnly
-                   className="cursor-not-allowed"
+                  className="cursor-not-allowed"
                   placeholder="https://yourdomain.com"
                 />
-                 <p className="text-xs text-white/70 mt-1">
+                <p className="text-xs text-white/70 mt-1">
                   Website URL is automatically generated from your domain
                 </p>
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                 <Textarea
+                <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Describe your business and what you offer..."
                 />
               </div>
               <div>
                 <Label htmlFor="logo">Logo URL (Optional)</Label>
-                 <Input
+                <Input
                   id="logo"
                   value={formData.logo}
-                  onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, logo: e.target.value })
+                  }
                   placeholder="https://yourdomain.com/logo.png"
                 />
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                   <SelectTrigger className="border-white/10 bg-white/5 text-white">
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
+                >
+                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
-                   <SelectContent className="border-white/10 bg-black/80 text-white">
+                  <SelectContent className="border-white/10 bg-black/80 text-white">
                     <SelectItem value="Electronics">Electronics</SelectItem>
                     <SelectItem value="Fashion">Fashion</SelectItem>
                     <SelectItem value="Home & Garden">Home & Garden</SelectItem>
                     <SelectItem value="Sports">Sports</SelectItem>
                     <SelectItem value="Books">Books</SelectItem>
                     <SelectItem value="Automotive">Automotive</SelectItem>
-                    <SelectItem value="Health & Beauty">Health & Beauty</SelectItem>
+                    <SelectItem value="Health & Beauty">
+                      Health & Beauty
+                    </SelectItem>
                     <SelectItem value="Toys & Games">Toys & Games</SelectItem>
-                    <SelectItem value="Food & Beverages">Food & Beverages</SelectItem>
+                    <SelectItem value="Food & Beverages">
+                      Food & Beverages
+                    </SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label htmlFor="country">Country</Label>
-                <Select value={formData.country} onValueChange={(value) => setFormData({ ...formData, country: value })}>
-                   <SelectTrigger className="border-white/10 bg-white/5 text-white">
+                <Select
+                  value={formData.country}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, country: value })
+                  }
+                >
+                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
-                   <SelectContent className="border-white/10 bg-black/80 text-white">
+                  <SelectContent className="border-white/10 bg-black/80 text-white">
                     <SelectItem value="United States">United States</SelectItem>
                     <SelectItem value="Canada">Canada</SelectItem>
-                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                    <SelectItem value="United Kingdom">
+                      United Kingdom
+                    </SelectItem>
                     <SelectItem value="Germany">Germany</SelectItem>
                     <SelectItem value="France">France</SelectItem>
                     <SelectItem value="Spain">Spain</SelectItem>
@@ -437,7 +518,9 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                     <SelectItem value="Denmark">Denmark</SelectItem>
                     <SelectItem value="Finland">Finland</SelectItem>
                     <SelectItem value="Poland">Poland</SelectItem>
-                    <SelectItem value="Czech Republic">Czech Republic</SelectItem>
+                    <SelectItem value="Czech Republic">
+                      Czech Republic
+                    </SelectItem>
                     <SelectItem value="Hungary">Hungary</SelectItem>
                     <SelectItem value="Slovakia">Slovakia</SelectItem>
                     <SelectItem value="Slovenia">Slovenia</SelectItem>
@@ -462,7 +545,9 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                 <Input
                   id="contactEmail"
                   value={formData.contactEmail}
-                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contactEmail: e.target.value })
+                  }
                   placeholder="contact@yourdomain.com"
                 />
               </div>
@@ -471,7 +556,9 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                 <Input
                   id="contactPhone"
                   value={formData.contactPhone}
-                  onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contactPhone: e.target.value })
+                  }
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
@@ -480,7 +567,9 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
                 <Textarea
                   id="address"
                   value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
                   placeholder="Enter your business address..."
                 />
               </div>
@@ -491,7 +580,11 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
           <div className="flex justify-between pt-6">
             <div>
               {currentStep === 1 ? (
-                <Button variant="outline" onClick={onBack} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+                <Button
+                  variant="outline"
+                  onClick={onBack}
+                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                >
                   Back to Login
                 </Button>
               ) : (
@@ -504,13 +597,22 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
 
             <div className="flex gap-2">
               {currentStep === 1 ? (
-                <Button onClick={handleNext} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+                <Button
+                  onClick={handleNext}
+                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                >
                   Next Step
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={isLoading} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
-                  {isLoading ? "Creating Account..." : "Create Business Account"}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                >
+                  {isLoading
+                    ? "Creating Account..."
+                    : "Create Business Account"}
                 </Button>
               )}
             </div>
@@ -519,4 +621,4 @@ export function BusinessRegistrationWizard({ onComplete, onBack }: BusinessRegis
       </Card>
     </div>
   );
-} 
+}

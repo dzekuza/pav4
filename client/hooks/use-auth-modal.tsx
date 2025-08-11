@@ -30,7 +30,7 @@ export function useAuthModal(options: UseAuthModalOptions = {}) {
         openModal();
       }
     },
-    [isAuthenticated, openModal]
+    [isAuthenticated, openModal],
   );
 
   return {
@@ -47,4 +47,4 @@ export function useAuthModal(options: UseAuthModalOptions = {}) {
       defaultTab: options.defaultTab,
     },
   };
-} 
+}

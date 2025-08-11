@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useBusinessAuth } from '@/hooks/use-auth';
-import BusinessIntegrationWizard from '@/components/BusinessIntegrationWizard';
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useBusinessAuth } from "@/hooks/use-auth";
+import BusinessIntegrationWizard from "@/components/BusinessIntegrationWizard";
 
 export default function BusinessIntegrate() {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ export default function BusinessIntegrate() {
   // Redirect to business login if not authenticated
   useEffect(() => {
     if (!isBusinessLoading && !isBusiness) {
-      navigate('/business-login');
+      navigate("/business-login");
     }
   }, [isBusinessLoading, isBusiness, navigate]);
 
@@ -36,4 +36,4 @@ export default function BusinessIntegrate() {
       <BusinessIntegrationWizard business={business} />
     </div>
   );
-} 
+}

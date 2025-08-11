@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchHeader } from "@/components/SearchHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,14 +37,20 @@ export default function AdminLogin() {
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader showBackButton={false} />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
           <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl text-white">Admin Login</CardTitle>
-              <CardDescription className="text-white/80">Sign in with an admin account to access the dashboard</CardDescription>
+              <CardDescription className="text-white/80">
+                Sign in with an admin account to access the dashboard
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -48,14 +60,36 @@ export default function AdminLogin() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" required />
+                  <Label htmlFor="email" className="text-white">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@example.com"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-white">Password</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required />
+                  <Label htmlFor="password" className="text-white">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                  />
                 </div>
-                <Button type="submit" className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90" disabled={isLoading}>
+                <Button
+                  type="submit"
+                  className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                  disabled={isLoading}
+                >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
@@ -66,5 +100,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-
-

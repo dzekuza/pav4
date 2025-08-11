@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 export const requireAdminAuth = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const token = req.cookies.adminToken;
@@ -66,7 +66,7 @@ export const requireAdminAuth = async (
 export const optionalAdminAuth = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const token = req.cookies.adminToken;
@@ -99,4 +99,4 @@ export const optionalAdminAuth = async (
     // If token is invalid, just continue without admin info
     next();
   }
-}; 
+};

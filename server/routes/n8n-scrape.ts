@@ -10,24 +10,24 @@ const router = express.Router();
 // Helper function to extract price from string
 function extractPrice(text: string): number | null {
   const match = text.match(/(\d{1,4}[.,]?\d{2})/);
-  return match ? parseFloat(match[1].replace(',', '.')) : null;
+  return match ? parseFloat(match[1].replace(",", ".")) : null;
 }
 
 // Helper function to extract currency from price string
 function extractCurrency(priceString: string): string {
-  if (priceString.includes('€')) return '€';
-  if (priceString.includes('$')) return '$';
-  if (priceString.includes('£')) return '£';
-  return '€'; // Default to Euro
+  if (priceString.includes("€")) return "€";
+  if (priceString.includes("$")) return "$";
+  if (priceString.includes("£")) return "£";
+  return "€"; // Default to Euro
 }
 
 // Helper to add UTM params to a URL
 function addUtmToUrl(url: string): string {
   try {
     const u = new URL(url);
-    u.searchParams.set('utm_source', 'pavlo4');
-    u.searchParams.set('utm_medium', 'suggestion');
-    u.searchParams.set('utm_campaign', 'business_tracking');
+    u.searchParams.set("utm_source", "pavlo4");
+    u.searchParams.set("utm_medium", "suggestion");
+    u.searchParams.set("utm_campaign", "business_tracking");
     return u.toString();
   } catch {
     return url;
@@ -38,126 +38,162 @@ function addUtmToUrl(url: string): string {
 async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
   try {
     console.log("Calling n8n webhook for URL:", url, "GL:", gl);
-    
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://n8n.srv824584.hstgr.cloud/webhook/new-test';
-    
+
+    const n8nWebhookUrl =
+      process.env.N8N_WEBHOOK_URL ||
+      "https://n8n.srv824584.hstgr.cloud/webhook/new-test";
+
     console.log("Using n8n webhook URL:", n8nWebhookUrl);
-    
+
     const params: any = { url };
     if (gl) {
       params.gl = gl;
     }
-    
-    console.log("Full URL being called:", `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`);
-    
+
+    console.log(
+      "Full URL being called:",
+      `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`,
+    );
+
     const response = await axios.get(n8nWebhookUrl, {
       params: params,
       timeout: 60000, // 60 second timeout
       headers: {
-        'Content-Type': 'application/json',
-      }
+        "Content-Type": "application/json",
+      },
     });
 
     console.log("n8n webhook response status:", response.status);
-    console.log("n8n webhook response data:", JSON.stringify(response.data, null, 2));
+    console.log(
+      "n8n webhook response data:",
+      JSON.stringify(response.data, null, 2),
+    );
 
     if (response.status !== 200) {
       throw new Error(`n8n webhook returned status ${response.status}`);
     }
 
     const data = response.data;
-    
+
     // Handle the n8n response format (array with single object containing mainProduct and suggestions)
-    if (Array.isArray(data) && data.length > 0 && data[0].mainProduct && Array.isArray(data[0].suggestions)) {
-      console.log("Handling n8n response format (array with mainProduct and suggestions)");
-      
+    if (
+      Array.isArray(data) &&
+      data.length > 0 &&
+      data[0].mainProduct &&
+      Array.isArray(data[0].suggestions)
+    ) {
+      console.log(
+        "Handling n8n response format (array with mainProduct and suggestions)",
+      );
+
       const firstItem = data[0];
       const mainProduct = firstItem.mainProduct;
-      
+
       // Convert suggestions to PriceComparison format
-      const comparisons: PriceComparison[] = firstItem.suggestions.map((suggestion: any) => ({
-        title: suggestion.title,
-        store: suggestion.site || 'unknown',
-        price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
-        currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
-        url: addUtmToUrl(suggestion.link),
-        image: suggestion.image,
-        condition: "New",
-        // New fields
-        merchant: suggestion.merchant,
-        stock: suggestion.stock,
-        reviewsCount: suggestion.reviewsCount,
-        deliveryPrice: suggestion.deliveryPrice,
-        details: suggestion.details,
-        returnPolicy: suggestion.returnPolicy,
-        rating: suggestion.rating ? parseFloat(suggestion.rating) : undefined,
-        assessment: {
-          cost: 3,
-          value: 3,
-          quality: 3,
-          description: `Found on ${suggestion.site || 'unknown'}`
-        }
-      }));
+      const comparisons: PriceComparison[] = firstItem.suggestions.map(
+        (suggestion: any) => ({
+          title: suggestion.title,
+          store: suggestion.site || "unknown",
+          price: extractPrice(
+            suggestion.standardPrice || suggestion.discountPrice || "0",
+          ),
+          currency: extractCurrency(
+            suggestion.standardPrice || suggestion.discountPrice || "",
+          ),
+          url: addUtmToUrl(suggestion.link),
+          image: suggestion.image,
+          condition: "New",
+          // New fields
+          merchant: suggestion.merchant,
+          stock: suggestion.stock,
+          reviewsCount: suggestion.reviewsCount,
+          deliveryPrice: suggestion.deliveryPrice,
+          details: suggestion.details,
+          returnPolicy: suggestion.returnPolicy,
+          rating: suggestion.rating ? parseFloat(suggestion.rating) : undefined,
+          assessment: {
+            cost: 3,
+            value: 3,
+            quality: 3,
+            description: `Found on ${suggestion.site || "unknown"}`,
+          },
+        }),
+      );
       // Also update suggestions array
-      firstItem.suggestions = firstItem.suggestions.map((s: any) => ({ ...s, link: addUtmToUrl(s.link) }));
+      firstItem.suggestions = firstItem.suggestions.map((s: any) => ({
+        ...s,
+        link: addUtmToUrl(s.link),
+      }));
 
       return {
         mainProduct: {
           title: mainProduct.title,
           price: mainProduct.price,
           image: mainProduct.image,
-          url: addUtmToUrl(mainProduct.url)
+          url: addUtmToUrl(mainProduct.url),
         },
         suggestions: firstItem.suggestions,
-        comparisons: comparisons
+        comparisons: comparisons,
       };
     }
-    
+
     // Handle the n8n response format (single object with mainProduct and suggestions)
     if (data && data.mainProduct && Array.isArray(data.suggestions)) {
-      console.log("Handling n8n response format (single object with mainProduct and suggestions)");
-      
+      console.log(
+        "Handling n8n response format (single object with mainProduct and suggestions)",
+      );
+
       // Convert suggestions to PriceComparison format
-      const comparisons: PriceComparison[] = data.suggestions.map((suggestion: any) => ({
-        title: suggestion.title,
-        store: suggestion.site || 'unknown',
-        price: extractPrice(suggestion.standardPrice || suggestion.discountPrice || '0'),
-        currency: extractCurrency(suggestion.standardPrice || suggestion.discountPrice || ''),
-        url: addUtmToUrl(suggestion.link),
-        image: suggestion.image,
-        condition: "New",
-        assessment: {
-          cost: 3,
-          value: 3,
-          quality: 3,
-          description: `Found on ${suggestion.site || 'unknown'}`
-        }
-      }));
+      const comparisons: PriceComparison[] = data.suggestions.map(
+        (suggestion: any) => ({
+          title: suggestion.title,
+          store: suggestion.site || "unknown",
+          price: extractPrice(
+            suggestion.standardPrice || suggestion.discountPrice || "0",
+          ),
+          currency: extractCurrency(
+            suggestion.standardPrice || suggestion.discountPrice || "",
+          ),
+          url: addUtmToUrl(suggestion.link),
+          image: suggestion.image,
+          condition: "New",
+          assessment: {
+            cost: 3,
+            value: 3,
+            quality: 3,
+            description: `Found on ${suggestion.site || "unknown"}`,
+          },
+        }),
+      );
       // Also update suggestions array
-      data.suggestions = data.suggestions.map((s: any) => ({ ...s, link: addUtmToUrl(s.link) }));
+      data.suggestions = data.suggestions.map((s: any) => ({
+        ...s,
+        link: addUtmToUrl(s.link),
+      }));
 
       return {
         mainProduct: {
           title: data.mainProduct.title,
           price: data.mainProduct.price,
           image: data.mainProduct.image,
-          url: addUtmToUrl(data.mainProduct.url)
+          url: addUtmToUrl(data.mainProduct.url),
         },
         suggestions: data.suggestions,
-        comparisons: comparisons
+        comparisons: comparisons,
       };
     }
 
     // Handle new n8n response format (single object with all fields)
     if (data && data.title && (data.standardPrice || data.discountPrice)) {
       console.log("Handling n8n response format (single object)");
-      
+
       // Convert single object to the expected format
       const mainProduct = {
         title: data.title,
-        price: data.standardPrice || data.discountPrice || "Price not available",
+        price:
+          data.standardPrice || data.discountPrice || "Price not available",
         image: data.image,
-        url: addUtmToUrl(data.link)
+        url: addUtmToUrl(data.link),
       };
 
       const suggestion = {
@@ -174,14 +210,16 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         deliveryPrice: data.deliveryPrice,
         details: data.details,
         returnPolicy: data.returnPolicy,
-        rating: data.rating
+        rating: data.rating,
       };
 
       const comparison: PriceComparison = {
         title: data.title,
-        store: data.site || 'unknown',
-        price: extractPrice(data.standardPrice || data.discountPrice || '0'),
-        currency: extractCurrency(data.standardPrice || data.discountPrice || ''),
+        store: data.site || "unknown",
+        price: extractPrice(data.standardPrice || data.discountPrice || "0"),
+        currency: extractCurrency(
+          data.standardPrice || data.discountPrice || "",
+        ),
         url: addUtmToUrl(data.link),
         image: data.image,
         condition: "New",
@@ -197,19 +235,26 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
           cost: 3,
           value: 3,
           quality: 3,
-          description: `Found on ${data.site || 'unknown'}`
-        }
+          description: `Found on ${data.site || "unknown"}`,
+        },
       };
 
       return {
         mainProduct: mainProduct,
         suggestions: [suggestion],
-        comparisons: [comparison]
+        comparisons: [comparison],
       };
     }
 
     // Handle new n8n response format (single object with all fields, keyword search)
-    if (data && typeof data === 'object' && !Array.isArray(data) && !data.mainProduct && data.title && data.link) {
+    if (
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      !data.mainProduct &&
+      data.title &&
+      data.link
+    ) {
       // Wrap single object in array for keyword search
       return [data];
     }
@@ -228,7 +273,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
     throw new Error("Invalid n8n webhook response format");
   } catch (error) {
     console.error("n8n webhook error:", error);
-    
+
     // If it's an axios error, log more details
     if (axios.isAxiosError(error)) {
       console.error("Axios error details:", {
@@ -238,112 +283,135 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         url: error.config?.url,
         method: error.config?.method,
         params: error.config?.params,
-        fullUrl: error.config?.url + '?' + new URLSearchParams(error.config?.params || {}).toString()
+        fullUrl:
+          error.config?.url +
+          "?" +
+          new URLSearchParams(error.config?.params || {}).toString(),
       });
     }
-    
+
     throw error;
   }
 }
 
 // Filter suggestions based on registered businesses
-async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Promise<any[]> {
+async function filterSuggestionsByRegisteredBusinesses(
+  suggestions: any[],
+): Promise<any[]> {
   try {
-    console.log(`🔍 Processing ${suggestions.length} suggestions for verified badges`);
-    
+    console.log(
+      `🔍 Processing ${suggestions.length} suggestions for verified badges`,
+    );
+
     // Get all active registered businesses
     const registeredBusinesses = await businessService.getActiveBusinesses();
-    console.log(`🏢 Found ${registeredBusinesses.length} registered businesses:`, registeredBusinesses.map(b => `${b.name} (${b.domain}) - verified: ${b.trackingVerified}`));
-    
+    console.log(
+      `🏢 Found ${registeredBusinesses.length} registered businesses:`,
+      registeredBusinesses.map(
+        (b) => `${b.name} (${b.domain}) - verified: ${b.trackingVerified}`,
+      ),
+    );
+
     if (registeredBusinesses.length === 0) {
       // If no businesses are registered, return all suggestions without badges
-      console.log(`❌ No registered businesses found, returning all ${suggestions.length} suggestions without badges`);
+      console.log(
+        `❌ No registered businesses found, returning all ${suggestions.length} suggestions without badges`,
+      );
       return suggestions;
     }
 
     // Create a set of registered domains for faster lookup
     const registeredDomains = new Set(
-      registeredBusinesses.map(business => business.domain.toLowerCase())
+      registeredBusinesses.map((business) => business.domain.toLowerCase()),
     );
     console.log(`📋 Registered domains:`, Array.from(registeredDomains));
 
     // Create a map of domain to business for verification status
     const businessMap = new Map(
-      registeredBusinesses.map(business => [business.domain.toLowerCase(), business])
+      registeredBusinesses.map((business) => [
+        business.domain.toLowerCase(),
+        business,
+      ]),
     );
 
     // Add verification status to ALL suggestions
     const processedSuggestions = await Promise.all(
       suggestions.map(async (suggestion) => {
         // Extract domain from site field first, then fallback to URL
-        let domain = '';
-        
+        let domain = "";
+
         if (suggestion.site) {
           // Use the site field directly (e.g., "godislove.lt")
-          domain = suggestion.site.toLowerCase().replace('www.', '');
+          domain = suggestion.site.toLowerCase().replace("www.", "");
         } else if (suggestion.url) {
           // Fallback to extracting from URL
           try {
             const url = new URL(suggestion.url);
-            domain = url.hostname.toLowerCase().replace('www.', '');
+            domain = url.hostname.toLowerCase().replace("www.", "");
           } catch {
-            domain = '';
+            domain = "";
           }
         }
-        
+
         if (!domain) {
           return {
             ...suggestion,
-            isVerified: false
+            isVerified: false,
           };
         }
-        
+
         const business = businessMap.get(domain);
         const isVerified = business?.trackingVerified || false;
-        
-        console.log(`🔍 Suggestion domain: ${domain}, registered: ${!!business}, verified: ${isVerified}`);
-        
+
+        console.log(
+          `🔍 Suggestion domain: ${domain}, registered: ${!!business}, verified: ${isVerified}`,
+        );
+
         return {
           ...suggestion,
-          isVerified
+          isVerified,
         };
-      })
+      }),
     );
-    
+
     // Check if the filter is enabled
     const filterEnabled = await businessService.getSuggestionFilterEnabled();
     console.log(`🔧 Filter enabled: ${filterEnabled}`);
-    
+
     if (!filterEnabled) {
       // If filter is disabled, return all suggestions with badges
-      console.log(`✅ Filter disabled, returning all ${processedSuggestions.length} suggestions with badges`);
+      console.log(
+        `✅ Filter disabled, returning all ${processedSuggestions.length} suggestions with badges`,
+      );
       return processedSuggestions;
     }
-    
+
     // If filter is enabled, only return suggestions from registered businesses
-    const filteredSuggestions = processedSuggestions.filter(suggestion => {
+    const filteredSuggestions = processedSuggestions.filter((suggestion) => {
       // Extract domain from site field first, then fallback to URL
-      let domain = '';
-      
+      let domain = "";
+
       if (suggestion.site) {
         // Use the site field directly (e.g., "godislove.lt")
-        domain = suggestion.site.toLowerCase().replace('www.', '');
+        domain = suggestion.site.toLowerCase().replace("www.", "");
       } else if (suggestion.url) {
         // Fallback to extracting from URL
         try {
           const url = new URL(suggestion.url);
-          domain = url.hostname.toLowerCase().replace('www.', '');
+          domain = url.hostname.toLowerCase().replace("www.", "");
         } catch {
           return false;
         }
       }
-      
+
       if (!domain) return false;
-      
+
       return registeredDomains.has(domain);
     });
-    
-    console.log(`✅ Filter enabled, returning ${filteredSuggestions.length} filtered suggestions with badges`);
+
+    console.log(
+      `✅ Filter enabled, returning ${filteredSuggestions.length} filtered suggestions with badges`,
+    );
     return filteredSuggestions;
   } catch (error) {
     console.error("Error processing suggestions for verified badges:", error);
@@ -355,20 +423,20 @@ async function filterSuggestionsByRegisteredBusinesses(suggestions: any[]): Prom
 async function trackBusinessVisits(suggestions: any[]): Promise<void> {
   try {
     const visitedDomains = new Set<string>();
-    
+
     // Extract unique domains from suggestions
     for (const suggestion of suggestions) {
       if (suggestion.url) {
         try {
           const url = new URL(suggestion.url);
-          const domain = url.hostname.toLowerCase().replace('www.', '');
+          const domain = url.hostname.toLowerCase().replace("www.", "");
           visitedDomains.add(domain);
         } catch {
           // Skip invalid URLs
         }
       }
     }
-    
+
     // Increment visit count for each business
     for (const domain of visitedDomains) {
       const business = await businessService.findBusinessByDomain(domain);
@@ -391,29 +459,34 @@ router.post("/n8n-scrape", async (req, res) => {
     if (!url && !keywords) {
       return res.status(400).json({ error: "URL or keywords is required" });
     }
-    
+
     let result;
-    
+
     try {
       if (url) {
         console.log(`n8n webhook scraping request for URL: ${url}, GL: ${gl}`);
         result = await scrapeWithN8nWebhook(url, gl);
       } else if (keywords) {
-        console.log(`n8n webhook scraping request for keywords: ${keywords}, GL: ${gl}`);
+        console.log(
+          `n8n webhook scraping request for keywords: ${keywords}, GL: ${gl}`,
+        );
         result = await scrapeWithN8nWebhook(keywords, gl);
       }
     } catch (n8nError) {
       console.error("n8n webhook failed:", n8nError);
-      
+
       // Return error response when n8n fails
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: "Failed to fetch product information from n8n",
-        message: n8nError instanceof Error ? n8nError.message : "Unknown error occurred",
+        message:
+          n8nError instanceof Error
+            ? n8nError.message
+            : "Unknown error occurred",
         mainProduct: null,
-        suggestions: []
+        suggestions: [],
       });
     }
-    
+
     // If result is an array (keyword search), send directly
     if (Array.isArray(result)) {
       return res.json(result);
@@ -430,9 +503,11 @@ router.post("/n8n-scrape", async (req, res) => {
 
     // Filter suggestions based on registered businesses and track visits
     if (result.suggestions && result.suggestions.length > 0) {
-      result.suggestions = await filterSuggestionsByRegisteredBusinesses(result.suggestions);
+      result.suggestions = await filterSuggestionsByRegisteredBusinesses(
+        result.suggestions,
+      );
       console.log("Filtered suggestions count:", result.suggestions.length);
-      
+
       // Track visits for each business that appears in suggestions
       await trackBusinessVisits(result.suggestions);
     }
@@ -440,16 +515,18 @@ router.post("/n8n-scrape", async (req, res) => {
     // If findSimilar is true, modify the search to focus on similar products
     if (findSimilar && result.mainProduct) {
       console.log("Processing similar products search...");
-      
+
       if (result.suggestions && result.suggestions.length > 0) {
         // Mark suggestions as similar products
-        result.suggestions = result.suggestions.map(suggestion => ({
+        result.suggestions = result.suggestions.map((suggestion) => ({
           ...suggestion,
           isSimilar: true,
-          similarityReason: `Similar product from ${suggestion.merchant || suggestion.site || 'other retailers'}`
+          similarityReason: `Similar product from ${suggestion.merchant || suggestion.site || "other retailers"}`,
         }));
-        
-        console.log(`Enhanced ${result.suggestions.length} suggestions for similar products`);
+
+        console.log(
+          `Enhanced ${result.suggestions.length} suggestions for similar products`,
+        );
       }
     }
 
@@ -463,9 +540,13 @@ router.post("/n8n-scrape", async (req, res) => {
           title: result.mainProduct.title,
           requestId: requestId || `search_${Date.now()}`,
         });
-        console.log(`Search history saved for user ${userId} (type: ${findSimilar ? 'similar' : 'price_comparison'})`);
+        console.log(
+          `Search history saved for user ${userId} (type: ${findSimilar ? "similar" : "price_comparison"})`,
+        );
       } else {
-        console.log("No user authentication found, skipping search history save");
+        console.log(
+          "No user authentication found, skipping search history save",
+        );
       }
     } catch (historyError) {
       console.error("Failed to save search history:", historyError);
@@ -475,18 +556,19 @@ router.post("/n8n-scrape", async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error("n8n webhook scraping error:", error);
-    
+
     // Return a proper error response
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
     console.log("Returning error response:", errorMessage);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: "Failed to fetch product information",
       message: errorMessage,
       mainProduct: null,
-      suggestions: []
+      suggestions: [],
     });
   }
 });
 
-export default router; 
+export default router;

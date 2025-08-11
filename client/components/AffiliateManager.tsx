@@ -92,14 +92,14 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
-      const url = editingUrl 
+      const url = editingUrl
         ? `/api/admin/affiliate/urls/${editingUrl.id}`
         : "/api/admin/affiliate/urls";
-      
+
       const method = editingUrl ? "PUT" : "POST";
-      
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -227,11 +227,15 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Clicks
+              </CardTitle>
               <MousePointer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.totalClicks.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Across all URLs</p>
             </CardContent>
           </Card>
@@ -242,7 +246,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalConversions.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.totalConversions.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Total conversions</p>
             </CardContent>
           </Card>
@@ -253,7 +259,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">
+                ${stats.totalRevenue.toFixed(2)}
+              </div>
               <p className="text-xs text-muted-foreground">Total revenue</p>
             </CardContent>
           </Card>
@@ -281,10 +289,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                 {editingUrl ? "Edit Affiliate URL" : "Add New Affiliate URL"}
               </DialogTitle>
               <DialogDescription>
-                {editingUrl 
+                {editingUrl
                   ? "Update the affiliate URL details below."
-                  : "Create a new affiliate URL to track clicks and conversions."
-                }
+                  : "Create a new affiliate URL to track clicks and conversions."}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -293,7 +300,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="Amazon Electronics"
                   required
                 />
@@ -304,7 +313,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                   id="url"
                   type="url"
                   value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, url: e.target.value })
+                  }
                   placeholder="https://amazon.com/electronics"
                   required
                 />
@@ -314,7 +325,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Electronics affiliate link for Amazon"
                 />
               </div>
@@ -322,7 +335,9 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                 <Switch
                   id="isActive"
                   checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isActive: checked })
+                  }
                 />
                 <Label htmlFor="isActive">Active</Label>
               </div>
@@ -360,7 +375,8 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                 No affiliate URLs yet
               </h3>
               <p className="text-gray-600 mb-4">
-                Create your first affiliate URL to start tracking clicks and conversions.
+                Create your first affiliate URL to start tracking clicks and
+                conversions.
               </p>
               <Button onClick={openCreateDialog}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -400,8 +416,8 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
                         {url.conversions.toLocaleString()} conversions
                       </span>
                       <span className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        ${url.revenue.toFixed(2)} revenue
+                        <DollarSign className="h-3 w-3" />$
+                        {url.revenue.toFixed(2)} revenue
                       </span>
                     </div>
                   </div>
@@ -436,4 +452,4 @@ export function AffiliateManager({ className = "" }: AffiliateManagerProps) {
       </div>
     </div>
   );
-} 
+}

@@ -32,8 +32,10 @@ export const getSearchHistory: RequestHandler = async (req, res) => {
       return res.status(400).json({ error: "Missing userKey" });
     }
 
-    const historyRecords =
-      await searchService.getLegacyUserSearchHistory(userKey, 10);
+    const historyRecords = await searchService.getLegacyUserSearchHistory(
+      userKey,
+      10,
+    );
     const history = historyRecords.map((record) => record.url);
 
     res.json({ history });

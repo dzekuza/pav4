@@ -33,8 +33,7 @@ website and sends tracking data to our API. It tracks:
   data-business-id="YOUR_BUSINESS_ID"
   data-affiliate-id="YOUR_AFFILIATE_ID"
   data-debug="true"
->
-</script>
+></script>
 ```
 
 7. Click **"Save"** to apply the changes
@@ -69,8 +68,7 @@ website and sends tracking data to our API. It tracks:
   data-business-id="YOUR_BUSINESS_ID"
   data-affiliate-id="YOUR_AFFILIATE_ID"
   data-debug="true"
->
-</script>
+></script>
 ```
 
 7. Click **"Update File"** to save changes
@@ -98,8 +96,7 @@ website and sends tracking data to our API. It tracks:
   data-business-id="YOUR_BUSINESS_ID"
   data-affiliate-id="YOUR_AFFILIATE_ID"
   data-debug="true"
->
-</script>
+></script>
 ```
 
 6. Click **"Save Configuration"**
@@ -128,8 +125,7 @@ website and sends tracking data to our API. It tracks:
   data-affiliate-id="YOUR_AFFILIATE_ID"
   data-platform="your-platform"
   data-debug="true"
->
-</script>
+></script>
 ```
 
 ## Configuration Parameters
@@ -179,8 +175,7 @@ Enable debug mode to see detailed tracking logs in the browser console:
   data-business-id="YOUR_BUSINESS_ID"
   data-affiliate-id="YOUR_AFFILIATE_ID"
   data-debug="true"
->
-</script>
+></script>
 ```
 
 Debug mode will show:

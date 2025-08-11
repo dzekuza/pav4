@@ -39,7 +39,10 @@ async function promoteViaApi() {
     console.error("API error:", data.error || data);
     return false;
   } catch (err) {
-    console.warn("API promote failed, falling back to local DB where possible:", err.message);
+    console.warn(
+      "API promote failed, falling back to local DB where possible:",
+      err.message,
+    );
     return false;
   }
 }
@@ -50,7 +53,14 @@ async function promoteViaApi() {
 
   // Fallback: show instructions for manual promotion depending on storage
   console.log("\nManual promotion steps (fallback):");
-  console.log("- If you use Prisma/SQLite file (prisma/dev.db), run an UPDATE to set isAdmin=1 for the user with email:", email);
-  console.log("- If you use a JSON/Netlify DB, find the user document and set isAdmin: true.");
-  console.log("- Or expose an /api/admin/promote endpoint that updates the user by email.");
+  console.log(
+    "- If you use Prisma/SQLite file (prisma/dev.db), run an UPDATE to set isAdmin=1 for the user with email:",
+    email,
+  );
+  console.log(
+    "- If you use a JSON/Netlify DB, find the user document and set isAdmin: true.",
+  );
+  console.log(
+    "- Or expose an /api/admin/promote endpoint that updates the user by email.",
+  );
 })();

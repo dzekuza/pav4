@@ -1,23 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { SearchHeader } from '@/components/SearchHeader';
-import { 
-  TrendingUp, 
-  Users, 
-  ShoppingCart, 
-  DollarSign, 
-  LogOut, 
+import React, { useState, useEffect } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { SearchHeader } from "@/components/SearchHeader";
+import {
+  TrendingUp,
+  Users,
+  ShoppingCart,
+  DollarSign,
+  LogOut,
   Activity,
   Settings,
   BarChart3,
   Code,
-  Home
-} from 'lucide-react';
+  Home,
+} from "lucide-react";
 
 interface BusinessStats {
   id: number;
@@ -46,17 +52,17 @@ export default function BusinessDashboardLayout() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/business/auth/stats', {
-        credentials: 'include',
+      const response = await fetch("/api/business/auth/stats", {
+        credentials: "include",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        console.log('BusinessDashboardLayout - Received data:', data);
-        console.log('BusinessDashboardLayout - Stats:', data.stats);
+        console.log("BusinessDashboardLayout - Received data:", data);
+        console.log("BusinessDashboardLayout - Stats:", data.stats);
         setStats(data.stats);
       } else if (response.status === 401) {
-        navigate('/business-login');
+        navigate("/business-login");
         return;
       } else {
         toast({
@@ -66,7 +72,7 @@ export default function BusinessDashboardLayout() {
         });
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
       toast({
         title: "Network Error",
         description: "Failed to connect to server",
@@ -79,13 +85,13 @@ export default function BusinessDashboardLayout() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/business/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
+      await fetch("/api/business/auth/logout", {
+        method: "POST",
+        credentials: "include",
       });
-      navigate('/business-login');
+      navigate("/business-login");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
 
@@ -96,7 +102,11 @@ export default function BusinessDashboardLayout() {
   if (isLoading) {
     return (
       <div className="relative min-h-screen overflow-hidden">
-        <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+        <img
+          src="/pagebg.png"
+          alt=""
+          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+        />
         <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
@@ -119,8 +129,13 @@ export default function BusinessDashboardLayout() {
         <div className="container mx-auto px-4 py-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardContent className="p-6 text-center">
-              <p className="text-white/80">Unable to load business statistics.</p>
-              <Button onClick={() => navigate('/business-login')} className="mt-4 rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+              <p className="text-white/80">
+                Unable to load business statistics.
+              </p>
+              <Button
+                onClick={() => navigate("/business-login")}
+                className="mt-4 rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+              >
                 Back to Login
               </Button>
             </CardContent>
@@ -132,7 +147,11 @@ export default function BusinessDashboardLayout() {
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader showBackButton={false} />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -141,7 +160,11 @@ export default function BusinessDashboardLayout() {
             <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
             <p className="text-white/70">{stats.domain}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>
@@ -151,12 +174,12 @@ export default function BusinessDashboardLayout() {
         <div className="flex space-x-2 mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/business/dashboard')}
+            onClick={() => navigate("/business/dashboard")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute('/business/dashboard')
+              isActiveRoute("/business/dashboard")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10"
+                : "text-white hover:bg-white/10",
             )}
           >
             <Home className="mr-2 h-4 w-4" />
@@ -164,12 +187,12 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate('/business/dashboard/activity')}
+            onClick={() => navigate("/business/dashboard/activity")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute('/business/dashboard/activity')
+              isActiveRoute("/business/dashboard/activity")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10"
+                : "text-white hover:bg-white/10",
             )}
           >
             <Activity className="mr-2 h-4 w-4" />
@@ -177,12 +200,12 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate('/business/dashboard/integrate')}
+            onClick={() => navigate("/business/dashboard/integrate")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute('/business/dashboard/integrate')
+              isActiveRoute("/business/dashboard/integrate")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10"
+                : "text-white hover:bg-white/10",
             )}
           >
             <Code className="mr-2 h-4 w-4" />
@@ -190,12 +213,12 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate('/business/dashboard/analytics')}
+            onClick={() => navigate("/business/dashboard/analytics")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute('/business/dashboard/analytics')
+              isActiveRoute("/business/dashboard/analytics")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10"
+                : "text-white hover:bg-white/10",
             )}
           >
             <BarChart3 className="mr-2 h-4 w-4" />
@@ -203,12 +226,12 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate('/business/dashboard/settings')}
+            onClick={() => navigate("/business/dashboard/settings")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute('/business/dashboard/settings')
+              isActiveRoute("/business/dashboard/settings")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10"
+                : "text-white hover:bg-white/10",
             )}
           >
             <Settings className="mr-2 h-4 w-4" />
@@ -223,4 +246,4 @@ export default function BusinessDashboardLayout() {
       </div>
     </div>
   );
-} 
+}

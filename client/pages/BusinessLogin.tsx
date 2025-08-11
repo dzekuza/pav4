@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { useToast } from '../hooks/use-toast';
-import { SearchHeader } from '../components/SearchHeader';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { useToast } from "../hooks/use-toast";
+import { SearchHeader } from "../components/SearchHeader";
 
 export default function BusinessLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Validation Error",
@@ -27,14 +33,14 @@ export default function BusinessLogin() {
     }
 
     setIsLoading(true);
-    
+
     try {
-      const response = await fetch('/api/business/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/business/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -45,19 +51,21 @@ export default function BusinessLogin() {
           title: "Success",
           description: "Login successful!",
         });
-        navigate('/business/dashboard');
+        navigate("/business/dashboard");
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to authenticate. Please try again.",
+          description:
+            data.error || "Failed to authenticate. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error("Authentication error:", error);
       toast({
         title: "Network Error",
-        description: "Failed to connect to server. Please check your connection and try again.",
+        description:
+          "Failed to connect to server. Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -68,7 +76,8 @@ export default function BusinessLogin() {
   const handleRegistrationComplete = () => {
     toast({
       title: "Registration Successful",
-      description: "Your business account has been created! You can now log in.",
+      description:
+        "Your business account has been created! You can now log in.",
     });
   };
 
@@ -78,14 +87,20 @@ export default function BusinessLogin() {
 
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader showBackButton={false} />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
           <Card className="border-white/10 bg-white/5 text-white backdrop-blur-sm">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-white">Business Login</CardTitle>
+              <CardTitle className="text-2xl text-white">
+                Business Login
+              </CardTitle>
               <CardDescription className="text-white/80">
                 Sign in to your business account
               </CardDescription>
@@ -93,7 +108,9 @@ export default function BusinessLogin() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">Email</Label>
+                  <Label htmlFor="email" className="text-white">
+                    Email
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -105,7 +122,9 @@ export default function BusinessLogin() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-white">Password</Label>
+                  <Label htmlFor="password" className="text-white">
+                    Password
+                  </Label>
                   <Input
                     id="password"
                     type="password"
@@ -116,9 +135,9 @@ export default function BusinessLogin() {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90" 
+                <Button
+                  type="submit"
+                  className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
@@ -126,7 +145,10 @@ export default function BusinessLogin() {
               </form>
 
               <div className="mt-6 text-center">
-                <Link to="/business/register" className="text-sm text-white hover:underline">
+                <Link
+                  to="/business/register"
+                  className="text-sm text-white hover:underline"
+                >
                   Don't have an account? Register
                 </Link>
               </div>
@@ -142,4 +164,4 @@ export default function BusinessLogin() {
       </div>
     </div>
   );
-} 
+}

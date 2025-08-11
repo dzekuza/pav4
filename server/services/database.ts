@@ -8,7 +8,10 @@ declare global {
 // Create a single Prisma Client instance
 const createPrismaClient = () => {
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "error", "warn"]
+        : ["error"],
   });
 };
 
@@ -22,7 +25,7 @@ if (process.env.NODE_ENV !== "production") {
 function generateAffiliateId(domain: string): string {
   const timestamp = Date.now();
   const randomSuffix = Math.random().toString(36).substring(2, 8);
-  const domainPrefix = domain.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+  const domainPrefix = domain.replace(/[^a-zA-Z0-9]/g, "").substring(0, 10);
   return `aff_${domainPrefix}_${timestamp}_${randomSuffix}`;
 }
 
@@ -276,7 +279,10 @@ export const dbService = {
       await prisma.$queryRaw`SELECT 1`;
       return { status: "connected", message: "Database connection successful" };
     } catch (error) {
-      return { status: "error", message: `Database connection failed: ${error}` };
+      return {
+        status: "error",
+        message: `Database connection failed: ${error}`,
+      };
     }
   },
 
@@ -290,7 +296,7 @@ export const dbService = {
     return {
       users: userCount,
       searches: searchCount,
-      legacySearches: legacySearchCount
+      legacySearches: legacySearchCount,
     };
   },
 };
@@ -414,27 +420,29 @@ export const businessService = {
   }) {
     // Generate unique affiliate ID
     let affiliateId = generateAffiliateId(data.domain);
-    
+
     // Check if affiliate ID already exists and generate a new one if needed
     let attempts = 0;
     const maxAttempts = 10;
-    
+
     while (attempts < maxAttempts) {
       const existingBusiness = await prisma.business.findUnique({
         where: { affiliateId },
       });
-      
+
       if (!existingBusiness) {
         break; // Affiliate ID is unique
       }
-      
+
       // Generate new affiliate ID with different random suffix
       affiliateId = generateAffiliateId(data.domain);
       attempts++;
     }
-    
+
     if (attempts >= maxAttempts) {
-      throw new Error('Failed to generate unique affiliate ID after multiple attempts');
+      throw new Error(
+        "Failed to generate unique affiliate ID after multiple attempts",
+      );
     }
 
     return prisma.business.create({
@@ -518,11 +526,12 @@ export const businessService = {
   },
 
   async getBusinessStats() {
-    const [totalBusinesses, activeBusinesses, verifiedBusinesses] = await Promise.all([
-      prisma.business.count(),
-      prisma.business.count({ where: { isActive: true } }),
-      prisma.business.count({ where: { isVerified: true } }),
-    ]);
+    const [totalBusinesses, activeBusinesses, verifiedBusinesses] =
+      await Promise.all([
+        prisma.business.count(),
+        prisma.business.count({ where: { isActive: true } }),
+        prisma.business.count({ where: { isVerified: true } }),
+      ]);
 
     return {
       total: totalBusinesses,
@@ -543,11 +552,14 @@ export const businessService = {
     });
   },
 
-  async updateBusinessStats(businessId: number, data: {
-    totalVisits?: number;
-    totalPurchases?: number;
-    totalRevenue?: number;
-  }) {
+  async updateBusinessStats(
+    businessId: number,
+    data: {
+      totalVisits?: number;
+      totalPurchases?: number;
+      totalRevenue?: number;
+    },
+  ) {
     return prisma.business.update({
       where: { id: businessId },
       data,
@@ -615,9 +627,16 @@ export const businessService = {
     ]);
 
     // Calculate derived fields
-    const averageOrderValue = business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0;
-    const conversionRate = business.totalVisits > 0 ? (business.totalPurchases / business.totalVisits) * 100 : 0;
-    const projectedFee = business.totalRevenue * (business.adminCommissionRate / 100);
+    const averageOrderValue =
+      business.totalPurchases > 0
+        ? business.totalRevenue / business.totalPurchases
+        : 0;
+    const conversionRate =
+      business.totalVisits > 0
+        ? (business.totalPurchases / business.totalVisits) * 100
+        : 0;
+    const projectedFee =
+      business.totalRevenue * (business.adminCommissionRate / 100);
 
     return {
       ...business,
@@ -666,7 +685,7 @@ export const businessService = {
     });
 
     if (!business) {
-      throw new Error('Business not found for affiliate ID');
+      throw new Error("Business not found for affiliate ID");
     }
 
     // Log the click
@@ -686,11 +705,14 @@ export const businessService = {
     return click;
   },
 
-  async getProductUrlByAffiliateAndProductId(affiliateId: string, productId: string): Promise<string | null> {
+  async getProductUrlByAffiliateAndProductId(
+    affiliateId: string,
+    productId: string,
+  ): Promise<string | null> {
     // This is a placeholder implementation
     // In a real implementation, you would store product URLs in a separate table
     // or have a way to map affiliate IDs and product IDs to URLs
-    
+
     // For now, we'll return a generic URL based on the affiliate ID
     const business = await prisma.business.findUnique({
       where: { affiliateId },
@@ -708,25 +730,25 @@ export const businessService = {
   // Settings operations
   async getSuggestionFilterEnabled(): Promise<boolean> {
     const setting = await prisma.settings.findUnique({
-      where: { key: 'suggestion_filter_enabled' },
+      where: { key: "suggestion_filter_enabled" },
     });
-    return setting?.value === 'true';
+    return setting?.value === "true";
   },
 
   async setSuggestionFilterEnabled(enabled: boolean): Promise<void> {
     await prisma.settings.upsert({
-      where: { key: 'suggestion_filter_enabled' },
+      where: { key: "suggestion_filter_enabled" },
       update: { value: enabled.toString() },
-      create: { key: 'suggestion_filter_enabled', value: enabled.toString() },
+      create: { key: "suggestion_filter_enabled", value: enabled.toString() },
     });
   },
 };
 
 // Graceful shutdown
 export const gracefulShutdown = async () => {
-  console.log('Shutting down database connection...');
+  console.log("Shutting down database connection...");
   await prisma.$disconnect();
-  console.log('Database connection closed.');
+  console.log("Database connection closed.");
 };
 
 // Database connection check

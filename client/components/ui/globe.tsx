@@ -128,7 +128,7 @@ export function Globe({
       <canvas
         className={cn(
           "size-full transition-all duration-1500 ease-out [contain:layout_paint_size]",
-          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95",
         )}
         ref={canvasRef}
         onPointerDown={(e) =>
@@ -143,7 +143,7 @@ export function Globe({
           e.touches[0] && updateMovement(e.touches[0].clientX)
         }
         style={{
-          cursor: pointerInteracting.current !== null ? "grabbing" : "grab"
+          cursor: pointerInteracting.current !== null ? "grabbing" : "grab",
         }}
       />
     </div>

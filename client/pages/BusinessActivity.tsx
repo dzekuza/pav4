@@ -1,19 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { SearchHeader } from '@/components/SearchHeader';
-import { Eye, ShoppingCart, DollarSign, Calendar, Filter } from 'lucide-react';
-import { useBusinessAuth } from '@/hooks/use-auth';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { SearchHeader } from "@/components/SearchHeader";
+import { Eye, ShoppingCart, DollarSign, Calendar, Filter } from "lucide-react";
+import { useBusinessAuth } from "@/hooks/use-auth";
 
 interface ActivityItem {
   id: string;
-  type: 'click' | 'purchase';
+  type: "click" | "purchase";
   productName: string;
   productUrl: string;
-  status: 'browsed' | 'purchased' | 'abandoned';
+  status: "browsed" | "purchased" | "abandoned";
   amount?: number;
   timestamp: string;
   userAgent?: string;
@@ -27,12 +34,12 @@ export default function BusinessActivity() {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'clicks' | 'purchases'>('all');
+  const [filter, setFilter] = useState<"all" | "clicks" | "purchases">("all");
   const [stats, setStats] = useState({
     totalClicks: 0,
     totalPurchases: 0,
     totalRevenue: 0,
-    conversionRate: 0
+    conversionRate: 0,
   });
 
   useEffect(() => {
@@ -42,64 +49,78 @@ export default function BusinessActivity() {
   const fetchActivity = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch both click logs and conversions
       const [clicksResponse, conversionsResponse] = await Promise.all([
-        fetch('/api/business/activity/clicks', { credentials: 'include' }),
-        fetch('/api/business/activity/conversions', { credentials: 'include' })
+        fetch("/api/business/activity/clicks", { credentials: "include" }),
+        fetch("/api/business/activity/conversions", { credentials: "include" }),
       ]);
 
-      const clicksJson = clicksResponse.ok ? await clicksResponse.json() : { clicks: [] };
-      const conversionsJson = conversionsResponse.ok ? await conversionsResponse.json() : { conversions: [] };
+      const clicksJson = clicksResponse.ok
+        ? await clicksResponse.json()
+        : { clicks: [] };
+      const conversionsJson = conversionsResponse.ok
+        ? await conversionsResponse.json()
+        : { conversions: [] };
 
-      const clicks = Array.isArray(clicksJson) ? clicksJson : (clicksJson.clicks || []);
-      const conversions = Array.isArray(conversionsJson) ? conversionsJson : (conversionsJson.conversions || []);
+      const clicks = Array.isArray(clicksJson)
+        ? clicksJson
+        : clicksJson.clicks || [];
+      const conversions = Array.isArray(conversionsJson)
+        ? conversionsJson
+        : conversionsJson.conversions || [];
 
       // Combine and format the data
       const combinedActivities: ActivityItem[] = [
         ...clicks.map((click: any) => ({
           id: `click-${click.id}`,
-          type: 'click' as const,
+          type: "click" as const,
           productName: extractProductName(click.productUrl),
           productUrl: click.productUrl,
-          status: 'browsed' as const,
+          status: "browsed" as const,
           timestamp: click.timestamp,
           userAgent: click.userAgent,
           referrer: click.referrer,
-          ip: click.ipAddress
+          ip: click.ipAddress,
         })),
         ...conversions.map((conversion: any) => ({
           id: `purchase-${conversion.id}`,
-          type: 'purchase' as const,
+          type: "purchase" as const,
           productName: `Order ${conversion.orderId}`,
           productUrl: conversion.domain,
-          status: 'purchased' as const,
+          status: "purchased" as const,
           amount: conversion.amount,
           timestamp: conversion.timestamp,
-          customerId: conversion.customerId
-        }))
+          customerId: conversion.customerId,
+        })),
       ];
 
       // Sort by timestamp (newest first)
-      combinedActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      combinedActivities.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
 
       setActivities(combinedActivities);
 
       // Calculate stats
       const totalClicks = clicks.length;
       const totalPurchases = conversions.length;
-      const totalRevenue = conversions.reduce((sum: number, conv: any) => sum + conv.amount, 0);
-      const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+      const totalRevenue = conversions.reduce(
+        (sum: number, conv: any) => sum + conv.amount,
+        0,
+      );
+      const conversionRate =
+        totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
 
       setStats({
         totalClicks,
         totalPurchases,
         totalRevenue,
-        conversionRate
+        conversionRate,
       });
-
     } catch (error) {
-      console.error('Error fetching activity:', error);
+      console.error("Error fetching activity:", error);
     } finally {
       setIsLoading(false);
     }
@@ -108,21 +129,31 @@ export default function BusinessActivity() {
   const extractProductName = (url: string): string => {
     try {
       const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+      const pathParts = urlObj.pathname
+        .split("/")
+        .filter((part) => part.length > 0);
       const lastPart = pathParts[pathParts.length - 1];
-      return lastPart ? lastPart.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Product';
+      return lastPart
+        ? lastPart
+            .replace(/[-_]/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase())
+        : "Product";
     } catch {
-      return 'Product';
+      return "Product";
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'purchased':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Purchased</Badge>;
-      case 'browsed':
+      case "purchased":
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            Purchased
+          </Badge>
+        );
+      case "browsed":
         return <Badge variant="secondary">Browsed</Badge>;
-      case 'abandoned':
+      case "abandoned":
         return <Badge variant="destructive">Abandoned</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -131,23 +162,21 @@ export default function BusinessActivity() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'click':
+      case "click":
         return <Eye className="h-4 w-4 text-blue-500" />;
-      case 'purchase':
+      case "purchase":
         return <ShoppingCart className="h-4 w-4 text-green-500" />;
       default:
         return <Eye className="h-4 w-4" />;
     }
   };
 
-  const filteredActivities = activities.filter(activity => {
-    if (filter === 'all') return true;
-    if (filter === 'clicks') return activity.type === 'click';
-    if (filter === 'purchases') return activity.type === 'purchase';
+  const filteredActivities = activities.filter((activity) => {
+    if (filter === "all") return true;
+    if (filter === "clicks") return activity.type === "click";
+    if (filter === "purchases") return activity.type === "purchase";
     return true;
   });
-
-
 
   if (isLoading) {
     return (
@@ -170,15 +199,20 @@ export default function BusinessActivity() {
 
   return (
     <div className="min-h-screen relative overflow-hidden text-white">
-      <img src="/pagebg.png" alt="" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100" />
+      <img
+        src="/pagebg.png"
+        alt=""
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+      />
       <SearchHeader showBackButton={false} />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">User Activity</h1>
           <p className="text-white/70">
-            Track user interactions and purchases for {business?.name || 'your business'}
+            Track user interactions and purchases for{" "}
+            {business?.name || "your business"}
           </p>
         </div>
 
@@ -186,53 +220,61 @@ export default function BusinessActivity() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Total Clicks
+              </CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalClicks.toLocaleString()}</div>
-              <p className="text-xs text-white/80">
-                Product page visits
-              </p>
+              <div className="text-2xl font-bold">
+                {stats.totalClicks.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Product page visits</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Purchases</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Total Purchases
+              </CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPurchases.toLocaleString()}</div>
-              <p className="text-xs text-white/80">
-                Successful conversions
-              </p>
+              <div className="text-2xl font-bold">
+                {stats.totalPurchases.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Successful conversions</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Total Revenue
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-white/80">
-                Total sales revenue
-              </p>
+              <div className="text-2xl font-bold">
+                ${stats.totalRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Total sales revenue</p>
             </CardContent>
           </Card>
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Conversion Rate</CardTitle>
+              <CardTitle className="text-sm font-medium text-white">
+                Conversion Rate
+              </CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
-              <p className="text-xs text-white/80">
-                Click to purchase ratio
-              </p>
+              <div className="text-2xl font-bold">
+                {stats.conversionRate.toFixed(1)}%
+              </div>
+              <p className="text-xs text-white/80">Click to purchase ratio</p>
             </CardContent>
           </Card>
         </div>
@@ -240,29 +282,33 @@ export default function BusinessActivity() {
         {/* Filter Controls */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex gap-2">
-            <Button 
+            <Button
               size="sm"
-              onClick={() => setFilter('all')}
-              className={`${filter === 'all' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
+              onClick={() => setFilter("all")}
+              className={`${filter === "all" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
             >
               All Activity
             </Button>
-            <Button 
+            <Button
               size="sm"
-              onClick={() => setFilter('clicks')}
-              className={`${filter === 'clicks' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
+              onClick={() => setFilter("clicks")}
+              className={`${filter === "clicks" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
             >
               Clicks Only
             </Button>
-            <Button 
+            <Button
               size="sm"
-              onClick={() => setFilter('purchases')}
-              className={`${filter === 'purchases' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'} rounded-full`}
+              onClick={() => setFilter("purchases")}
+              className={`${filter === "purchases" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
             >
               Purchases Only
             </Button>
           </div>
-          <Button size="sm" onClick={fetchActivity} className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90">
+          <Button
+            size="sm"
+            onClick={fetchActivity}
+            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+          >
             <Filter className="mr-2 h-4 w-4" />
             Refresh
           </Button>
@@ -278,7 +324,10 @@ export default function BusinessActivity() {
               <div className="text-center py-8 text-white/70">
                 <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No activity found</p>
-                <p className="text-sm text-white/70">User activity will appear here once customers start browsing your products</p>
+                <p className="text-sm text-white/70">
+                  User activity will appear here once customers start browsing
+                  your products
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -304,15 +353,15 @@ export default function BusinessActivity() {
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs truncate">
-                            <div className="font-medium">{activity.productName}</div>
+                            <div className="font-medium">
+                              {activity.productName}
+                            </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {activity.productUrl}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {getStatusBadge(activity.status)}
-                        </TableCell>
+                        <TableCell>{getStatusBadge(activity.status)}</TableCell>
                         <TableCell>
                           {activity.amount ? (
                             <span className="font-medium text-green-600">
@@ -335,9 +384,7 @@ export default function BusinessActivity() {
                             {activity.customerId && (
                               <div>Customer: {activity.customerId}</div>
                             )}
-                            {activity.ip && (
-                              <div>IP: {activity.ip}</div>
-                            )}
+                            {activity.ip && <div>IP: {activity.ip}</div>}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -351,4 +398,4 @@ export default function BusinessActivity() {
       </div>
     </div>
   );
-} 
+}
