@@ -223,11 +223,245 @@ async function createServer() {
       }
     });
   });
-  app.get("/api/auth/me", (req, res) => {
-    res.json({
-      success: false,
-      message: "Not authenticated"
-    });
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      let token = req.cookies.auth_token;
+      if (!token) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
+      if (!token) {
+        return res.json({
+          user: null,
+          authenticated: false
+        });
+      }
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.json({
+          user: null,
+          authenticated: false
+        });
+      }
+      const userId = typeof decoded.userId === "string" ? parseInt(decoded.userId, 10) : decoded.userId;
+      if (isNaN(userId)) {
+        return res.json({
+          user: null,
+          authenticated: false
+        });
+      }
+      const userResult = await sql`
+                SELECT id, email, is_admin as "isAdmin"
+                FROM users 
+                WHERE id = ${userId}
+            `;
+      const user = userResult[0];
+      if (!user) {
+        return res.json({
+          user: null,
+          authenticated: false
+        });
+      }
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          isAdmin: user.isAdmin
+        },
+        authenticated: true
+      });
+    } catch (error) {
+      console.error("Get current user error:", error);
+      res.json({
+        user: null,
+        authenticated: false
+      });
+    }
+  });
+  function generateToken(userId) {
+    return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
+  }
+  function verifyToken(token) {
+    try {
+      return jwt.verify(token, JWT_SECRET);
+    } catch {
+      return null;
+    }
+  }
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters long" });
+      }
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumber = /\d/.test(password);
+      if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+        return res.status(400).json({
+          error: "Password must contain uppercase, lowercase, and number",
+          details: [{
+            type: "field",
+            value: password,
+            msg: "Password must be at least 8 characters with uppercase, lowercase, and number",
+            path: "password",
+            location: "body"
+          }]
+        });
+      }
+      const existingUserResult = await sql`
+                SELECT id FROM users WHERE email = ${email}
+            `;
+      if (existingUserResult.length > 0) {
+        return res.status(400).json({ error: "User with this email already exists" });
+      }
+      const hashedPassword = await bcrypt.hash(password, 12);
+      const userResult = await sql`
+                INSERT INTO users (email, password, is_admin, created_at, updated_at)
+                VALUES (${email}, ${hashedPassword}, false, NOW(), NOW())
+                RETURNING id, email, is_admin as "isAdmin"
+            `;
+      const user = userResult[0];
+      const token = generateToken(user.id);
+      res.cookie("auth_token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1e3
+        // 7 days
+      });
+      res.status(201).json({
+        success: true,
+        token,
+        accessToken: token,
+        user: {
+          id: user.id,
+          email: user.email,
+          isAdmin: user.isAdmin
+        }
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  });
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      const userResult = await sql`
+                SELECT id, email, password, is_admin as "isAdmin"
+                FROM users 
+                WHERE email = ${email}
+            `;
+      const user = userResult[0];
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      const token = generateToken(user.id);
+      res.cookie("auth_token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1e3
+        // 7 days
+      });
+      res.json({
+        success: true,
+        token,
+        accessToken: token,
+        user: {
+          id: user.id,
+          email: user.email,
+          isAdmin: user.isAdmin
+        }
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie("auth_token");
+    res.json({ success: true });
+  });
+  app.post("/api/search-history", async (req, res) => {
+    try {
+      let token = req.cookies.auth_token;
+      if (!token) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
+      if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      const { query, results } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+      await sql`
+                INSERT INTO user_search_history (user_id, query, results, created_at)
+                VALUES (${decoded.userId}, ${query}, ${JSON.stringify(results || [])}, NOW())
+            `;
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding to search history:", error);
+      res.status(500).json({ error: "Failed to add to search history" });
+    }
+  });
+  app.get("/api/search-history", async (req, res) => {
+    try {
+      let token = req.cookies.auth_token;
+      if (!token) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          token = authHeader.substring(7);
+        }
+      }
+      if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      const historyResult = await sql`
+                SELECT id, query, results, created_at as "createdAt"
+                FROM user_search_history 
+                WHERE user_id = ${decoded.userId}
+                ORDER BY created_at DESC
+                LIMIT 50
+            `;
+      res.json({
+        success: true,
+        history: historyResult.map((item) => ({
+          id: item.id,
+          query: item.query,
+          results: item.results,
+          createdAt: item.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error("Error getting search history:", error);
+      res.status(500).json({ error: "Failed to get search history" });
+    }
   });
   app.get("/api/business/auth/me", async (req, res) => {
     try {
