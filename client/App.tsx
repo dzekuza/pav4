@@ -9,7 +9,7 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
 import LoadingSkeleton from "@/components/ui/loading-skeleton";
-import AppLoader from "@/components/AppLoader";
+
 import { initializeTracking } from "@/lib/tracking";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -107,32 +107,10 @@ const router = createBrowserRouter([
 });
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
   useEffect(() => {
     // Initialize tracking
     initializeTracking();
-    
-    // Simulate app initialization time
-    const timer = setTimeout(() => {
-      setIsTransitioning(true);
-      // Add a small delay for the fade-out transition
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
-    }, 2000); // Show loader for 2 seconds
-
-    return () => clearTimeout(timer);
   }, []);
-
-  if (isLoading) {
-    return (
-      <div className={`transition-opacity duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        <AppLoader />
-      </div>
-    );
-  }
 
   return (
     <>

@@ -7,7 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ArrowLeft, RefreshCw, ExternalLink, Star, AlertCircle, Heart, Search, Package, Truck, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
-import HeroWave from "../components/ui/dynamic-wave-canvas-background";
+import AnimatedGradientBackground from "../components/ui/animated-gradient-background";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { SearchHeader } from "../components/SearchHeader";
 import { SearchInput } from "../components/SearchInput";
@@ -442,7 +442,7 @@ const NewSearchResults = () => {
   if (error) {
     return (
       <div className="relative min-h-screen overflow-hidden">
-        <div className="absolute inset-0 -z-20"><HeroWave /></div>
+        <div className="absolute inset-0 -z-20"><AnimatedGradientBackground /></div>
         <div className="absolute inset-0 -z-10">
           <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/20 to-transparent" />
         </div>
@@ -470,7 +470,7 @@ const NewSearchResults = () => {
   if (!searchData) {
     return (
       <div className="relative min-h-screen overflow-hidden">
-        <div className="absolute inset-0 -z-20"><HeroWave /></div>
+        <div className="absolute inset-0 -z-20"><AnimatedGradientBackground /></div>
         <SearchHeader />
         <div className="max-w-6xl mx-auto px-6 py-10">
           <div className="text-center">
@@ -489,8 +489,8 @@ const NewSearchResults = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Use same wave background as landing */}
-      <div className="absolute inset-0 -z-20"><HeroWave /></div>
+      {/* Use same animated gradient background as landing */}
+      <div className="absolute inset-0 -z-20"><AnimatedGradientBackground /></div>
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black" />
       </div>

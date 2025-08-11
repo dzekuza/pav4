@@ -1,10 +1,10 @@
 // This is file with demos of your component
 // Each export is one usecase for your component
 
-import HeroWave from "@/components/ui/dynamic-wave-canvas-background";
+import AnimatedGradientBackground from "@/components/ui/animated-gradient-background";
 
 const DemoOne = () => {
-  return <HeroWave />;
+  return <AnimatedGradientBackground />;
 };
 
 export { DemoOne };

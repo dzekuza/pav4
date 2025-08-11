@@ -147,8 +147,30 @@
     to { transform: rotate(360deg); }
   }
 
+  @keyframes background-gradient {
+    0% {
+      transform: translate(calc(var(--tx-1) * 100px), calc(var(--ty-1) * 100px)) scale(1);
+    }
+    25% {
+      transform: translate(calc(var(--tx-2) * 100px), calc(var(--ty-2) * 100px)) scale(1.1);
+    }
+    50% {
+      transform: translate(calc(var(--tx-3) * 100px), calc(var(--ty-3) * 100px)) scale(0.9);
+    }
+    75% {
+      transform: translate(calc(var(--tx-4) * 100px), calc(var(--ty-4) * 100px)) scale(1.05);
+    }
+    100% {
+      transform: translate(calc(var(--tx-1) * 100px), calc(var(--ty-1) * 100px)) scale(1);
+    }
+  }
+
+  .animate-background-gradient {
+    animation: background-gradient var(--animation-duration, 5s) infinite ease-in-out;
+  }
+
   body {
-    background-color: hsl(var(--background));
+    background-color: #020304;
     color: hsl(var(--foreground));
     /* Improve text rendering + font features */
     -webkit-font-smoothing: antialiased;

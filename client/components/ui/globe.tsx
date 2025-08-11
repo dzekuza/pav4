@@ -95,13 +95,13 @@ export function Globe({
 
       globeRef.current = globe;
 
-      // Show globe after a short delay
+      // Show globe after a longer delay for smooth appearance
       const timer = setTimeout(() => {
         if (canvasRef.current) {
           canvasRef.current.style.opacity = "1";
           setIsLoaded(true);
         }
-      }, 100);
+      }, 800);
 
       // Add resize listener
       window.addEventListener("resize", onResize);
@@ -127,8 +127,8 @@ export function Globe({
     >
       <canvas
         className={cn(
-          "size-full transition-opacity duration-700 [contain:layout_paint_size]",
-          isLoaded ? "opacity-100" : "opacity-0"
+          "size-full transition-all duration-1500 ease-out [contain:layout_paint_size]",
+          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
         )}
         ref={canvasRef}
         onPointerDown={(e) =>

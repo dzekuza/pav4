@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { Search, Loader2, Check } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
-import HeroWave from "./ui/dynamic-wave-canvas-background";
+import AnimatedGradientBackground from "./ui/animated-gradient-background";
 
 interface LoadingSkeletonProps {
   count?: number;
@@ -113,7 +113,7 @@ export function SearchLoadingState() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <HeroWave />
+              <AnimatedGradientBackground />
       <div className="relative z-10 flex min-h-screen items-center justify-center px-6">
         <div className="w-full max-w-2xl">
           {/* Spinner */}

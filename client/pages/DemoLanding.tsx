@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
-const HeroWave = lazy(() => import("@/components/ui/dynamic-wave-canvas-background"));
-import HeroWaveFallback from "@/components/ui/hero-wave-fallback";
+const AnimatedGradientBackground = lazy(() => import("@/components/ui/animated-gradient-background"));
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/SearchInput";
@@ -68,11 +67,11 @@ const DemoLanding: React.FC = () => {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {isClient ? (
-        <Suspense fallback={<HeroWaveFallback />}>
-          <HeroWave />
+        <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />}>
+          <AnimatedGradientBackground />
         </Suspense>
       ) : (
-        <HeroWaveFallback />
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
       )}
 
       {/* Content overlay */}
