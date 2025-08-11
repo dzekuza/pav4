@@ -259,6 +259,7 @@ export async function createServer() {
   app.get("/api/business/auth/me", getCurrentBusiness);
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", getBusinessAuthStats);
+  app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
 
   // Open CORS for tracking endpoint so third-party business sites can send events
@@ -449,6 +450,42 @@ export async function createServer() {
 
   // Business: Get conversions activity
   app.get("/api/business/activity/conversions", getBusinessConversions);
+
+  // Business: Get tracking events activity
+  app.get("/api/business/activity/events", requireBusinessAuth, async (req, res) => {
+    try {
+      const businessId = (req as any).business?.id;
+      if (!businessId) {
+        return res.status(401).json({ error: "Not authenticated as business" });
+      }
+
+      const { limit = 100, offset = 0 } = req.query;
+      const { prisma } = await import("./services/database");
+      
+      const events = await prisma.trackingEvent.findMany({
+        where: {
+          businessId: businessId
+        },
+        orderBy: {
+          timestamp: 'desc'
+        },
+        take: parseInt(limit as string),
+        skip: parseInt(offset as string)
+      });
+
+      res.json({
+        success: true,
+        events: events
+      });
+
+    } catch (error) {
+      console.error("Error getting business tracking events:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to get tracking events"
+      });
+    }
+  });
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {
