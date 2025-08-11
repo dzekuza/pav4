@@ -25,7 +25,7 @@
     // Create and load the enhanced script
     function loadEnhancedTracker() {
         const enhancedScript = document.createElement('script');
-        enhancedScript.src = 'https://paaav.vercel.app/shopify-tracker-enhanced.js';
+        enhancedScript.src = 'https://pavlo4.netlify.app/shopify-tracker-enhanced.js';
         enhancedScript.setAttribute('data-business-id', businessId);
         enhancedScript.setAttribute('data-affiliate-id', affiliateId);
         if (debug) {

@@ -34,7 +34,7 @@ export const requireDomainVerification = async (req: Request, res: Response, nex
       return res.status(403).json({
         success: false,
         error: 'Domain not verified. Please verify your domain ownership to use PriceHunt tracking.',
-        verificationUrl: 'https://paaav.vercel.app/business-integrate'
+        verificationUrl: 'https://pavlo4.netlify.app/business-integrate'
       });
     }
     

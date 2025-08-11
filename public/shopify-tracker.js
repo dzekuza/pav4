@@ -7,7 +7,7 @@
     businessId: null,
     affiliateId: null,
     debug: false,
-    endpoint: 'https://paaav.vercel.app/api/track-event',
+    endpoint: 'https://pavlo4.netlify.app/api/track-event',
     sessionId: generateSessionId(),
     pageLoadTime: Date.now()
   };
