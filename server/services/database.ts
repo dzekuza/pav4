@@ -518,6 +518,51 @@ export const businessService = {
     });
   },
 
+  async deleteBusinessWithAllData(id: number) {
+    // Delete all associated data in the correct order to avoid foreign key constraints
+    await prisma.$transaction(async (tx) => {
+      // Delete domain verifications
+      await tx.domainVerification.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Delete webhooks
+      await tx.webhook.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Delete tracking events
+      await tx.trackingEvent.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Delete commission rates
+      await tx.commissionRate.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Delete business conversions
+      await tx.businessConversion.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Delete business clicks
+      await tx.businessClick.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Delete sales associated with this business
+      await tx.sale.deleteMany({
+        where: { businessId: id },
+      });
+
+      // Finally delete the business
+      await tx.business.delete({
+        where: { id },
+      });
+    });
+  },
+
   async verifyBusiness(id: number) {
     return prisma.business.update({
       where: { id },

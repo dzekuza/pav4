@@ -507,3 +507,76 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
     });
   }
 };
+
+// Delete business account and all associated data
+export const deleteBusinessAccount: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Verify password for additional security
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        error: "Password is required to delete account",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, business.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid password",
+      });
+    }
+
+    // Delete the business and all associated data
+    await businessService.deleteBusinessWithAllData(decoded.businessId);
+
+    // Clear the authentication cookie
+    res.clearCookie("business_token");
+
+    res.json({
+      success: true,
+      message: "Business account and all associated data have been permanently deleted",
+    });
+  } catch (error) {
+    console.error("Error deleting business account:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to delete business account",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};

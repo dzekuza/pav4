@@ -89,3 +89,4 @@ checkBusiness(domainOrEmail)
     process.exit(1);
   });
 
+

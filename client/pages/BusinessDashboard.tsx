@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   DollarSign,
   LogOut,
+  Settings,
 } from "lucide-react";
 
 interface BusinessStats {
@@ -155,6 +156,13 @@ export default function BusinessDashboard() {
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
               Integrate
+            </Button>
+            <Button
+              onClick={() => navigate("/business/dashboard/settings")}
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
             </Button>
             <Button
               onClick={handleLogout}

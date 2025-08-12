@@ -64,3 +64,4 @@ updateGodislovePassword()
     process.exit(1);
   });
 
+

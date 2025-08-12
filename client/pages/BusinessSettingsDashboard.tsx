@@ -29,6 +29,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
+import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import { useToast } from "@/hooks/use-toast";
 
 interface BusinessStats {
@@ -76,6 +77,7 @@ interface BusinessSettings {
 export default function BusinessSettingsDashboard() {
   const { stats } = useOutletContext<{ stats: BusinessStats }>();
   const { toast } = useToast();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [settings, setSettings] = useState<BusinessSettings>({
     businessInfo: {
       name: stats?.name || "",
@@ -192,11 +194,12 @@ export default function BusinessSettingsDashboard() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="tracking">Tracking</TabsTrigger>
           <TabsTrigger value="commission">Commission</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="danger" className="text-destructive">Danger Zone</TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
@@ -558,7 +561,51 @@ export default function BusinessSettingsDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Danger Zone */}
+        <TabsContent value="danger" className="space-y-4">
+          <Card className="border-destructive/20 bg-destructive/5 text-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <Trash2 className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription className="text-white/80">
+                Irreversible and destructive actions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-destructive">
+                      Delete Business Account
+                    </h4>
+                    <p className="text-sm text-white/70">
+                      Permanently delete your business account and all associated data. This action cannot be undone.
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        businessName={stats?.name || "Business"}
+      />
     </div>
   );
 }
