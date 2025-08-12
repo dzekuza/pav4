@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import { businessService, prisma } from "../services/database";
+import { emailService } from "../services/email";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -107,6 +108,19 @@ export const registerBusiness: RequestHandler = async (req, res) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    // Send welcome email (async, don't wait for it)
+    emailService.sendWelcomeEmail(business.name, business.email, business.domain)
+      .then(result => {
+        if (result.success) {
+          console.log('Welcome email sent successfully to:', business.email);
+        } else {
+          console.error('Failed to send welcome email:', result.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error sending welcome email:', error);
+      });
 
     res.status(201).json({
       success: true,
@@ -504,6 +518,339 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
       success: false,
       error: "Failed to verify tracking",
       details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+// Update business profile
+export const updateBusinessProfile: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    const {
+      name,
+      domain,
+      email,
+      phone,
+      address,
+      country,
+      category,
+      description,
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !domain || !email) {
+      return res.status(400).json({
+        success: false,
+        error: "Name, domain, and email are required",
+      });
+    }
+
+    // Check if email is already taken by another business
+    if (email !== business.email) {
+      const existingBusiness = await businessService.findBusinessByEmail(email);
+      if (existingBusiness && existingBusiness.id !== business.id) {
+        return res.status(400).json({
+          success: false,
+          error: "Email is already taken by another business",
+        });
+      }
+    }
+
+    // Check if domain is already taken by another business
+    if (domain !== business.domain) {
+      const existingBusiness = await businessService.findBusinessByDomain(domain);
+      if (existingBusiness && existingBusiness.id !== business.id) {
+        return res.status(400).json({
+          success: false,
+          error: "Domain is already taken by another business",
+        });
+      }
+    }
+
+    // Update the business profile
+    const updatedBusiness = await businessService.updateBusinessProfile(
+      decoded.businessId,
+      {
+        name,
+        domain,
+        email,
+        phone: phone || null,
+        address: address || null,
+        country: country || null,
+        category: category || null,
+        description: description || null,
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Business profile updated successfully",
+      business: {
+        id: updatedBusiness.id,
+        name: updatedBusiness.name,
+        domain: updatedBusiness.domain,
+        email: updatedBusiness.email,
+        phone: updatedBusiness.contactPhone,
+        address: updatedBusiness.address,
+        country: updatedBusiness.country,
+        category: updatedBusiness.category,
+        description: updatedBusiness.description,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating business profile:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update business profile",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+// Forgot password - send reset email
+export const forgotPassword: RequestHandler = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required",
+      });
+    }
+
+    const business = await businessService.findBusinessByEmail(email);
+    if (!business) {
+      // Don't reveal if email exists or not for security
+      return res.json({
+        success: true,
+        message: "If an account with this email exists, a password reset link has been sent",
+      });
+    }
+
+    // Generate reset token (expires in 1 hour)
+    const resetToken = jwt.sign(
+      { businessId: business.id, type: "password-reset" },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Send password reset email
+    const emailResult = await emailService.sendPasswordResetEmail(
+      business.email,
+      resetToken,
+      business.name
+    );
+
+    if (emailResult.success) {
+      res.json({
+        success: true,
+        message: "If an account with this email exists, a password reset link has been sent",
+      });
+    } else {
+      console.error("Failed to send password reset email:", emailResult.error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to send password reset email",
+      });
+    }
+  } catch (error) {
+    console.error("Error in forgot password:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to process password reset request",
+    });
+  }
+};
+
+// Send test email
+export const sendTestEmail: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const { email, businessName } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required",
+      });
+    }
+
+    // Send test email
+    const emailResult = await emailService.sendEmail({
+      to: email,
+      subject: "Test Email - Notification System",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Test Email</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .success { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✅ Test Email Successful!</h1>
+            </div>
+            <div class="content">
+              <h2>Hello${businessName ? ` ${businessName}` : ''}!</h2>
+              <p>This is a test email to verify that your notification system is working correctly.</p>
+              
+              <div class="success">
+                <strong>🎉 Congratulations!</strong> Your email configuration is working perfectly.
+              </div>
+              
+              <p>You will now receive notifications for:</p>
+              <ul>
+                <li>New sales and conversions</li>
+                <li>Weekly and monthly reports</li>
+                <li>Domain verification updates</li>
+                <li>Security alerts</li>
+              </ul>
+              
+              <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (emailResult.success) {
+      res.json({
+        success: true,
+        message: "Test email sent successfully",
+      });
+    } else {
+      console.error("Failed to send test email:", emailResult.error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to send test email",
+        details: emailResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error sending test email:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to send test email",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+// Reset password with token
+export const resetPassword: RequestHandler = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: "Token and new password are required",
+      });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || decoded.type !== "password-reset") {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid or expired reset token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await businessService.updateBusinessPassword(decoded.businessId, hashedPassword);
+
+    res.json({
+      success: true,
+      message: "Password has been reset successfully",
+    });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to reset password",
     });
   }
 };

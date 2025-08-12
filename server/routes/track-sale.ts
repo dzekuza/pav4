@@ -1,5 +1,6 @@
 import express from "express";
 import { prisma } from "../services/database";
+import { emailService } from "../services/email";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.post("/track-sale", async (req, res) => {
     // Verify the business exists
     const business = await prisma.business.findUnique({
       where: { affiliateId: businessId },
-      select: { id: true, name: true, affiliateId: true },
+      select: { id: true, name: true, affiliateId: true, email: true, adminCommissionRate: true },
     });
 
     if (!business) {
@@ -37,6 +38,9 @@ router.post("/track-sale", async (req, res) => {
       },
     });
 
+    // Calculate commission
+    const commission = (parseFloat(amount) * business.adminCommissionRate) / 100;
+
     // Update business statistics
     await prisma.business.update({
       where: { affiliateId: businessId },
@@ -44,6 +48,26 @@ router.post("/track-sale", async (req, res) => {
         totalPurchases: { increment: 1 },
         totalRevenue: { increment: parseFloat(amount) },
       },
+    });
+
+    // Send sales notification email (async, don't wait for it)
+    emailService.sendSalesNotificationEmail(
+      business.email,
+      business.name,
+      {
+        orderId,
+        amount: parseFloat(amount),
+        commission,
+        productUrl: domain,
+      }
+    ).then(result => {
+      if (result.success) {
+        console.log('Sales notification email sent successfully to:', business.email);
+      } else {
+        console.error('Failed to send sales notification email:', result.error);
+      }
+    }).catch(error => {
+      console.error('Error sending sales notification email:', error);
     });
 
     res.status(200).json({

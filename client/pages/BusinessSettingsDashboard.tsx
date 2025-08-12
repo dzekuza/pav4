@@ -30,12 +30,15 @@ import {
   Trash2,
 } from "lucide-react";
 import { DeleteAccountModal } from "../components/DeleteAccountModal";
+import { NotificationSettings } from "../components/NotificationSettings";
 import { useToast } from "@/hooks/use-toast";
 
 interface BusinessStats {
   id: number;
   name: string;
   domain: string;
+  domainVerified?: boolean;
+  trackingVerified?: boolean;
   totalVisits: number;
   totalPurchases: number;
   totalRevenue: number;
@@ -82,9 +85,9 @@ export default function BusinessSettingsDashboard() {
     businessInfo: {
       name: stats?.name || "",
       domain: stats?.domain || "",
-      email: "business@example.com",
+      email: "info@godislove.lt", // Default email for the business
       phone: "+1 (555) 123-4567",
-      address: "123 Business St, City, State 12345",
+      address: "Vilnius",
       country: "United States",
       category: "E-commerce",
       description: "Your business description here",
@@ -108,6 +111,24 @@ export default function BusinessSettingsDashboard() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Update settings when stats change
+  useEffect(() => {
+    if (stats) {
+      setSettings((prev) => ({
+        ...prev,
+        businessInfo: {
+          ...prev.businessInfo,
+          name: stats.name || prev.businessInfo.name,
+          domain: stats.domain || prev.businessInfo.domain,
+        },
+        commissionSettings: {
+          ...prev.commissionSettings,
+          commissionRate: stats.adminCommissionRate || prev.commissionSettings.commissionRate,
+        },
+      }));
+    }
+  }, [stats]);
 
   const handleSaveSettings = async (section: string) => {
     setIsLoading(true);
@@ -133,11 +154,23 @@ export default function BusinessSettingsDashboard() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to save profile settings");
+          let errorMessage = "Failed to save profile settings";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (jsonError) {
+            // If response is not valid JSON, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+          throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          throw new Error("Invalid response from server");
+        }
         toast({
           title: "Profile Updated",
           description:
@@ -194,10 +227,11 @@ export default function BusinessSettingsDashboard() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="tracking">Tracking</TabsTrigger>
           <TabsTrigger value="commission">Commission</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="danger" className="text-destructive">Danger Zone</TabsTrigger>
         </TabsList>
@@ -470,6 +504,14 @@ export default function BusinessSettingsDashboard() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Notification Settings */}
+        <TabsContent value="notifications" className="space-y-4">
+          <NotificationSettings 
+            businessEmail={settings.businessInfo.email}
+            businessName={settings.businessInfo.name}
+          />
         </TabsContent>
 
         {/* Security Settings */}

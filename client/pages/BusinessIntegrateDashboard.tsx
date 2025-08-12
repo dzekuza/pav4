@@ -7,6 +7,7 @@ interface BusinessStats {
   name: string;
   domain?: string;
   domainVerified?: boolean;
+  trackingVerified?: boolean;
   affiliateId: string;
   totalVisits?: number;
   totalPurchases?: number;

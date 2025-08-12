@@ -657,6 +657,23 @@ export const businessService = {
       return null;
     }
 
+    // Check if domain is verified by looking at domain verification records
+    const domainVerification = await prisma.domainVerification.findFirst({
+      where: {
+        businessId: businessId,
+        status: "verified",
+      },
+      orderBy: {
+        verifiedAt: "desc",
+      },
+    });
+
+    const domainVerified = !!domainVerification;
+
+    if (!business) {
+      return null;
+    }
+
     // Get recent clicks and conversions
     const [clicks, conversions] = await Promise.all([
       prisma.businessClick.findMany({
@@ -685,6 +702,7 @@ export const businessService = {
 
     return {
       ...business,
+      domainVerified,
       averageOrderValue,
       conversionRate,
       projectedFee,
@@ -915,6 +933,37 @@ export const businessService = {
       create: { key: "suggestion_filter_enabled", value: enabled.toString() },
     });
   },
+
+  // Business profile operations
+  async updateBusinessProfile(
+    businessId: number,
+    data: {
+      name: string;
+      domain: string;
+      email: string;
+      phone?: string | null;
+      address?: string | null;
+      country?: string | null;
+      category?: string | null;
+      description?: string | null;
+    }
+  ) {
+    return prisma.business.update({
+      where: { id: businessId },
+      data: {
+        name: data.name,
+        domain: data.domain,
+        email: data.email,
+        contactPhone: data.phone,
+        address: data.address,
+        country: data.country,
+        category: data.category,
+        description: data.description,
+      },
+    });
+  },
+
+
 };
 
 // Graceful shutdown

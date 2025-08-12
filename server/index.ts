@@ -61,6 +61,10 @@ import {
   getBusinessStats as getBusinessAuthStats,
   verifyBusinessTracking,
   deleteBusinessAccount,
+  updateBusinessProfile,
+  forgotPassword as businessForgotPassword,
+  resetPassword as businessResetPassword,
+  sendTestEmail,
 } from "./routes/business-auth";
 import {
   authRateLimit,
@@ -288,9 +292,11 @@ export async function createServer() {
   app.get("/api/business/auth/stats", getBusinessAuthStats);
   app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
+  app.put("/api/business/profile", updateBusinessProfile);
   app.post("/api/business/auth/delete-account", deleteBusinessAccount);
-  app.post("/api/business/auth/forgot-password", forgotPassword);
-  app.post("/api/business/auth/reset-password", resetPassword);
+  app.post("/api/business/auth/forgot-password", businessForgotPassword);
+  app.post("/api/business/auth/reset-password", businessResetPassword);
+  app.post("/api/business/test-email", sendTestEmail);
 
   // Open CORS for tracking endpoint so third-party business sites can send events
   const openCors = cors({ origin: true, credentials: false });

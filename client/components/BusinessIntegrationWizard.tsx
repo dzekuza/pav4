@@ -36,6 +36,7 @@ interface BusinessStats {
   name: string;
   domain?: string;
   domainVerified?: boolean;
+  trackingVerified?: boolean;
   affiliateId: string;
 }
 
@@ -73,6 +74,8 @@ export default function BusinessIntegrationWizard({
   const [isTesting, setIsTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "checking">("checking");
+  const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
   // Cleanup any running timers on unmount
   useEffect(() => {
@@ -490,6 +493,83 @@ document.addEventListener('DOMContentLoaded', function() {
     (window as any).__ph_stopTimeout = stopTimeout;
   };
 
+  const testScriptPresence = async () => {
+    if (!domain) {
+      toast({
+        title: "Error",
+        description: "No website domain found. Please verify your domain first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    
+    try {
+      const websiteUrl = domain.startsWith("http") ? domain : `https://${domain}`;
+      
+      // Use the existing tracking verification endpoint
+      const response = await fetch("/api/business/verify-tracking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          pageUrl: websiteUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: "✅ Script Found!",
+          description: "The tracking script is properly installed and working on your website.",
+        });
+        
+        // Add a success result
+        setTestResults([{
+          timestamp: new Date().toISOString(),
+          event: "Script Verification",
+          details: "Tracking script found and verified on website",
+          status: "success" as const,
+        }]);
+      } else {
+        toast({
+          title: "❌ Script Not Found",
+          description: data.error || "The tracking script was not found on your website. Please install it and try again.",
+          variant: "destructive",
+        });
+        
+        // Add an error result
+        setTestResults([{
+          timestamp: new Date().toISOString(),
+          event: "Script Verification",
+          details: data.error || "Script not found on website",
+          status: "error" as const,
+        }]);
+      }
+    } catch (error) {
+      console.error("Error testing script presence:", error);
+      toast({
+        title: "Error",
+        description: "Failed to test script presence. Please check your domain and try again.",
+        variant: "destructive",
+      });
+      
+      // Add an error result
+      setTestResults([{
+        timestamp: new Date().toISOString(),
+        event: "Script Verification",
+        details: "Failed to test script presence",
+        status: "error" as const,
+      }]);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const generateTestEvents = async () => {
     try {
       const response = await fetch("/api/test-tracking", {
@@ -565,69 +645,336 @@ document.addEventListener('DOMContentLoaded', function() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const finishSetup = () => {
+    // Clear any running timers
+    if ((window as any).__ph_pollInterval) {
+      clearInterval((window as any).__ph_pollInterval);
+      (window as any).__ph_pollInterval = undefined;
+    }
+    if ((window as any).__ph_stopTimeout) {
+      clearTimeout((window as any).__ph_stopTimeout);
+      (window as any).__ph_stopTimeout = undefined;
+    }
+
+    toast({
+      title: "🎉 Setup Complete!",
+      description: "Your tracking integration has been successfully set up. Redirecting to dashboard...",
+    });
+
+    // Show a brief completion state before redirecting
+    setTimeout(() => {
+      // Redirect to the main business dashboard
+      window.location.href = "/business/dashboard";
+    }, 2000);
+  };
+
+  const checkConnectionStatus = async () => {
+    if (!business.domain) {
+      setConnectionStatus("disconnected");
+      return;
+    }
+
+    setIsCheckingConnection(true);
+    
+    try {
+      const websiteUrl = business.domain.startsWith("http") ? business.domain : `https://${business.domain}`;
+      
+      const response = await fetch("/api/business/verify-tracking", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          pageUrl: websiteUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setConnectionStatus("connected");
+        toast({
+          title: "✅ Connection Verified",
+          description: "Your tracking integration is working correctly.",
+        });
+      } else {
+        setConnectionStatus("disconnected");
+        toast({
+          title: "❌ Connection Failed",
+          description: data.error || "Unable to verify tracking script on your website.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking connection:", error);
+      setConnectionStatus("disconnected");
+      toast({
+        title: "Error",
+        description: "Failed to check connection status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingConnection(false);
+    }
+  };
+
+  // Check connection status on component mount if business is verified
+  useEffect(() => {
+    if (business.domainVerified && business.domain) {
+      checkConnectionStatus();
+    }
+  }, [business.domainVerified, business.domain]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Business Integration Wizard - Business Data:", {
+      id: business.id,
+      name: business.name,
+      domain: business.domain,
+      domainVerified: business.domainVerified,
+      trackingVerified: business.trackingVerified,
+    });
+  }, [business]);
+
   return (
     <div className="space-y-6 text-white">
-      {/* Stepper Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Integration Setup</h2>
-          <p className="text-white/70">
-            Set up tracking for your website in 4 simple steps
-          </p>
-        </div>
-      </div>
-
-      {/* Stepper Progress */}
-      <div className="flex items-center justify-between mb-8">
-        {[1, 2, 3, 4].map((step) => (
-          <div key={step} className="flex items-center">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                getStepStatus(step) === "completed"
-                  ? "bg-green-500 text-black"
-                  : getStepStatus(step) === "current"
-                    ? "bg-white text-black"
-                    : "bg-white/10 text-white/60"
-              }`}
-            >
-              {getStepStatus(step) === "completed" ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : (
-                <span className="text-sm font-medium">{step}</span>
-              )}
-            </div>
-            <span
-              className={`ml-2 text-sm font-medium ${
-                getStepStatus(step) === "current"
-                  ? "text-white"
-                  : getStepStatus(step) === "completed"
-                    ? "text-green-400"
-                    : "text-white/60"
-              }`}
-            >
-              {step === 1
-                ? "Verify Domain"
-                : step === 2
-                  ? "Choose Platform"
-                  : step === 3
-                    ? "Add Script"
-                    : "Test Tracking"}
-            </span>
-            {step < 4 && (
-              <div
-                className={`w-16 h-0.5 mx-4 ${
-                  getStepStatus(step + 1) === "completed"
-                    ? "bg-green-500"
-                    : "bg-white/20"
-                }`}
-              />
-            )}
+      {/* Debug Info - Remove this after testing */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="border border-yellow-500/20 bg-yellow-500/10 rounded-lg p-4 mb-4">
+          <h4 className="font-medium text-yellow-400 mb-2">Debug Info:</h4>
+          <div className="text-sm text-white/80 space-y-1">
+            <div>Business ID: {business.id}</div>
+            <div>Domain: {business.domain}</div>
+            <div>Domain Verified: {String(business.domainVerified)}</div>
+            <div>Tracking Verified: {String(business.trackingVerified)}</div>
+            <div>Showing: {business.domainVerified === true ? "Status Dashboard" : "Setup Wizard"}</div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* Step 1: Domain Verification */}
-      {currentStep === 1 && (
+      {/* Show different content based on verification status */}
+      {business.domainVerified === true ? (
+        // Verified Business - Show Status Dashboard
+        <>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Integration Status</h2>
+              <p className="text-white/70">
+                Monitor your tracking integration and connection status
+              </p>
+            </div>
+          </div>
+
+          {/* Connection Status Card */}
+          <Card className="border-white/10 bg-white/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Globe className="h-5 w-5" />
+                Connection Status
+              </CardTitle>
+              <CardDescription className="text-white/80">
+                Current status of your tracking integration
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Business Information */}
+              <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                <h4 className="font-medium text-white mb-3">📋 Business Information:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
+                  <div>
+                    <span className="font-medium text-white">Business Name:</span> {business?.name}
+                  </div>
+                  <div>
+                    <span className="font-medium text-white">Website:</span> {business?.domain}
+                  </div>
+                  <div>
+                    <span className="font-medium text-white">Business ID:</span> {business?.id}
+                  </div>
+                  <div>
+                    <span className="font-medium text-white">Affiliate ID:</span> {business?.affiliateId}
+                  </div>
+                </div>
+              </div>
+
+              {/* Connection Status */}
+              <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-white">🔗 Connection Status</h4>
+                  <Badge
+                    variant={
+                      connectionStatus === "connected"
+                        ? "default"
+                        : connectionStatus === "checking"
+                        ? "secondary"
+                        : "destructive"
+                    }
+                    className={
+                      connectionStatus === "connected"
+                        ? "bg-green-500 text-white"
+                        : connectionStatus === "checking"
+                        ? "bg-yellow-500 text-white"
+                        : "bg-red-500 text-white"
+                    }
+                  >
+                    {connectionStatus === "connected"
+                      ? "✅ Connected"
+                      : connectionStatus === "checking"
+                      ? "⏳ Checking..."
+                      : "❌ Disconnected"}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-white/80">Domain Verified</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {connectionStatus === "connected" ? (
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                    ) : connectionStatus === "checking" ? (
+                      <Loader2 className="h-4 w-4 text-yellow-400 animate-spin" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-400" />
+                    )}
+                    <span className="text-sm text-white/80">
+                      {connectionStatus === "connected"
+                        ? "Tracking Script Active"
+                        : connectionStatus === "checking"
+                        ? "Checking Script Status..."
+                        : "Tracking Script Not Found"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Button
+                    onClick={checkConnectionStatus}
+                    disabled={isCheckingConnection}
+                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                  >
+                    {isCheckingConnection ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Checking Connection...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Test Connection
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                <h4 className="font-medium text-white mb-3">⚡ Quick Actions</h4>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const websiteUrl = business.domain?.startsWith("http") 
+                        ? business.domain 
+                        : `https://${business.domain}`;
+                      window.open(websiteUrl, "_blank");
+                    }}
+                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Website
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.href = "/business/dashboard/analytics"}
+                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                  >
+                    <Activity className="h-4 w-4 mr-2" />
+                    View Analytics
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.href = "/business/dashboard/activity"}
+                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Activity
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        // Unverified Business - Show Setup Wizard
+        <>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Integration Setup</h2>
+              <p className="text-white/70">
+                Set up tracking for your website in 4 simple steps
+              </p>
+            </div>
+          </div>
+
+          {/* Stepper Progress */}
+          <div className="flex items-center justify-between mb-8">
+            {[1, 2, 3, 4].map((step) => (
+              <div key={step} className="flex items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    getStepStatus(step) === "completed"
+                      ? "bg-green-500 text-black"
+                      : getStepStatus(step) === "current"
+                        ? "bg-white text-black"
+                        : "bg-white/10 text-white/60"
+                  }`}
+                >
+                  {getStepStatus(step) === "completed" ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <span className="text-sm font-medium">{step}</span>
+                  )}
+                </div>
+                <span
+                  className={`ml-2 text-sm font-medium ${
+                    getStepStatus(step) === "current"
+                      ? "text-white"
+                      : getStepStatus(step) === "completed"
+                        ? "text-green-400"
+                        : "text-white/60"
+                  }`}
+                >
+                  {step === 1
+                    ? "Verify Domain"
+                    : step === 2
+                      ? "Choose Platform"
+                      : step === 3
+                        ? "Add Script"
+                        : "Test Tracking"}
+                </span>
+                {step < 4 && (
+                  <div
+                    className={`w-16 h-0.5 mx-4 ${
+                      getStepStatus(step + 1) === "completed"
+                        ? "bg-green-500"
+                        : "bg-white/20"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Step content - only show for unverified businesses */}
+      {business.domainVerified !== true && (
+        <>
+          {/* Step 1: Domain Verification */}
+          {currentStep === 1 && (
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -960,6 +1307,100 @@ document.addEventListener('DOMContentLoaded', function() {
                     </li>
                   </ul>
                 </div>
+
+                {/* Test Script Button */}
+                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h5 className="font-medium text-white mb-1">
+                        🧪 Test Your Script
+                      </h5>
+                      <p className="text-sm text-white/70">
+                        Verify that the tracking script is properly installed and working on your website
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const websiteUrl = domain.startsWith("http") ? domain : `https://${domain}`;
+                          window.open(websiteUrl, "_blank");
+                        }}
+                        disabled={!domain}
+                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Website
+                      </Button>
+                      <Button
+                        onClick={testScriptPresence}
+                        disabled={isTesting}
+                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                      >
+                        {isTesting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Testing...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4 mr-2" />
+                            Test Script
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-white/70 space-y-2">
+                    <p><strong>What this test does:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Checks if the tracking script is loaded on your website</li>
+                      <li>Verifies script functionality and configuration</li>
+                      <li>Confirms business ID and affiliate ID are correct</li>
+                      <li>Provides detailed feedback on script status</li>
+                    </ul>
+                    <p className="mt-3 text-xs">
+                      <strong>Tip:</strong> Make sure you've added the script to your website before testing.
+                    </p>
+                  </div>
+
+                  {/* Test Results Display */}
+                  {testResults.length > 0 && (
+                    <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
+                      <h6 className="font-medium text-white mb-3">Test Results:</h6>
+                      <div className="space-y-2">
+                        {testResults.map((result, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                          >
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                result.status === "success"
+                                  ? "bg-green-400"
+                                  : result.status === "error"
+                                    ? "bg-red-400"
+                                    : "bg-yellow-400"
+                              }`}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm text-white">
+                                {result.event}
+                              </div>
+                              <div className="text-xs text-white/70">
+                                {result.details}
+                              </div>
+                            </div>
+                            <div className="text-xs text-white/60">
+                              {new Date(result.timestamp).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>
@@ -1106,28 +1547,32 @@ document.addEventListener('DOMContentLoaded', function() {
           </CardContent>
         </Card>
       )}
+        </>
+      )}
 
-      {/* Navigation */}
-      <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={prevStep}
-          disabled={currentStep === 1}
-          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Previous
-        </Button>
+      {/* Navigation - only show for unverified businesses */}
+      {business.domainVerified !== true && (
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Previous
+          </Button>
 
-        <Button
-          onClick={nextStep}
-          disabled={!canProceedToNext()}
-          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-        >
-          {currentStep === 4 ? "Finish Setup" : "Next Step"}
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
+          <Button
+            onClick={currentStep === 4 ? finishSetup : nextStep}
+            disabled={!canProceedToNext()}
+            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+          >
+            {currentStep === 4 ? "Finish Setup" : "Next Step"}
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
