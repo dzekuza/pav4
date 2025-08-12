@@ -229,8 +229,20 @@
       document.title.toLowerCase().includes('order confirmation') ||
       document.title.toLowerCase().includes('order received');
 
-    if (isThankYouPage) {
-      log("Thank you page detected, extracting order data...");
+    // For godislove.lt, also check for checkout completion patterns
+    const isCheckoutPage = window.location.pathname.includes('/checkouts/');
+    const hasCheckoutId = window.location.pathname.match(/\/checkouts\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+/);
+    
+    log("Checkout page detection:", {
+      isThankYouPage,
+      isCheckoutPage,
+      hasCheckoutId: !!hasCheckoutId,
+      pathname: window.location.pathname,
+      title: document.title
+    });
+
+    if (isThankYouPage || (isCheckoutPage && hasCheckoutId)) {
+      log("Checkout/thank you page detected, extracting order data...");
       
       // Extract order data from the page
       const orderData = extractOrderData();
@@ -239,7 +251,9 @@
         log("Order data extracted:", orderData);
         trackPurchaseCompletion(orderData);
       } else {
-        log("Could not extract order data from thank you page", "warn");
+        log("Could not extract order data, but tracking checkout completion anyway", "warn");
+        // Track checkout completion even without order data
+        trackCheckoutCompletion();
       }
     }
   }
@@ -321,6 +335,26 @@
     });
 
     return orderData;
+  }
+
+  // Track checkout completion (when order data is not available)
+  function trackCheckoutCompletion() {
+    const eventData = {
+      event_type: "checkout_complete",
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      url: window.location.href,
+      data: {
+        checkout_id: window.location.pathname.split('/').pop(),
+        page_title: document.title,
+        checkout_url: window.location.href
+      },
+      timestamp: Date.now(),
+    };
+
+    log("Tracking checkout completion:", eventData);
+    sendEvent(eventData);
   }
 
   // Track purchase completion
@@ -475,6 +509,43 @@
       });
 
       log("Mutation observer setup complete");
+    }
+
+    // Set up periodic checkout completion check for dynamic checkout flows
+    if (window.location.pathname.includes('/checkouts/')) {
+      log("Setting up periodic checkout completion check...");
+      
+      // Check every 5 seconds for checkout completion
+      const checkoutCheckInterval = setInterval(function() {
+        // Check if we're still on a checkout page
+        if (!window.location.pathname.includes('/checkouts/')) {
+          clearInterval(checkoutCheckInterval);
+          return;
+        }
+        
+        // Check for completion indicators
+        const completionIndicators = [
+          document.querySelector('.checkout-success'),
+          document.querySelector('.order-confirmation'),
+          document.querySelector('[data-checkout-complete]'),
+          document.querySelector('.thank-you'),
+          document.querySelector('.order-received')
+        ];
+        
+        if (completionIndicators.some(indicator => indicator !== null)) {
+          log("Checkout completion detected via periodic check");
+          clearInterval(checkoutCheckInterval);
+          trackCheckoutCompletion();
+        }
+      }, 5000);
+      
+      // Also check on page visibility change (user returns to tab)
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && window.location.pathname.includes('/checkouts/')) {
+          log("Page became visible, checking for checkout completion...");
+          checkForPurchaseCompletion();
+        }
+      });
     }
   }
 

@@ -182,7 +182,7 @@ export const handler: Handler = async (event, context) => {
       });
     }
 
-    if (event_type === "conversion" || event_type === "purchase" || event_type === "purchase_complete") {
+    if (event_type === "conversion" || event_type === "purchase" || event_type === "purchase_complete" || event_type === "checkout_complete") {
       console.log("Updating business purchases...");
       const totalAmount = parseFloat(data?.total_amount || data?.amount || "0");
       await prisma.business.update({
