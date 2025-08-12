@@ -99,7 +99,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
       });
     }
 
-    if (event_type === "conversion" || event_type === "purchase") {
+    if (event_type === "conversion" || event_type === "purchase" || event_type === "purchase_complete") {
       console.log("Updating business purchases...");
       const totalAmount = parseFloat(data?.total_amount || data?.amount || "0");
       await prisma.business.update({

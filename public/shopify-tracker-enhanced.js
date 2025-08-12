@@ -49,11 +49,14 @@
     // Set up event listeners
     setupEventListeners();
 
-    // Track initial product data if available
-    trackInitialProduct();
+      // Track initial product data if available
+  trackInitialProduct();
 
-    // Set up mutation observer for dynamic content
-    setupMutationObserver();
+  // Set up mutation observer for dynamic content
+  setupMutationObserver();
+
+  // Check for purchase completion (thank you page)
+  checkForPurchaseCompletion();
   }
 
   // Generate unique session ID
@@ -194,6 +197,172 @@
     } else {
       log("No product data found on this page", "warn");
     }
+  }
+
+  // Check for purchase completion (thank you page)
+  function checkForPurchaseCompletion() {
+    log("Checking for purchase completion...");
+    
+    // Check if we're on a thank you/order confirmation page
+    const isThankYouPage = 
+      window.location.pathname.includes('/thank-you') ||
+      window.location.pathname.includes('/order-confirmation') ||
+      window.location.pathname.includes('/checkout/thank_you') ||
+      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you') ||
+      document.title.toLowerCase().includes('thank you') ||
+      document.title.toLowerCase().includes('order confirmation') ||
+      document.title.toLowerCase().includes('order received');
+
+    if (isThankYouPage) {
+      log("Thank you page detected, extracting order data...");
+      
+      // Extract order data from the page
+      const orderData = extractOrderData();
+      
+      if (orderData.orderId) {
+        log("Order data extracted:", orderData);
+        trackPurchaseCompletion(orderData);
+      } else {
+        log("Could not extract order data from thank you page", "warn");
+      }
+    }
+  }
+
+  // Extract order data from thank you page
+  function extractOrderData() {
+    const orderData = {
+      orderId: null,
+      totalAmount: null,
+      currency: 'EUR', // Default for godislove.lt
+      products: []
+    };
+
+    // Try multiple selectors to find order ID
+    const orderIdSelectors = [
+      '.order-number',
+      '.order-id',
+      '.confirmation-number',
+      '[data-order-id]',
+      '[data-order-number]',
+      '.checkout-success .order-number',
+      '.order-confirmation .order-number',
+      'h1:contains("Confirmation")',
+      '.order-details .order-number'
+    ];
+
+    for (const selector of orderIdSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = element.textContent || element.getAttribute('data-order-id') || element.getAttribute('data-order-number');
+        if (text) {
+          // Extract order ID from text (remove any prefix/suffix)
+          const match = text.match(/([A-Z0-9]{6,})/);
+          if (match) {
+            orderData.orderId = match[1];
+            break;
+          }
+        }
+      }
+    }
+
+    // Try to find total amount
+    const totalSelectors = [
+      '.order-total .price',
+      '.total .amount',
+      '.checkout-success .total',
+      '[data-total]',
+      '.order-summary .total',
+      '.total-price'
+    ];
+
+    for (const selector of totalSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = element.textContent;
+        if (text) {
+          // Extract amount from text (e.g., "€1.20" -> 1.20)
+          const match = text.match(/[€$]?([0-9]+[.,]?[0-9]*)/);
+          if (match) {
+            orderData.totalAmount = parseFloat(match[1].replace(',', '.'));
+            break;
+          }
+        }
+      }
+    }
+
+    // Try to extract product information
+    const productElements = document.querySelectorAll('.order-item, .product-item, [data-product-id]');
+    productElements.forEach(element => {
+      const productName = element.querySelector('.product-name, .item-name')?.textContent?.trim();
+      const productPrice = element.querySelector('.product-price, .item-price')?.textContent?.trim();
+      
+      if (productName) {
+        orderData.products.push({
+          name: productName,
+          price: productPrice
+        });
+      }
+    });
+
+    return orderData;
+  }
+
+  // Track purchase completion
+  function trackPurchaseCompletion(orderData) {
+    const eventData = {
+      event_type: "purchase_complete",
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      url: window.location.href,
+      data: {
+        order_id: orderData.orderId,
+        total_amount: orderData.totalAmount,
+        currency: orderData.currency,
+        products: orderData.products,
+        page_title: document.title
+      },
+      timestamp: Date.now(),
+    };
+
+    sendEvent(eventData);
+    
+    // Also send to track-sale endpoint for business dashboard
+    sendSaleData(orderData);
+  }
+
+  // Send sale data to track-sale endpoint
+  function sendSaleData(orderData) {
+    const saleData = {
+      businessId: config.businessId,
+      orderId: orderData.orderId,
+      amount: orderData.totalAmount,
+      domain: window.location.hostname,
+      customerId: null // Could be extracted if available
+    };
+
+    log("Sending sale data:", saleData);
+
+    fetch("https://pavlo4.netlify.app/api/track-sale", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(saleData),
+    })
+      .then((response) => {
+        log("Sale tracking response status:", response.status);
+        if (!response.ok) {
+          throw new Error("Sale tracking failed: " + response.status);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        log("Sale tracked successfully:", data);
+      })
+      .catch((error) => {
+        log("Failed to track sale: " + error.message, "error");
+      });
   }
 
   // Set up event listeners
@@ -601,6 +770,7 @@
     trackProductClick: trackProductClick,
     trackCheckoutStart: trackCheckoutStart,
     trackCartUpdate: trackCartUpdate,
+    trackPurchaseCompletion: trackPurchaseCompletion,
 
     // Debug functions
     getConfig: function () {
