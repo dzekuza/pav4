@@ -648,6 +648,134 @@ export const businessService = {
     };
   },
 
+  // New function to calculate real-time statistics from tracking data
+  async getBusinessRealTimeStats(businessId: number) {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        adminCommissionRate: true,
+        affiliateId: true,
+      },
+    });
+
+    if (!business) {
+      return null;
+    }
+
+    // Get all tracking data for this business
+    const [clicks, conversions, trackingEvents] = await Promise.all([
+      prisma.businessClick.findMany({
+        where: { businessId },
+        select: {
+          id: true,
+          productUrl: true,
+          productTitle: true,
+          productPrice: true,
+          sessionId: true,
+          timestamp: true,
+        },
+      }),
+      prisma.businessConversion.findMany({
+        where: { businessId },
+        select: {
+          id: true,
+          productUrl: true,
+          productTitle: true,
+          productPrice: true,
+          sessionId: true,
+          timestamp: true,
+        },
+      }),
+      prisma.trackingEvent.findMany({
+        where: { businessId },
+        select: {
+          id: true,
+          eventType: true,
+          sessionId: true,
+          timestamp: true,
+          eventData: true,
+          url: true,
+        },
+      }),
+    ]);
+
+    // Calculate real-time statistics
+    const totalClicks = clicks.length;
+    const totalConversions = conversions.length;
+    
+    // Calculate revenue from conversions
+    const totalRevenue = conversions.reduce((sum, conv) => {
+      const price = conv.productPrice ? parseFloat(conv.productPrice) : 0;
+      return sum + price;
+    }, 0);
+
+    // Calculate revenue from tracking events (purchases)
+    const purchaseEvents = trackingEvents.filter(event => event.eventType === 'purchase');
+    const trackingRevenue = purchaseEvents.reduce((sum, event) => {
+      const eventData = typeof event.eventData === 'string' 
+        ? JSON.parse(event.eventData) 
+        : event.eventData;
+      return sum + (eventData.total || 0);
+    }, 0);
+
+    const totalRevenueCombined = totalRevenue + trackingRevenue;
+    const totalPurchases = totalConversions + purchaseEvents.length;
+
+    // Calculate other metrics from tracking events
+    const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
+    const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
+    const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
+
+    // Calculate unique sessions
+    const allSessionIds = new Set([
+      ...clicks.map(c => c.sessionId).filter(Boolean),
+      ...conversions.map(c => c.sessionId).filter(Boolean),
+      ...trackingEvents.map(e => e.sessionId).filter(Boolean),
+    ]);
+    const totalSessions = allSessionIds.size;
+
+    // Calculate conversion rates
+    const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+    const cartToPurchaseRate = addToCartEvents.length > 0 ? (totalPurchases / addToCartEvents.length) * 100 : 0;
+    const averageOrderValue = totalPurchases > 0 ? totalRevenueCombined / totalPurchases : 0;
+
+    // Calculate projected commission
+    const projectedFee = totalRevenueCombined * (business.adminCommissionRate / 100);
+
+    return {
+      id: business.id,
+      name: business.name,
+      domain: business.domain,
+      adminCommissionRate: business.adminCommissionRate,
+      affiliateId: business.affiliateId,
+      
+      // Real-time calculated stats
+      totalVisits: totalClicks,
+      totalPurchases,
+      totalRevenue: totalRevenueCombined,
+      averageOrderValue,
+      conversionRate,
+      projectedFee,
+      
+      // Additional metrics
+      totalClicks,
+      totalConversions,
+      totalAddToCart: addToCartEvents.length,
+      totalPageViews: pageViewEvents.length,
+      totalProductViews: productViewEvents.length,
+      totalSessions,
+      cartToPurchaseRate,
+      
+      // Recent activity
+      recentClicks: clicks.slice(0, 10),
+      recentConversions: conversions.slice(0, 10),
+      recentEvents: trackingEvents.slice(0, 10),
+    };
+  },
+
   async updateAdminCommissionRate(businessId: number, commissionRate: number) {
     return prisma.business.update({
       where: { id: businessId },

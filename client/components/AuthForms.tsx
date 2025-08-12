@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 interface AuthFormsProps {
   onSuccess?: () => void;
@@ -21,6 +22,7 @@ interface AuthFormsProps {
 
 export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -99,6 +101,15 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
     }
   };
 
+  if (showForgotPassword) {
+    return (
+      <ForgotPasswordForm
+        onBack={() => setShowForgotPassword(false)}
+        userType="customer"
+      />
+    );
+  }
+
   return (
     <Card className="w-full max-w-md mx-auto border-white/10 bg-white/5 text-white">
       <CardHeader className="space-y-1">
@@ -132,7 +143,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-white/60 leading-none select-none" />
                   <Input
                     id="email"
                     type="email"
@@ -148,7 +159,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60 leading-none select-none" />
                   <Input
                     id="password"
                     type="password"
@@ -161,6 +172,15 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
                     required
                   />
                 </div>
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-white/70 hover:text-white underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </div>
             </TabsContent>
 
@@ -168,7 +188,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="email-register">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-white/60 leading-none select-none" />
                   <Input
                     id="email-register"
                     type="email"
@@ -184,7 +204,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="password-register">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60 leading-none select-none" />
                   <Input
                     id="password-register"
                     type="password"
@@ -202,7 +222,7 @@ export function AuthForms({ onSuccess, defaultTab = "login" }: AuthFormsProps) {
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60 leading-none select-none" />
                   <Input
                     id="confirm-password"
                     type="password"

@@ -6,8 +6,8 @@
  *   node create-admin.js -e info@gvozdovic.com
  */
 
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
 const args = process.argv.slice(2);
 const emailArgIndex = Math.max(args.indexOf("--email"), args.indexOf("-e"));

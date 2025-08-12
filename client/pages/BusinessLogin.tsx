@@ -12,11 +12,13 @@ import {
 } from "../components/ui/card";
 import { useToast } from "../hooks/use-toast";
 import { SearchHeader } from "../components/SearchHeader";
+import { ForgotPasswordForm } from "../components/ForgotPasswordForm";
 
 export default function BusinessLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -85,6 +87,25 @@ export default function BusinessLogin() {
 
   // Registration is now a dedicated page at /business/register
 
+  if (showForgotPassword) {
+    return (
+      <div className="relative min-h-screen overflow-hidden text-white">
+        <img
+          src="/pagebg.png"
+          alt=""
+          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
+        />
+        <SearchHeader showBackButton={false} />
+        <div className="container mx-auto px-4 py-8">
+          <ForgotPasswordForm
+            onBack={() => setShowForgotPassword(false)}
+            userType="business"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
       <img
@@ -133,6 +154,15 @@ export default function BusinessLogin() {
                     placeholder="Enter your password"
                     required
                   />
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-white/70 hover:text-white underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
                 </div>
 
                 <Button

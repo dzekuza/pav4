@@ -443,3 +443,58 @@ export const getBusinessConversions: RequestHandler = async (req, res) => {
       .json({ success: false, error: "Failed to get business conversions" });
   }
 };
+
+// Get real-time business statistics
+export const getBusinessRealTimeStats: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Get real-time statistics
+    const stats = await businessService.getBusinessRealTimeStats(decoded.businessId);
+
+    if (!stats) {
+      return res.status(404).json({
+        success: false,
+        error: "Business statistics not found",
+      });
+    }
+
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error("Error getting business real-time stats:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to get business statistics" });
+  }
+};

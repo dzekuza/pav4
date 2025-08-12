@@ -19,6 +19,8 @@ import {
   addToSearchHistory,
   getUserSearchHistory,
   getAllUsers,
+  forgotPassword,
+  resetPassword,
 } from "./routes/auth";
 import {
   requireAuth,
@@ -49,6 +51,7 @@ import {
   updateBusinessPassword,
   getBusinessClicks,
   getBusinessConversions,
+  getBusinessRealTimeStats,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -245,6 +248,8 @@ export async function createServer() {
   app.post("/api/auth/login", validateLogin, handleValidationErrors, login);
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
+  app.post("/api/auth/forgot-password", forgotPassword);
+  app.post("/api/auth/reset-password", resetPassword);
 
   // TestSprite compatibility routes (redirects)
   app.post("/api/register", register);
@@ -282,6 +287,8 @@ export async function createServer() {
   app.get("/api/business/auth/stats", getBusinessAuthStats);
   app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
+  app.post("/api/business/auth/forgot-password", forgotPassword);
+  app.post("/api/business/auth/reset-password", resetPassword);
 
   // Open CORS for tracking endpoint so third-party business sites can send events
   const openCors = cors({ origin: true, credentials: false });
@@ -388,6 +395,15 @@ export async function createServer() {
     requireAuth,
     requireAdmin,
     verifyBusiness,
+  );
+
+  // Admin business routes (plural form for frontend compatibility)
+  app.get("/api/admin/businesses", requireAuth, requireAdmin, getAllBusinesses);
+  app.put(
+    "/api/admin/businesses/:id/commission",
+    requireAuth,
+    requireAdmin,
+    updateBusinessCommission,
   );
 
   // Favorites routes
@@ -566,6 +582,9 @@ export async function createServer() {
       }
     },
   );
+
+  // Business: Get real-time statistics
+  app.get("/api/business/stats/realtime", requireBusinessAuth, getBusinessRealTimeStats);
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {
