@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceHunt Tracking Test</title>
+</head>
+<body>
+    <h1>PriceHunt Tracking Test</h1>
+    <p>This page tests the tracking endpoint to ensure it's working properly.</p>
+    
+    <button onclick="testTracking()">Test Tracking Endpoint</button>
+    <button onclick="testAddToCart()">Test Add to Cart Event</button>
+    <button onclick="testPageView()">Test Page View Event</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>' + new Date().toISOString() + ': ' + message + '</p>';
+            console.log(message);
+        }
+
+        function testTracking() {
+            log('Testing tracking endpoint...');
+            
+            fetch('https://pavlo4.netlify.app/api/track-event', {
+                method: 'POST',
+                mode: 'cors',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_type: 'test',
+                    business_id: '10',
+                    affiliate_id: 'pavlo4',
+                    platform: 'test',
+                    session_id: 'test-session-' + Date.now(),
+                    user_agent: navigator.userAgent,
+                    referrer: document.referrer,
+                    timestamp: Date.now(),
+                    url: window.location.href,
+                    data: { test: true },
+                    page_title: document.title
+                })
+            })
+            .then(response => {
+                log('Response status: ' + response.status);
+                log('Response headers: ' + JSON.stringify(Object.fromEntries(response.headers.entries())));
+                return response.json();
+            })
+            .then(data => {
+                log('Success: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                log('Error: ' + error.message);
+            });
+        }
+
+        function testAddToCart() {
+            log('Testing add to cart event...');
+            
+            fetch('https://pavlo4.netlify.app/api/track-event', {
+                method: 'POST',
+                mode: 'cors',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_type: 'add_to_cart',
+                    business_id: '10',
+                    affiliate_id: 'pavlo4',
+                    platform: 'shopify',
+                    session_id: 'test-session-' + Date.now(),
+                    user_agent: navigator.userAgent,
+                    referrer: document.referrer,
+                    timestamp: Date.now(),
+                    url: window.location.href,
+                    data: {
+                        product_id: 'test-product-123',
+                        product_name: 'Test Product',
+                        product_price: '29.99',
+                        quantity: 1
+                    },
+                    page_title: document.title
+                })
+            })
+            .then(response => {
+                log('Add to cart response status: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                log('Add to cart success: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                log('Add to cart error: ' + error.message);
+            });
+        }
+
+        function testPageView() {
+            log('Testing page view event...');
+            
+            fetch('https://pavlo4.netlify.app/api/track-event', {
+                method: 'POST',
+                mode: 'cors',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_type: 'page_view',
+                    business_id: '10',
+                    affiliate_id: 'pavlo4',
+                    platform: 'shopify',
+                    session_id: 'test-session-' + Date.now(),
+                    user_agent: navigator.userAgent,
+                    referrer: document.referrer,
+                    timestamp: Date.now(),
+                    url: window.location.href,
+                    data: {},
+                    page_title: document.title
+                })
+            })
+            .then(response => {
+                log('Page view response status: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                log('Page view success: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                log('Page view error: ' + error.message);
+            });
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', function() {
+            setTimeout(testTracking, 1000);
+        });
+    </script>
+</body>
+</html>

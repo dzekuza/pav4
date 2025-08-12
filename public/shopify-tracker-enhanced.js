@@ -25,6 +25,22 @@
       config.debug = script.getAttribute("data-debug") === "true" || true; // Force debug for troubleshooting
     }
 
+    // Try to get from URL parameters as fallback
+    if (!config.businessId) {
+      const urlParams = new URLSearchParams(window.location.search);
+      config.businessId = urlParams.get('utm_source') || urlParams.get('business_id');
+    }
+    if (!config.affiliateId) {
+      const urlParams = new URLSearchParams(window.location.search);
+      config.affiliateId = urlParams.get('utm_medium') || urlParams.get('affiliate_id') || 'default';
+    }
+
+    // For godislove.lt, use hardcoded values as fallback
+    if (window.location.hostname === 'godislove.lt') {
+      if (!config.businessId) config.businessId = '10'; // Business ID for godislove.lt
+      if (!config.affiliateId) config.affiliateId = 'pavlo4'; // Default affiliate ID
+    }
+
     // Validate required parameters
     if (!config.businessId || !config.affiliateId) {
       log(
@@ -719,17 +735,23 @@
     log("Sending event: " + eventData.event_type, "info");
     log("Event data:", eventData);
 
+    // Add CORS mode and better error handling
     fetch(config.endpoint, {
       method: "POST",
+      mode: "cors",
+      credentials: "omit", // Don't send cookies for cross-origin requests
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json",
       },
       body: JSON.stringify(eventData),
     })
       .then((response) => {
         log("Response status:", response.status);
+        log("Response headers:", Object.fromEntries(response.headers.entries()));
+        
         if (!response.ok) {
-          throw new Error("Network response was not ok: " + response.status);
+          throw new Error("Network response was not ok: " + response.status + " " + response.statusText);
         }
         return response.json();
       })
@@ -739,6 +761,38 @@
       })
       .catch((error) => {
         log("Failed to send event: " + error.message, "error");
+        
+        // Log additional error details for debugging
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          log("CORS or network error detected. Check if the server is accessible and CORS is properly configured.", "error");
+        }
+        
+        // Try alternative endpoint if main one fails
+        if (config.endpoint.includes('netlify.app')) {
+          log("Trying alternative endpoint...", "info");
+          const altEndpoint = config.endpoint.replace('https://pavlo4.netlify.app', 'https://pavlo4.netlify.app');
+          if (altEndpoint !== config.endpoint) {
+            fetch(altEndpoint, {
+              method: "POST",
+              mode: "cors",
+              credentials: "omit",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+              },
+              body: JSON.stringify(eventData),
+            })
+            .then(response => {
+              log("Alternative endpoint response:", response.status);
+              if (response.ok) {
+                log("Event sent via alternative endpoint", "info");
+              }
+            })
+            .catch(altError => {
+              log("Alternative endpoint also failed: " + altError.message, "error");
+            });
+          }
+        }
       });
   }
 

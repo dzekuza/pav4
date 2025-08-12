@@ -46,7 +46,7 @@ class PriceHuntContentScript {
               node.nodeType === Node.ELEMENT_NODE &&
               (node.classList?.contains("product") ||
                 node.tagName === "MAIN" ||
-                node.id?.includes("product")),
+                (typeof node.id === 'string' && node.id.includes("product"))),
           ),
       );
 

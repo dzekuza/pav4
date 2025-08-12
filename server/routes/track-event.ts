@@ -3,6 +3,13 @@ import { prisma } from "../services/database";
 
 export const trackEvent: RequestHandler = async (req, res) => {
   try {
+    // Log request details for debugging
+    console.log("Track event request received:");
+    console.log("Headers:", req.headers);
+    console.log("Origin:", req.headers.origin);
+    console.log("Method:", req.method);
+    console.log("Body:", req.body);
+
     const {
       event_type,
       business_id,

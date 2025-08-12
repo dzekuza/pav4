@@ -299,7 +299,13 @@ export async function createServer() {
   app.post("/api/business/test-email", sendTestEmail);
 
   // Open CORS for tracking endpoint so third-party business sites can send events
-  const openCors = cors({ origin: true, credentials: false });
+  const openCors = cors({ 
+    origin: true, 
+    credentials: false,
+    methods: ['POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'X-Requested-With'],
+    optionsSuccessStatus: 200
+  });
   app.options("/api/track-event", openCors);
   app.post("/api/track-event", openCors, trackEvent);
   app.get("/api/tracking-events", getTrackingEvents);
