@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netlify Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Netlify Function Test Page</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Simple Function</h2>
+        <button onclick="testSimple()">Test Simple Function</button>
+        <div id="simple-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Database Function</h2>
+        <button onclick="testDatabase()">Test Database Function</button>
+        <div id="db-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: MJS Functions</h2>
+        <button onclick="testSimpleMjs()">Test Simple MJS</button>
+        <button onclick="testDatabaseMjs()">Test Database MJS</button>
+        <div id="mjs-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Direct Function URLs</h2>
+        <p>Try these URLs directly in your browser:</p>
+        <ul>
+            <li><a href="/.netlify/functions/test-simple" target="_blank">/.netlify/functions/test-simple</a></li>
+            <li><a href="/.netlify/functions/test-db" target="_blank">/.netlify/functions/test-db</a></li>
+            <li><a href="/.netlify/functions/test-simple.mjs" target="_blank">/.netlify/functions/test-simple.mjs</a></li>
+            <li><a href="/.netlify/functions/test-db.mjs" target="_blank">/.netlify/functions/test-db.mjs</a></li>
+        </ul>
+    </div>
+
+    <script>
+        async function testSimple() {
+            const resultDiv = document.getElementById('simple-result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const response = await fetch('/api/test-simple');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testDatabase() {
+            const resultDiv = document.getElementById('db-result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const response = await fetch('/api/test-db');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testSimpleMjs() {
+            const resultDiv = document.getElementById('mjs-result');
+            resultDiv.innerHTML = '<p>Testing Simple MJS...</p>';
+            
+            try {
+                const response = await fetch('/api/test-simple-mjs');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Simple MJS Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Simple MJS Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testDatabaseMjs() {
+            const resultDiv = document.getElementById('mjs-result');
+            resultDiv.innerHTML = '<p>Testing Database MJS...</p>';
+            
+            try {
+                const response = await fetch('/api/test-db-mjs');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Database MJS Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Database MJS Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

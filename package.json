@@ -15,7 +15,7 @@
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "npx prisma generate && vite build --config vite.config.server.ts",
-    "build:netlify": "npx prisma generate && vite build && npx esbuild netlify/functions/server.ts --bundle --platform=node --target=node18 --outfile=netlify/functions/dist/server.js --external:express --external:@netlify/neon --external:bcryptjs --external:jsonwebtoken --external:cors --external:helmet --external:compression --external:cookie-parser --external:@react-email/render",
+    "build:netlify": "npx prisma generate && vite build && npx esbuild netlify/functions/server.ts --bundle --platform=node --target=node18 --outfile=netlify/functions/dist/server.js --external:express --external:@netlify/neon --external:bcryptjs --external:jsonwebtoken --external:cors --external:helmet --external:compression --external:cookie-parser --external:@react-email/render && npx esbuild netlify/functions/test-simple.js --bundle --platform=node --target=node18 --outfile=netlify/functions/dist/test-simple.js --external:@prisma/client && npx esbuild netlify/functions/test-db.js --bundle --platform=node --target=node18 --outfile=netlify/functions/dist/test-db.js --external:@prisma/client",
     "build:extension": "node build-extension.js",
     "start": "node dist/server/node-build.mjs",
     "test": "vitest --run",
