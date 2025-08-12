@@ -8,7 +8,7 @@ export const handler: Handler = async (event, context) => {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Accept, X-Requested-With',
         'Access-Control-Max-Age': '86400',
       },
@@ -16,8 +16,8 @@ export const handler: Handler = async (event, context) => {
     };
   }
 
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
+  // Only allow POST and GET requests
+  if (event.httpMethod !== 'POST' && event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       headers: {
@@ -32,8 +32,28 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Parse the request body
-    const body = event.body ? JSON.parse(event.body) : {};
+    let body: any = {};
+
+    if (event.httpMethod === 'POST') {
+      // Parse the request body for POST requests
+      body = event.body ? JSON.parse(event.body) : {};
+    } else if (event.httpMethod === 'GET') {
+      // Parse query parameters for GET requests (image beacon fallback)
+      const params = event.queryStringParameters || {};
+      body = {
+        event_type: params.event_type,
+        business_id: params.business_id,
+        affiliate_id: params.affiliate_id,
+        platform: params.platform || 'shopify',
+        session_id: params.session_id,
+        user_agent: event.headers['user-agent'] || 'unknown',
+        referrer: event.headers.referer || '',
+        timestamp: parseInt(params.timestamp || Date.now().toString()),
+        url: params.url || '',
+        data: params.data ? JSON.parse(params.data) : {},
+        page_title: params.page_title || ''
+      };
+    }
     
     // Create a mock Express request object
     const req = {
@@ -69,6 +89,23 @@ export const handler: Handler = async (event, context) => {
     // Call the trackEvent function
     await trackEvent(req as any, res as any);
 
+    // For GET requests (image beacon), return a 1x1 transparent pixel
+    if (event.httpMethod === 'GET') {
+      const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'image/png',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        body: pixel.toString('base64'),
+        isBase64Encoded: true
+      } as HandlerResponse;
+    }
+
     return {
       statusCode: responseStatus,
       headers: responseHeaders,
@@ -76,6 +113,21 @@ export const handler: Handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Error in track-event function:', error);
+    
+    // For GET requests, still return a pixel even on error
+    if (event.httpMethod === 'GET') {
+      const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'image/png',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        body: pixel.toString('base64'),
+        isBase64Encoded: true
+      } as HandlerResponse;
+    }
     
     return {
       statusCode: 500,
