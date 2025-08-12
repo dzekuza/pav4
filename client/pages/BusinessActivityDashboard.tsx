@@ -94,9 +94,10 @@ export default function BusinessActivityDashboard() {
       }
       setError(null);
 
-      // Fetch clicks, conversions, and tracking events
-      const [clicksResponse, conversionsResponse, eventsResponse] =
+      // Fetch real-time statistics and activity data
+      const [statsResponse, clicksResponse, conversionsResponse, eventsResponse] =
         await Promise.all([
+          fetch("/api/business/stats/realtime", { credentials: "include" }),
           fetch("/api/business/activity/clicks", { credentials: "include" }),
           fetch("/api/business/activity/conversions", {
             credentials: "include",
@@ -105,9 +106,10 @@ export default function BusinessActivityDashboard() {
         ]);
 
       // Check if any response is not ok
-      if (!clicksResponse.ok || !conversionsResponse.ok || !eventsResponse.ok) {
+      if (!statsResponse.ok || !clicksResponse.ok || !conversionsResponse.ok || !eventsResponse.ok) {
         // Check if it's an authentication error
         if (
+          statsResponse.status === 401 ||
           clicksResponse.status === 401 ||
           conversionsResponse.status === 401 ||
           eventsResponse.status === 401
@@ -124,10 +126,13 @@ export default function BusinessActivityDashboard() {
         throw new Error("Invalid response format. Please try again.");
       }
 
+      const statsJson = await statsResponse.json();
       const clicksJson = await clicksResponse.json();
       const conversionsJson = await conversionsResponse.json();
       const eventsJson = await eventsResponse.json();
 
+      // Use real-time stats for calculations
+      const realTimeStats = statsJson.success ? statsJson.stats : null;
       const clicks = Array.isArray(clicksJson)
         ? clicksJson
         : clicksJson.clicks || [];
@@ -234,63 +239,79 @@ export default function BusinessActivityDashboard() {
 
       setActivities(combinedActivities);
 
-      // Calculate stats
-      const totalClicks = clicks.length;
-      const totalPurchases =
-        conversions.length +
-        events.filter((e: any) => e.eventType === "purchase").length;
-      const totalAddToCart = events.filter(
-        (e: any) => e.eventType === "add_to_cart",
-      ).length;
-      const totalPageViews = events.filter(
-        (e: any) => e.eventType === "page_view",
-      ).length;
-      const totalProductViews = events.filter(
-        (e: any) => e.eventType === "product_view",
-      ).length;
+      // Use real-time stats if available, otherwise calculate from activity data
+      if (realTimeStats) {
+        setStats({
+          totalClicks: realTimeStats.totalClicks || 0,
+          totalPurchases: realTimeStats.totalPurchases || 0,
+          totalRevenue: realTimeStats.totalRevenue || 0,
+          conversionRate: realTimeStats.conversionRate || 0,
+          totalAddToCart: realTimeStats.totalAddToCart || 0,
+          totalPageViews: realTimeStats.totalPageViews || 0,
+          totalProductViews: realTimeStats.totalProductViews || 0,
+          cartToPurchaseRate: realTimeStats.cartToPurchaseRate || 0,
+          averageOrderValue: realTimeStats.averageOrderValue || 0,
+          totalSessions: realTimeStats.totalSessions || 0,
+        });
+      } else {
+        // Fallback calculation from activity data
+        const totalClicks = clicks.length;
+        const totalPurchases =
+          conversions.length +
+          events.filter((e: any) => e.eventType === "purchase").length;
+        const totalAddToCart = events.filter(
+          (e: any) => e.eventType === "add_to_cart",
+        ).length;
+        const totalPageViews = events.filter(
+          (e: any) => e.eventType === "page_view",
+        ).length;
+        const totalProductViews = events.filter(
+          (e: any) => e.eventType === "product_view",
+        ).length;
 
-      const totalRevenue =
-        conversions.reduce(
-          (sum: number, conv: any) => sum + (conv.amount || 0),
-          0,
-        ) +
-        events
-          .filter((e: any) => e.eventType === "purchase")
-          .reduce((sum: number, e: any) => {
-            const eventData =
-              typeof e.eventData === "string"
-                ? JSON.parse(e.eventData)
-                : e.eventData;
-            return sum + (eventData.total || 0);
-          }, 0);
+        const totalRevenue =
+          conversions.reduce(
+            (sum: number, conv: any) => sum + (conv.amount || 0),
+            0,
+          ) +
+          events
+            .filter((e: any) => e.eventType === "purchase")
+            .reduce((sum: number, e: any) => {
+              const eventData =
+                typeof e.eventData === "string"
+                  ? JSON.parse(e.eventData)
+                  : e.eventData;
+              return sum + (eventData.total || 0);
+            }, 0);
 
-      const conversionRate =
-        totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
-      const cartToPurchaseRate =
-        totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
-      const averageOrderValue =
-        totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
+        const conversionRate =
+          totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+        const cartToPurchaseRate =
+          totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
+        const averageOrderValue =
+          totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
-      // Count unique sessions from all data sources
-      const allSessionIds = new Set([
-        ...clicks.map((c: any) => c.sessionId).filter(Boolean),
-        ...conversions.map((c: any) => c.sessionId).filter(Boolean),
-        ...events.map((e: any) => e.sessionId).filter(Boolean),
-      ]);
-      const totalSessions = allSessionIds.size;
+        // Count unique sessions from all data sources
+        const allSessionIds = new Set([
+          ...clicks.map((c: any) => c.sessionId).filter(Boolean),
+          ...conversions.map((c: any) => c.sessionId).filter(Boolean),
+          ...events.map((e: any) => e.sessionId).filter(Boolean),
+        ]);
+        const totalSessions = allSessionIds.size;
 
-      setStats({
-        totalClicks,
-        totalPurchases,
-        totalRevenue,
-        conversionRate,
-        totalAddToCart,
-        totalPageViews,
-        totalProductViews,
-        cartToPurchaseRate,
-        averageOrderValue,
-        totalSessions,
-      });
+        setStats({
+          totalClicks,
+          totalPurchases,
+          totalRevenue,
+          conversionRate,
+          totalAddToCart,
+          totalPageViews,
+          totalProductViews,
+          cartToPurchaseRate,
+          averageOrderValue,
+          totalSessions,
+        });
+      }
     } catch (error) {
       console.error("Error fetching activity:", error);
       setError("Failed to load activity data. Please try again.");

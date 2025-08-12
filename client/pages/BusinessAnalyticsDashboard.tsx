@@ -94,22 +94,22 @@ export default function BusinessAnalyticsDashboard() {
       setIsLoading(true);
 
       // Fetch real analytics data from API
-      const [clicksResponse, conversionsResponse, statsResponse] =
+      const [clicksResponse, conversionsResponse, realTimeStatsResponse] =
         await Promise.all([
           fetch("/api/business/activity/clicks", { credentials: "include" }),
           fetch("/api/business/activity/conversions", {
             credentials: "include",
           }),
-          fetch("/api/business/auth/stats", { credentials: "include" }),
+          fetch("/api/business/stats/realtime", { credentials: "include" }),
         ]);
 
       // Check if any response is not ok
-      if (!clicksResponse.ok || !conversionsResponse.ok || !statsResponse.ok) {
+      if (!clicksResponse.ok || !conversionsResponse.ok || !realTimeStatsResponse.ok) {
         // Check if it's an authentication error
         if (
           clicksResponse.status === 401 ||
           conversionsResponse.status === 401 ||
-          statsResponse.status === 401
+          realTimeStatsResponse.status === 401
         ) {
           navigate("/business-login");
           return;
@@ -125,9 +125,9 @@ export default function BusinessAnalyticsDashboard() {
 
       const clicksJson = await clicksResponse.json();
       const conversionsJson = await conversionsResponse.json();
-      const businessStats = statsResponse.ok
-        ? await statsResponse.json()
-        : { stats: {} };
+      const realTimeStatsData = realTimeStatsResponse.ok
+        ? await realTimeStatsResponse.json()
+        : { success: false, stats: {} };
 
       // Ensure clicks and conversions are arrays
       const clicks = Array.isArray(clicksJson)
@@ -208,6 +208,7 @@ export default function BusinessAnalyticsDashboard() {
       };
 
       setAnalyticsData(realData);
+      setBusinessStats(realTimeStatsData.success ? realTimeStatsData.stats : null);
     } catch (error) {
       console.error("Error fetching analytics:", error);
     } finally {
