@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceHunt Tracking Proxy</title>
+</head>
+<body>
+    <h1>PriceHunt Tracking Proxy</h1>
+    <p>This page acts as a proxy to receive tracking events and forward them to the server.</p>
+    
+    <div id="status">Waiting for events...</div>
+    <div id="events"></div>
+
+    <script>
+        // Simple tracking proxy that logs events
+        window.addEventListener('message', function(event) {
+            if (event.origin !== 'https://godislove.lt') return;
+            
+            const data = event.data;
+            if (data.type === 'tracking_event') {
+                logEvent('Received tracking event:', data.event);
+                
+                // Forward to server (same-origin, so no CORS issues)
+                fetch('/api/track-event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data.event)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    logEvent('Server response:', result);
+                })
+                .catch(error => {
+                    logEvent('Error forwarding event:', error.message);
+                });
+            }
+        });
+
+        function logEvent(message, data) {
+            const events = document.getElementById('events');
+            const timestamp = new Date().toISOString();
+            events.innerHTML += `<p><strong>${timestamp}:</strong> ${message} ${JSON.stringify(data)}</p>`;
+            console.log(message, data);
+        }
+
+        // Update status
+        document.getElementById('status').textContent = 'Proxy ready - listening for events from godislove.lt';
+    </script>
+</body>
+</html>
