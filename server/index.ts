@@ -299,15 +299,20 @@ export async function createServer() {
   app.post("/api/business/test-email", sendTestEmail);
 
   // Open CORS for tracking endpoint so third-party business sites can send events
-  const openCors = cors({ 
-    origin: true, 
-    credentials: false,
-    methods: ['POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'X-Requested-With'],
-    optionsSuccessStatus: 200
+  app.options("/api/track-event", (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+    res.header('Access-Control-Max-Age', '86400');
+    res.status(200).send();
   });
-  app.options("/api/track-event", openCors);
-  app.post("/api/track-event", openCors, trackEvent);
+  
+  app.post("/api/track-event", (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+    trackEvent(req, res, next);
+  });
   app.get("/api/tracking-events", getTrackingEvents);
 
   // Test tracking route

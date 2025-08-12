@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test for PriceHunt Tracking</title>
+</head>
+<body>
+    <h1>CORS Test for PriceHunt Tracking</h1>
+    <p>This page tests if the tracking endpoint accepts cross-origin requests from godislove.lt</p>
+    
+    <button onclick="testCORS()">Test CORS</button>
+    <button onclick="testSimpleEvent()">Test Simple Event</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += '<p>' + new Date().toISOString() + ': ' + message + '</p>';
+            console.log(message);
+        }
+
+        function testCORS() {
+            log('Testing CORS with OPTIONS request...');
+            
+            fetch('https://pavlo4.netlify.app/api/track-event', {
+                method: 'OPTIONS',
+                mode: 'cors',
+                headers: {
+                    'Origin': 'https://godislove.lt',
+                    'Access-Control-Request-Method': 'POST',
+                    'Access-Control-Request-Headers': 'Content-Type'
+                }
+            })
+            .then(response => {
+                log('OPTIONS response status: ' + response.status);
+                log('CORS headers:');
+                response.headers.forEach((value, key) => {
+                    if (key.toLowerCase().includes('access-control')) {
+                        log('  ' + key + ': ' + value);
+                    }
+                });
+            })
+            .catch(error => {
+                log('OPTIONS error: ' + error.message);
+            });
+        }
+
+        function testSimpleEvent() {
+            log('Testing simple tracking event...');
+            
+            fetch('https://pavlo4.netlify.app/api/track-event', {
+                method: 'POST',
+                mode: 'cors',
+                credentials: 'omit',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_type: 'test',
+                    business_id: '10',
+                    affiliate_id: 'pavlo4',
+                    platform: 'test',
+                    session_id: 'test-session-' + Date.now(),
+                    user_agent: navigator.userAgent,
+                    referrer: document.referrer,
+                    timestamp: Date.now(),
+                    url: window.location.href,
+                    data: { test: true },
+                    page_title: document.title
+                })
+            })
+            .then(response => {
+                log('Response status: ' + response.status);
+                log('Response headers:');
+                response.headers.forEach((value, key) => {
+                    log('  ' + key + ': ' + value);
+                });
+                
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('HTTP ' + response.status);
+                }
+            })
+            .then(data => {
+                log('Success: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                log('Error: ' + error.message);
+            });
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', function() {
+            setTimeout(testCORS, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -13,6 +13,11 @@
   node_bundler = "esbuild"
   
 [[redirects]]
+  from = "/api/track-event"
+  to = "/.netlify/functions/track-event"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/server"
   status = 200
