@@ -28,6 +28,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/test-simple-mjs"
+  to = "/.netlify/functions/test-simple.mjs"
+  status = 200
+
+[[redirects]]
+  from = "/api/test-db-mjs"
+  to = "/.netlify/functions/test-db.mjs"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/server"
   status = 200
