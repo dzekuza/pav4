@@ -4,145 +4,176 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PriceHunt Tracking Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>PriceHunt Tracking Test</h1>
-    <p>This page tests the tracking endpoint to ensure it's working properly.</p>
+    <h1>PriceHunt Tracking Test Page</h1>
     
-    <button onclick="testTracking()">Test Tracking Endpoint</button>
-    <button onclick="testAddToCart()">Test Add to Cart Event</button>
-    <button onclick="testPageView()">Test Page View Event</button>
-    
-    <div id="results"></div>
+    <div class="test-section">
+        <h2>Manual Tracking Tests</h2>
+        <button onclick="testPageView()">Test Page View</button>
+        <button onclick="testProductView()">Test Product View</button>
+        <button onclick="testAddToCart()">Test Add to Cart</button>
+        <button onclick="testCheckoutStart()">Test Checkout Start</button>
+    </div>
 
+    <div class="test-section">
+        <h2>Simulated Product Page</h2>
+        <div class="product" data-product-id="test-product-123">
+            <h3>Test Product</h3>
+            <p>Price: €29.99</p>
+            <button class="add-to-cart" onclick="simulateAddToCart()">Add to Cart</button>
+            <button onclick="simulateCheckout()">Checkout</button>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="console-log" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <!-- Include the tracking script -->
+    <script src="track-via-proxy.js"></script>
+    
     <script>
-        function log(message) {
-            const results = document.getElementById('results');
-            results.innerHTML += '<p>' + new Date().toISOString() + ': ' + message + '</p>';
-            console.log(message);
+        // Override console.log to capture logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToLog(message, type = 'log') {
+            const logDiv = document.getElementById('console-log');
+            const timestamp = new Date().toISOString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logDiv.textContent += logEntry;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToLog(args.join(' '), 'warn');
+        };
+
+        // Test functions
+        function testPageView() {
+            console.log('Testing page view tracking...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackPageView();
+            } else {
+                console.error('PriceHuntTracker not available');
+            }
         }
 
-        function testTracking() {
-            log('Testing tracking endpoint...');
-            
-            fetch('https://pavlo4.netlify.app/api/track-event', {
-                method: 'POST',
-                mode: 'cors',
-                credentials: 'omit',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    event_type: 'test',
-                    business_id: '10',
-                    affiliate_id: 'pavlo4',
-                    platform: 'test',
-                    session_id: 'test-session-' + Date.now(),
-                    user_agent: navigator.userAgent,
-                    referrer: document.referrer,
-                    timestamp: Date.now(),
-                    url: window.location.href,
-                    data: { test: true },
-                    page_title: document.title
-                })
-            })
-            .then(response => {
-                log('Response status: ' + response.status);
-                log('Response headers: ' + JSON.stringify(Object.fromEntries(response.headers.entries())));
-                return response.json();
-            })
-            .then(data => {
-                log('Success: ' + JSON.stringify(data));
-            })
-            .catch(error => {
-                log('Error: ' + error.message);
-            });
+        function testProductView() {
+            console.log('Testing product view tracking...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackProductView();
+            } else {
+                console.error('PriceHuntTracker not available');
+            }
         }
 
         function testAddToCart() {
-            log('Testing add to cart event...');
-            
-            fetch('https://pavlo4.netlify.app/api/track-event', {
-                method: 'POST',
-                mode: 'cors',
-                credentials: 'omit',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    event_type: 'add_to_cart',
-                    business_id: '10',
-                    affiliate_id: 'pavlo4',
-                    platform: 'shopify',
-                    session_id: 'test-session-' + Date.now(),
-                    user_agent: navigator.userAgent,
-                    referrer: document.referrer,
-                    timestamp: Date.now(),
-                    url: window.location.href,
-                    data: {
-                        product_id: 'test-product-123',
-                        product_name: 'Test Product',
-                        product_price: '29.99',
-                        quantity: 1
-                    },
-                    page_title: document.title
-                })
-            })
-            .then(response => {
-                log('Add to cart response status: ' + response.status);
-                return response.json();
-            })
-            .then(data => {
-                log('Add to cart success: ' + JSON.stringify(data));
-            })
-            .catch(error => {
-                log('Add to cart error: ' + error.message);
-            });
+            console.log('Testing add to cart tracking...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackAddToCart();
+            } else {
+                console.error('PriceHuntTracker not available');
+            }
         }
 
-        function testPageView() {
-            log('Testing page view event...');
-            
-            fetch('https://pavlo4.netlify.app/api/track-event', {
-                method: 'POST',
-                mode: 'cors',
-                credentials: 'omit',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    event_type: 'page_view',
-                    business_id: '10',
-                    affiliate_id: 'pavlo4',
-                    platform: 'shopify',
-                    session_id: 'test-session-' + Date.now(),
-                    user_agent: navigator.userAgent,
-                    referrer: document.referrer,
-                    timestamp: Date.now(),
-                    url: window.location.href,
-                    data: {},
-                    page_title: document.title
-                })
-            })
-            .then(response => {
-                log('Page view response status: ' + response.status);
-                return response.json();
-            })
-            .then(data => {
-                log('Page view success: ' + JSON.stringify(data));
-            })
-            .catch(error => {
-                log('Page view error: ' + error.message);
-            });
+        function testCheckoutStart() {
+            console.log('Testing checkout start tracking...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.trackCheckoutStart();
+            } else {
+                console.error('PriceHuntTracker not available');
+            }
         }
 
-        // Auto-test on page load
-        window.addEventListener('load', function() {
-            setTimeout(testTracking, 1000);
-        });
+        function simulateAddToCart() {
+            console.log('Simulating add to cart button click...');
+            // This should trigger the event listener
+        }
+
+        function simulateCheckout() {
+            console.log('Simulating checkout button click...');
+            // This should trigger the event listener
+        }
+
+        function clearLog() {
+            document.getElementById('console-log').textContent = '';
+        }
+
+        // Add some structured data for testing
+        const structuredData = {
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": "Test Product",
+            "sku": "test-product-123",
+            "gtin": "1234567890123",
+            "image": "https://example.com/test-product.jpg",
+            "url": window.location.href,
+            "offers": {
+                "@type": "Offer",
+                "price": "29.99",
+                "priceCurrency": "EUR",
+                "availability": "https://schema.org/InStock"
+            }
+        };
+
+        // Inject structured data
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.textContent = JSON.stringify(structuredData);
+        document.head.appendChild(script);
+
+        console.log('Test page loaded. PriceHuntTracker available:', !!window.PriceHuntTracker);
     </script>
 </body>
 </html>

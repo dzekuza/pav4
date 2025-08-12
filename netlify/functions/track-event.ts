@@ -1,7 +1,26 @@
 import type { Handler, HandlerResponse } from "@netlify/functions";
-import { trackEvent } from "../../server/routes/track-event";
+import { PrismaClient } from "@prisma/client";
+
+// Initialize Prisma client
+let prisma: PrismaClient;
+
+try {
+  prisma = new PrismaClient({
+    log: ['error', 'warn'],
+  });
+  console.log("Prisma client initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize Prisma client:", error);
+  throw error;
+}
 
 export const handler: Handler = async (event, context) => {
+  console.log("Track event function called with method:", event.httpMethod);
+  console.log("Environment variables check:", {
+    NETLIFY_DATABASE_URL: process.env.NETLIFY_DATABASE_URL ? "Set" : "Not set",
+    NODE_ENV: process.env.NODE_ENV,
+  });
+
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -54,40 +73,132 @@ export const handler: Handler = async (event, context) => {
         page_title: params.page_title || ''
       };
     }
-    
-    // Create a mock Express request object
-    const req = {
-      body,
-      headers: event.headers,
-      ip: event.headers['client-ip'] || event.headers['x-forwarded-for'] || 'unknown',
-      connection: { remoteAddress: 'unknown' },
-    };
 
-    // Create a mock Express response object
-    let responseBody = '';
-    let responseStatus = 200;
-    let responseHeaders: Record<string, string> = {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'application/json',
-    };
+    console.log("Track event request received:", {
+      method: event.httpMethod,
+      body: body,
+      headers: event.headers
+    });
 
-    const res = {
-      status: (code: number) => {
-        responseStatus = code;
-        return res;
-      },
-      json: (data: any) => {
-        responseBody = JSON.stringify(data);
-        return res;
-      },
-      setHeader: (name: string, value: string) => {
-        responseHeaders[name] = value;
-        return res;
-      },
-    };
+    const {
+      event_type,
+      business_id,
+      affiliate_id,
+      platform,
+      session_id,
+      user_agent,
+      referrer,
+      timestamp,
+      url,
+      data,
+      page_title,
+    } = body;
 
-    // Call the trackEvent function
-    await trackEvent(req as any, res as any);
+    // Validate required fields
+    if (!event_type || !business_id || !affiliate_id) {
+      console.log("Missing required fields:", {
+        event_type,
+        business_id,
+        affiliate_id,
+      });
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          success: false,
+          error: "Missing required fields: event_type, business_id, affiliate_id",
+        }),
+      };
+    }
+
+    // Check if business exists
+    console.log("Checking business with ID:", business_id);
+    const business = await prisma.business.findUnique({
+      where: { id: parseInt(business_id) },
+    });
+
+    if (!business) {
+      console.log("Business not found:", business_id);
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          success: false,
+          error: "Business not found",
+        }),
+      };
+    }
+
+    console.log("Business found:", business.name);
+
+    // Create tracking event in database
+    console.log("Creating tracking event...");
+    const trackingEvent = await prisma.trackingEvent.create({
+      data: {
+        eventType: event_type,
+        businessId: parseInt(business_id),
+        affiliateId: affiliate_id,
+        platform: platform || "shopify",
+        sessionId: session_id,
+        userAgent: user_agent,
+        referrer: referrer,
+        timestamp: new Date(timestamp),
+        url: url,
+        eventData: data || {},
+        ipAddress: event.headers['client-ip'] || event.headers['x-forwarded-for'] || "unknown",
+      },
+    });
+
+    console.log("Tracking event created:", trackingEvent.id);
+
+    // Update business statistics based on event type
+    if (event_type === "page_view" || event_type === "product_view") {
+      console.log("Updating business visits...");
+      await prisma.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalVisits: {
+            increment: 1,
+          },
+        },
+      });
+    }
+
+    if (event_type === "add_to_cart") {
+      console.log("Updating business clicks...");
+      await prisma.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalVisits: {
+            increment: 1,
+          },
+        },
+      });
+    }
+
+    if (event_type === "conversion" || event_type === "purchase" || event_type === "purchase_complete") {
+      console.log("Updating business purchases...");
+      const totalAmount = parseFloat(data?.total_amount || data?.amount || "0");
+      await prisma.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalPurchases: {
+            increment: 1,
+          },
+          totalRevenue: {
+            increment: totalAmount,
+          },
+        },
+      });
+    }
+
+    console.log("Track event completed successfully");
 
     // For GET requests (image beacon), return a 1x1 transparent pixel
     if (event.httpMethod === 'GET') {
@@ -107,9 +218,16 @@ export const handler: Handler = async (event, context) => {
     }
 
     return {
-      statusCode: responseStatus,
-      headers: responseHeaders,
-      body: responseBody,
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        success: true,
+        message: "Event tracked successfully",
+        event_id: trackingEvent.id,
+      }),
     };
   } catch (error) {
     console.error('Error in track-event function:', error);
