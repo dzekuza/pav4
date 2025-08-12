@@ -25,7 +25,8 @@ export class EmailService {
 
   constructor() {
     this.resend = new Resend(process.env.RESEND_API_KEY);
-    this.defaultFrom = process.env.EMAIL_FROM || 'noreply@yourdomain.com';
+    // Use Resend's default domain until custom domain is verified
+    this.defaultFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
   }
 
   public static getInstance(): EmailService {
