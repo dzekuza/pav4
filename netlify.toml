@@ -9,7 +9,7 @@
   NPM_FLAGS = "--production=false"
 
 [functions]
-  external_node_modules = ["express", "@netlify/neon", "bcryptjs", "jsonwebtoken", "cors", "helmet", "compression", "cookie-parser"]
+  external_node_modules = ["express", "@netlify/neon", "bcryptjs", "jsonwebtoken", "cors", "helmet", "compression", "cookie-parser", "@react-email/render"]
   node_bundler = "esbuild"
   
 [[redirects]]
