@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -78,6 +79,7 @@ export function BusinessRegistrationWizard({
   });
 
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Auto-generate website URL from domain
   useEffect(() => {
@@ -238,9 +240,18 @@ export function BusinessRegistrationWizard({
       if (response.ok) {
         toast({
           title: "Registration Successful",
-          description: "Your business account has been created successfully!",
+          description: "Your business account has been created successfully! Redirecting to dashboard...",
         });
-        onComplete();
+        
+        // Call onComplete callback if provided
+        if (onComplete) {
+          onComplete();
+        }
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate("/business/dashboard");
+        }, 1500);
       } else {
         const error = await response.json();
         toast({

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -30,6 +31,7 @@ export function BusinessRegistration() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -129,17 +131,13 @@ export function BusinessRegistration() {
         toast({
           title: "Registration Successful",
           description:
-            "Your business has been registered successfully! You can now log in and complete your profile in settings.",
+            "Your business has been registered successfully! Redirecting to dashboard...",
         });
 
-        // Reset form
-        setFormData({
-          name: "",
-          website: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-        });
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate("/business/dashboard");
+        }, 1500);
       } else {
         toast({
           title: "Registration Failed",

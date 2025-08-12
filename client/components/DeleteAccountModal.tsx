@@ -103,19 +103,19 @@ export function DeleteAccountModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-white/10 bg-white/5 text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <Trash2 className="h-5 w-5" />
             Delete Business Account
           </DialogTitle>
-          <DialogDescription className="text-left">
+          <DialogDescription className="text-left text-white/80">
             This action cannot be undone. This will permanently delete your business account and all associated data including:
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <Alert className="border-destructive bg-destructive/10">
+          <Alert className="border-destructive/50 bg-destructive/10">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive">
               <ul className="list-disc list-inside space-y-1 mt-2">
@@ -130,7 +130,7 @@ export function DeleteAccountModal({
           </Alert>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Confirm Password</Label>
+            <Label htmlFor="password" className="text-white">Confirm Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -139,12 +139,13 @@ export function DeleteAccountModal({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 disabled={isDeleting}
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/60"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-white"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isDeleting}
               >
@@ -158,7 +159,7 @@ export function DeleteAccountModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-text">
+            <Label htmlFor="confirm-text" className="text-white">
               Type "DELETE" to confirm
             </Label>
             <Input
@@ -168,6 +169,7 @@ export function DeleteAccountModal({
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="Type DELETE to confirm"
               disabled={isDeleting}
+              className="border-white/10 bg-white/5 text-white placeholder:text-white/60"
             />
           </div>
         </div>
@@ -177,6 +179,7 @@ export function DeleteAccountModal({
             variant="outline"
             onClick={handleClose}
             disabled={isDeleting}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
           >
             Cancel
           </Button>
