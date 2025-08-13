@@ -36,6 +36,7 @@ import { useFavorites } from "../hooks/use-favorites";
 import { useAuthModal } from "../hooks/use-auth-modal";
 import { AuthModal } from "../components/AuthModal";
 import { useAuth } from "../hooks/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -56,6 +57,31 @@ function getFaviconUrl(url: string): string {
   } catch {
     return "/placeholder.svg";
   }
+}
+
+// Categories data
+const categories = [
+  { name: "all", icon: "🔍", label: "All Results" },
+  { name: "electronics", icon: "📱", label: "Electronics" },
+  { name: "fashion", icon: "👗", label: "Fashion" },
+  { name: "home", icon: "🏠", label: "Home & Garden" },
+  { name: "sports", icon: "⚽", label: "Sports" },
+  { name: "beauty", icon: "💄", label: "Beauty" },
+  { name: "books", icon: "📚", label: "Books" },
+  { name: "toys", icon: "🧸", label: "Toys" },
+  { name: "automotive", icon: "🚗", label: "Automotive" },
+  { name: "health", icon: "💊", label: "Health" },
+  { name: "food", icon: "🍕", label: "Food" },
+];
+
+function getCategoryIcon(categoryName: string) {
+  const category = categories.find(c => c.name === categoryName);
+  return category?.icon || "📦";
+}
+
+function getCategoryLabel(categoryName: string) {
+  const category = categories.find(c => c.name === categoryName);
+  return category?.label || "All Results";
 }
 
 const NewSearchResults = () => {
@@ -90,6 +116,8 @@ const NewSearchResults = () => {
   >(new Map());
   const [newSearchUrl, setNewSearchUrl] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("de");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   useEffect(() => {
     // Clear any existing data when starting fresh
@@ -439,6 +467,51 @@ const NewSearchResults = () => {
       : [];
   const mainProduct = !isArrayResponse ? searchData?.mainProduct : null;
 
+  // Filter suggestions by category
+  const filteredSuggestions = selectedCategory === "all" 
+    ? suggestions 
+    : suggestions.filter((suggestion: any) => {
+        // Simple category detection based on product title and store
+        const title = suggestion.title?.toLowerCase() || "";
+        const store = suggestion.site?.toLowerCase() || "";
+        
+        switch (selectedCategory) {
+          case "electronics":
+            return title.includes("phone") || title.includes("laptop") || title.includes("computer") || 
+                   title.includes("tablet") || title.includes("camera") || title.includes("tv") ||
+                   store.includes("amazon") || store.includes("bestbuy");
+          case "fashion":
+            return title.includes("shirt") || title.includes("dress") || title.includes("shoes") || 
+                   title.includes("jacket") || title.includes("pants") || title.includes("accessories");
+          case "home":
+            return title.includes("furniture") || title.includes("kitchen") || title.includes("garden") || 
+                   title.includes("decor") || title.includes("bedroom") || title.includes("bathroom");
+          case "sports":
+            return title.includes("fitness") || title.includes("gym") || title.includes("running") || 
+                   title.includes("basketball") || title.includes("football") || title.includes("tennis");
+          case "beauty":
+            return title.includes("makeup") || title.includes("skincare") || title.includes("perfume") || 
+                   title.includes("cosmetics") || title.includes("beauty");
+          case "books":
+            return title.includes("book") || title.includes("novel") || title.includes("textbook") || 
+                   store.includes("amazon") || store.includes("barnes");
+          case "toys":
+            return title.includes("toy") || title.includes("game") || title.includes("puzzle") || 
+                   title.includes("doll") || title.includes("lego");
+          case "automotive":
+            return title.includes("car") || title.includes("auto") || title.includes("tire") || 
+                   title.includes("battery") || title.includes("oil");
+          case "health":
+            return title.includes("vitamin") || title.includes("supplement") || title.includes("medicine") || 
+                   title.includes("health") || title.includes("wellness");
+          case "food":
+            return title.includes("food") || title.includes("snack") || title.includes("beverage") || 
+                   title.includes("coffee") || title.includes("tea");
+          default:
+            return true;
+        }
+      });
+
   // Prevent repeated fetches: Only fetch if searchData is null and not already loading
   useEffect(() => {
     let didFetch = false;
@@ -706,7 +779,7 @@ const NewSearchResults = () => {
           <>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <h2 className="text-xl sm:text-2xl font-bold text-white">
-                Results ({suggestions.length})
+                Results ({filteredSuggestions.length})
               </h2>
               <Button
                 onClick={handleRefresh}
@@ -718,8 +791,29 @@ const NewSearchResults = () => {
               </Button>
             </div>
 
+            {/* Categories Filter */}
+            <div className="mb-6">
+              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+                <div className="overflow-x-auto">
+                  <TabsList className="flex w-full min-w-max space-x-1 bg-white/5 border border-white/10">
+                    {categories.map((category) => (
+                      <TabsTrigger
+                        key={category.name}
+                        value={category.name}
+                        className="flex-shrink-0 px-3 md:px-4 text-white"
+                      >
+                        <span className="mr-2">{category.icon}</span>
+                        <span className="hidden sm:inline">{category.label}</span>
+                        <span className="sm:hidden">{category.icon}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+              </Tabs>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {suggestions.map((suggestion: any, index: number) => {
+              {filteredSuggestions.map((suggestion: any, index: number) => {
                 // Extract price for sorting (handle nulls)
                 const price = extractPrice(
                   suggestion.standardPrice || suggestion.discountPrice || "0",
@@ -872,6 +966,28 @@ const NewSearchResults = () => {
               })}
             </div>
           </>
+        )}
+
+        {filteredSuggestions.length === 0 && suggestions.length > 0 && (
+          <Card className="border-white/10 bg-white/5 backdrop-blur-xl text-white">
+            <CardContent className="p-8 text-center">
+              <p className="text-white/70 mb-4">No results found in this category</p>
+              <p className="text-sm text-white/60 mb-4">Try selecting a different category or search again</p>
+              <Button
+                onClick={() => setSelectedCategory("all")}
+                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 mr-2"
+              >
+                Show All Results
+              </Button>
+              <Button
+                onClick={handleRefresh}
+                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {suggestions.length === 0 && (

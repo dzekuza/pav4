@@ -4,7 +4,7 @@ import * as express from "express";
 
 (async () => {
   const app = await createServer();
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 8084;
 
   // In production, serve the built SPA files
   const __dirname = import.meta.dirname;

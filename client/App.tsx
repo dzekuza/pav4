@@ -56,6 +56,7 @@ const BusinessProductsDashboard = lazy(
   () => import("./pages/BusinessProductsDashboard"),
 );
 const Browse = lazy(() => import("./pages/Browse"));
+const Landing2 = lazy(() => import("./pages/Landing2"));
 const BusinessIntegrate = lazy(() => import("./pages/BusinessIntegrate"));
 const BusinessActivity = lazy(() => import("./pages/BusinessActivity"));
 const BusinessConnect = lazy(() => import("./pages/BusinessConnect"));
@@ -77,6 +78,29 @@ const router = createBrowserRouter(
         </>
       ),
     },
+
+    {
+      path: "/https://*",
+      element: (
+        <>
+          <UrlRedirectHandler />
+          <Suspense fallback={<LoadingSkeleton variant="default" />}>
+            <div>Processing URL...</div>
+          </Suspense>
+        </>
+      ),
+    },
+    {
+      path: "/http://*",
+      element: (
+        <>
+          <UrlRedirectHandler />
+          <Suspense fallback={<LoadingSkeleton variant="default" />}>
+            <div>Processing URL...</div>
+          </Suspense>
+        </>
+      ),
+    },
     {
       path: "/browse",
       element: (
@@ -90,6 +114,14 @@ const router = createBrowserRouter(
       element: (
         <Suspense fallback={<LoadingSkeleton variant="default" />}>
           <Browse />
+        </Suspense>
+      ),
+    },
+    {
+      path: "/landing2",
+      element: (
+        <Suspense fallback={<LoadingSkeleton variant="landing" />}>
+          <Landing2 />
         </Suspense>
       ),
     },

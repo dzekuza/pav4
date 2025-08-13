@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:server": "node dist/server/node-build.mjs",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "npx prisma generate && vite build --config vite.config.server.ts",

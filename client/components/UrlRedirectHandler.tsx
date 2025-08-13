@@ -43,14 +43,14 @@ export function UrlRedirectHandler() {
   useEffect(() => {
     const fullPath = location.pathname + location.search;
 
-    // Check if the path starts with /https:// or /http://
+    // Check if the path starts with /https:// or /http:// (direct URL format)
     if (
       location.pathname.startsWith("/https://") ||
       location.pathname.startsWith("/http://")
     ) {
       // Extract the product URL by removing the leading slash
       const productUrl = location.pathname.substring(1); // Remove leading slash
-      console.log("Detected product URL:", productUrl);
+      console.log("Detected direct product URL:", productUrl);
 
       // Validate URL
       try {

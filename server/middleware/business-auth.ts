@@ -38,19 +38,33 @@ export const requireBusinessAuth = async (
 
     const decoded = verifyBusinessToken(token);
     if (!decoded || decoded.type !== "business") {
+      console.error("Business auth: Invalid token or wrong type", { decoded });
       return res.status(401).json({
         success: false,
         error: "Invalid token",
       });
     }
 
+    console.log("Business auth: Token decoded successfully", { 
+      businessId: decoded.businessId, 
+      email: decoded.email,
+      type: decoded.type 
+    });
+
     const business = await businessService.findBusinessById(decoded.businessId);
     if (!business) {
+      console.error("Business auth: Business not found", { businessId: decoded.businessId });
       return res.status(401).json({
         success: false,
         error: "Business not found",
       });
     }
+
+    console.log("Business auth: Business found", { 
+      businessId: business.id, 
+      name: business.name,
+      domain: business.domain 
+    });
 
     if (!business.isActive) {
       return res.status(401).json({

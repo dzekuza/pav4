@@ -7,7 +7,22 @@ declare global {
 
 // Create a single Prisma Client instance
 const createPrismaClient = () => {
+  // Ensure we're using the Netlify database URL
+  const databaseUrl = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL;
+  
+  if (!databaseUrl) {
+    console.error("No database URL found. Please set NETLIFY_DATABASE_URL or DATABASE_URL");
+    process.exit(1);
+  }
+
+  console.log("Using database URL:", databaseUrl.replace(/\/\/.*@/, "//***:***@")); // Hide credentials in logs
+
   return new PrismaClient({
+    datasources: {
+      db: {
+        url: databaseUrl,
+      },
+    },
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]

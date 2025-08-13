@@ -163,14 +163,14 @@ export default function Browse() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background text-foreground">
         <SearchHeader showBackButton={true} />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-64 bg-gray-200 rounded"></div>
+                <div key={i} className="h-64 bg-muted rounded"></div>
               ))}
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function Browse() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <SearchHeader showBackButton={true} />
       
       <div className="container mx-auto px-4 py-8">
@@ -190,7 +190,7 @@ export default function Browse() {
             <Button
               variant="ghost"
               onClick={() => navigate(-1)}
-              className="text-white hover:bg-white/10"
+              className="text-foreground hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -198,17 +198,17 @@ export default function Browse() {
             <div className="flex items-center gap-3">
               <span className="text-4xl">{getCategoryIcon(selectedCategory)}</span>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-white">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                   {selectedCategory}
                 </h1>
-                <p className="text-white/70">
+                <p className="text-muted-foreground">
                   {getCategoryDescription(selectedCategory)}
                 </p>
               </div>
             </div>
           </div>
           
-          <Badge variant="secondary" className="bg-white/10 text-white/80">
+          <Badge variant="secondary" className="bg-muted text-muted-foreground">
             {products.length} products available
           </Badge>
         </div>
@@ -216,12 +216,12 @@ export default function Browse() {
         {/* Category Tabs */}
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
           <div className="overflow-x-auto">
-            <TabsList className="flex w-full min-w-max space-x-1 bg-white/5 border border-white/10">
+            <TabsList className="flex w-full min-w-max space-x-1 bg-muted border border-border">
               {availableCategories.map((cat) => (
                 <TabsTrigger
                   key={cat}
                   value={cat}
-                  className="flex-shrink-0 px-3 md:px-4 text-white"
+                  className="flex-shrink-0 px-3 md:px-4 text-foreground"
                 >
                   <span className="mr-2">{getCategoryIcon(cat)}</span>
                   {cat}
@@ -234,11 +234,11 @@ export default function Browse() {
         {/* Products Grid */}
         {products.length === 0 ? (
           <div className="text-center py-12">
-            <Package className="h-16 w-16 text-white/40 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               No products found
             </h3>
-            <p className="text-white/60">
+            <p className="text-muted-foreground">
               No products are available in this category yet.
             </p>
           </div>
@@ -247,7 +247,7 @@ export default function Browse() {
             {products.map((product) => (
               <Card
                 key={product.id}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 transition-all duration-200 cursor-pointer group"
+                className="border-border bg-card text-card-foreground hover:bg-accent/50 transition-all duration-200 cursor-pointer group"
                 onClick={() => handleProductClick(product)}
               >
                 <CardHeader className="pb-3">
@@ -260,23 +260,23 @@ export default function Browse() {
                           className="h-6 w-6 rounded object-cover"
                         />
                       ) : (
-                        <Building2 className="h-5 w-5 text-white/60" />
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
                       )}
-                      <span className="text-sm text-white/70 truncate">
+                      <span className="text-sm text-muted-foreground truncate">
                         {product.business.name}
                       </span>
                     </div>
-                    <ExternalLink className="h-4 w-4 text-white/40 group-hover:text-white/60 transition-colors" />
+                    <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </CardHeader>
                 
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-white line-clamp-2 group-hover:text-blue-300 transition-colors">
+                    <h3 className="font-semibold text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
                       {product.title}
                     </h3>
                     {product.description && (
-                      <p className="text-sm text-white/70 line-clamp-2">
+                      <p className="text-sm text-muted-foreground line-clamp-2">
                         {product.description}
                       </p>
                     )}
@@ -284,13 +284,13 @@ export default function Browse() {
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ShoppingCart className="h-4 w-4 text-white/60" />
-                      <span className="text-sm text-white/60">
+                      <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
                         {product.business.domain}
                       </span>
                     </div>
                     {product.price && (
-                      <Badge variant="secondary" className="bg-green-500/20 text-green-400">
+                      <Badge variant="secondary" className="bg-success/20 text-success">
                         {product.price}
                       </Badge>
                     )}
@@ -303,21 +303,21 @@ export default function Browse() {
 
         {/* Information Card */}
         <div className="mt-12">
-          <Card className="border-blue-500/20 bg-blue-500/10 text-white">
+          <Card className="border-primary/20 bg-primary/10 text-card-foreground">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-400">
+              <CardTitle className="flex items-center gap-2 text-primary">
                 <Package className="h-5 w-5" />
                 How It Works
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-muted-foreground">
                 Browse products from verified businesses in your favorite categories.
               </p>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-muted-foreground">
                 Click on any product to be redirected to the business website and start shopping.
               </p>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-muted-foreground">
                 All purchases are tracked and contribute to the business's analytics.
               </p>
             </CardContent>

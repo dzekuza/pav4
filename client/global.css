@@ -182,7 +182,7 @@
   }
 
   body {
-    background-color: #020304;
+    background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     /* Improve text rendering + font features */
     -webkit-font-smoothing: antialiased;
@@ -196,6 +196,66 @@
     line-height: 1.5;
     letter-spacing: 0em;
     font-kerning: normal;
+  }
+
+  /* Apply dark theme by default */
+  body {
+    @apply dark;
+  }
+
+  /* Enhanced dark theme improvements */
+  .dark {
+    /* Improve contrast for better readability */
+    --card: 220 20% 8%;
+    --card-foreground: 220 15% 98%;
+    
+    /* Better muted colors for secondary text */
+    --muted: 220 15% 12%;
+    --muted-foreground: 220 10% 70%;
+    
+    /* Enhanced border contrast */
+    --border: 220 15% 25%;
+    
+    /* Better input styling */
+    --input: 220 15% 12%;
+  }
+
+  /* Ensure proper contrast for all text elements */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: hsl(var(--foreground));
+  }
+
+  .dark p, .dark span, .dark div {
+    color: hsl(var(--foreground));
+  }
+
+  /* Dark theme utility classes */
+  .dark-card {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+    color: hsl(var(--card-foreground));
+  }
+
+  .dark-muted {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+  }
+
+  .dark-accent {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  /* Improved loading states for dark theme */
+  .dark .animate-pulse {
+    background-color: hsl(var(--muted));
+  }
+
+  /* Better focus states for dark theme */
+  .dark *:focus-visible {
+    outline-color: hsl(var(--ring));
+    outline-width: 2px;
+    outline-style: solid;
   }
 
   /* Tighten headings to avoid excessive line spacing */
