@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Pixel-Only Tracking Installation - No Apps Required</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #27ae60;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .step {
+            background: #e8f5e8;
+            padding: 15px;
+            border-left: 4px solid #27ae60;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .method {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Shopify Pixel-Only Tracking Installation</h1>
+        
+        <div class="highlight">
+            <strong>🚫 NO SHOPIFY APPS REQUIRED!</strong> This is a pure pixel script that works without installing any Shopify apps.
+        </div>
+
+        <p>This guide shows you how to add pixel tracking to your Shopify store using only JavaScript code. No Shopify apps, no app store installations, just a simple script tag.</p>
+
+        <div class="success">
+            <strong>✅ What You Get:</strong>
+            <ul>
+                <li>Complete event tracking (page views, product views, add to cart, checkout, purchases)</li>
+                <li>Revenue and conversion tracking</li>
+                <li>Business dashboard integration</li>
+                <li>No Shopify app dependencies</li>
+                <li>Works with any Shopify theme</li>
+            </ul>
+        </div>
+
+        <h2>📋 Events Tracked</h2>
+        <ul>
+            <li><strong>Page Views:</strong> Every page visit on your store</li>
+            <li><strong>Product Views:</strong> When customers view product pages</li>
+            <li><strong>Add to Cart:</strong> When products are added to cart</li>
+            <li><strong>Checkout Start:</strong> When customers begin checkout</li>
+            <li><strong>Purchase Complete:</strong> When orders are successfully placed</li>
+            <li><strong>Revenue Data:</strong> Order amounts, currency, product details</li>
+        </ul>
+
+        <h2>🚀 Installation Methods</h2>
+
+        <div class="method">
+            <h3>Method 1: Shopify Theme Customization (Recommended)</h3>
+            <div class="step">
+                <ol>
+                    <li>Go to your Shopify Admin → Online Store → Themes</li>
+                    <li>Click "Actions" → "Edit code" on your active theme</li>
+                    <li>Navigate to "Layout" → "theme.liquid"</li>
+                    <li>Add this code just before the closing <code>&lt;/head&gt;</code> tag:</li>
+                </ol>
+            </div>
+
+            <div class="code-block">
+&lt;script&gt;
+// ipick.io Pixel Tracking - No Shopify Apps Required
+window.ipickConfig = {
+  businessId: '2',  // Replace with your business ID
+  debug: false      // Set to true for debugging
+};
+&lt;/script&gt;
+&lt;script src="https://pavlo4.netlify.app/shopify-pixel-only-tracker.js"&gt;&lt;/script&gt;
+            </div>
+        </div>
+
+        <div class="method">
+            <h3>Method 2: Google Tag Manager</h3>
+            <div class="step">
+                <ol>
+                    <li>Install Google Tag Manager on your Shopify store</li>
+                    <li>Create a new Custom HTML tag</li>
+                    <li>Add the script code from Method 1</li>
+                    <li>Set trigger to fire on all pages</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="method">
+            <h3>Method 3: URL Parameter Tracking</h3>
+            <p>If you can't modify your theme, you can track via URL parameters:</p>
+            <div class="code-block">
+// Add this to your product links:
+https://yourstore.com/products/product-name?business_id=2&utm_source=ipick
+
+// Or add to your checkout links:
+https://yourstore.com/checkout?business_id=2&utm_source=ipick
+            </div>
+        </div>
+
+        <h2>🔧 Configuration</h2>
+        
+        <h3>Business ID Setup</h3>
+        <p>The pixel automatically detects your business ID from:</p>
+        <ol>
+            <li><strong>Manual Config:</strong> Set in <code>window.ipickConfig.businessId</code></li>
+            <li><strong>URL Parameters:</strong> <code>?business_id=2</code> or <code>?utm_source=2</code></li>
+            <li><strong>Referrer:</strong> From the referring page URL</li>
+            <li><strong>Default:</strong> Falls back to business ID '1'</li>
+        </ol>
+
+        <h3>Debug Mode</h3>
+        <div class="code-block">
+&lt;script&gt;
+window.ipickConfig = {
+  businessId: '2',
+  debug: true  // Enable console logging
+};
+&lt;/script&gt;
+        </div>
+
+        <h2>🧪 Testing</h2>
+        
+        <div class="step">
+            <ol>
+                <li>Add the script to your theme</li>
+                <li>Open browser console (F12)</li>
+                <li>Visit a product page</li>
+                <li>Add product to cart</li>
+                <li>Proceed to checkout</li>
+                <li>Complete a test purchase</li>
+                <li>Check console for tracking logs</li>
+                <li>Verify events in your ipick.io dashboard</li>
+            </ol>
+        </div>
+
+        <h2>📊 Expected Console Output</h2>
+        <div class="code-block">
+[ipick Pixel] [2025-08-13T19:30:00.000Z] Initializing pixel-only tracking
+[ipick Pixel] [2025-08-13T19:30:00.100Z] Sending page_view event
+[ipick Pixel] [2025-08-13T19:30:00.200Z] Sending product_view event
+[ipick Pixel] [2025-08-13T19:30:05.000Z] Sending add_to_cart event
+[ipick Pixel] [2025-08-13T19:30:10.000Z] Sending checkout_start event
+[ipick Pixel] [2025-08-13T19:30:15.000Z] Sending purchase_complete event
+        </div>
+
+        <h2>🔍 Troubleshooting</h2>
+
+        <h3>Common Issues:</h3>
+        <ul>
+            <li><strong>Script not loading:</strong> Check if the URL is accessible</li>
+            <li><strong>CORS errors:</strong> Normal, script uses fallback methods</li>
+            <li><strong>No events tracked:</strong> Enable debug mode and check console</li>
+            <li><strong>Wrong business ID:</strong> Verify URL parameters or manual config</li>
+            <li><strong>Checkout not tracking:</strong> Check CSP restrictions, script uses fallbacks</li>
+        </ul>
+
+        <h3>Debug Mode:</h3>
+        <div class="code-block">
+&lt;script&gt;
+window.ipickConfig = {
+  businessId: '2',
+  debug: true  // Enable detailed logging
+};
+&lt;/script&gt;
+        </div>
+
+        <h2>🔄 Fallback Methods</h2>
+        <p>The pixel uses multiple methods to ensure tracking works:</p>
+        <ol>
+            <li><strong>Direct Fetch:</strong> Primary method (may fail due to CORS)</li>
+            <li><strong>Image Beacon:</strong> CORS-safe method using image requests</li>
+            <li><strong>localStorage:</strong> Stores events for later processing</li>
+            <li><strong>Retry Logic:</strong> Automatically retries failed events</li>
+        </ol>
+
+        <h2>📈 Dashboard Integration</h2>
+        <p>Once installed, you'll see these metrics in your ipick.io dashboard:</p>
+        <ul>
+            <li><strong>Revenue Tracking:</strong> Total sales from tracked purchases</li>
+            <li><strong>Conversion Rates:</strong> Product views → Add to cart → Purchase</li>
+            <li><strong>Product Performance:</strong> Which products are viewed/purchased</li>
+            <li><strong>Traffic Sources:</strong> Where your customers come from</li>
+            <li><strong>Business Attribution:</strong> Which business generated each sale</li>
+        </ul>
+
+        <div class="success">
+            <strong>✅ Success!</strong> Your Shopify store is now tracking all customer interactions without requiring any Shopify apps. All data flows directly to your ipick.io dashboard for business analytics.
+        </div>
+
+        <h2>📞 Support</h2>
+        <p>If you need help with installation or have questions:</p>
+        <ul>
+            <li>Enable debug mode and check browser console</li>
+            <li>Verify your business ID is correct</li>
+            <li>Test with a small purchase first</li>
+            <li>Check the fallback methods are working</li>
+            <li>Contact support at support@ipick.io</li>
+        </ul>
+
+        <div class="warning">
+            <strong>⚠️ Important Notes:</strong>
+            <ul>
+                <li>This is a pixel-only solution - no Shopify apps required</li>
+                <li>Works with any Shopify theme</li>
+                <li>Uses multiple fallback methods for reliability</li>
+                <li>Respects user privacy and GDPR compliance</li>
+                <li>No impact on store performance</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
