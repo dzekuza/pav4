@@ -134,6 +134,38 @@ window.ipickConfig = {
         </div>
 
         <div class="method">
+            <h3>Method 1B: Using Script Attributes (Recommended)</h3>
+            <div class="step">
+                <ol>
+                    <li>Go to your Shopify Admin → Online Store → Themes</li>
+                    <li>Click "Actions" → "Edit code" on your active theme</li>
+                    <li>Navigate to "Layout" → "theme.liquid"</li>
+                    <li>Add this code just before the closing <code>&lt;/head&gt;</code> tag:</li>
+                </ol>
+            </div>
+
+            <div class="code-block">
+&lt;!-- PriceHunt Shopify Integration --&gt;
+&lt;script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" 
+        data-business-id="2" 
+        data-affiliate-id="aff_godislovel_1755091745057_n7ccoo" 
+        data-debug="true"&gt;&lt;/script&gt;
+&lt;!-- End PriceHunt Shopify Integration --&gt;
+            </div>
+            
+            <p><strong>Or use the pixel-only version:</strong></p>
+            
+            <div class="code-block">
+&lt;!-- ipick.io Pixel Tracking --&gt;
+&lt;script src="https://pavlo4.netlify.app/shopify-pixel-only-tracker.js" 
+        data-business-id="2" 
+        data-affiliate-id="aff_godislovel_1755091745057_n7ccoo" 
+        data-debug="true"&gt;&lt;/script&gt;
+&lt;!-- End ipick.io Pixel Tracking --&gt;
+            </div>
+        </div>
+
+        <div class="method">
             <h3>Method 2: Google Tag Manager</h3>
             <div class="step">
                 <ol>
@@ -159,23 +191,45 @@ https://yourstore.com/checkout?business_id=2&utm_source=ipick
 
         <h2>🔧 Configuration</h2>
         
-        <h3>Business ID Setup</h3>
-        <p>The pixel automatically detects your business ID from:</p>
+        <h3>Business ID & Affiliate ID Setup</h3>
+        <p>The pixel automatically detects your business ID and affiliate ID from:</p>
         <ol>
-            <li><strong>Manual Config:</strong> Set in <code>window.ipickConfig.businessId</code></li>
-            <li><strong>URL Parameters:</strong> <code>?business_id=2</code> or <code>?utm_source=2</code></li>
+            <li><strong>Script Attributes:</strong> <code>data-business-id</code> and <code>data-affiliate-id</code></li>
+            <li><strong>Manual Config:</strong> Set in <code>window.ipickConfig</code></li>
+            <li><strong>URL Parameters:</strong> <code>?business_id=2&affiliate_id=aff_xxx</code></li>
             <li><strong>Referrer:</strong> From the referring page URL</li>
-            <li><strong>Default:</strong> Falls back to business ID '1'</li>
+            <li><strong>Default:</strong> Falls back to default values</li>
         </ol>
 
-        <h3>Debug Mode</h3>
+        <h3>Configuration Methods</h3>
+        
+        <h4>Method 1: Script Attributes (Recommended)</h4>
+        <div class="code-block">
+&lt;script src="https://pavlo4.netlify.app/shopify-pixel-only-tracker.js" 
+        data-business-id="2" 
+        data-affiliate-id="aff_godislovel_1755091745057_n7ccoo" 
+        data-debug="true"&gt;&lt;/script&gt;
+        </div>
+
+        <h4>Method 2: Global Config</h4>
         <div class="code-block">
 &lt;script&gt;
 window.ipickConfig = {
   businessId: '2',
-  debug: true  // Enable console logging
+  affiliateId: 'aff_godislovel_1755091745057_n7ccoo',
+  debug: true
 };
 &lt;/script&gt;
+&lt;script src="https://pavlo4.netlify.app/shopify-pixel-only-tracker.js"&gt;&lt;/script&gt;
+        </div>
+
+        <h4>Method 3: URL Parameters</h4>
+        <div class="code-block">
+// Add to your product links:
+https://yourstore.com/products/product-name?business_id=2&affiliate_id=aff_godislovel_1755091745057_n7ccoo
+
+// Or add to your checkout links:
+https://yourstore.com/checkout?business_id=2&affiliate_id=aff_godislovel_1755091745057_n7ccoo
         </div>
 
         <h2>🧪 Testing</h2>

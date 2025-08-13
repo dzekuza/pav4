@@ -1,0 +1,28 @@
+{
+  "name": "ipick-shopify-web-pixel",
+  "version": "1.0.0",
+  "description": "ipick.io Shopify Web Pixel for tracking customer events",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "shopify app build",
+    "dev": "shopify app dev",
+    "deploy": "shopify app deploy"
+  },
+  "dependencies": {
+    "@shopify/web-pixels-extension": "^1.0.0"
+  },
+  "devDependencies": {
+    "@shopify/cli": "^3.0.0",
+    "@shopify/theme": "^3.0.0"
+  },
+  "keywords": [
+    "shopify",
+    "web-pixel",
+    "tracking",
+    "analytics",
+    "ipick"
+  ],
+  "author": "ipick.io",
+  "license": "MIT"
+}

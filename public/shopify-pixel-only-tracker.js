@@ -6,15 +6,34 @@
   // Configuration - can be overridden by global config
   const config = {
     apiUrl: "https://pavlo4.netlify.app/.netlify/functions/track-event",
-    businessId: null, // Will be extracted from URL or set manually
-    affiliateId: "shopify-pixel",
+    businessId: null, // Will be extracted from script attributes or URL
+    affiliateId: null, // Will be extracted from script attributes or URL
     platform: "shopify",
     sessionId: generateSessionId(),
     apiKey: "16272754ed68cbdcb55e8f579703d92e",
     debug: false
   };
 
-  // Override config if global config exists
+  // Get configuration from script tag attributes
+  function getScriptConfig() {
+    const script = document.currentScript || 
+                   document.querySelector('script[src*="shopify-pixel-only-tracker.js"]') ||
+                   document.querySelector('script[src*="shopify-tracker-loader.js"]');
+    
+    if (script) {
+      return {
+        businessId: script.getAttribute('data-business-id'),
+        affiliateId: script.getAttribute('data-affiliate-id'),
+        debug: script.getAttribute('data-debug') === 'true'
+      };
+    }
+    return {};
+  }
+
+  // Override config with script attributes and global config
+  const scriptConfig = getScriptConfig();
+  Object.assign(config, scriptConfig);
+  
   if (window.ipickConfig) {
     Object.assign(config, window.ipickConfig);
   }
@@ -30,7 +49,7 @@
     }
   }
 
-  // Extract business ID from URL parameters
+  // Extract business ID and affiliate ID from various sources
   function extractBusinessId() {
     if (config.businessId) return config.businessId;
     
@@ -56,17 +75,46 @@
     }
     
     log('No business ID found, using default');
-    return '1'; // Default business ID
+    return '2'; // Default business ID
+  }
+
+  function extractAffiliateId() {
+    if (config.affiliateId) return config.affiliateId;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const affiliateId = urlParams.get('affiliate_id') || 
+                       urlParams.get('utm_medium') || 
+                       urlParams.get('aff');
+    
+    if (affiliateId) {
+      log(`Extracted affiliate ID from URL: ${affiliateId}`);
+      return affiliateId;
+    }
+    
+    // Fallback: try to get from referrer
+    if (document.referrer) {
+      const referrerParams = new URLSearchParams(document.referrer.split('?')[1] || '');
+      const refAffiliateId = referrerParams.get('affiliate_id') || 
+                            referrerParams.get('utm_medium');
+      if (refAffiliateId) {
+        log(`Extracted affiliate ID from referrer: ${refAffiliateId}`);
+        return refAffiliateId;
+      }
+    }
+    
+    log('No affiliate ID found, using default');
+    return 'aff_godislovel_1755091745057_n7ccoo'; // Default affiliate ID
   }
 
   // Send tracking data with multiple fallback methods
   function sendTrackingData(eventType, data) {
     const businessId = extractBusinessId();
+    const affiliateId = extractAffiliateId();
     
     const trackingData = {
       event_type: eventType,
       business_id: businessId,
-      affiliate_id: config.affiliateId,
+      affiliate_id: affiliateId,
       platform: config.platform,
       session_id: config.sessionId,
       user_agent: navigator.userAgent,
@@ -109,7 +157,7 @@
         const params = new URLSearchParams({
           event_type: eventType,
           business_id: businessId,
-          affiliate_id: config.affiliateId,
+          affiliate_id: affiliateId,
           session_id: config.sessionId,
           timestamp: Date.now().toString(),
           url: window.location.href,
