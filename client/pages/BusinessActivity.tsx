@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SearchHeader } from "@/components/SearchHeader";
-import { Eye, ShoppingCart, DollarSign, Calendar, Filter } from "lucide-react";
+import { Eye, ShoppingCart, DollarSign, Calendar, Filter, Trash2 } from "lucide-react";
 import { useBusinessAuth } from "@/hooks/use-auth";
 
 interface ActivityItem {
@@ -41,6 +41,7 @@ export default function BusinessActivity() {
     totalRevenue: 0,
     conversionRate: 0,
   });
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     fetchActivity();
@@ -158,6 +159,43 @@ export default function BusinessActivity() {
       console.error("Error fetching activity:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const clearActivity = async () => {
+    if (!confirm("Are you sure you want to clear all activity data? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setIsClearing(true);
+      
+      const response = await fetch("/api/business/activity/clear", {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        // Clear local state
+        setActivities([]);
+        setStats({
+          totalClicks: 0,
+          totalPurchases: 0,
+          totalRevenue: 0,
+          conversionRate: 0,
+        });
+        
+        // Show success message
+        alert("Activity data cleared successfully!");
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to clear activity: ${errorData.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Error clearing activity:", error);
+      alert("Failed to clear activity data. Please try again.");
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -474,6 +512,20 @@ export default function BusinessActivity() {
           >
             <Filter className="mr-2 h-4 w-4" />
             Refresh
+          </Button>
+          <Button
+            size="sm"
+            onClick={clearActivity}
+            disabled={isClearing || activities.length === 0}
+            variant="destructive"
+            className="rounded-full bg-red-600 hover:bg-red-700 text-white border border-red-500"
+          >
+            {isClearing ? (
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+            ) : (
+              <Trash2 className="mr-2 h-4 w-4" />
+            )}
+            {isClearing ? "Clearing..." : "Clear Activity"}
           </Button>
         </div>
 

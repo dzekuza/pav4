@@ -14,6 +14,7 @@ import {
   trackSale,
   getStoredUtmParameters,
 } from "@/lib/tracking";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 interface ProductCardProps {
   title: string;
@@ -62,7 +63,22 @@ export function ProductCard({
   isFavorited,
   showBuyNow = false,
 }: ProductCardProps) {
-  const handleViewDeal = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleViewDeal = useCallback(() => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     // Generate affiliate link
     const affiliateUrl = generateAffiliateLink(url, store || "unknown");
 
@@ -82,14 +98,20 @@ export function ProductCard({
 
     // Open the affiliate link
     window.open(affiliateUrl, "_blank", "noopener,noreferrer");
-  };
 
-  const handleBuyNow = async () => {
+    // Reset processing state after a delay
+    timeoutRef.current = setTimeout(() => setIsProcessing(false), 2000);
+  }, [isProcessing, url, store, title, price, currency]);
+
+  const handleBuyNow = useCallback(async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     try {
       // Generate affiliate link
       const affiliateUrl = generateAffiliateLink(url, store || "unknown");
 
-      // Track the purchase intent
+      // Track the purchase intent (only once)
       const utmParams = getStoredUtmParameters();
       const sessionId =
         sessionStorage.getItem("pricehunt_session_id") ||
@@ -139,8 +161,11 @@ export function ProductCard({
       // Fallback to regular affiliate link
       const affiliateUrl = generateAffiliateLink(url, store || "unknown");
       window.open(affiliateUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      // Reset processing state after a delay
+      timeoutRef.current = setTimeout(() => setIsProcessing(false), 3000);
     }
-  };
+  }, [isProcessing, url, store, title, price, currency, businessId]);
 
   const getRetailerName = (url: string): string => {
     try {
@@ -228,6 +253,7 @@ export function ProductCard({
                   size="sm"
                   variant="outline"
                   className="flex items-center gap-1"
+                  disabled={isProcessing}
                 >
                   <ExternalLink className="w-3 h-3" />
                   View
@@ -236,9 +262,14 @@ export function ProductCard({
                   onClick={handleBuyNow}
                   size="sm"
                   className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                  disabled={isProcessing}
                 >
-                  <ShoppingCart className="w-3 h-3" />
-                  Buy Now
+                  {isProcessing ? (
+                    <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <ShoppingCart className="w-3 h-3" />
+                  )}
+                  {isProcessing ? "Processing..." : "Buy Now"}
                 </Button>
               </div>
             ) : (
@@ -247,9 +278,14 @@ export function ProductCard({
                 onClick={handleViewDeal}
                 size="sm"
                 className="flex items-center gap-1"
+                disabled={isProcessing}
               >
-                <ExternalLink className="w-3 h-3" />
-                View Deal
+                {isProcessing ? (
+                  <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <ExternalLink className="w-3 h-3" />
+                )}
+                {isProcessing ? "Processing..." : "View Deal"}
               </Button>
             )}
           </div>

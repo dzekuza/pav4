@@ -112,6 +112,18 @@ export function generateAffiliateLink(
 
 // Track affiliate link clicks
 export function trackAffiliateClick(data: TrackingData): void {
+  // Prevent duplicate tracking within 5 seconds
+  const trackingKey = `affiliate_click_${data.productUrl}_${data.sessionId}`;
+  const lastTracked = sessionStorage.getItem(trackingKey);
+  const now = Date.now();
+  
+  if (lastTracked && (now - parseInt(lastTracked)) < 5000) {
+    console.log("Preventing duplicate affiliate click tracking");
+    return;
+  }
+  
+  sessionStorage.setItem(trackingKey, now.toString());
+
   // GTM event tracking
   if (typeof window !== "undefined" && (window as any).dataLayer) {
     (window as any).dataLayer.push({
@@ -164,6 +176,18 @@ export async function trackSale(data: SalesTrackingData): Promise<boolean> {
       console.warn("No business ID provided for sale tracking");
       return false;
     }
+
+    // Prevent duplicate sale tracking within 10 seconds
+    const trackingKey = `sale_track_${data.orderId || data.productUrl}_${data.businessId}`;
+    const lastTracked = sessionStorage.getItem(trackingKey);
+    const now = Date.now();
+    
+    if (lastTracked && (now - parseInt(lastTracked)) < 10000) {
+      console.log("Preventing duplicate sale tracking");
+      return true; // Return true to avoid error handling
+    }
+    
+    sessionStorage.setItem(trackingKey, now.toString());
 
     const orderId =
       data.orderId ||

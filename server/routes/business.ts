@@ -444,6 +444,54 @@ export const getBusinessConversions: RequestHandler = async (req, res) => {
   }
 };
 
+// Clear business activity
+export const clearBusinessActivity: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Clear all activity data for this business
+    const result = await businessService.clearBusinessActivity(decoded.businessId);
+
+    res.json({ success: true, message: "Activity data cleared successfully" });
+  } catch (error) {
+    console.error("Error clearing business activity:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to clear business activity" });
+  }
+};
+
 // Get real-time business statistics
 export const getBusinessRealTimeStats: RequestHandler = async (req, res) => {
   try {

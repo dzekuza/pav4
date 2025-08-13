@@ -51,6 +51,7 @@ import {
   updateBusinessPassword,
   getBusinessClicks,
   getBusinessConversions,
+  clearBusinessActivity,
   getBusinessRealTimeStats,
 } from "./routes/business";
 import {
@@ -572,6 +573,9 @@ export async function createServer() {
 
   // Business: Get conversions activity
   app.get("/api/business/activity/conversions", getBusinessConversions);
+
+  // Business: Clear activity data
+  app.delete("/api/business/activity/clear", clearBusinessActivity);
 
   // Business: Get tracking events activity
   app.get(

@@ -905,6 +905,45 @@ export const businessService = {
     });
   },
 
+  async clearBusinessActivity(businessId: number) {
+    try {
+      // Clear all activity data for the business
+      await prisma.businessClick.deleteMany({
+        where: { businessId },
+      });
+
+      // Clear conversions (businessId is string in this model)
+      await prisma.conversion.deleteMany({
+        where: { businessId: businessId.toString() },
+      });
+
+      // Clear tracking events
+      await prisma.trackingEvent.deleteMany({
+        where: { businessId },
+      });
+
+      // Clear sales data
+      await prisma.sale.deleteMany({
+        where: { businessId },
+      });
+
+      // Clear commissions (these are linked to sales, so they'll be deleted automatically)
+      // But we can also clear them explicitly if needed
+      await prisma.commission.deleteMany({
+        where: {
+          sale: {
+            businessId,
+          },
+        },
+      });
+
+      return { success: true, message: "All activity data cleared successfully" };
+    } catch (error) {
+      console.error("Error clearing business activity:", error);
+      throw error;
+    }
+  },
+
   // Click tracking operations
   async logClick(data: {
     affiliateId: string;
