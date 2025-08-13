@@ -16,7 +16,6 @@ import {
   ShoppingCart,
   Star,
   Building2,
-  ArrowLeft,
 } from "lucide-react";
 import { SearchHeader } from "@/components/SearchHeader";
 
@@ -94,6 +93,56 @@ const categories: Category[] = [
     icon: "🍕",
     description: "Groceries, snacks, and beverages",
   },
+  {
+    name: "Baby & Kids",
+    icon: "👶",
+    description: "Baby products, toys, and children's items",
+  },
+  {
+    name: "Pet Supplies",
+    icon: "🐕",
+    description: "Pet food, toys, and accessories",
+  },
+  {
+    name: "Office & Business",
+    icon: "💼",
+    description: "Office supplies, business equipment",
+  },
+  {
+    name: "Jewelry & Watches",
+    icon: "💍",
+    description: "Fine jewelry, watches, and accessories",
+  },
+  {
+    name: "Tools & Hardware",
+    icon: "🔧",
+    description: "Tools, hardware, and DIY supplies",
+  },
+  {
+    name: "Music & Instruments",
+    icon: "🎵",
+    description: "Musical instruments and audio equipment",
+  },
+  {
+    name: "Art & Crafts",
+    icon: "🎨",
+    description: "Art supplies, crafts, and creative materials",
+  },
+  {
+    name: "Garden & Outdoor",
+    icon: "🌱",
+    description: "Garden tools, plants, and outdoor living",
+  },
+  {
+    name: "Kitchen & Dining",
+    icon: "🍽️",
+    description: "Kitchen appliances, cookware, and dining",
+  },
+  {
+    name: "Bath & Personal Care",
+    icon: "🛁",
+    description: "Bathroom accessories and personal care",
+  },
 ];
 
 export default function Browse() {
@@ -149,9 +198,19 @@ export default function Browse() {
   };
 
   const handleProductClick = (product: Product) => {
-    // Use the existing search logic by navigating to the product URL
-    // This will trigger the URL redirect handler and perform the search
-    window.location.href = product.url;
+    // Instead of redirecting directly, use the URL for search suggestions
+    const requestId = Date.now().toString();
+    const slug = encodeURIComponent(product.url);
+    
+    // Navigate to search results page with the product URL
+    navigate(`/new-search/${requestId}/${slug}`, {
+      state: {
+        searchUrl: product.url,
+        userCountry: "Germany",
+        gl: "de",
+        isKeywordSearch: false,
+      },
+    });
   };
 
   const getCategoryIcon = (categoryName: string) => {
@@ -164,10 +223,23 @@ export default function Browse() {
     return category?.description || "Discover amazing products";
   };
 
+  const formatPrice = (price: string) => {
+    // Convert USD prices to EUR (approximate conversion)
+    if (price && price.includes('$')) {
+      const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
+      if (!isNaN(numericPrice)) {
+        const eurPrice = (numericPrice * 0.85).toFixed(2); // Approximate USD to EUR conversion
+        return `€${eurPrice}`;
+      }
+    }
+    // If already in EUR or other currency, return as is
+    return price;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <SearchHeader showBackButton={true} />
+        <SearchHeader showBackButton={false} />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
@@ -184,20 +256,12 @@ export default function Browse() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <SearchHeader showBackButton={true} />
+      <SearchHeader showBackButton={false} />
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(-1)}
-              className="text-foreground hover:bg-muted"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
             <div className="flex items-center gap-3">
               <span className="text-4xl">{getCategoryIcon(selectedCategory)}</span>
               <div>
@@ -276,6 +340,17 @@ export default function Browse() {
                 </CardHeader>
                 
                 <CardContent className="space-y-3">
+                  {/* Product Image */}
+                  {product.imageUrl && (
+                    <div className="aspect-square overflow-hidden rounded-lg bg-muted">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    </div>
+                  )}
+                  
                   <div className="space-y-2">
                     <h3 className="font-semibold text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
                       {product.title}
@@ -296,7 +371,7 @@ export default function Browse() {
                     </div>
                     {product.price && (
                       <Badge variant="secondary" className="bg-success/20 text-success">
-                        {product.price}
+                        {formatPrice(product.price)}
                       </Badge>
                     )}
                   </div>
@@ -320,7 +395,7 @@ export default function Browse() {
                 Browse products from verified businesses in your favorite categories.
               </p>
               <p className="text-sm text-muted-foreground">
-                Click on any product to be redirected to the business website and start shopping.
+                Click on any product to search for better prices across multiple retailers.
               </p>
               <p className="text-sm text-muted-foreground">
                 All purchases are tracked and contribute to the business's analytics.

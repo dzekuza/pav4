@@ -16,6 +16,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/ui/image-upload";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Settings,
   User,
   Building2,
@@ -35,6 +42,68 @@ import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import { NotificationSettings } from "../components/NotificationSettings";
 import { useToast } from "@/hooks/use-toast";
 
+// Available business categories
+const businessCategories = [
+  "Electronics",
+  "Fashion", 
+  "Home & Garden",
+  "Sports",
+  "Beauty",
+  "Books",
+  "Toys",
+  "Automotive",
+  "Health",
+  "Food",
+  "Baby & Kids",
+  "Pet Supplies",
+  "Office & Business",
+  "Jewelry & Watches",
+  "Tools & Hardware",
+  "Music & Instruments",
+  "Art & Crafts",
+  "Garden & Outdoor",
+  "Kitchen & Dining",
+  "Bath & Personal Care",
+  "Other"
+];
+
+// Available countries
+const countries = [
+  "United States",
+  "Canada",
+  "United Kingdom",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Netherlands",
+  "Belgium",
+  "Switzerland",
+  "Austria",
+  "Sweden",
+  "Norway",
+  "Denmark",
+  "Finland",
+  "Poland",
+  "Czech Republic",
+  "Hungary",
+  "Slovakia",
+  "Slovenia",
+  "Croatia",
+  "Bulgaria",
+  "Romania",
+  "Greece",
+  "Portugal",
+  "Ireland",
+  "Luxembourg",
+  "Malta",
+  "Cyprus",
+  "Estonia",
+  "Latvia",
+  "Lithuania",
+  "Other"
+];
+
 interface BusinessStats {
   id: number;
   name: string;
@@ -49,6 +118,7 @@ interface BusinessStats {
   averageOrderValue: number;
   conversionRate: number;
   logo?: string | null;
+  category?: string;
 }
 
 interface BusinessSettings {
@@ -117,6 +187,8 @@ export default function BusinessSettingsDashboard() {
           name: stats.name || prev.businessInfo.name,
           domain: stats.domain || prev.businessInfo.domain,
           logo: stats.logo || prev.businessInfo.logo,
+          // Keep existing category if stats doesn't have one, otherwise use stats category
+          category: stats.category || prev.businessInfo.category,
         },
       }));
     }
@@ -337,23 +409,43 @@ export default function BusinessSettingsDashboard() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
-                  <Input
-                    id="country"
+                  <Select
                     value={settings.businessInfo.country}
-                    onChange={(e) =>
-                      updateSettings("businessInfo", "country", e.target.value)
+                    onValueChange={(value) =>
+                      updateSettings("businessInfo", "country", value)
                     }
-                  />
+                  >
+                    <SelectTrigger className="border-white/10 bg-white/5 text-white">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent className="border-white/10 bg-black/80 text-white">
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
+                  <Select
                     value={settings.businessInfo.category}
-                    onChange={(e) =>
-                      updateSettings("businessInfo", "category", e.target.value)
+                    onValueChange={(value) =>
+                      updateSettings("businessInfo", "category", value)
                     }
-                  />
+                  >
+                    <SelectTrigger className="border-white/10 bg-white/5 text-white">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="border-white/10 bg-black/80 text-white">
+                      {businessCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="description">Description</Label>

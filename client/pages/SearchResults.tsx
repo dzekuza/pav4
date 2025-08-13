@@ -41,14 +41,21 @@ import { ComparisonGrid } from "@/components/ComparisonGrid";
 function extractPrice(priceString: string): number {
   if (!priceString) return 0;
   const match = priceString.match(/[€$£]?\s?(\d+(?:[.,]\d{2})?)/);
-  return match ? parseFloat(match[1].replace(",", ".")) : 0;
+  if (!match) return 0;
+  
+  const price = parseFloat(match[1].replace(",", "."));
+  
+  // Convert USD prices to EUR (approximate conversion)
+  if (priceString.includes('$')) {
+    return price * 0.85; // Approximate USD to EUR conversion
+  }
+  
+  return price;
 }
 
 function extractCurrency(priceString: string): string {
-  if (priceString.includes("€")) return "€";
-  if (priceString.includes("$")) return "$";
-  if (priceString.includes("£")) return "£";
-  return "€"; // Default to Euro
+  // Always return EUR for consistency
+  return "€";
 }
 
 const SearchResults = () => {

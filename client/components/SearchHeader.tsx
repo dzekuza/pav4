@@ -144,7 +144,14 @@ export function SearchHeader({
             <Link to="/" className="flex items-center space-x-2">
               <img src="/ipicklogo.png" alt="ipick.io" className="h-8 w-auto" />
             </Link>
-            {showBackButton && <></>}
+            {showBackButton && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/">
+                  <ArrowLeft className="mr-2 h-5 w-5" />
+                  New Search
+                </Link>
+              </Button>
+            )}
           </div>
 
           <nav className="flex items-center space-x-2 sm:space-x-4">

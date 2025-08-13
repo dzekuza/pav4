@@ -306,7 +306,16 @@ export default function BusinessActivityDashboard() {
                 typeof e.eventData === "string"
                   ? JSON.parse(e.eventData)
                   : e.eventData;
-              return sum + (eventData.total || 0);
+              return sum + (eventData.total || eventData.total_amount || eventData.amount || 0);
+            }, 0) +
+          events
+            .filter((e: any) => e.eventType === "checkout_complete")
+            .reduce((sum: number, e: any) => {
+              const eventData =
+                typeof e.eventData === "string"
+                  ? JSON.parse(e.eventData)
+                  : e.eventData;
+              return sum + (eventData.total || eventData.total_amount || eventData.amount || 0);
             }, 0);
 
         const conversionRate =

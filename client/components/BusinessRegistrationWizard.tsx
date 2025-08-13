@@ -486,15 +486,22 @@ export function BusinessRegistrationWizard({
                     <SelectItem value="Fashion">Fashion</SelectItem>
                     <SelectItem value="Home & Garden">Home & Garden</SelectItem>
                     <SelectItem value="Sports">Sports</SelectItem>
+                    <SelectItem value="Beauty">Beauty</SelectItem>
                     <SelectItem value="Books">Books</SelectItem>
+                    <SelectItem value="Toys">Toys</SelectItem>
                     <SelectItem value="Automotive">Automotive</SelectItem>
-                    <SelectItem value="Health & Beauty">
-                      Health & Beauty
-                    </SelectItem>
-                    <SelectItem value="Toys & Games">Toys & Games</SelectItem>
-                    <SelectItem value="Food & Beverages">
-                      Food & Beverages
-                    </SelectItem>
+                    <SelectItem value="Health">Health</SelectItem>
+                    <SelectItem value="Food">Food</SelectItem>
+                    <SelectItem value="Baby & Kids">Baby & Kids</SelectItem>
+                    <SelectItem value="Pet Supplies">Pet Supplies</SelectItem>
+                    <SelectItem value="Office & Business">Office & Business</SelectItem>
+                    <SelectItem value="Jewelry & Watches">Jewelry & Watches</SelectItem>
+                    <SelectItem value="Tools & Hardware">Tools & Hardware</SelectItem>
+                    <SelectItem value="Music & Instruments">Music & Instruments</SelectItem>
+                    <SelectItem value="Art & Crafts">Art & Crafts</SelectItem>
+                    <SelectItem value="Garden & Outdoor">Garden & Outdoor</SelectItem>
+                    <SelectItem value="Kitchen & Dining">Kitchen & Dining</SelectItem>
+                    <SelectItem value="Bath & Personal Care">Bath & Personal Care</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>

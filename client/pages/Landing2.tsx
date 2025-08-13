@@ -97,9 +97,15 @@ const Landing2: React.FC = () => {
     });
   };
 
-  const handleProductClick = (product: typeof productImages[0]) => {
-    // Use the search query to find similar products instead of the direct link
-    handleSearch(product.searchQuery);
+  const handleProductClick = (product: typeof productImages[0] | string) => {
+    // Handle both product object and direct link string
+    if (typeof product === 'string') {
+      // If it's a string (link), use it directly for search
+      handleSearch(product);
+    } else {
+      // If it's a product object, use the search query
+      handleSearch(product.searchQuery);
+    }
   };
 
   // Position the gradient to start right after the search input block

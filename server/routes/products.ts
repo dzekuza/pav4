@@ -210,7 +210,8 @@ export const getPublicProducts: RequestHandler = async (req, res) => {
 // Get all available categories
 export const getCategories: RequestHandler = async (req, res) => {
   try {
-    const categories = await prisma.business.findMany({
+    // Get categories from registered businesses
+    const businessCategories = await prisma.business.findMany({
       where: {
         isActive: true,
         category: {
@@ -223,10 +224,37 @@ export const getCategories: RequestHandler = async (req, res) => {
       distinct: ["category"],
     });
 
-    const uniqueCategories = categories
+    const businessCategoryList = businessCategories
       .map((c) => c.category)
-      .filter(Boolean)
-      .sort();
+      .filter(Boolean);
+
+    // Define all available categories
+    const allCategories = [
+      "Electronics",
+      "Fashion", 
+      "Home & Garden",
+      "Sports",
+      "Beauty",
+      "Books",
+      "Toys",
+      "Automotive",
+      "Health",
+      "Food",
+      "Baby & Kids",
+      "Pet Supplies",
+      "Office & Business",
+      "Jewelry & Watches",
+      "Tools & Hardware",
+      "Music & Instruments",
+      "Art & Crafts",
+      "Garden & Outdoor",
+      "Kitchen & Dining",
+      "Bath & Personal Care",
+      "Other"
+    ];
+
+    // Combine business categories with all available categories and remove duplicates
+    const uniqueCategories = [...new Set([...businessCategoryList, ...allCategories])].sort();
 
     res.json({
       success: true,

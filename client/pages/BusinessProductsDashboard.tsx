@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useOutletContext, useNavigate, useLocation } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -20,8 +20,10 @@ import {
   Save,
   AlertCircle,
   CheckCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface BusinessStats {
   id: number;
@@ -44,19 +46,55 @@ export default function BusinessProductsDashboard() {
   const context = useOutletContext<{ stats: BusinessStats }>();
   const stats = context?.stats;
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
+  const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     url: "",
     title: "",
     description: "",
+    imageUrl: "",
     isActive: true,
   });
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Navigation warning for unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return "You have unsaved changes. Are you sure you want to leave?";
+      }
+    };
+
+    const handleNavigation = (e: PopStateEvent) => {
+      if (hasUnsavedChanges) {
+        const confirmed = window.confirm(
+          "You have unsaved changes. If you leave this page, your changes will be lost. Are you sure you want to continue?"
+        );
+        if (!confirmed) {
+          e.preventDefault();
+          window.history.pushState(null, "", location.pathname);
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handleNavigation);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handleNavigation);
+    };
+  }, [hasUnsavedChanges, location.pathname]);
 
   const fetchProducts = async () => {
     try {
@@ -67,7 +105,10 @@ export default function BusinessProductsDashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products || []);
+        const fetchedProducts = data.products || [];
+        setProducts(fetchedProducts);
+        setOriginalProducts(fetchedProducts);
+        setHasUnsavedChanges(false);
       } else if (response.status === 401) {
         // Handle unauthorized
         return;
@@ -90,6 +131,61 @@ export default function BusinessProductsDashboard() {
     }
   };
 
+  const handleNewProductImageUpload = (imageData: string) => {
+    setNewProduct({ ...newProduct, imageUrl: imageData });
+  };
+
+  const handleNewProductImageRemove = () => {
+    setNewProduct({ ...newProduct, imageUrl: "" });
+  };
+
+  const handleProductImageUpload = (index: number, imageData: string) => {
+    const updatedProducts = products.map((product, i) =>
+      i === index ? { ...product, imageUrl: imageData } : product
+    );
+    setProducts(updatedProducts);
+  };
+
+  const handleProductImageRemove = (index: number) => {
+    const updatedProducts = products.map((product, i) =>
+      i === index ? { ...product, imageUrl: "" } : product
+    );
+    setProducts(updatedProducts);
+    setHasUnsavedChanges(true);
+  };
+
+  const checkForUnsavedChanges = () => {
+    // Check if there are any changes in the products array
+    if (products.length !== originalProducts.length) {
+      return true;
+    }
+
+    // Check if any product has been modified
+    for (let i = 0; i < products.length; i++) {
+      const current = products[i];
+      const original = originalProducts[i];
+      
+      if (!original) return true; // New product added
+      
+      if (
+        current.url !== original.url ||
+        current.title !== original.title ||
+        current.description !== original.description ||
+        current.imageUrl !== original.imageUrl ||
+        current.isActive !== original.isActive
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const updateUnsavedChanges = () => {
+    const hasChanges = checkForUnsavedChanges();
+    setHasUnsavedChanges(hasChanges);
+  };
+
   const addProduct = () => {
     if (products.length >= 10) {
       toast({
@@ -98,6 +194,15 @@ export default function BusinessProductsDashboard() {
         variant: "destructive",
       });
       return;
+    }
+
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        "You have unsaved changes. Adding a new product will include it in your changes. Do you want to continue?"
+      );
+      if (!confirmed) {
+        return;
+      }
     }
 
     if (!newProduct.url || !newProduct.title) {
@@ -125,14 +230,17 @@ export default function BusinessProductsDashboard() {
       url: newProduct.url,
       title: newProduct.title,
       description: newProduct.description || "",
+      imageUrl: newProduct.imageUrl || "",
       isActive: newProduct.isActive || true,
     };
 
     setProducts([...products, product]);
+    setHasUnsavedChanges(true);
     setNewProduct({
       url: "",
       title: "",
       description: "",
+      imageUrl: "",
       isActive: true,
     });
 
@@ -145,6 +253,7 @@ export default function BusinessProductsDashboard() {
   const removeProduct = (index: number) => {
     const updatedProducts = products.filter((_, i) => i !== index);
     setProducts(updatedProducts);
+    setHasUnsavedChanges(true);
     toast({
       title: "Product Removed",
       description: "Product has been removed from your list",
@@ -156,6 +265,7 @@ export default function BusinessProductsDashboard() {
       i === index ? { ...product, isActive: !product.isActive } : product
     );
     setProducts(updatedProducts);
+    setHasUnsavedChanges(true);
   };
 
   const saveProducts = async () => {
@@ -172,6 +282,8 @@ export default function BusinessProductsDashboard() {
 
       if (response.ok) {
         const data = await response.json();
+        setOriginalProducts(products);
+        setHasUnsavedChanges(false);
         toast({
           title: "Products Saved",
           description: data.message || "Your products have been saved successfully",
@@ -206,6 +318,7 @@ export default function BusinessProductsDashboard() {
       i === index ? { ...product, [field]: value } : product
     );
     setProducts(updatedProducts);
+    setHasUnsavedChanges(true);
   };
 
   if (isLoading) {
@@ -232,14 +345,26 @@ export default function BusinessProductsDashboard() {
           <p className="text-sm md:text-base text-white/70">
             Add and manage your product links (up to 10 products)
           </p>
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-2 mt-2">
+              <AlertCircle className="h-4 w-4 text-yellow-400" />
+              <span className="text-sm text-yellow-400 font-medium">
+                You have unsaved changes
+              </span>
+            </div>
+          )}
         </div>
         <Button
           onClick={saveProducts}
           disabled={isSaving}
-          className="bg-white text-black hover:bg-white/90"
+          className={`${
+            hasUnsavedChanges 
+              ? "bg-yellow-500 text-black hover:bg-yellow-400" 
+              : "bg-white text-black hover:bg-white/90"
+          }`}
         >
           <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : "Save Products"}
+          {isSaving ? "Saving..." : hasUnsavedChanges ? "Save Changes" : "Save Products"}
         </Button>
       </div>
 
@@ -291,6 +416,18 @@ export default function BusinessProductsDashboard() {
               }
             />
           </div>
+          
+          {/* Product Image Upload */}
+          <ImageUpload
+            currentImage={newProduct.imageUrl}
+            onImageUpload={handleNewProductImageUpload}
+            onImageRemove={handleNewProductImageRemove}
+            title="Product Image"
+            description="Upload a product image (optional)"
+            maxSize={2}
+            className="mt-4"
+          />
+          
           <Button
             onClick={addProduct}
             disabled={products.length >= 10 || !newProduct.url || !newProduct.title}
@@ -395,6 +532,20 @@ export default function BusinessProductsDashboard() {
                       onChange={(e) => updateProduct(index, "description", e.target.value)}
                       placeholder="Optional description"
                       className="bg-white/5 border-white/10 text-white"
+                    />
+                  </div>
+                  
+                  {/* Product Image Upload */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-white/70">Product Image</Label>
+                    <ImageUpload
+                      currentImage={product.imageUrl}
+                      onImageUpload={(imageData) => handleProductImageUpload(index, imageData)}
+                      onImageRemove={() => handleProductImageRemove(index)}
+                      title=""
+                      description=""
+                      maxSize={2}
+                      className="border-white/10 bg-white/5"
                     />
                   </div>
                   

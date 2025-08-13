@@ -298,7 +298,7 @@ export async function createServer() {
   app.get("/api/business/auth/stats", requireBusinessAuth, getBusinessAuthStats);
   app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
-  app.put("/api/business/profile", updateBusinessProfile);
+  app.put("/api/business/profile", requireBusinessAuth, updateBusinessProfile);
   app.get("/api/business/products", getBusinessProducts);
   app.put("/api/business/products", updateBusinessProducts);
   app.post("/api/business/auth/delete-account", deleteBusinessAccount);

@@ -42,12 +42,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 function extractPrice(priceString: string): number {
   if (!priceString) return 0;
   const match = priceString.match(/[€$£]?\s?(\d+(?:[.,]\d{2})?)/);
-  return match ? parseFloat(match[1].replace(",", ".")) : 0;
+  if (!match) return 0;
+  
+  const price = parseFloat(match[1].replace(",", "."));
+  
+  // Convert USD prices to EUR (approximate conversion)
+  if (priceString.includes('$')) {
+    return price * 0.85; // Approximate USD to EUR conversion
+  }
+  
+  return price;
 }
 
 function extractCurrency(priceString: string): string {
-  const match = priceString.match(/^[^\d]*/);
-  return match ? match[0].trim() : "";
+  // Always return EUR for consistency
+  return "€";
 }
 
 function getFaviconUrl(url: string): string {
@@ -72,6 +81,16 @@ const categories = [
   { name: "automotive", icon: "🚗", label: "Automotive" },
   { name: "health", icon: "💊", label: "Health" },
   { name: "food", icon: "🍕", label: "Food" },
+  { name: "baby", icon: "👶", label: "Baby & Kids" },
+  { name: "pets", icon: "🐕", label: "Pet Supplies" },
+  { name: "office", icon: "💼", label: "Office & Business" },
+  { name: "jewelry", icon: "💍", label: "Jewelry & Watches" },
+  { name: "tools", icon: "🔧", label: "Tools & Hardware" },
+  { name: "music", icon: "🎵", label: "Music & Instruments" },
+  { name: "art", icon: "🎨", label: "Art & Crafts" },
+  { name: "garden", icon: "🌱", label: "Garden & Outdoor" },
+  { name: "kitchen", icon: "🍽️", label: "Kitchen & Dining" },
+  { name: "bath", icon: "🛁", label: "Bath & Personal Care" },
 ];
 
 function getCategoryIcon(categoryName: string) {
@@ -523,6 +542,36 @@ const NewSearchResults = () => {
           case "food":
             return title.includes("food") || title.includes("snack") || title.includes("beverage") || 
                    title.includes("coffee") || title.includes("tea");
+          case "baby":
+            return title.includes("baby") || title.includes("infant") || title.includes("toddler") || 
+                   title.includes("diaper") || title.includes("formula") || title.includes("stroller");
+          case "pets":
+            return title.includes("pet") || title.includes("dog") || title.includes("cat") || 
+                   title.includes("pet food") || title.includes("toy") || title.includes("collar");
+          case "office":
+            return title.includes("office") || title.includes("business") || title.includes("desk") || 
+                   title.includes("chair") || title.includes("printer") || title.includes("paper");
+          case "jewelry":
+            return title.includes("jewelry") || title.includes("ring") || title.includes("necklace") || 
+                   title.includes("watch") || title.includes("bracelet") || title.includes("earring");
+          case "tools":
+            return title.includes("tool") || title.includes("hardware") || title.includes("drill") || 
+                   title.includes("screwdriver") || title.includes("hammer") || title.includes("wrench");
+          case "music":
+            return title.includes("music") || title.includes("instrument") || title.includes("guitar") || 
+                   title.includes("piano") || title.includes("drum") || title.includes("microphone");
+          case "art":
+            return title.includes("art") || title.includes("craft") || title.includes("paint") || 
+                   title.includes("canvas") || title.includes("brush") || title.includes("sculpture");
+          case "garden":
+            return title.includes("garden") || title.includes("outdoor") || title.includes("plant") || 
+                   title.includes("flower") || title.includes("lawn") || title.includes("patio");
+          case "kitchen":
+            return title.includes("kitchen") || title.includes("cookware") || title.includes("appliance") || 
+                   title.includes("utensil") || title.includes("dining") || title.includes("tableware");
+          case "bath":
+            return title.includes("bath") || title.includes("personal care") || title.includes("soap") || 
+                   title.includes("shampoo") || title.includes("towel") || title.includes("toiletries");
           default:
             return true;
         }

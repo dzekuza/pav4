@@ -104,6 +104,17 @@ const NewSearch = () => {
 
   const formatPrice = (price: string | null) => {
     if (!price) return "Price not available";
+    
+    // Convert USD prices to EUR (approximate conversion)
+    if (price.includes('$')) {
+      const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
+      if (!isNaN(numericPrice)) {
+        const eurPrice = (numericPrice * 0.85).toFixed(2); // Approximate USD to EUR conversion
+        return `€${eurPrice}`;
+      }
+    }
+    
+    // If already in EUR or other currency, return as is
     return price;
   };
 

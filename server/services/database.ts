@@ -666,6 +666,7 @@ export const businessService = {
         affiliateId: true,
         trackingVerified: true,
         logo: true,
+        category: true,
       },
     });
 
@@ -752,6 +753,7 @@ export const businessService = {
         adminCommissionRate: true,
         affiliateId: true,
         logo: true,
+        category: true,
       },
     });
 
@@ -854,6 +856,7 @@ export const businessService = {
       domain: business.domain,
       adminCommissionRate: business.adminCommissionRate,
       affiliateId: business.affiliateId,
+      category: business.category,
       
       // Real-time calculated stats
       totalVisits: totalClicks,
