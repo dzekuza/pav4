@@ -21,82 +21,148 @@
   };
 
   // Initialize tracking
-  function init() {
-    // Get configuration from script tag
-    const script =
-      document.currentScript ||
-      document.querySelector('script[src*="shopify-tracker"]');
-    if (script) {
-      config.businessId = script.getAttribute("data-business-id");
-      config.affiliateId = script.getAttribute("data-affiliate-id");
-      config.debug = script.getAttribute("data-debug") === "true";
-      config.endpoint = script.getAttribute("data-endpoint") || "https://pavlo4.netlify.app/.netlify/functions/track-event";
-    }
+  function initTracking() {
+    log("Initializing enhanced tracking...");
 
-    // Try to get from URL parameters as fallback
-    if (!config.businessId) {
-      const urlParams = new URLSearchParams(window.location.search);
-      config.businessId = urlParams.get('utm_source') || urlParams.get('business_id');
-    }
-    if (!config.affiliateId) {
-      const urlParams = new URLSearchParams(window.location.search);
-      config.affiliateId = urlParams.get('utm_medium') || urlParams.get('affiliate_id');
-    }
-
-    // Validate required parameters
-    if (!config.businessId || !config.affiliateId) {
-      log("Error: Missing required parameters (business-id or affiliate-id)", "error");
-      log("Current config:", config);
+    // Check if we're on a checkout page
+    if (window.location.pathname.includes('/checkouts/')) {
+      log("Checkout page detected, loading checkout-specific tracker");
+      loadCheckoutTracker();
       return;
     }
 
-    log("PriceHunt Enhanced Shopify Tracker initialized for " + window.location.hostname);
-    log("Config:", config);
+    // Process any pending events from checkout pages
+    processPendingEvents();
 
-    // Send page view event
-    sendEvent({
-      event_type: "page_view",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        page_title: document.title,
-        referrer: document.referrer,
-        user_agent: navigator.userAgent,
-      },
-      timestamp: config.pageLoadTime,
+    // Track page view
+    trackPageView();
+
+    // Track product view if on product page
+    if (getPageType() === 'product') {
+      trackProductView();
+    }
+
+    // Track purchase if on thank you page
+    if (window.location.pathname.includes('/thank_you') || 
+        window.location.pathname.includes('/orders/')) {
+      trackPurchaseCompletion();
+    }
+
+    // Listen for add to cart events
+    document.addEventListener('click', function(e) {
+      const target = e.target;
+      
+      // Track add to cart clicks
+      if (target.matches('[name="add"], .add-to-cart, [class*="add"], [class*="cart"]')) {
+        setTimeout(() => {
+          trackAddToCart();
+        }, 100);
+      }
     });
 
-    // Set up event listeners
-    setupEventListeners();
+    // Listen for form submissions (checkout)
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
+      if (form.matches('[action*="checkout"], [action*="cart"]')) {
+        trackCheckoutStart(form);
+      }
+    });
 
-    // Check for product data and send product view
-    checkForProductData();
+    // Listen for postMessage events from checkout iframe
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'ipick_tracking_event') {
+        log('Received tracking event from checkout:', event.data.data);
+        sendEvent(event.data.data);
+      }
+    });
 
-    // Set up mutation observer for dynamic content
-    setupMutationObserver();
+    // Set up periodic check for pending events
+    setInterval(processPendingEvents, 5000);
+
+    log("Enhanced tracking initialized successfully");
+  }
+
+  // Load checkout-specific tracker
+  function loadCheckoutTracker() {
+    const script = document.createElement('script');
+    script.src = 'https://pavlo4.netlify.app/shopify-checkout-tracker.js';
+    script.onload = function() {
+      log('Checkout tracker loaded successfully');
+    };
+    script.onerror = function() {
+      log('Failed to load checkout tracker, using fallback methods');
+      initCheckoutFallback();
+    };
+    document.head.appendChild(script);
+  }
+
+  // Fallback checkout tracking when external script fails
+  function initCheckoutFallback() {
+    log('Initializing checkout fallback tracking');
+
+    // Track page view
+    trackPageView();
 
     // Check for purchase completion
     if (trackPurchaseCompletion()) {
-      log("Purchase completion tracked on page load", "success");
+      log('Purchase completion detected via fallback');
     }
 
-    // Check if we're on a checkout page and track checkout start
-    if (window.location.pathname.includes('/checkout') || window.location.pathname.includes('/checkouts/')) {
-      log("Checkout page detected, tracking checkout start");
-      trackCheckoutPageVisit();
-    }
-    
-    // Check specifically for Shopify thank-you page format
-    if (window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you')) {
-      log("Shopify thank-you page detected, tracking purchase completion");
-      trackShopifyPurchaseCompletion();
-    }
+    // Listen for URL changes
+    let currentUrl = window.location.href;
+    setInterval(() => {
+      if (window.location.href !== currentUrl) {
+        currentUrl = window.location.href;
+        log('URL changed to: ' + currentUrl);
+        
+        if (trackPurchaseCompletion()) {
+          log('Purchase completion detected via URL change');
+        }
+      }
+    }, 2000);
+  }
 
-    // Mark as initialized to prevent duplicate initialization
-    if (window.PriceHuntTracker) {
-      window.PriceHuntTracker.initialized = true;
+  // Process pending events from localStorage
+  function processPendingEvents() {
+    try {
+      const pendingEvents = JSON.parse(localStorage.getItem('ipick_pending_events') || '[]');
+      if (pendingEvents.length > 0) {
+        log(`Processing ${pendingEvents.length} pending events`);
+        
+        const processedEvents = [];
+        
+        for (const event of pendingEvents) {
+          // Don't retry events older than 1 hour
+          if (Date.now() - event.timestamp > 3600000) {
+            log(`Skipping old event: ${event.event_type}`);
+            continue;
+          }
+          
+          // Don't retry more than 3 times
+          if (event.retry_count >= 3) {
+            log(`Skipping event with too many retries: ${event.event_type}`);
+            continue;
+          }
+          
+          // Try to send the event
+          sendEvent({
+            ...event,
+            retry_count: (event.retry_count || 0) + 1
+          });
+          
+          processedEvents.push(event);
+        }
+        
+        // Remove processed events from localStorage
+        const remainingEvents = pendingEvents.filter(event => 
+          !processedEvents.includes(event)
+        );
+        localStorage.setItem('ipick_pending_events', JSON.stringify(remainingEvents));
+        
+        log(`Processed ${processedEvents.length} events, ${remainingEvents.length} remaining`);
+      }
+    } catch (error) {
+      log(`Error processing pending events: ${error.message}`);
     }
   }
 
@@ -790,13 +856,132 @@
       data: {
         checkout_id: window.location.pathname.split('/').pop(),
         page_title: document.title,
-        checkout_url: window.location.href
+        checkout_url: window.location.href,
+        // Add more checkout data extraction
+        order_id: extractOrderIdFromPage(),
+        total_amount: extractTotalAmountFromPage(),
+        currency: extractCurrencyFromPage()
       },
       timestamp: Date.now(),
     };
 
     log("Tracking checkout completion:", eventData);
     sendEvent(eventData);
+  }
+
+  // Extract order ID from checkout page
+  function extractOrderIdFromPage() {
+    // Try multiple methods to extract order ID
+    const methods = [
+      // URL pattern: /checkouts/cn/order_id/thank-you
+      () => {
+        const match = window.location.pathname.match(/\/checkouts\/[^\/]+\/([^\/]+)\/thank-you/);
+        return match ? match[1] : null;
+      },
+      // URL pattern: /orders/order_id
+      () => {
+        const match = window.location.pathname.match(/\/orders?\/([^\/]+)/);
+        return match ? match[1] : null;
+      },
+      // Page content
+      () => {
+        const elements = document.querySelectorAll('[data-order-id], [data-order-number], .order-id, .order-number');
+        return elements.length > 0 ? elements[0].textContent.trim() : null;
+      },
+      // Meta tags
+      () => {
+        const meta = document.querySelector('meta[name="order-id"], meta[property="order-id"]');
+        return meta ? meta.content : null;
+      }
+    ];
+
+    for (const method of methods) {
+      try {
+        const result = method();
+        if (result) {
+          log("Extracted order ID: " + result);
+          return result;
+        }
+      } catch (error) {
+        log("Error extracting order ID: " + error.message);
+      }
+    }
+
+    return null;
+  }
+
+  // Extract total amount from checkout page
+  function extractTotalAmountFromPage() {
+    const selectors = [
+      '[data-total]',
+      '.total',
+      '.order-total', 
+      '.amount',
+      '.order-summary__total',
+      '.total-line__price',
+      '[class*="total"]',
+      '[class*="amount"]'
+    ];
+
+    for (const selector of selectors) {
+      try {
+        const elements = document.querySelectorAll(selector);
+        for (const element of elements) {
+          const text = element.textContent.trim();
+          const match = text.match(/[\d,]+\.?\d*/);
+          if (match) {
+            const amount = parseFloat(match[0].replace(/,/g, ''));
+            if (amount > 0) {
+              log("Extracted total amount: " + amount);
+              return amount;
+            }
+          }
+        }
+      } catch (error) {
+        log("Error extracting total amount: " + error.message);
+      }
+    }
+
+    return null;
+  }
+
+  // Extract currency from checkout page
+  function extractCurrencyFromPage() {
+    // Try to get currency from various sources
+    const methods = [
+      // Meta tags
+      () => {
+        const meta = document.querySelector('meta[property="product:price:currency"]');
+        return meta ? meta.content : null;
+      },
+      // Page content with currency symbols
+      () => {
+        const text = document.body.textContent;
+        if (text.includes('$')) return 'USD';
+        if (text.includes('€')) return 'EUR';
+        if (text.includes('£')) return 'GBP';
+        if (text.includes('¥')) return 'JPY';
+        return null;
+      },
+      // Shopify global object
+      () => {
+        return window.Shopify?.currency || null;
+      }
+    ];
+
+    for (const method of methods) {
+      try {
+        const result = method();
+        if (result) {
+          log("Extracted currency: " + result);
+          return result;
+        }
+      } catch (error) {
+        log("Error extracting currency: " + error.message);
+      }
+    }
+
+    return 'USD'; // Default fallback
   }
 
   // Track cart update
@@ -1063,9 +1248,9 @@
 
   // Initialize when DOM is ready
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", initTracking);
   } else {
-    init();
+    initTracking();
   }
 
   // Expose tracking functions globally for manual tracking

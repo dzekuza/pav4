@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Checkout Tracker Installation Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .step {
+            background: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Shopify Checkout Tracker Installation Guide</h1>
+        
+        <p>This guide will help you install the checkout tracking script on your Shopify store to track purchase completions and other checkout events.</p>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Due to Shopify's Content Security Policy (CSP), checkout tracking has limitations. This script uses multiple fallback methods to ensure tracking works.
+        </div>
+
+        <h2>📋 What Gets Tracked</h2>
+        <ul>
+            <li><strong>Checkout Start:</strong> When customers begin checkout process</li>
+            <li><strong>Purchase Complete:</strong> When orders are successfully placed</li>
+            <li><strong>Order Data:</strong> Order ID, total amount, currency</li>
+            <li><strong>Page Views:</strong> Checkout page visits</li>
+        </ul>
+
+        <h2>🚀 Installation Methods</h2>
+
+        <h3>Method 1: Shopify Theme Customization (Recommended)</h3>
+        <div class="step">
+            <ol>
+                <li>Go to your Shopify Admin → Online Store → Themes</li>
+                <li>Click "Actions" → "Edit code" on your active theme</li>
+                <li>Navigate to "Layout" → "theme.liquid"</li>
+                <li>Add this code just before the closing <code>&lt;/head&gt;</code> tag:</li>
+            </ol>
+        </div>
+
+        <div class="code-block">
+&lt;script&gt;
+// Load checkout tracker for checkout pages
+if (window.location.pathname.includes('/checkouts/')) {
+  var script = document.createElement('script');
+  script.src = 'https://pavlo4.netlify.app/shopify-checkout-tracker.js';
+  script.async = true;
+  document.head.appendChild(script);
+}
+&lt;/script&gt;
+        </div>
+
+        <h3>Method 2: Shopify App Installation</h3>
+        <div class="step">
+            <ol>
+                <li>Install the ipick.io Shopify app from the Shopify App Store</li>
+                <li>The app will automatically add tracking scripts</li>
+                <li>No manual code changes required</li>
+            </ol>
+        </div>
+
+        <h3>Method 3: Google Tag Manager (Advanced)</h3>
+        <div class="step">
+            <ol>
+                <li>Install Google Tag Manager on your Shopify store</li>
+                <li>Create a new Custom HTML tag</li>
+                <li>Add the script code from Method 1</li>
+                <li>Set trigger to fire on checkout pages</li>
+            </ol>
+        </div>
+
+        <h2>🔧 Configuration</h2>
+        
+        <p>The checkout tracker automatically detects your business ID from the URL parameters. You can also set it manually:</p>
+
+        <div class="code-block">
+&lt;script&gt;
+window.ipickConfig = {
+  businessId: '2',  // Your business ID
+  affiliateId: 'shopify-checkout'
+};
+&lt;/script&gt;
+&lt;script src="https://pavlo4.netlify.app/shopify-checkout-tracker.js"&gt;&lt;/script&gt;
+        </div>
+
+        <h2>🧪 Testing</h2>
+        
+        <div class="step">
+            <ol>
+                <li>Add the script to your theme</li>
+                <li>Go to a product page and add to cart</li>
+                <li>Proceed to checkout</li>
+                <li>Complete a test purchase</li>
+                <li>Check your browser console for tracking logs</li>
+                <li>Verify events appear in your ipick.io dashboard</li>
+            </ol>
+        </div>
+
+        <h2>🔍 Troubleshooting</h2>
+
+        <h3>Common Issues:</h3>
+        <ul>
+            <li><strong>Script not loading:</strong> Check if the URL is accessible</li>
+            <li><strong>CORS errors:</strong> Normal on checkout pages, script uses fallbacks</li>
+            <li><strong>No events tracked:</strong> Check browser console for errors</li>
+            <li><strong>Wrong business ID:</strong> Verify URL parameters or manual config</li>
+        </ul>
+
+        <h3>Debug Mode:</h3>
+        <div class="code-block">
+&lt;script&gt;
+window.ipickConfig = {
+  businessId: '2',
+  debug: true  // Enable detailed logging
+};
+&lt;/script&gt;
+        </div>
+
+        <h2>📊 Expected Events</h2>
+        
+        <p>You should see these events in your dashboard:</p>
+        <ul>
+            <li><code>page_view</code> - When checkout page loads</li>
+            <li><code>checkout_start</code> - When checkout form is submitted</li>
+            <li><code>purchase_complete</code> - When order is successfully placed</li>
+        </ul>
+
+        <div class="success">
+            <strong>✅ Success!</strong> Once installed, your checkout tracking will automatically send purchase data to your ipick.io dashboard, showing revenue and conversion metrics.
+        </div>
+
+        <h2>📞 Support</h2>
+        <p>If you need help with installation or have questions:</p>
+        <ul>
+            <li>Check the browser console for error messages</li>
+            <li>Verify your business ID is correct</li>
+            <li>Test with a small purchase first</li>
+            <li>Contact support at support@ipick.io</li>
+        </ul>
+    </div>
+</body>
+</html>
