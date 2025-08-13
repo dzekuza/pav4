@@ -27,12 +27,14 @@ interface ActivityItem {
     | "click"
     | "purchase"
     | "add_to_cart"
+    | "checkout_start"
+    | "checkout_complete"
     | "page_view"
     | "product_view"
     | "conversion";
   productName: string;
   productUrl: string;
-  status: "browsed" | "purchased" | "abandoned" | "added_to_cart" | "viewed";
+  status: "browsed" | "purchased" | "abandoned" | "added_to_cart" | "checkout_started" | "checkout_completed" | "viewed";
   amount?: number;
   timestamp: string;
   userAgent?: string;
@@ -49,7 +51,7 @@ export default function BusinessActivityDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<
-    "all" | "clicks" | "purchases" | "add_to_cart" | "page_views"
+    "all" | "clicks" | "purchases" | "add_to_cart" | "checkout" | "page_views"
   >("all");
   const [stats, setStats] = useState({
     totalClicks: 0,
@@ -59,6 +61,7 @@ export default function BusinessActivityDashboard() {
     totalAddToCart: 0,
     totalPageViews: 0,
     totalProductViews: 0,
+    totalCheckouts: 0,
     cartToPurchaseRate: 0,
     averageOrderValue: 0,
     totalSessions: 0,
@@ -190,27 +193,39 @@ export default function BusinessActivityDashboard() {
             case "add_to_cart":
               type = "add_to_cart";
               status = "added_to_cart";
-              productName = eventData.product_name || "Product";
+              productName = eventData.product_name || extractProductName(event.url) || "Product";
+              break;
+            case "checkout_start":
+              type = "checkout_start";
+              status = "checkout_started";
+              productName = eventData.product_name || extractProductName(event.url) || "Product";
+              break;
+            case "checkout_complete":
+              type = "checkout_complete";
+              status = "checkout_completed";
+              productName = eventData.product_name || extractProductName(event.url) || "Product";
+              amount = eventData.total;
               break;
             case "purchase":
               type = "purchase";
               status = "purchased";
-              productName = `Order ${eventData.order_id || "Unknown"}`;
+              productName = eventData.product_name || `Order ${eventData.order_id || "Unknown"}`;
               amount = eventData.total;
               break;
             case "page_view":
               type = "page_view";
               status = "viewed";
-              productName = "Page View";
+              productName = eventData.product_name || extractProductName(event.url) || "Page";
               break;
             case "product_view":
               type = "product_view";
               status = "viewed";
-              productName = eventData.product_name || "Product";
+              productName = eventData.product_name || extractProductName(event.url) || "Product";
               break;
             default:
               type = "click";
               status = "browsed";
+              productName = extractProductName(event.url) || "Product";
           }
 
           return {
@@ -249,6 +264,7 @@ export default function BusinessActivityDashboard() {
           totalAddToCart: realTimeStats.totalAddToCart || 0,
           totalPageViews: realTimeStats.totalPageViews || 0,
           totalProductViews: realTimeStats.totalProductViews || 0,
+          totalCheckouts: realTimeStats.totalCheckouts || 0,
           cartToPurchaseRate: realTimeStats.cartToPurchaseRate || 0,
           averageOrderValue: realTimeStats.averageOrderValue || 0,
           totalSessions: realTimeStats.totalSessions || 0,
@@ -267,6 +283,9 @@ export default function BusinessActivityDashboard() {
         ).length;
         const totalProductViews = events.filter(
           (e: any) => e.eventType === "product_view",
+        ).length;
+        const totalCheckouts = events.filter(
+          (e: any) => e.eventType === "checkout_start" || e.eventType === "checkout_complete",
         ).length;
 
         const totalRevenue =
@@ -307,6 +326,7 @@ export default function BusinessActivityDashboard() {
           totalAddToCart,
           totalPageViews,
           totalProductViews,
+          totalCheckouts,
           cartToPurchaseRate,
           averageOrderValue,
           totalSessions,
@@ -329,7 +349,40 @@ export default function BusinessActivityDashboard() {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split("/").filter(Boolean);
-      return pathParts[pathParts.length - 1] || "Product";
+      
+      // Try to get the last meaningful part of the URL
+      const lastPart = pathParts[pathParts.length - 1];
+      
+      if (lastPart) {
+        // Clean up the product name
+        let productName = lastPart
+          .replace(/[-_]/g, " ") // Replace hyphens and underscores with spaces
+          .replace(/\.[^/.]+$/, "") // Remove file extensions
+          .replace(/\b\w/g, (l) => l.toUpperCase()) // Capitalize first letter of each word
+          .trim();
+        
+        // If it's too short or generic, try the second to last part
+        if (productName.length < 3 || productName.toLowerCase() === "product") {
+          const secondLastPart = pathParts[pathParts.length - 2];
+          if (secondLastPart) {
+            productName = secondLastPart
+              .replace(/[-_]/g, " ")
+              .replace(/\.[^/.]+$/, "")
+              .replace(/\b\w/g, (l) => l.toUpperCase())
+              .trim();
+          }
+        }
+        
+        return productName || "Product";
+      }
+      
+      // If no path parts, try to extract from domain or return generic
+      const hostname = urlObj.hostname;
+      if (hostname && hostname !== "localhost") {
+        return hostname.replace(/^www\./, "").replace(/\.[^/.]+$/, "");
+      }
+      
+      return "Product";
     } catch {
       return "Product";
     }
@@ -341,6 +394,18 @@ export default function BusinessActivityDashboard() {
         return (
           <Badge className="bg-green-500/20 text-green-300 border-0">
             Purchased
+          </Badge>
+        );
+      case "checkout_completed":
+        return (
+          <Badge className="bg-green-500/20 text-green-300 border-0">
+            Checkout Completed
+          </Badge>
+        );
+      case "checkout_started":
+        return (
+          <Badge className="bg-blue-500/20 text-blue-300 border-0">
+            Checkout Started
           </Badge>
         );
       case "browsed":
@@ -385,6 +450,10 @@ export default function BusinessActivityDashboard() {
         return <ShoppingCart className="h-4 w-4 text-green-600" />;
       case "add_to_cart":
         return <ShoppingCart className="h-4 w-4 text-orange-600" />;
+      case "checkout_start":
+        return <DollarSign className="h-4 w-4 text-blue-600" />;
+      case "checkout_complete":
+        return <DollarSign className="h-4 w-4 text-green-600" />;
       case "page_view":
         return <Eye className="h-4 w-4 text-purple-600" />;
       case "product_view":
@@ -404,10 +473,33 @@ export default function BusinessActivityDashboard() {
     });
   };
 
+  const getTypeDisplayName = (type: string) => {
+    switch (type) {
+      case "click":
+        return "Clicked";
+      case "purchase":
+      case "conversion":
+        return "Purchased";
+      case "add_to_cart":
+        return "Added to Cart";
+      case "checkout_start":
+        return "Checkout Started";
+      case "checkout_complete":
+        return "Checkout Completed";
+      case "page_view":
+        return "Viewed Page";
+      case "product_view":
+        return "Viewed Product";
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+    }
+  };
+
   const filteredActivities = activities.filter((activity) => {
     if (filter === "clicks") return activity.type === "click";
     if (filter === "purchases") return activity.type === "purchase";
     if (filter === "add_to_cart") return activity.type === "add_to_cart";
+    if (filter === "checkout") return activity.type === "checkout_start" || activity.type === "checkout_complete";
     if (filter === "page_views") return activity.type === "page_view";
     return true;
   });
@@ -602,6 +694,21 @@ export default function BusinessActivityDashboard() {
             <p className="text-xs text-white/80">Unique sessions</p>
           </CardContent>
         </Card>
+
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              Checkouts
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.totalCheckouts.toLocaleString()}
+            </div>
+            <p className="text-xs text-white/80">Checkout events</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Summary Insights */}
@@ -675,6 +782,12 @@ export default function BusinessActivityDashboard() {
           Add to Cart
         </Button>
         <Button
+          onClick={() => setFilter("checkout")}
+          className={`${filter === "checkout" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
+        >
+          Checkout
+        </Button>
+        <Button
           onClick={() => setFilter("purchases")}
           className={`${filter === "purchases" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
         >
@@ -739,8 +852,8 @@ export default function BusinessActivityDashboard() {
                       <TableCell className="py-4">
                         <div className="flex items-center gap-2">
                           {getTypeIcon(activity.type)}
-                          <span className="capitalize text-white">
-                            {activity.type}
+                          <span className="text-white">
+                            {getTypeDisplayName(activity.type)}
                           </span>
                         </div>
                       </TableCell>

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useRef, useState, useMemo } from "react";
 const AnimatedGradientBackground = lazy(
   () => import("@/components/ui/animated-gradient-background"),
 );
@@ -13,7 +13,7 @@ const Globe = lazy(() =>
 const DemoLanding: React.FC = () => {
   const [searchUrl, setSearchUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState("de");
+  const [selectedCountry, setSelectedCountry] = useState("ua");
   const navigate = useNavigate();
   const searchBlockRef = useRef<HTMLDivElement | null>(null);
   const [overlayTop, setOverlayTop] = useState<number>(0);
@@ -68,17 +68,33 @@ const DemoLanding: React.FC = () => {
     };
   }, []);
 
-  return (
-    <div className="relative h-screen overflow-hidden">
-      {isClient ? (
+  // Memoize background components to prevent re-rendering when search input changes
+  const backgroundComponents = useMemo(() => ({
+    animatedBackground: (
+      <Suspense
+        fallback={
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
+        }
+      >
+        <AnimatedGradientBackground />
+      </Suspense>
+    ),
+    globe: isClient ? (
+      <div className="pointer-events-none fixed bottom-0 left-1/2 z-[1] -translate-x-1/2 aspect-square h-[400px] md:h-[600px] translate-y-32 md:translate-y-64">
         <Suspense
           fallback={
-            <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
+            <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full animate-pulse" />
           }
         >
-          <AnimatedGradientBackground />
+          <Globe className="top-0" />
         </Suspense>
-      ) : (
+      </div>
+    ) : null,
+  }), [isClient]);
+
+  return (
+    <div className="relative h-screen overflow-hidden">
+      {isClient ? backgroundComponents.animatedBackground : (
         <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
       )}
 
@@ -131,7 +147,7 @@ const DemoLanding: React.FC = () => {
               onCountryChange={setSelectedCountry}
               align="center"
               submitLabel="SEARCH"
-              placeholder="Paste a product URL"
+              placeholder="Enter product URL or search for related keywords"
             />
           </div>
         </section>
@@ -148,17 +164,7 @@ const DemoLanding: React.FC = () => {
       />
 
       {/* Globe fixed to bottom as last element (fill container, centered) */}
-      {isClient && (
-        <div className="pointer-events-none fixed bottom-0 left-1/2 z-[1] -translate-x-1/2 aspect-square h-[400px] md:h-[600px] translate-y-32 md:translate-y-64">
-          <Suspense
-            fallback={
-              <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full animate-pulse" />
-            }
-          >
-            <Globe className="top-0" />
-          </Suspense>
-        </div>
-      )}
+      {backgroundComponents.globe}
     </div>
   );
 };

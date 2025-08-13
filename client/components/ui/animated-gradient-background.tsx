@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useCallback } from "react";
 
 import { cn } from "@/lib/utils";
 import { useDimensions } from "@/hooks/use-debounced-dimensions";
@@ -38,50 +38,57 @@ const AnimatedGradient: React.FC<AnimatedGradientProps> = ({
         ? "blur-3xl"
         : "blur-[100px]";
 
+  // Memoize the gradient circles to prevent re-creation on every render
+  const gradientCircles = useMemo(() => {
+    return colors.map((color, index) => {
+      const animationProps = {
+        animation: `background-gradient ${speed}s infinite ease-in-out`,
+        animationDuration: `${speed}s`,
+        top: `${Math.random() * 50}%`,
+        left: `${Math.random() * 50}%`,
+        "--tx-1": Math.random() - 0.5,
+        "--ty-1": Math.random() - 0.5,
+        "--tx-2": Math.random() - 0.5,
+        "--ty-2": Math.random() - 0.5,
+        "--tx-3": Math.random() - 0.5,
+        "--ty-3": Math.random() - 0.5,
+        "--tx-4": Math.random() - 0.5,
+        "--ty-4": Math.random() - 0.5,
+      } as React.CSSProperties;
+
+      return (
+        <svg
+          key={`${color}-${index}`}
+          className={cn("absolute", "animate-background-gradient")}
+          width={circleSize * randomInt(0.5, 1.5)}
+          height={circleSize * randomInt(0.5, 1.5)}
+          viewBox="0 0 100 100"
+          style={animationProps}
+        >
+          <circle cx="50" cy="50" r="50" fill={color} />
+        </svg>
+      );
+    });
+  }, [colors, speed, circleSize]);
+
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
       <div className={cn(`absolute inset-0`, blurClass)}>
-        {colors.map((color, index) => {
-          const animationProps = {
-            animation: `background-gradient ${speed}s infinite ease-in-out`,
-            animationDuration: `${speed}s`,
-            top: `${Math.random() * 50}%`,
-            left: `${Math.random() * 50}%`,
-            "--tx-1": Math.random() - 0.5,
-            "--ty-1": Math.random() - 0.5,
-            "--tx-2": Math.random() - 0.5,
-            "--ty-2": Math.random() - 0.5,
-            "--tx-3": Math.random() - 0.5,
-            "--ty-3": Math.random() - 0.5,
-            "--tx-4": Math.random() - 0.5,
-            "--ty-4": Math.random() - 0.5,
-          } as React.CSSProperties;
-
-          return (
-            <svg
-              key={index}
-              className={cn("absolute", "animate-background-gradient")}
-              width={circleSize * randomInt(0.5, 1.5)}
-              height={circleSize * randomInt(0.5, 1.5)}
-              viewBox="0 0 100 100"
-              style={animationProps}
-            >
-              <circle cx="50" cy="50" r="50" fill={color} />
-            </svg>
-          );
-        })}
+        {gradientCircles}
       </div>
     </div>
   );
 };
 
 // Main export that matches HeroWave interface
-const AnimatedGradientBackground: React.FC<AnimatedGradientBackgroundProps> = ({
+const AnimatedGradientBackground: React.FC<AnimatedGradientBackgroundProps> = React.memo(({
   fps, // unused but kept for compatibility
   quality = "low", // unused but kept for compatibility
 }) => {
   return <AnimatedGradient speed={5} blur="medium" />;
-};
+});
+
+AnimatedGradientBackground.displayName = "AnimatedGradientBackground";
 
 export default AnimatedGradientBackground;
 export { AnimatedGradient };

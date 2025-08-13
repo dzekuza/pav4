@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import createGlobe, { COBEOptions } from "cobe";
-import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -28,13 +28,13 @@ const GLOBE_CONFIG: COBEOptions = {
   ],
 };
 
-export function Globe({
+export const Globe = React.memo(({
   className,
   config = GLOBE_CONFIG,
 }: {
   className?: string;
   config?: COBEOptions;
-}) {
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
@@ -44,20 +44,20 @@ export function Globe({
   const phiRef = useRef(0);
   const widthRef = useRef(0);
 
-  const updatePointerInteraction = (value: number | null) => {
+  const updatePointerInteraction = useCallback((value: number | null) => {
     pointerInteracting.current = value;
     if (canvasRef.current) {
       canvasRef.current.style.cursor = value !== null ? "grabbing" : "grab";
     }
-  };
+  }, []);
 
-  const updateMovement = (clientX: number) => {
+  const updateMovement = useCallback((clientX: number) => {
     if (pointerInteracting.current !== null) {
       const delta = clientX - pointerInteracting.current;
       pointerInteractionMovement.current = delta;
       setR(delta / 200);
     }
-  };
+  }, []);
 
   const onRender = useCallback(
     (state: Record<string, any>) => {
@@ -148,4 +148,6 @@ export function Globe({
       />
     </div>
   );
-}
+});
+
+Globe.displayName = "Globe";

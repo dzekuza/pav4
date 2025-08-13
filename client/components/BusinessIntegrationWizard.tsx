@@ -71,6 +71,9 @@ export default function BusinessIntegrationWizard({
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
     null,
   );
+  const [scriptPlatform, setScriptPlatform] = useState<Platform | null>(
+    null,
+  );
   const [isTesting, setIsTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -108,6 +111,13 @@ export default function BusinessIntegrationWizard({
       }
     }
   }, [domain, selectedPlatform]);
+
+  // Set default script platform
+  useEffect(() => {
+    if (!scriptPlatform) {
+      setScriptPlatform(platforms.find((p) => p.id === "shopify") || null);
+    }
+  }, [scriptPlatform]);
 
   const platforms: Platform[] = [
     {
@@ -867,6 +877,147 @@ document.addEventListener('DOMContentLoaded', function() {
                     )}
                   </Button>
                 </div>
+              </div>
+
+              {/* Your Script Section */}
+              <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-medium text-white">📜 Your Script</h4>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={testScriptPresence}
+                      disabled={isTesting}
+                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                    >
+                      {isTesting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Test Script
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (scriptPlatform) {
+                          navigator.clipboard.writeText(scriptPlatform.scriptTemplate);
+                          toast({
+                            title: "Script Copied!",
+                            description: "Your tracking script has been copied to clipboard",
+                          });
+                        }
+                      }}
+                      disabled={!scriptPlatform}
+                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Script
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Platform Selection for Script */}
+                <div className="mb-4">
+                  <Label className="text-white text-sm mb-2 block">Select Platform:</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      { id: "shopify", name: "Shopify", icon: "🛍️" },
+                      { id: "woocommerce", name: "WooCommerce", icon: "🛒" },
+                      { id: "magento", name: "Magento", icon: "🏢" },
+                      { id: "custom", name: "Custom", icon: "🌐" }
+                    ].map((platform) => (
+                      <button
+                        key={platform.id}
+                        onClick={() => setScriptPlatform(platforms.find(p => p.id === platform.id) || null)}
+                        className={`p-2 rounded-lg border text-sm transition-all ${
+                          scriptPlatform?.id === platform.id
+                            ? "border-white bg-white/10 text-white"
+                            : "border-white/10 hover:border-white/20 bg-white/5 text-white/70 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{platform.icon}</span>
+                          <span>{platform.name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {scriptPlatform && (
+                  <>
+                    <div className="bg-black/40 border border-white/10 rounded-lg p-4 mb-4">
+                      <pre className="text-xs overflow-x-auto text-white">
+                        <code>{scriptPlatform.scriptTemplate}</code>
+                      </pre>
+                    </div>
+
+                    <div className="text-sm text-white/70 space-y-2">
+                      <p><strong>Need to re-add your script?</strong></p>
+                      <ul className="list-disc list-inside space-y-1 ml-4">
+                        <li>Copy the script above</li>
+                        <li>Add it to your website's &lt;head&gt; section</li>
+                        {scriptPlatform.id === "shopify" && (
+                          <li>For Shopify: Add to theme.liquid file in your theme</li>
+                        )}
+                        {scriptPlatform.id === "woocommerce" && (
+                          <li>For WooCommerce: Add to header.php or use a plugin</li>
+                        )}
+                        {scriptPlatform.id === "magento" && (
+                          <li>For Magento: Add to default_head_blocks.xml</li>
+                        )}
+                        {scriptPlatform.id === "custom" && (
+                          <li>For Custom: Add to your main HTML template</li>
+                        )}
+                      </ul>
+                      <p className="mt-3 text-xs">
+                        <strong>Tip:</strong> The script automatically loads enhanced tracking features and debugging tools.
+                      </p>
+                    </div>
+
+                    {/* Test Results Display */}
+                    {testResults.length > 0 && (
+                      <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
+                        <h6 className="font-medium text-white mb-3">Script Test Results:</h6>
+                        <div className="space-y-2">
+                          {testResults.map((result, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                            >
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  result.status === "success"
+                                    ? "bg-green-400"
+                                    : result.status === "error"
+                                      ? "bg-red-400"
+                                      : "bg-yellow-400"
+                                }`}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-white">
+                                  {result.event}
+                                </div>
+                                <div className="text-xs text-white/70">
+                                  {result.details}
+                                </div>
+                              </div>
+                              <div className="text-xs text-white/60">
+                                {new Date(result.timestamp).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Quick Actions */}
