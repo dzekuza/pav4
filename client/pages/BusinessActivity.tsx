@@ -17,10 +17,10 @@ import { useBusinessAuth } from "@/hooks/use-auth";
 
 interface ActivityItem {
   id: string;
-  type: "click" | "purchase";
+  type: "click" | "purchase" | "add_to_cart" | "checkout_start" | "checkout_complete" | "page_view" | "product_view";
   productName: string;
   productUrl: string;
-  status: "browsed" | "purchased" | "abandoned";
+  status: "browsed" | "purchased" | "abandoned" | "added to cart" | "checkout started" | "checkout completed" | "viewed";
   amount?: number;
   timestamp: string;
   userAgent?: string;
@@ -34,7 +34,7 @@ export default function BusinessActivity() {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "clicks" | "purchases">("all");
+  const [filter, setFilter] = useState<"all" | "clicks" | "purchases" | "add_to_cart" | "checkout" | "page_views">("all");
   const [stats, setStats] = useState({
     totalClicks: 0,
     totalPurchases: 0,
@@ -50,10 +50,11 @@ export default function BusinessActivity() {
     try {
       setIsLoading(true);
 
-      // Fetch both click logs and conversions
-      const [clicksResponse, conversionsResponse] = await Promise.all([
+      // Fetch click logs, conversions, and tracking events
+      const [clicksResponse, conversionsResponse, eventsResponse] = await Promise.all([
         fetch("/api/business/activity/clicks", { credentials: "include" }),
         fetch("/api/business/activity/conversions", { credentials: "include" }),
+        fetch("/api/business/activity/events", { credentials: "include" }),
       ]);
 
       const clicksJson = clicksResponse.ok
@@ -62,6 +63,9 @@ export default function BusinessActivity() {
       const conversionsJson = conversionsResponse.ok
         ? await conversionsResponse.json()
         : { conversions: [] };
+      const eventsJson = eventsResponse.ok
+        ? await eventsResponse.json()
+        : { events: [] };
 
       const clicks = Array.isArray(clicksJson)
         ? clicksJson
@@ -69,6 +73,9 @@ export default function BusinessActivity() {
       const conversions = Array.isArray(conversionsJson)
         ? conversionsJson
         : conversionsJson.conversions || [];
+      const events = Array.isArray(eventsJson)
+        ? eventsJson
+        : eventsJson.events || [];
 
       // Combine and format the data
       const combinedActivities: ActivityItem[] = [
@@ -93,6 +100,24 @@ export default function BusinessActivity() {
           timestamp: conversion.timestamp,
           customerId: conversion.customerId,
         })),
+        ...events.map((event: any) => {
+          const eventData = typeof event.eventData === 'string' 
+            ? JSON.parse(event.eventData) 
+            : event.eventData || {};
+          
+          return {
+            id: `event-${event.id}`,
+            type: event.eventType as any,
+            productName: getEventProductName(event, eventData),
+            productUrl: event.url || eventData.url || '',
+            status: getEventStatus(event.eventType),
+            amount: eventData.total || eventData.value || eventData.price,
+            timestamp: event.timestamp,
+            userAgent: event.userAgent,
+            referrer: event.referrer,
+            ip: event.ipAddress,
+          };
+        }),
       ];
 
       // Sort by timestamp (newest first)
@@ -103,20 +128,30 @@ export default function BusinessActivity() {
 
       setActivities(combinedActivities);
 
-      // Calculate stats
+      // Calculate stats including tracking events
       const totalClicks = clicks.length;
       const totalPurchases = conversions.length;
       const totalRevenue = conversions.reduce(
         (sum: number, conv: any) => sum + conv.amount,
         0,
       );
+      
+      // Add revenue from tracking events
+      const trackingRevenue = events.reduce((sum: number, event: any) => {
+        const eventData = typeof event.eventData === 'string' 
+          ? JSON.parse(event.eventData) 
+          : event.eventData || {};
+        return sum + (eventData.total || eventData.value || 0);
+      }, 0);
+      
+      const totalRevenueCombined = totalRevenue + trackingRevenue;
       const conversionRate =
         totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
 
       setStats({
         totalClicks,
         totalPurchases,
-        totalRevenue,
+        totalRevenue: totalRevenueCombined,
         conversionRate,
       });
     } catch (error) {
@@ -143,6 +178,50 @@ export default function BusinessActivity() {
     }
   };
 
+  const getEventProductName = (event: any, eventData: any): string => {
+    // Try to get product name from event data first
+    if (eventData.productName || eventData.title) {
+      return eventData.productName || eventData.title;
+    }
+    
+    // Try to extract from URL
+    if (event.url) {
+      return extractProductName(event.url);
+    }
+    
+    // Default based on event type
+    switch (event.eventType) {
+      case 'page_view':
+        return 'Page View';
+      case 'checkout_start':
+      case 'checkout_complete':
+        return 'Checkout';
+      case 'add_to_cart':
+        return eventData.productName || 'Product Added to Cart';
+      default:
+        return 'Product';
+    }
+  };
+
+  const getEventStatus = (eventType: string): string => {
+    switch (eventType) {
+      case 'add_to_cart':
+        return 'added to cart';
+      case 'checkout_start':
+        return 'checkout started';
+      case 'checkout_complete':
+        return 'checkout completed';
+      case 'page_view':
+        return 'viewed';
+      case 'product_view':
+        return 'viewed';
+      case 'purchase':
+        return 'purchased';
+      default:
+        return 'viewed';
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "purchased":
@@ -151,8 +230,28 @@ export default function BusinessActivity() {
             Purchased
           </Badge>
         );
+      case "checkout completed":
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            Checkout Completed
+          </Badge>
+        );
+      case "checkout started":
+        return (
+          <Badge variant="default" className="bg-blue-100 text-blue-800">
+            Checkout Started
+          </Badge>
+        );
+      case "added to cart":
+        return (
+          <Badge variant="default" className="bg-orange-100 text-orange-800">
+            Added to Cart
+          </Badge>
+        );
       case "browsed":
         return <Badge variant="secondary">Browsed</Badge>;
+      case "viewed":
+        return <Badge variant="secondary">Viewed</Badge>;
       case "abandoned":
         return <Badge variant="destructive">Abandoned</Badge>;
       default:
@@ -166,6 +265,16 @@ export default function BusinessActivity() {
         return <Eye className="h-4 w-4 text-blue-500" />;
       case "purchase":
         return <ShoppingCart className="h-4 w-4 text-green-500" />;
+      case "add_to_cart":
+        return <ShoppingCart className="h-4 w-4 text-orange-500" />;
+      case "checkout_start":
+        return <DollarSign className="h-4 w-4 text-blue-500" />;
+      case "checkout_complete":
+        return <DollarSign className="h-4 w-4 text-green-500" />;
+      case "page_view":
+        return <Eye className="h-4 w-4 text-gray-500" />;
+      case "product_view":
+        return <Eye className="h-4 w-4 text-purple-500" />;
       default:
         return <Eye className="h-4 w-4" />;
     }
@@ -175,6 +284,9 @@ export default function BusinessActivity() {
     if (filter === "all") return true;
     if (filter === "clicks") return activity.type === "click";
     if (filter === "purchases") return activity.type === "purchase";
+    if (filter === "add_to_cart") return activity.type === "add_to_cart";
+    if (filter === "checkout") return activity.type === "checkout_start" || activity.type === "checkout_complete";
+    if (filter === "page_views") return activity.type === "page_view" || activity.type === "product_view";
     return true;
   });
 
@@ -217,7 +329,7 @@ export default function BusinessActivity() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white">
@@ -277,11 +389,41 @@ export default function BusinessActivity() {
               <p className="text-xs text-white/80">Click to purchase ratio</p>
             </CardContent>
           </Card>
+
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">
+                Add to Cart
+              </CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {activities.filter(a => a.type === 'add_to_cart').length.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Cart additions</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">
+                Checkouts
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {activities.filter(a => a.type === 'checkout_start' || a.type === 'checkout_complete').length.toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Checkout events</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filter Controls */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               size="sm"
               onClick={() => setFilter("all")}
@@ -298,10 +440,31 @@ export default function BusinessActivity() {
             </Button>
             <Button
               size="sm"
+              onClick={() => setFilter("add_to_cart")}
+              className={`${filter === "add_to_cart" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
+            >
+              Add to Cart
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setFilter("checkout")}
+              className={`${filter === "checkout" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
+            >
+              Checkout
+            </Button>
+            <Button
+              size="sm"
               onClick={() => setFilter("purchases")}
               className={`${filter === "purchases" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
             >
               Purchases Only
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setFilter("page_views")}
+              className={`${filter === "page_views" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
+            >
+              Page Views
             </Button>
           </div>
           <Button
