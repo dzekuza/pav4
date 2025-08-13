@@ -26,12 +26,6 @@
     affiliateId = urlParams.get('utm_medium') || urlParams.get('affiliate_id');
   }
 
-  // For godislove.lt, use hardcoded values as fallback
-  if (window.location.hostname === 'godislove.lt') {
-    if (!businessId) businessId = '2'; // Business ID for godislove.lt
-    if (!affiliateId) affiliateId = 'pavlo4'; // Default affiliate ID
-  }
-
   // Validate required parameters
   if (!businessId || !affiliateId) {
     console.error(

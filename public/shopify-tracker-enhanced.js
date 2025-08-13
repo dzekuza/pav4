@@ -11,6 +11,7 @@
     sessionId: generateSessionId(),
     pageLoadTime: Date.now(),
     eventsSent: [],
+    lastEventTime: {}, // Track last event time per type to prevent rapid duplicates
   };
 
   // Initialize tracking
@@ -318,6 +319,14 @@
   function setupEventListeners() {
     log("Setting up event listeners...");
 
+    // Use event delegation to prevent multiple handlers
+    let isListenerSetup = false;
+    if (isListenerSetup) {
+      log("Event listeners already setup, skipping", "warn");
+      return;
+    }
+    isListenerSetup = true;
+
     // Track add to cart events
     document.addEventListener("click", function (e) {
       const target = e.target;
@@ -356,7 +365,8 @@
       // Track cart changes via Shopify's cart API
       if (window.Shopify.theme.cart) {
         const originalAddItem = window.Shopify.theme.cart.addItem;
-        if (originalAddItem) {
+        if (originalAddItem && !window.Shopify.theme.cart._pricehuntWrapped) {
+          window.Shopify.theme.cart._pricehuntWrapped = true;
           window.Shopify.theme.cart.addItem = function (...args) {
             log("Shopify cart.addItem called with args:", args);
             const result = originalAddItem.apply(this, args);
@@ -720,6 +730,16 @@
       log("Duplicate event detected, skipping: " + eventData.event_type, "warn");
       return;
     }
+    
+    // Prevent rapid duplicate events (same type within 2 seconds)
+    const now = Date.now();
+    const lastTime = config.lastEventTime[eventData.event_type] || 0;
+    if (now - lastTime < 2000) {
+      log("Rapid duplicate event detected, skipping: " + eventData.event_type, "warn");
+      return;
+    }
+    config.lastEventTime[eventData.event_type] = now;
+    
     config.eventsSent.push(eventKey);
     
     // Keep only last 50 events to prevent memory leaks

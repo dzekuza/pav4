@@ -45,6 +45,37 @@ export const trackEvent: RequestHandler = async (req, res) => {
       });
     }
 
+    // Check for duplicate events (same session, event type, and similar data within 5 seconds)
+    if (session_id) {
+      const fiveSecondsAgo = new Date(Date.now() - 5000);
+      const existingEvent = await prisma.trackingEvent.findFirst({
+        where: {
+          sessionId: session_id,
+          eventType: event_type,
+          timestamp: {
+            gte: fiveSecondsAgo,
+          },
+          businessId: parseInt(business_id),
+        },
+        orderBy: {
+          timestamp: 'desc',
+        },
+      });
+
+      if (existingEvent) {
+        console.log("Duplicate event detected, skipping:", {
+          event_type,
+          session_id,
+          existing_event_id: existingEvent.id,
+        });
+        return res.status(200).json({
+          success: true,
+          message: "Duplicate event skipped",
+          event_id: existingEvent.id,
+        });
+      }
+    }
+
     // Check if business exists
     console.log("Checking business with ID:", business_id);
     const business = await prisma.business.findUnique({
