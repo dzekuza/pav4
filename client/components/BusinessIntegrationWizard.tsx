@@ -132,11 +132,316 @@ export default function BusinessIntegrationWizard({
         "AJAX cart support",
         "Comprehensive debugging",
         "Debug functions",
+        "Web Pixels API support",
+        "Enhanced checkout tracking",
+        "Complete event coverage",
       ],
       get scriptTemplate() {
         return `<!-- PriceHunt Shopify Integration -->
 <script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}" data-debug="true"></script>
-<!-- End PriceHunt Shopify Integration -->`;
+<!-- End PriceHunt Shopify Integration -->
+
+<!-- Alternative: Shopify Web Pixel (Recommended for Checkout Tracking) -->
+<!-- 
+To use Shopify's official Web Pixels API for enhanced checkout tracking:
+
+1. Go to Shopify Admin → Settings → Apps and sales channels
+2. Click "Develop apps" → "Create an app"
+3. Name your app: "PriceHunt Web Pixel"
+4. Go to "Extensions" → "Add extension" → "Web pixel"
+5. Use this code in your web pixel extension:
+
+import {register} from '@shopify/web-pixels-extension';
+
+register(({analytics}) => {
+  const config = {
+    apiUrl: "https://pavlo4.netlify.app/.netlify/functions/track-event",
+    businessId: "${business?.id || "YOUR_BUSINESS_ID"}",
+    affiliateId: "${business?.affiliateId || "YOUR_AFFILIATE_ID"}",
+    apiKey: "16272754ed68cbdcb55e8f579703d92e"
+  };
+
+  function extractBusinessId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('business_id') || 
+           urlParams.get('utm_source') || 
+           config.businessId;
+  }
+
+  function extractAffiliateId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('affiliate_id') || 
+           urlParams.get('utm_medium') || 
+           config.affiliateId;
+  }
+
+  function generateSessionId() {
+    return \`webpixel_\${Date.now()}_\${Math.random().toString(36).substr(2, 9)}\`;
+  }
+
+  function sendTrackingData(eventType, data) {
+    const businessId = extractBusinessId();
+    const affiliateId = extractAffiliateId();
+    
+    const trackingData = {
+      event_type: eventType,
+      business_id: businessId,
+      affiliate_id: affiliateId,
+      platform: "shopify",
+      session_id: generateSessionId(),
+      user_agent: navigator.userAgent,
+      referrer: document.referrer,
+      timestamp: Date.now(),
+      url: window.location.href,
+      page_title: document.title,
+      data: {
+        ...data,
+        shop_domain: window.location.hostname,
+        source: "shopify-web-pixel"
+      }
+    };
+
+    fetch(config.apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": \`Bearer \${config.apiKey}\`
+      },
+      body: JSON.stringify(trackingData),
+      keepalive: true
+    })
+    .then(response => {
+      if (response.ok) {
+        console.log(\`[PriceHunt Web Pixel] \${eventType} event sent successfully\`);
+        return response.json();
+      } else {
+        throw new Error(\`HTTP \${response.status}\`);
+      }
+    })
+    .catch(error => {
+      console.error(\`[PriceHunt Web Pixel] Failed to send \${eventType} event:\`, error);
+    });
+  }
+
+  // Track all events
+  analytics.subscribe('page_viewed', (event) => {
+    const pageData = {
+      page_title: event.data.page.title,
+      page_url: event.data.page.url,
+      page_type: event.data.page.type,
+      page_id: event.data.page.id
+    };
+    if (event.data.cart) {
+      pageData.cart = {
+        id: event.data.cart.id,
+        total_price: event.data.cart.totalPrice?.amount,
+        currency: event.data.cart.totalPrice?.currencyCode,
+        item_count: event.data.cart.lineItems?.length || 0
+      };
+    }
+    if (event.data.customer) {
+      pageData.customer = {
+        id: event.data.customer.id,
+        email: event.data.customer.email,
+        first_name: event.data.customer.firstName,
+        last_name: event.data.customer.lastName
+      };
+    }
+    sendTrackingData('page_view', pageData);
+  });
+
+  analytics.subscribe('product_viewed', (event) => {
+    const product = event.data.product;
+    const productData = {
+      product_id: product.id,
+      product_name: product.title,
+      product_type: product.productType,
+      vendor: product.vendor,
+      price: product.price?.amount,
+      currency: product.price?.currencyCode,
+      compare_at_price: product.compareAtPrice?.amount,
+      available: product.availableForSale,
+      tags: product.tags,
+      category: product.productType
+    };
+    if (event.data.variant) {
+      const variant = event.data.variant;
+      productData.variant = {
+        id: variant.id,
+        title: variant.title,
+        price: variant.price?.amount,
+        compare_at_price: variant.compareAtPrice?.amount,
+        available: variant.availableForSale,
+        sku: variant.sku,
+        barcode: variant.barcode
+      };
+    }
+    sendTrackingData('product_view', productData);
+  });
+
+  analytics.subscribe('product_added_to_cart', (event) => {
+    const product = event.data.product;
+    const variant = event.data.variant;
+    const cartData = {
+      product_id: product.id,
+      product_name: product.title,
+      product_type: product.productType,
+      vendor: product.vendor,
+      variant_id: variant.id,
+      variant_title: variant.title,
+      price: variant.price?.amount,
+      currency: variant.price?.currencyCode,
+      quantity: event.data.quantity,
+      total_price: (parseFloat(variant.price?.amount || 0) * event.data.quantity).toString()
+    };
+    if (event.data.cart) {
+      cartData.cart = {
+        id: event.data.cart.id,
+        total_price: event.data.cart.totalPrice?.amount,
+        item_count: event.data.cart.lineItems?.length || 0
+      };
+    }
+    sendTrackingData('add_to_cart', cartData);
+  });
+
+  analytics.subscribe('checkout_started', (event) => {
+    const checkout = event.data.checkout;
+    const checkoutData = {
+      checkout_id: checkout.id,
+      total_price: checkout.totalPrice?.amount,
+      currency: checkout.totalPrice?.currencyCode,
+      subtotal_price: checkout.subtotalPrice?.amount,
+      total_tax: checkout.totalTax?.amount,
+      total_discounts: checkout.totalDiscounts?.amount,
+      item_count: checkout.lineItems?.length || 0,
+      email: checkout.email,
+      phone: checkout.phone,
+      customer_id: checkout.customer?.id
+    };
+    if (checkout.lineItems) {
+      checkoutData.items = checkout.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount,
+        discount: item.discountAllocations?.[0]?.amount
+      }));
+    }
+    if (checkout.discountApplications) {
+      checkoutData.discount_codes = checkout.discountApplications
+        .filter(discount => discount.type === 'DISCOUNT_CODE')
+        .map(discount => discount.title);
+    }
+    sendTrackingData('checkout_start', checkoutData);
+  });
+
+  analytics.subscribe('checkout_completed', (event) => {
+    const checkout = event.data.checkout;
+    const orderData = {
+      checkout_id: checkout.id,
+      order_id: checkout.order?.id,
+      total_price: checkout.totalPrice?.amount,
+      currency: checkout.totalPrice?.currencyCode,
+      subtotal_price: checkout.subtotalPrice?.amount,
+      total_tax: checkout.totalTax?.amount,
+      total_discounts: checkout.totalDiscounts?.amount,
+      item_count: checkout.lineItems?.length || 0,
+      email: checkout.email,
+      phone: checkout.phone,
+      customer_id: checkout.customer?.id,
+      shipping_address: checkout.shippingAddress ? {
+        first_name: checkout.shippingAddress.firstName,
+        last_name: checkout.shippingAddress.lastName,
+        address1: checkout.shippingAddress.address1,
+        address2: checkout.shippingAddress.address2,
+        city: checkout.shippingAddress.city,
+        province: checkout.shippingAddress.province,
+        country: checkout.shippingAddress.country,
+        zip: checkout.shippingAddress.zip
+      } : null,
+      billing_address: checkout.billingAddress ? {
+        first_name: checkout.billingAddress.firstName,
+        last_name: checkout.billingAddress.lastName,
+        address1: checkout.billingAddress.address1,
+        address2: checkout.billingAddress.address2,
+        city: checkout.billingAddress.city,
+        province: checkout.billingAddress.province,
+        country: checkout.billingAddress.country,
+        zip: checkout.billingAddress.zip
+      } : null
+    };
+    if (checkout.lineItems) {
+      orderData.items = checkout.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount,
+        discount: item.discountAllocations?.[0]?.amount,
+        sku: item.variant?.sku,
+        barcode: item.variant?.barcode
+      }));
+    }
+    if (checkout.discountApplications) {
+      orderData.discount_codes = checkout.discountApplications
+        .filter(discount => discount.type === 'DISCOUNT_CODE')
+        .map(discount => discount.title);
+    }
+    if (checkout.paymentTerms) {
+      orderData.payment_terms = checkout.paymentTerms;
+    }
+    sendTrackingData('purchase_complete', orderData);
+  });
+
+  analytics.subscribe('cart_viewed', (event) => {
+    const cart = event.data.cart;
+    const cartData = {
+      cart_id: cart.id,
+      total_price: cart.totalPrice?.amount,
+      currency: cart.totalPrice?.currencyCode,
+      subtotal_price: cart.subtotalPrice?.amount,
+      total_tax: cart.totalTax?.amount,
+      total_discounts: cart.totalDiscounts?.amount,
+      item_count: cart.lineItems?.length || 0
+    };
+    if (cart.lineItems) {
+      cartData.items = cart.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount
+      }));
+    }
+    sendTrackingData('cart_view', cartData);
+  });
+
+  analytics.subscribe('collection_viewed', (event) => {
+    const collection = event.data.collection;
+    const collectionData = {
+      collection_id: collection.id,
+      collection_title: collection.title,
+      collection_handle: collection.handle,
+      collection_description: collection.description,
+      products_count: collection.productsCount
+    };
+    sendTrackingData('collection_view', collectionData);
+  });
+
+  analytics.subscribe('search_submitted', (event) => {
+    const searchData = {
+      search_term: event.data.searchTerm,
+      results_count: event.data.resultsCount
+    };
+    sendTrackingData('search', searchData);
+  });
+
+  console.log('[PriceHunt Web Pixel] Web pixel registered successfully with comprehensive event tracking');
+});
+
+-->
+`;
       },
     },
     {
@@ -1422,6 +1727,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <li>
                       7. The loader will automatically fetch the full tracking
                       script
+                    </li>
+                    <li>
+                      8. <strong>For Shopify:</strong> Consider using Web Pixels API for enhanced checkout tracking
                     </li>
                   </ol>
                 </div>

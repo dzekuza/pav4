@@ -106,15 +106,14 @@
 
         <h2>📋 Events Tracked</h2>
         <ul>
-            <li><strong>Page Views:</strong> Every page visit with detailed page information</li>
-            <li><strong>Product Views:</strong> Product page interactions with complete product data</li>
-            <li><strong>Cart Views:</strong> Cart page visits with item details</li>
-            <li><strong>Add to Cart:</strong> Product additions with variant information</li>
-            <li><strong>Checkout Started:</strong> Checkout initiation with cart details</li>
-            <li><strong>Checkout Completed:</strong> Purchase completion with full order data</li>
-            <li><strong>Checkout Steps:</strong> Address, shipping, and payment submissions</li>
-            <li><strong>Collection Views:</strong> Collection page visits</li>
-            <li><strong>Search:</strong> Search queries and results</li>
+            <li><strong>Page Views:</strong> Every page visit with detailed page information, cart context, and customer data</li>
+            <li><strong>Product Views:</strong> Product page interactions with complete product data, variants, pricing, and availability</li>
+            <li><strong>Cart Views:</strong> Cart page visits with detailed item information and totals</li>
+            <li><strong>Add to Cart:</strong> Product additions with variant information, pricing, and cart context</li>
+            <li><strong>Checkout Started:</strong> Checkout initiation with complete cart details, line items, and discount codes</li>
+            <li><strong>Checkout Completed:</strong> Purchase completion with full order data, shipping/billing addresses, and payment terms</li>
+            <li><strong>Collection Views:</strong> Collection page visits with collection metadata</li>
+            <li><strong>Search:</strong> Search queries and results count</li>
         </ul>
 
         <h2>🚀 Installation Methods</h2>
@@ -161,6 +160,11 @@ register(({analytics}) => {
            config.affiliateId;
   }
 
+  // Generate unique session ID
+  function generateSessionId() {
+    return `webpixel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   // Send tracking data to our API
   function sendTrackingData(eventType, data) {
     const businessId = extractBusinessId();
@@ -171,7 +175,7 @@ register(({analytics}) => {
       business_id: businessId,
       affiliate_id: affiliateId,
       platform: "shopify",
-      session_id: `webpixel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      session_id: generateSessionId(),
       user_agent: navigator.userAgent,
       referrer: document.referrer,
       timestamp: Date.now(),
@@ -207,6 +211,148 @@ register(({analytics}) => {
     });
   }
 
+  // Track page viewed events
+  analytics.subscribe('page_viewed', (event) => {
+    console.log('[ipick Web Pixel] Page viewed event:', event);
+    
+    const pageData = {
+      page_title: event.data.page.title,
+      page_url: event.data.page.url,
+      page_type: event.data.page.type,
+      page_id: event.data.page.id
+    };
+
+    // Add cart data if available
+    if (event.data.cart) {
+      pageData.cart = {
+        id: event.data.cart.id,
+        total_price: event.data.cart.totalPrice?.amount,
+        currency: event.data.cart.totalPrice?.currencyCode,
+        item_count: event.data.cart.lineItems?.length || 0
+      };
+    }
+
+    // Add customer data if available
+    if (event.data.customer) {
+      pageData.customer = {
+        id: event.data.customer.id,
+        email: event.data.customer.email,
+        first_name: event.data.customer.firstName,
+        last_name: event.data.customer.lastName
+      };
+    }
+
+    sendTrackingData('page_view', pageData);
+  });
+
+  // Track product viewed events
+  analytics.subscribe('product_viewed', (event) => {
+    console.log('[ipick Web Pixel] Product viewed event:', event);
+    
+    const product = event.data.product;
+    const productData = {
+      product_id: product.id,
+      product_name: product.title,
+      product_type: product.productType,
+      vendor: product.vendor,
+      price: product.price?.amount,
+      currency: product.price?.currencyCode,
+      compare_at_price: product.compareAtPrice?.amount,
+      available: product.availableForSale,
+      tags: product.tags,
+      category: product.productType
+    };
+
+    // Add variant data if available
+    if (event.data.variant) {
+      const variant = event.data.variant;
+      productData.variant = {
+        id: variant.id,
+        title: variant.title,
+        price: variant.price?.amount,
+        compare_at_price: variant.compareAtPrice?.amount,
+        available: variant.availableForSale,
+        sku: variant.sku,
+        barcode: variant.barcode
+      };
+    }
+
+    sendTrackingData('product_view', productData);
+  });
+
+  // Track add to cart events
+  analytics.subscribe('product_added_to_cart', (event) => {
+    console.log('[ipick Web Pixel] Product added to cart event:', event);
+    
+    const product = event.data.product;
+    const variant = event.data.variant;
+    
+    const cartData = {
+      product_id: product.id,
+      product_name: product.title,
+      product_type: product.productType,
+      vendor: product.vendor,
+      variant_id: variant.id,
+      variant_title: variant.title,
+      price: variant.price?.amount,
+      currency: variant.price?.currencyCode,
+      quantity: event.data.quantity,
+      total_price: (parseFloat(variant.price?.amount || 0) * event.data.quantity).toString()
+    };
+
+    // Add cart context if available
+    if (event.data.cart) {
+      cartData.cart = {
+        id: event.data.cart.id,
+        total_price: event.data.cart.totalPrice?.amount,
+        item_count: event.data.cart.lineItems?.length || 0
+      };
+    }
+
+    sendTrackingData('add_to_cart', cartData);
+  });
+
+  // Track checkout started events
+  analytics.subscribe('checkout_started', (event) => {
+    console.log('[ipick Web Pixel] Checkout started event:', event);
+    
+    const checkout = event.data.checkout;
+    
+    const checkoutData = {
+      checkout_id: checkout.id,
+      total_price: checkout.totalPrice?.amount,
+      currency: checkout.totalPrice?.currencyCode,
+      subtotal_price: checkout.subtotalPrice?.amount,
+      total_tax: checkout.totalTax?.amount,
+      total_discounts: checkout.totalDiscounts?.amount,
+      item_count: checkout.lineItems?.length || 0,
+      email: checkout.email,
+      phone: checkout.phone,
+      customer_id: checkout.customer?.id
+    };
+
+    // Extract line items
+    if (checkout.lineItems) {
+      checkoutData.items = checkout.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount,
+        discount: item.discountAllocations?.[0]?.amount
+      }));
+    }
+
+    // Extract discount codes
+    if (checkout.discountApplications) {
+      checkoutData.discount_codes = checkout.discountApplications
+        .filter(discount => discount.type === 'DISCOUNT_CODE')
+        .map(discount => discount.title);
+    }
+
+    sendTrackingData('checkout_start', checkoutData);
+  });
+
   // Track checkout completed events (most important!)
   analytics.subscribe('checkout_completed', (event) => {
     console.log('[ipick Web Pixel] Checkout completed event:', event);
@@ -224,7 +370,27 @@ register(({analytics}) => {
       item_count: checkout.lineItems?.length || 0,
       email: checkout.email,
       phone: checkout.phone,
-      customer_id: checkout.customer?.id
+      customer_id: checkout.customer?.id,
+      shipping_address: checkout.shippingAddress ? {
+        first_name: checkout.shippingAddress.firstName,
+        last_name: checkout.shippingAddress.lastName,
+        address1: checkout.shippingAddress.address1,
+        address2: checkout.shippingAddress.address2,
+        city: checkout.shippingAddress.city,
+        province: checkout.shippingAddress.province,
+        country: checkout.shippingAddress.country,
+        zip: checkout.shippingAddress.zip
+      } : null,
+      billing_address: checkout.billingAddress ? {
+        first_name: checkout.billingAddress.firstName,
+        last_name: checkout.billingAddress.lastName,
+        address1: checkout.billingAddress.address1,
+        address2: checkout.billingAddress.address2,
+        city: checkout.billingAddress.city,
+        province: checkout.billingAddress.province,
+        country: checkout.billingAddress.country,
+        zip: checkout.billingAddress.zip
+      } : null
     };
 
     // Extract line items
@@ -235,55 +401,87 @@ register(({analytics}) => {
         title: item.title,
         quantity: item.quantity,
         price: item.cost?.totalAmount?.amount,
-        discount: item.discountAllocations?.[0]?.amount
+        discount: item.discountAllocations?.[0]?.amount,
+        sku: item.variant?.sku,
+        barcode: item.variant?.barcode
       }));
+    }
+
+    // Extract discount codes
+    if (checkout.discountApplications) {
+      orderData.discount_codes = checkout.discountApplications
+        .filter(discount => discount.type === 'DISCOUNT_CODE')
+        .map(discount => discount.title);
+    }
+
+    // Extract payment information
+    if (checkout.paymentTerms) {
+      orderData.payment_terms = checkout.paymentTerms;
     }
 
     sendTrackingData('purchase_complete', orderData);
   });
 
-  // Track other events
-  analytics.subscribe('page_viewed', (event) => {
-    sendTrackingData('page_view', {
-      page_title: event.data.page.title,
-      page_url: event.data.page.url,
-      page_type: event.data.page.type
-    });
-  });
-
-  analytics.subscribe('product_viewed', (event) => {
-    const product = event.data.product;
-    sendTrackingData('product_view', {
-      product_id: product.id,
-      product_name: product.title,
-      price: product.price?.amount,
-      currency: product.price?.currencyCode
-    });
-  });
-
-  analytics.subscribe('product_added_to_cart', (event) => {
-    const product = event.data.product;
-    const variant = event.data.variant;
+  // Track cart viewed events
+  analytics.subscribe('cart_viewed', (event) => {
+    console.log('[ipick Web Pixel] Cart viewed event:', event);
     
-    sendTrackingData('add_to_cart', {
-      product_id: product.id,
-      product_name: product.title,
-      variant_id: variant.id,
-      price: variant.price?.amount,
-      quantity: event.data.quantity
-    });
+    const cart = event.data.cart;
+    
+    const cartData = {
+      cart_id: cart.id,
+      total_price: cart.totalPrice?.amount,
+      currency: cart.totalPrice?.currencyCode,
+      subtotal_price: cart.subtotalPrice?.amount,
+      total_tax: cart.totalTax?.amount,
+      total_discounts: cart.totalDiscounts?.amount,
+      item_count: cart.lineItems?.length || 0
+    };
+
+    // Extract line items
+    if (cart.lineItems) {
+      cartData.items = cart.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount
+      }));
+    }
+
+    sendTrackingData('cart_view', cartData);
   });
 
-  analytics.subscribe('checkout_started', (event) => {
-    const checkout = event.data.checkout;
-    sendTrackingData('checkout_start', {
-      checkout_id: checkout.id,
-      total_price: checkout.totalPrice?.amount,
-      item_count: checkout.lineItems?.length || 0
-    });
+  // Track collection viewed events
+  analytics.subscribe('collection_viewed', (event) => {
+    console.log('[ipick Web Pixel] Collection viewed event:', event);
+    
+    const collection = event.data.collection;
+    
+    const collectionData = {
+      collection_id: collection.id,
+      collection_title: collection.title,
+      collection_handle: collection.handle,
+      collection_description: collection.description,
+      products_count: collection.productsCount
+    };
+
+    sendTrackingData('collection_view', collectionData);
   });
 
-  console.log('[ipick Web Pixel] Web pixel registered successfully');
+  // Track search events
+  analytics.subscribe('search_submitted', (event) => {
+    console.log('[ipick Web Pixel] Search submitted event:', event);
+    
+    const searchData = {
+      search_term: event.data.searchTerm,
+      results_count: event.data.resultsCount
+    };
+
+    sendTrackingData('search', searchData);
+  });
+
+  console.log('[ipick Web Pixel] Web pixel registered successfully with comprehensive event tracking');
 });
             </div>
         </div>
@@ -340,17 +538,23 @@ const config = {
 
         <h2>📊 Expected Console Output</h2>
         <div class="code-block">
-[ipick Web Pixel] Web pixel registered successfully
+[ipick Web Pixel] Web pixel registered successfully with comprehensive event tracking
 [ipick Web Pixel] Page viewed event: {data: {...}}
 [ipick Web Pixel] page_view event sent successfully
 [ipick Web Pixel] Product viewed event: {data: {...}}
 [ipick Web Pixel] product_view event sent successfully
+[ipick Web Pixel] Cart viewed event: {data: {...}}
+[ipick Web Pixel] cart_view event sent successfully
 [ipick Web Pixel] Product added to cart event: {data: {...}}
 [ipick Web Pixel] add_to_cart event sent successfully
 [ipick Web Pixel] Checkout started event: {data: {...}}
 [ipick Web Pixel] checkout_start event sent successfully
 [ipick Web Pixel] Checkout completed event: {data: {...}}
 [ipick Web Pixel] purchase_complete event sent successfully
+[ipick Web Pixel] Collection viewed event: {data: {...}}
+[ipick Web Pixel] collection_view event sent successfully
+[ipick Web Pixel] Search submitted event: {data: {...}}
+[ipick Web Pixel] search event sent successfully
         </div>
 
         <h2>🔍 Troubleshooting</h2>
@@ -372,14 +576,16 @@ console.log('[ipick Web Pixel] Event data:', event);
         </div>
 
         <h2>📈 Dashboard Integration</h2>
-        <p>Once installed, you'll see these metrics in your ipick.io dashboard:</p>
+        <p>Once installed, you'll see these comprehensive metrics in your ipick.io dashboard:</p>
         <ul>
-            <li><strong>Revenue Tracking:</strong> Complete order data with line items</li>
-            <li><strong>Conversion Funnel:</strong> Page view → Product view → Add to cart → Checkout → Purchase</li>
-            <li><strong>Product Performance:</strong> Detailed product and variant data</li>
-            <li><strong>Customer Data:</strong> Email, phone, shipping information</li>
-            <li><strong>Payment Information:</strong> Gateway, amounts, transaction status</li>
-            <li><strong>Business Attribution:</strong> Which business generated each sale</li>
+            <li><strong>Revenue Tracking:</strong> Complete order data with line items, discount codes, and payment terms</li>
+            <li><strong>Conversion Funnel:</strong> Page view → Product view → Cart view → Add to cart → Checkout start → Purchase</li>
+            <li><strong>Product Performance:</strong> Detailed product and variant data including SKUs, barcodes, and availability</li>
+            <li><strong>Customer Data:</strong> Email, phone, shipping and billing addresses</li>
+            <li><strong>Cart Analytics:</strong> Cart abandonment rates, average cart value, and item analysis</li>
+            <li><strong>Search Analytics:</strong> Search terms and results performance</li>
+            <li><strong>Collection Performance:</strong> Collection view tracking and product discovery</li>
+            <li><strong>Business Attribution:</strong> Which business generated each sale with detailed affiliate tracking</li>
         </ul>
 
         <div class="success">
