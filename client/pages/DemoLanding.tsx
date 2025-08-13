@@ -115,6 +115,11 @@ const DemoLanding: React.FC = () => {
             </div>
             {/* Top-right buttons */}
             <nav className="flex items-center space-x-2 sm:space-x-4">
+              <Link to="/browse">
+                <Button className="rounded-full bg-blue-600 text-white hover:bg-blue-700 px-4 sm:px-6 text-sm sm:text-base">
+                  Browse<span className="hidden sm:inline"> Products</span>
+                </Button>
+              </Link>
               <Link to="/login">
                 <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
                   Customer<span className="hidden sm:inline"> portal</span>

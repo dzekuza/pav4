@@ -167,7 +167,7 @@ export default function BusinessDashboardLayout() {
               <img
                 src={stats.logo}
                 alt={`${stats.name} logo`}
-                className="max-h-16 w-auto object-contain"
+                className="max-h-8 w-auto object-contain"
                 onError={(e) => {
                   // Fallback to icon if image fails to load
                   e.currentTarget.style.display = 'none';
@@ -340,6 +340,19 @@ export default function BusinessDashboardLayout() {
           >
             <BarChart3 className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Analytics</span>
+          </button>
+          
+          <button
+            onClick={() => navigate("/business/dashboard/products")}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
+              isActiveRoute("/business/dashboard/products")
+                ? "text-white bg-white/20 shadow-sm"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Package className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Products</span>
           </button>
           
           {/* Profile dropdown in mobile navigation */}

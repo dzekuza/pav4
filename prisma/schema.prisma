@@ -89,6 +89,7 @@ model Business {
   trackingEvents      TrackingEvent[]
   webhooks            Webhook[]
   domainVerifications DomainVerification[]
+  products            Product[]
 
   @@map("businesses")
 }
@@ -454,4 +455,20 @@ enum WebhookStatus {
   SENT
   FAILED
   RETRY
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  businessId  Int
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  url         String
+  title       String
+  description String?
+  imageUrl    String?
+  price       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
 }

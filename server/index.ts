@@ -91,6 +91,12 @@ import {
   checkDomainVerification,
   getVerificationStatus,
 } from "./routes/domain-verification";
+import {
+  getBusinessProducts,
+  updateBusinessProducts,
+  getPublicProducts,
+  getCategories,
+} from "./routes/products";
 
 // Load environment variables
 dotenv.config();
@@ -293,6 +299,8 @@ export async function createServer() {
   app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
   app.put("/api/business/profile", updateBusinessProfile);
+  app.get("/api/business/products", getBusinessProducts);
+  app.put("/api/business/products", updateBusinessProducts);
   app.post("/api/business/auth/delete-account", deleteBusinessAccount);
   app.post("/api/business/auth/forgot-password", businessForgotPassword);
   app.post("/api/business/auth/reset-password", businessResetPassword);
@@ -356,6 +364,10 @@ export async function createServer() {
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
+  
+  // Public product routes
+  app.get("/api/products/categories", getCategories);
+  app.get("/api/products/category/:category", getPublicProducts);
 
   // Domain verification routes
   app.post(
