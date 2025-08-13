@@ -6,47 +6,55 @@ import { motion, stagger, useAnimate } from "motion/react";
 import Floating, { FloatingElement } from "@/components/ui/parallax-floating";
 import { Search } from "lucide-react";
 
-// Sample product images for the animated gallery
+// Real product images with actual product URLs for the animated gallery
 const productImages = [
   {
     url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=2070&auto=format&fit=crop",
-    title: "Wireless Headphones",
-    link: "https://amazon.com/headphones",
+    title: "Sony WH-1000XM4 Wireless Headphones",
+    link: "https://www.amazon.com/Sony-WH-1000XM4-Canceling-Headphones-phone-call/dp/B0863TXGM3/",
+    searchQuery: "Sony WH-1000XM4 wireless noise cancelling headphones",
   },
   {
     url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
-    title: "Smart Watch",
-    link: "https://amazon.com/smartwatch",
+    title: "Apple Watch Series 9",
+    link: "https://www.apple.com/apple-watch-series-9/",
+    searchQuery: "Apple Watch Series 9 GPS smartwatch",
   },
   {
     url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=2070&auto=format&fit=crop",
-    title: "Running Shoes",
-    link: "https://amazon.com/shoes",
+    title: "Nike Air Zoom Pegasus 40",
+    link: "https://www.nike.com/t/air-zoom-pegasus-40-road-running-shoes-lq7PZZ",
+    searchQuery: "Nike Air Zoom Pegasus 40 running shoes",
   },
   {
     url: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?q=80&w=2126&auto=format&fit=crop",
-    title: "Laptop",
-    link: "https://amazon.com/laptop",
+    title: "MacBook Air M2",
+    link: "https://www.apple.com/macbook-air-m2/",
+    searchQuery: "MacBook Air M2 13-inch laptop",
   },
   {
     url: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?q=80&w=1974&auto=format&fit=crop",
-    title: "Camera",
-    link: "https://amazon.com/camera",
+    title: "Canon EOS R6 Mark II",
+    link: "https://www.canon.com/cameras/eos-r6-mark-ii/",
+    searchQuery: "Canon EOS R6 Mark II mirrorless camera",
   },
   {
     url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=2070&auto=format&fit=crop",
-    title: "Smartphone",
-    link: "https://amazon.com/smartphone",
+    title: "iPhone 15 Pro",
+    link: "https://www.apple.com/iphone-15-pro/",
+    searchQuery: "iPhone 15 Pro smartphone",
   },
   {
     url: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?q=80&w=2064&auto=format&fit=crop",
-    title: "Tablet",
-    link: "https://amazon.com/tablet",
+    title: "iPad Air 5th Generation",
+    link: "https://www.apple.com/ipad-air/",
+    searchQuery: "iPad Air 5th generation tablet",
   },
   {
     url: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=2080&auto=format&fit=crop",
-    title: "Sunglasses",
-    link: "https://amazon.com/sunglasses",
+    title: "Ray-Ban Aviator Classic",
+    link: "https://www.ray-ban.com/usa/sunglasses/RB3025%20AVIATOR%20CLASSIC%20GOLD%20FLASH%20LENS-805289602057.html",
+    searchQuery: "Ray-Ban Aviator Classic sunglasses",
   },
 ];
 
@@ -89,8 +97,9 @@ const Landing2: React.FC = () => {
     });
   };
 
-  const handleProductClick = (productLink: string) => {
-    handleSearch(productLink);
+  const handleProductClick = (product: typeof productImages[0]) => {
+    // Use the search query to find similar products instead of the direct link
+    handleSearch(product.searchQuery);
   };
 
   // Position the gradient to start right after the search input block
@@ -136,7 +145,7 @@ const Landing2: React.FC = () => {
               className="w-16 h-16 md:w-24 md:h-24 object-cover hover:scale-105 duration-200 cursor-pointer transition-transform"
               onMouseEnter={() => setHoveredProduct(productImages[0].title)}
               onMouseLeave={() => setHoveredProduct(null)}
-              onClick={() => handleProductClick(productImages[0].link)}
+              onClick={() => handleProductClick(productImages[0])}
             />
             {hoveredProduct === productImages[0].title && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded transition-all duration-300">
@@ -145,7 +154,7 @@ const Landing2: React.FC = () => {
                   className="bg-white text-black hover:bg-white/90"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProductClick(productImages[0].link);
+                    handleProductClick(productImages[0]);
                   }}
                 >
                   <Search className="h-4 w-4 mr-1" />
@@ -165,7 +174,7 @@ const Landing2: React.FC = () => {
               className="w-20 h-20 md:w-28 md:h-28 object-cover hover:scale-105 duration-200 cursor-pointer transition-transform"
               onMouseEnter={() => setHoveredProduct(productImages[1].title)}
               onMouseLeave={() => setHoveredProduct(null)}
-              onClick={() => handleProductClick(productImages[1].link)}
+              onClick={() => handleProductClick(productImages[1])}
             />
             {hoveredProduct === productImages[1].title && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded transition-all duration-300">
@@ -174,7 +183,7 @@ const Landing2: React.FC = () => {
                   className="bg-white text-black hover:bg-white/90"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProductClick(productImages[1].link);
+                    handleProductClick(productImages[1]);
                   }}
                 >
                   <Search className="h-4 w-4 mr-1" />
@@ -194,7 +203,7 @@ const Landing2: React.FC = () => {
               className="w-28 h-40 md:w-40 md:h-52 object-cover hover:scale-105 duration-200 cursor-pointer transition-transform"
               onMouseEnter={() => setHoveredProduct(productImages[2].title)}
               onMouseLeave={() => setHoveredProduct(null)}
-              onClick={() => handleProductClick(productImages[2].link)}
+              onClick={() => handleProductClick(productImages[2])}
             />
             {hoveredProduct === productImages[2].title && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded transition-all duration-300">
@@ -203,7 +212,7 @@ const Landing2: React.FC = () => {
                   className="bg-white text-black hover:bg-white/90"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProductClick(productImages[2].link);
+                    handleProductClick(productImages[2]);
                   }}
                 >
                   <Search className="h-4 w-4 mr-1" />
@@ -223,7 +232,7 @@ const Landing2: React.FC = () => {
               className="w-24 h-24 md:w-32 md:h-32 object-cover hover:scale-105 duration-200 cursor-pointer transition-transform"
               onMouseEnter={() => setHoveredProduct(productImages[3].title)}
               onMouseLeave={() => setHoveredProduct(null)}
-              onClick={() => handleProductClick(productImages[3].link)}
+              onClick={() => handleProductClick(productImages[3])}
             />
             {hoveredProduct === productImages[3].title && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded transition-all duration-300">
@@ -232,7 +241,7 @@ const Landing2: React.FC = () => {
                   className="bg-white text-black hover:bg-white/90"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProductClick(productImages[3].link);
+                    handleProductClick(productImages[3]);
                   }}
                 >
                   <Search className="h-4 w-4 mr-1" />
@@ -252,7 +261,7 @@ const Landing2: React.FC = () => {
               className="w-28 h-28 md:w-36 md:h-36 object-cover hover:scale-105 duration-200 cursor-pointer transition-transform"
               onMouseEnter={() => setHoveredProduct(productImages[4].title)}
               onMouseLeave={() => setHoveredProduct(null)}
-              onClick={() => handleProductClick(productImages[4].link)}
+              onClick={() => handleProductClick(productImages[4])}
             />
             {hoveredProduct === productImages[4].title && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded transition-all duration-300">
@@ -261,7 +270,7 @@ const Landing2: React.FC = () => {
                   className="bg-white text-black hover:bg-white/90"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProductClick(productImages[4].link);
+                    handleProductClick(productImages[4]);
                   }}
                 >
                   <Search className="h-4 w-4 mr-1" />
@@ -281,7 +290,7 @@ const Landing2: React.FC = () => {
               className="w-28 h-28 md:w-36 md:h-48 object-cover hover:scale-105 duration-200 cursor-pointer transition-transform"
               onMouseEnter={() => setHoveredProduct(productImages[5].title)}
               onMouseLeave={() => setHoveredProduct(null)}
-              onClick={() => handleProductClick(productImages[5].link)}
+              onClick={() => handleProductClick(productImages[5])}
             />
             {hoveredProduct === productImages[5].title && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded transition-all duration-300">
@@ -388,10 +397,7 @@ const Landing2: React.FC = () => {
                 </Button>
               </Link>
               <Link to="/business/dashboard">
-                <Button
-                  variant="outline"
-                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
-                >
+                <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
                   Business<span className="hidden sm:inline"> portal</span>
                 </Button>
               </Link>

@@ -158,10 +158,7 @@ export function SearchHeader({
                   </Button>
                 </Link>
                 <Link to="/business/dashboard">
-                  <Button
-                    variant="outline"
-                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black px-4 sm:px-6 text-sm sm:text-base"
-                  >
+                  <Button className="rounded-full bg-black text-white hover:bg-black/90 px-4 sm:px-6 text-sm sm:text-base">
                     Business<span className="hidden sm:inline"> portal</span>
                   </Button>
                 </Link>

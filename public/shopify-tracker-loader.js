@@ -12,15 +12,32 @@
   const script =
     document.currentScript ||
     document.querySelector('script[src*="shopify-tracker-loader.js"]');
-  const businessId = script?.getAttribute("data-business-id");
-  const affiliateId = script?.getAttribute("data-affiliate-id");
+  let businessId = script?.getAttribute("data-business-id");
+  let affiliateId = script?.getAttribute("data-affiliate-id");
   const debug = script?.getAttribute("data-debug") === "true";
+
+  // Try to get from URL parameters as fallback
+  if (!businessId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    businessId = urlParams.get('utm_source') || urlParams.get('business_id');
+  }
+  if (!affiliateId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    affiliateId = urlParams.get('utm_medium') || urlParams.get('affiliate_id');
+  }
+
+  // For godislove.lt, use hardcoded values as fallback
+  if (window.location.hostname === 'godislove.lt') {
+    if (!businessId) businessId = '2'; // Business ID for godislove.lt
+    if (!affiliateId) affiliateId = 'pavlo4'; // Default affiliate ID
+  }
 
   // Validate required parameters
   if (!businessId || !affiliateId) {
     console.error(
       "[PriceHunt] Missing required parameters: data-business-id and data-affiliate-id",
     );
+    console.error("[PriceHunt] Current values:", { businessId, affiliateId });
     return;
   }
 

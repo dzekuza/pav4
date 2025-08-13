@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceHunt Tracking Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PriceHunt Tracking Test</h1>
+    
+    <div class="test-section">
+        <h2>Configuration</h2>
+        <p><strong>Business ID:</strong> <span id="businessId">2</span></p>
+        <p><strong>Affiliate ID:</strong> <span id="affiliateId">pavlo4</span></p>
+        <p><strong>Endpoint:</strong> <span id="endpoint">https://pavlo4.netlify.app/.netlify/functions/track-event</span></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Tracking Tests</h2>
+        <button onclick="testPageView()">Test Page View</button>
+        <button onclick="testProductView()">Test Product View</button>
+        <button onclick="testAddToCart()">Test Add to Cart</button>
+        <button onclick="testCheckoutStart()">Test Checkout Start</button>
+        <button onclick="testPurchase()">Test Purchase</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Load the tracker -->
+    <script src="shopify-tracker-loader.js" 
+            data-business-id="2" 
+            data-affiliate-id="pavlo4" 
+            data-debug="true"></script>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toISOString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function testPageView() {
+            log('Testing page view event...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('page_view', {
+                    page_title: 'Test Page',
+                    page_url: window.location.href
+                });
+            } else {
+                log('ERROR: PriceHuntTracker not available');
+            }
+        }
+
+        function testProductView() {
+            log('Testing product view event...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('product_view', {
+                    product_id: 'test-product-123',
+                    product_name: 'Test Product',
+                    product_price: '29.99',
+                    product_variant_id: 'variant-456'
+                });
+            } else {
+                log('ERROR: PriceHuntTracker not available');
+            }
+        }
+
+        function testAddToCart() {
+            log('Testing add to cart event...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('add_to_cart', {
+                    product_id: 'test-product-123',
+                    product_name: 'Test Product',
+                    product_price: '29.99',
+                    quantity: 1
+                });
+            } else {
+                log('ERROR: PriceHuntTracker not available');
+            }
+        }
+
+        function testCheckoutStart() {
+            log('Testing checkout start event...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('checkout_start', {
+                    cart_total: '29.99',
+                    cart_items: 1
+                });
+            } else {
+                log('ERROR: PriceHuntTracker not available');
+            }
+        }
+
+        function testPurchase() {
+            log('Testing purchase event...');
+            if (window.PriceHuntTracker) {
+                window.PriceHuntTracker.track('purchase', {
+                    order_id: 'test-order-789',
+                    total_amount: '29.99',
+                    currency: 'USD'
+                });
+            } else {
+                log('ERROR: PriceHuntTracker not available');
+            }
+        }
+
+        // Monitor for tracker initialization
+        let checkCount = 0;
+        const checkTracker = setInterval(() => {
+            checkCount++;
+            if (window.PriceHuntTracker) {
+                log('PriceHuntTracker initialized successfully');
+                clearInterval(checkTracker);
+                
+                // Log configuration
+                const config = window.PriceHuntTracker.getConfig();
+                log(`Config loaded: ${JSON.stringify(config)}`);
+            } else if (checkCount > 20) {
+                log('ERROR: PriceHuntTracker failed to initialize after 10 seconds');
+                clearInterval(checkTracker);
+            }
+        }, 500);
+
+        // Override console.log to capture tracker logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('[PriceHunt')) {
+                log('LOG: ' + args.join(' '));
+            }
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('[PriceHunt')) {
+                log('ERROR: ' + args.join(' '));
+            }
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('[PriceHunt')) {
+                log('WARN: ' + args.join(' '));
+            }
+            originalWarn.apply(console, args);
+        };
+    </script>
+</body>
+</html>

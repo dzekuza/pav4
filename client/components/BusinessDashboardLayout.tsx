@@ -207,8 +207,8 @@ export default function BusinessDashboardLayout() {
             className={cn(
               "flex items-center rounded-full",
               isActiveRoute("/business/dashboard")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10",
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             <Home className="mr-2 h-4 w-4" />
@@ -220,8 +220,8 @@ export default function BusinessDashboardLayout() {
             className={cn(
               "flex items-center rounded-full",
               isActiveRoute("/business/dashboard/activity")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10",
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             <Activity className="mr-2 h-4 w-4" />
@@ -233,8 +233,8 @@ export default function BusinessDashboardLayout() {
             className={cn(
               "flex items-center rounded-full",
               isActiveRoute("/business/dashboard/integrate")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10",
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             <Code className="mr-2 h-4 w-4" />
@@ -246,8 +246,8 @@ export default function BusinessDashboardLayout() {
             className={cn(
               "flex items-center rounded-full",
               isActiveRoute("/business/dashboard/analytics")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10",
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             <BarChart3 className="mr-2 h-4 w-4" />
@@ -259,8 +259,8 @@ export default function BusinessDashboardLayout() {
             className={cn(
               "flex items-center rounded-full",
               isActiveRoute("/business/dashboard/products")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10",
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             <Package className="mr-2 h-4 w-4" />
@@ -272,8 +272,8 @@ export default function BusinessDashboardLayout() {
             className={cn(
               "flex items-center rounded-full",
               isActiveRoute("/business/dashboard/settings")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90"
-                : "text-white hover:bg-white/10",
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
             )}
           >
             <Settings className="mr-2 h-4 w-4" />

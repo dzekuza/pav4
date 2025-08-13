@@ -7,7 +7,7 @@
     businessId: null,
     affiliateId: null,
     debug: true, // Enable debug mode for troubleshooting
-    endpoint: "https://pavlo4.netlify.app/api/track-event",
+    endpoint: "https://pavlo4.netlify.app/.netlify/functions/track-event",
     sessionId: generateSessionId(),
     pageLoadTime: Date.now(),
     eventsSent: [],
@@ -37,7 +37,7 @@
 
     // For godislove.lt, use hardcoded values as fallback
     if (window.location.hostname === 'godislove.lt') {
-      if (!config.businessId) config.businessId = '10'; // Business ID for godislove.lt
+      if (!config.businessId) config.businessId = '2'; // Business ID for godislove.lt
       if (!config.affiliateId) config.affiliateId = 'pavlo4'; // Default affiliate ID
     }
 
@@ -47,6 +47,7 @@
         "Error: Missing required parameters (business-id or affiliate-id)",
         "error",
       );
+      log("Current config:", config);
       return;
     }
 
@@ -57,6 +58,8 @@
     log("Config:", {
       businessId: config.businessId,
       affiliateId: config.affiliateId,
+      endpoint: config.endpoint,
+      sessionId: config.sessionId,
     });
 
     // Track page load
@@ -796,7 +799,7 @@
   // Send event to server
   function sendEvent(eventData) {
     // Prevent duplicate events
-    const eventKey = `${eventData.event_type}_${eventData.timestamp}`;
+    const eventKey = `${eventData.event_type}_${eventData.session_id}_${Date.now()}`;
     if (config.eventsSent.includes(eventKey)) {
       log("Duplicate event detected, skipping:", eventData.event_type);
       return;
@@ -814,6 +817,7 @@
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "Origin": window.location.origin,
       },
       body: JSON.stringify(eventData),
     })
@@ -836,12 +840,14 @@
         // Log additional error details for debugging
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
           log("CORS or network error detected. Check if the server is accessible and CORS is properly configured.", "error");
+          log("Current endpoint:", config.endpoint);
+          log("Current origin:", window.location.origin);
         }
         
         // Try alternative endpoint if main one fails
         if (config.endpoint.includes('netlify.app')) {
           log("Trying alternative endpoint...", "info");
-          const altEndpoint = config.endpoint.replace('https://pavlo4.netlify.app', 'https://pavlo4.netlify.app');
+          const altEndpoint = config.endpoint.replace('/.netlify/functions/track-event', '/api/track-event');
           if (altEndpoint !== config.endpoint) {
             fetch(altEndpoint, {
               method: "POST",
@@ -850,6 +856,7 @@
               headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
+                "Origin": window.location.origin,
               },
               body: JSON.stringify(eventData),
             })

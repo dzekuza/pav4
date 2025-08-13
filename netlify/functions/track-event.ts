@@ -139,6 +139,27 @@ export const handler: Handler = async (event, context) => {
 
     // Create tracking event in database
     console.log("Creating tracking event...");
+    
+    // Handle timestamp conversion
+    let eventTimestamp: Date;
+    if (typeof timestamp === 'number') {
+      eventTimestamp = new Date(timestamp);
+    } else if (typeof timestamp === 'string') {
+      const parsed = parseInt(timestamp);
+      if (!isNaN(parsed)) {
+        eventTimestamp = new Date(parsed);
+      } else {
+        eventTimestamp = new Date(timestamp);
+      }
+    } else {
+      eventTimestamp = new Date();
+    }
+    
+    // Validate the timestamp
+    if (isNaN(eventTimestamp.getTime())) {
+      eventTimestamp = new Date();
+    }
+    
     const trackingEvent = await prisma.trackingEvent.create({
       data: {
         eventType: event_type,
@@ -148,7 +169,7 @@ export const handler: Handler = async (event, context) => {
         sessionId: session_id,
         userAgent: user_agent,
         referrer: referrer,
-        timestamp: new Date(timestamp),
+        timestamp: eventTimestamp,
         url: url,
         eventData: data || {},
         ipAddress: event.headers['client-ip'] || event.headers['x-forwarded-for'] || "unknown",
