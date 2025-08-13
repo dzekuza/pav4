@@ -674,14 +674,19 @@ export const businessService = {
       return null;
     }
 
-    // Get recent clicks and conversions
-    const [clicks, conversions] = await Promise.all([
+    // Get recent clicks, conversions, and tracking events
+    const [clicks, conversions, trackingEvents] = await Promise.all([
       prisma.businessClick.findMany({
         where: { businessId },
         orderBy: { timestamp: "desc" },
         take: 10,
       }),
       prisma.businessConversion.findMany({
+        where: { businessId },
+        orderBy: { timestamp: "desc" },
+        take: 10,
+      }),
+      prisma.trackingEvent.findMany({
         where: { businessId },
         orderBy: { timestamp: "desc" },
         take: 10,
@@ -700,14 +705,23 @@ export const businessService = {
     const projectedFee =
       business.totalRevenue * (business.adminCommissionRate / 100);
 
+    // Calculate checkout-related metrics from tracking events
+    const checkoutCompleteEvents = trackingEvents.filter(event => event.eventType === 'checkout_complete' || event.eventType === 'checkout_start');
+    const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
+    const cartToPurchaseRate = addToCartEvents.length > 0 ? (checkoutCompleteEvents.length / addToCartEvents.length) * 100 : 0;
+
     return {
       ...business,
       domainVerified,
       averageOrderValue,
       conversionRate,
       projectedFee,
+      totalCheckouts: checkoutCompleteEvents.length,
+      totalAddToCart: addToCartEvents.length,
+      cartToPurchaseRate,
       recentClicks: clicks,
       recentConversions: conversions,
+      recentEvents: trackingEvents,
     };
   },
 
@@ -769,14 +783,20 @@ export const businessService = {
     const totalClicks = clicks.length;
     const totalConversions = conversions.length;
     
+    // Calculate other metrics from tracking events
+    const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
+    const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
+    const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
+    const checkoutCompleteEvents = trackingEvents.filter(event => event.eventType === 'checkout_complete' || event.eventType === 'checkout_start');
+    const purchaseEvents = trackingEvents.filter(event => event.eventType === 'purchase');
+
     // Calculate revenue from conversions
     const totalRevenue = conversions.reduce((sum, conv) => {
       const price = conv.productPrice ? parseFloat(conv.productPrice) : 0;
       return sum + price;
     }, 0);
 
-    // Calculate revenue from tracking events (purchases)
-    const purchaseEvents = trackingEvents.filter(event => event.eventType === 'purchase');
+    // Calculate revenue from tracking events (purchases and checkouts)
     const trackingRevenue = purchaseEvents.reduce((sum, event) => {
       const eventData = typeof event.eventData === 'string' 
         ? JSON.parse(event.eventData) 
@@ -784,13 +804,16 @@ export const businessService = {
       return sum + (eventData.total || 0);
     }, 0);
 
-    const totalRevenueCombined = totalRevenue + trackingRevenue;
-    const totalPurchases = totalConversions + purchaseEvents.length;
+    // Calculate revenue from checkout events
+    const checkoutRevenue = checkoutCompleteEvents.reduce((sum, event) => {
+      const eventData = typeof event.eventData === 'string' 
+        ? JSON.parse(event.eventData) 
+        : event.eventData;
+      return sum + (eventData.total || eventData.value || 0);
+    }, 0);
 
-    // Calculate other metrics from tracking events
-    const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
-    const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
-    const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
+    const totalRevenueCombined = totalRevenue + trackingRevenue + checkoutRevenue;
+    const totalPurchases = totalConversions + purchaseEvents.length + checkoutCompleteEvents.length;
 
     // Calculate unique sessions
     const allSessionIds = new Set([
@@ -829,6 +852,7 @@ export const businessService = {
       totalAddToCart: addToCartEvents.length,
       totalPageViews: pageViewEvents.length,
       totalProductViews: productViewEvents.length,
+      totalCheckouts: checkoutCompleteEvents.length,
       totalSessions,
       cartToPurchaseRate,
       

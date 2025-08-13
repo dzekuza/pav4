@@ -32,6 +32,9 @@ interface BusinessStats {
   projectedFee: number;
   averageOrderValue: number;
   conversionRate: number;
+  totalCheckouts?: number;
+  totalAddToCart?: number;
+  cartToPurchaseRate?: number;
 }
 
 export default function BusinessDashboard() {
@@ -175,7 +178,7 @@ export default function BusinessDashboard() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white">
@@ -237,10 +240,25 @@ export default function BusinessDashboard() {
               <p className="text-xs text-white/80">Visit to purchase ratio</p>
             </CardContent>
           </Card>
+
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-white">
+                Total Checkouts
+              </CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {(stats.totalCheckouts || 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-white/80">Completed checkouts</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Detailed Statistics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
               <CardTitle className="text-white">Revenue Analysis</CardTitle>
@@ -271,6 +289,22 @@ export default function BusinessDashboard() {
                 </span>
                 <span className="text-sm font-bold text-white">
                   ${stats.projectedFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-white">
+                  Total Checkouts
+                </span>
+                <span className="text-sm font-bold text-white">
+                  {(stats.totalCheckouts || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-white">
+                  Add to Cart Events
+                </span>
+                <span className="text-sm font-bold text-white">
+                  {(stats.totalAddToCart || 0).toLocaleString()}
                 </span>
               </div>
             </CardContent>
@@ -336,6 +370,145 @@ export default function BusinessDashboard() {
                     className="bg-purple-600 h-2 rounded-full"
                     style={{ width: `${Math.min(stats.conversionRate, 100)}%` }}
                   ></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-white">
+                    Total Checkouts
+                  </span>
+                  <span className="text-sm text-white">
+                    {(stats.totalCheckouts || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-orange-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(((stats.totalCheckouts || 0) / Math.max(stats.totalVisits, 1)) * 100, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-white">
+                    Add to Cart
+                  </span>
+                  <span className="text-sm text-white">
+                    {(stats.totalAddToCart || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(((stats.totalAddToCart || 0) / Math.max(stats.totalVisits, 1)) * 100, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-white">
+                    Cart to Purchase Rate
+                  </span>
+                  <span className="text-sm text-white">
+                    {(stats.cartToPurchaseRate || 0).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
+                    style={{ width: `${Math.min(stats.cartToPurchaseRate || 0, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardHeader>
+              <CardTitle className="text-white">Checkout Analytics</CardTitle>
+              <CardDescription className="text-white/80">
+                Detailed checkout and conversion funnel analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-white">
+                    Checkout Completion Rate
+                  </span>
+                  <span className="text-sm text-white">
+                    {stats.totalVisits > 0 ? ((stats.totalCheckouts || 0) / stats.totalVisits * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-orange-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(stats.totalVisits > 0 ? ((stats.totalCheckouts || 0) / stats.totalVisits * 100) : 0, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-white">
+                    Add to Cart Rate
+                  </span>
+                  <span className="text-sm text-white">
+                    {stats.totalVisits > 0 ? ((stats.totalAddToCart || 0) / stats.totalVisits * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(stats.totalVisits > 0 ? ((stats.totalAddToCart || 0) / stats.totalVisits * 100) : 0, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-white">
+                    Cart Abandonment Rate
+                  </span>
+                  <span className="text-sm text-white">
+                    {(stats.totalAddToCart || 0) > 0 ? (((stats.totalAddToCart || 0) - (stats.totalCheckouts || 0)) / (stats.totalAddToCart || 0) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-red-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min((stats.totalAddToCart || 0) > 0 ? (((stats.totalAddToCart || 0) - (stats.totalCheckouts || 0)) / (stats.totalAddToCart || 0) * 100) : 0, 100)}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-bold text-white">
+                      {(stats.totalAddToCart || 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-white/80">Add to Cart</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-white">
+                      {(stats.totalCheckouts || 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-white/80">Checkouts</div>
+                  </div>
                 </div>
               </div>
             </CardContent>

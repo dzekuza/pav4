@@ -36,13 +36,20 @@
     </div>
 
     <div class="test-section">
-        <h2>Test 4: Direct Function URLs</h2>
+        <h2>Test 4: Track Event Function</h2>
+        <button onclick="testTrackEvent()">Test Track Event</button>
+        <div id="track-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Direct Function URLs</h2>
         <p>Try these URLs directly in your browser:</p>
         <ul>
             <li><a href="/.netlify/functions/test-simple" target="_blank">/.netlify/functions/test-simple</a></li>
             <li><a href="/.netlify/functions/test-db" target="_blank">/.netlify/functions/test-db</a></li>
             <li><a href="/.netlify/functions/test-simple.mjs" target="_blank">/.netlify/functions/test-simple.mjs</a></li>
             <li><a href="/.netlify/functions/test-db.mjs" target="_blank">/.netlify/functions/test-db.mjs</a></li>
+            <li><a href="/.netlify/functions/track-event" target="_blank">/.netlify/functions/track-event</a></li>
         </ul>
     </div>
 
@@ -133,6 +140,44 @@
                 resultDiv.innerHTML = `
                     <div class="error">
                         <h3>❌ Database MJS Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testTrackEvent() {
+            const resultDiv = document.getElementById('track-result');
+            resultDiv.innerHTML = '<p>Testing Track Event...</p>';
+            
+            try {
+                const testEvent = {
+                    businessId: "test-business-123",
+                    eventType: "page_view",
+                    pageUrl: "https://test.com",
+                    userAgent: "Test Browser",
+                    timestamp: new Date().toISOString()
+                };
+
+                const response = await fetch('/api/track-event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testEvent)
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Track Event Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Track Event Error</h3>
                         <p>${error.message}</p>
                     </div>
                 `;
