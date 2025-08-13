@@ -102,17 +102,20 @@ export default function Browse() {
   const [products, setProducts] = useState<Product[]>([]);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(category || "Fashion");
+  const [selectedCategory, setSelectedCategory] = useState(category || "");
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
-    if (selectedCategory) {
+    if (availableCategories.length > 0 && !selectedCategory) {
+      // Set the first available category as default
+      setSelectedCategory(availableCategories[0]);
+    } else if (selectedCategory) {
       fetchProducts(selectedCategory);
     }
-  }, [selectedCategory]);
+  }, [availableCategories, selectedCategory]);
 
   const fetchCategories = async () => {
     try {
@@ -199,10 +202,10 @@ export default function Browse() {
               <span className="text-4xl">{getCategoryIcon(selectedCategory)}</span>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                  {selectedCategory}
+                  {selectedCategory || "Browse"}
                 </h1>
                 <p className="text-muted-foreground">
-                  {getCategoryDescription(selectedCategory)}
+                  {selectedCategory ? getCategoryDescription(selectedCategory) : "Discover amazing products"}
                 </p>
               </div>
             </div>
@@ -214,22 +217,24 @@ export default function Browse() {
         </div>
 
         {/* Category Tabs */}
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
-          <div className="overflow-x-auto">
-            <TabsList className="flex w-full min-w-max space-x-1 bg-muted border border-border">
-              {availableCategories.map((cat) => (
-                <TabsTrigger
-                  key={cat}
-                  value={cat}
-                  className="flex-shrink-0 px-3 md:px-4 text-foreground"
-                >
-                  <span className="mr-2">{getCategoryIcon(cat)}</span>
-                  {cat}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-        </Tabs>
+        {availableCategories.length > 0 && (
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
+            <div className="overflow-x-auto">
+              <TabsList className="flex w-full min-w-max space-x-1 bg-muted border border-border">
+                {availableCategories.map((cat) => (
+                  <TabsTrigger
+                    key={cat}
+                    value={cat}
+                    className="flex-shrink-0 px-3 md:px-4 text-foreground"
+                  >
+                    <span className="mr-2">{getCategoryIcon(cat)}</span>
+                    {cat}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
+        )}
 
         {/* Products Grid */}
         {products.length === 0 ? (

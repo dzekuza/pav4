@@ -302,10 +302,26 @@ const NewSearchResults = () => {
     setError(null);
 
     try {
-      // Detect if originalUrl is a URL or keywords
+      // Try to get the URL from sessionStorage if originalUrl is not set
+      let urlToUse = originalUrl;
+      if (!urlToUse) {
+        const storedData = sessionStorage.getItem(`product_request_${requestId}`);
+        if (storedData) {
+          try {
+            const parsedData = JSON.parse(storedData);
+            urlToUse = parsedData.url;
+            setOriginalUrl(urlToUse); // Update the state with the retrieved URL
+            console.log("Retrieved URL from sessionStorage:", urlToUse);
+          } catch (error) {
+            console.error("Error parsing sessionStorage data:", error);
+          }
+        }
+      }
+
+      // Detect if urlToUse is a URL or keywords
       let isUrl = false;
       try {
-        const u = new URL(originalUrl || "https://example.com");
+        const u = new URL(urlToUse || "https://example.com");
         isUrl = !!u.protocol && !!u.host;
       } catch {
         isUrl = false;
@@ -317,9 +333,9 @@ const NewSearchResults = () => {
       };
 
       if (isUrl) {
-        requestBody.url = originalUrl || "https://example.com";
+        requestBody.url = urlToUse || "https://example.com";
       } else {
-        requestBody.keywords = originalUrl || "example product";
+        requestBody.keywords = urlToUse || "example product";
       }
 
       // For now, we'll use the same POST request as refresh since n8n webhook doesn't support GET with requestId
