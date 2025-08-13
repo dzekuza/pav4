@@ -98,7 +98,7 @@ export default function BusinessIntegrationWizard({
         domainLower.includes("shopify") ||
         domainLower.includes("myshopify.com")
       ) {
-        setSelectedPlatform(platforms.find((p) => p.id === "shopify") || null);
+        setSelectedPlatform(platforms.find((p) => p.id === "shopify-simple") || null);
       } else if (
         domainLower.includes("woocommerce") ||
         domainLower.includes("wordpress")
@@ -115,16 +115,16 @@ export default function BusinessIntegrationWizard({
   // Set default script platform
   useEffect(() => {
     if (!scriptPlatform) {
-      setScriptPlatform(platforms.find((p) => p.id === "shopify") || null);
+      setScriptPlatform(platforms.find((p) => p.id === "shopify-simple") || null);
     }
   }, [scriptPlatform]);
 
   const platforms: Platform[] = [
     {
-      id: "shopify",
-      name: "Shopify",
+      id: "shopify-simple",
+      name: "Shopify (Simple)",
       description:
-        "Modern one-line integration with automatic enhanced tracking",
+        "One-line script integration for basic tracking",
       icon: "🛍️",
       features: [
         "Simple one-line script",
@@ -132,28 +132,34 @@ export default function BusinessIntegrationWizard({
         "AJAX cart support",
         "Comprehensive debugging",
         "Debug functions",
-        "Web Pixels API support",
-        "Enhanced checkout tracking",
-        "Complete event coverage",
       ],
       get scriptTemplate() {
         return `<!-- PriceHunt Shopify Integration -->
 <script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}" data-debug="true"></script>
-<!-- End PriceHunt Shopify Integration -->
-
-<!-- Alternative: Shopify Web Pixel (Recommended for Checkout Tracking) -->
-<!-- 
-To use Shopify's official Web Pixels API for enhanced checkout tracking:
-
-1. Go to Shopify Admin → Settings → Apps and sales channels
-2. Click "Develop apps" → "Create an app"
-3. Name your app: "PriceHunt Web Pixel"
-4. Go to "Extensions" → "Add extension" → "Web pixel"
-5. Use this code in your web pixel extension:
-
+<!-- End PriceHunt Shopify Integration -->`;
+      },
+    },
+    {
+      id: "shopify",
+      name: "Shopify (Web Pixel)",
+      description:
+        "Advanced web pixel integration for enhanced checkout tracking",
+      icon: "🛍️",
+      features: [
+        "Web Pixels API support",
+        "Enhanced checkout tracking",
+        "Complete event coverage",
+        "Rich data extraction",
+        "SKU and barcode tracking",
+        "Address and payment data",
+        "Discount code tracking",
+      ],
+      get scriptTemplate() {
+        return `// Copy this code into your web pixel extension
 import {register} from '@shopify/web-pixels-extension';
 
 register(({analytics}) => {
+  // Configuration
   const config = {
     apiUrl: "https://pavlo4.netlify.app/.netlify/functions/track-event",
     businessId: "${business?.id || "YOUR_BUSINESS_ID"}",
@@ -161,6 +167,7 @@ register(({analytics}) => {
     apiKey: "16272754ed68cbdcb55e8f579703d92e"
   };
 
+  // Extract business ID and affiliate ID from URL parameters
   function extractBusinessId() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('business_id') || 
@@ -175,10 +182,12 @@ register(({analytics}) => {
            config.affiliateId;
   }
 
+  // Generate unique session ID
   function generateSessionId() {
     return \`webpixel_\${Date.now()}_\${Math.random().toString(36).substr(2, 9)}\`;
   }
 
+  // Send tracking data to our API
   function sendTrackingData(eventType, data) {
     const businessId = extractBusinessId();
     const affiliateId = extractAffiliateId();
@@ -201,6 +210,7 @@ register(({analytics}) => {
       }
     };
 
+    // Send to our API
     fetch(config.apiUrl, {
       method: "POST",
       headers: {
@@ -223,14 +233,18 @@ register(({analytics}) => {
     });
   }
 
-  // Track all events
+  // Track page viewed events
   analytics.subscribe('page_viewed', (event) => {
+    console.log('[PriceHunt Web Pixel] Page viewed event:', event);
+    
     const pageData = {
       page_title: event.data.page.title,
       page_url: event.data.page.url,
       page_type: event.data.page.type,
       page_id: event.data.page.id
     };
+
+    // Add cart data if available
     if (event.data.cart) {
       pageData.cart = {
         id: event.data.cart.id,
@@ -239,6 +253,8 @@ register(({analytics}) => {
         item_count: event.data.cart.lineItems?.length || 0
       };
     }
+
+    // Add customer data if available
     if (event.data.customer) {
       pageData.customer = {
         id: event.data.customer.id,
@@ -247,10 +263,14 @@ register(({analytics}) => {
         last_name: event.data.customer.lastName
       };
     }
+
     sendTrackingData('page_view', pageData);
   });
 
+  // Track product viewed events
   analytics.subscribe('product_viewed', (event) => {
+    console.log('[PriceHunt Web Pixel] Product viewed event:', event);
+    
     const product = event.data.product;
     const productData = {
       product_id: product.id,
@@ -264,6 +284,8 @@ register(({analytics}) => {
       tags: product.tags,
       category: product.productType
     };
+
+    // Add variant data if available
     if (event.data.variant) {
       const variant = event.data.variant;
       productData.variant = {
@@ -276,12 +298,17 @@ register(({analytics}) => {
         barcode: variant.barcode
       };
     }
+
     sendTrackingData('product_view', productData);
   });
 
+  // Track add to cart events
   analytics.subscribe('product_added_to_cart', (event) => {
+    console.log('[PriceHunt Web Pixel] Product added to cart event:', event);
+    
     const product = event.data.product;
     const variant = event.data.variant;
+    
     const cartData = {
       product_id: product.id,
       product_name: product.title,
@@ -294,6 +321,8 @@ register(({analytics}) => {
       quantity: event.data.quantity,
       total_price: (parseFloat(variant.price?.amount || 0) * event.data.quantity).toString()
     };
+
+    // Add cart context if available
     if (event.data.cart) {
       cartData.cart = {
         id: event.data.cart.id,
@@ -301,11 +330,16 @@ register(({analytics}) => {
         item_count: event.data.cart.lineItems?.length || 0
       };
     }
+
     sendTrackingData('add_to_cart', cartData);
   });
 
+  // Track checkout started events
   analytics.subscribe('checkout_started', (event) => {
+    console.log('[PriceHunt Web Pixel] Checkout started event:', event);
+    
     const checkout = event.data.checkout;
+    
     const checkoutData = {
       checkout_id: checkout.id,
       total_price: checkout.totalPrice?.amount,
@@ -318,6 +352,8 @@ register(({analytics}) => {
       phone: checkout.phone,
       customer_id: checkout.customer?.id
     };
+
+    // Extract line items
     if (checkout.lineItems) {
       checkoutData.items = checkout.lineItems.map(item => ({
         product_id: item.product?.id,
@@ -328,16 +364,23 @@ register(({analytics}) => {
         discount: item.discountAllocations?.[0]?.amount
       }));
     }
+
+    // Extract discount codes
     if (checkout.discountApplications) {
       checkoutData.discount_codes = checkout.discountApplications
         .filter(discount => discount.type === 'DISCOUNT_CODE')
         .map(discount => discount.title);
     }
+
     sendTrackingData('checkout_start', checkoutData);
   });
 
+  // Track checkout completed events (most important!)
   analytics.subscribe('checkout_completed', (event) => {
+    console.log('[PriceHunt Web Pixel] Checkout completed event:', event);
+    
     const checkout = event.data.checkout;
+    
     const orderData = {
       checkout_id: checkout.id,
       order_id: checkout.order?.id,
@@ -371,6 +414,8 @@ register(({analytics}) => {
         zip: checkout.billingAddress.zip
       } : null
     };
+
+    // Extract line items
     if (checkout.lineItems) {
       orderData.items = checkout.lineItems.map(item => ({
         product_id: item.product?.id,
@@ -383,19 +428,28 @@ register(({analytics}) => {
         barcode: item.variant?.barcode
       }));
     }
+
+    // Extract discount codes
     if (checkout.discountApplications) {
       orderData.discount_codes = checkout.discountApplications
         .filter(discount => discount.type === 'DISCOUNT_CODE')
         .map(discount => discount.title);
     }
+
+    // Extract payment information
     if (checkout.paymentTerms) {
       orderData.payment_terms = checkout.paymentTerms;
     }
+
     sendTrackingData('purchase_complete', orderData);
   });
 
+  // Track cart viewed events
   analytics.subscribe('cart_viewed', (event) => {
+    console.log('[PriceHunt Web Pixel] Cart viewed event:', event);
+    
     const cart = event.data.cart;
+    
     const cartData = {
       cart_id: cart.id,
       total_price: cart.totalPrice?.amount,
@@ -405,6 +459,8 @@ register(({analytics}) => {
       total_discounts: cart.totalDiscounts?.amount,
       item_count: cart.lineItems?.length || 0
     };
+
+    // Extract line items
     if (cart.lineItems) {
       cartData.items = cart.lineItems.map(item => ({
         product_id: item.product?.id,
@@ -414,11 +470,16 @@ register(({analytics}) => {
         price: item.cost?.totalAmount?.amount
       }));
     }
+
     sendTrackingData('cart_view', cartData);
   });
 
+  // Track collection viewed events
   analytics.subscribe('collection_viewed', (event) => {
+    console.log('[PriceHunt Web Pixel] Collection viewed event:', event);
+    
     const collection = event.data.collection;
+    
     const collectionData = {
       collection_id: collection.id,
       collection_title: collection.title,
@@ -426,22 +487,24 @@ register(({analytics}) => {
       collection_description: collection.description,
       products_count: collection.productsCount
     };
+
     sendTrackingData('collection_view', collectionData);
   });
 
+  // Track search events
   analytics.subscribe('search_submitted', (event) => {
+    console.log('[PriceHunt Web Pixel] Search submitted event:', event);
+    
     const searchData = {
       search_term: event.data.searchTerm,
       results_count: event.data.resultsCount
     };
+
     sendTrackingData('search', searchData);
   });
 
   console.log('[PriceHunt Web Pixel] Web pixel registered successfully with comprehensive event tracking');
-});
-
--->
-`;
+});`;
       },
     },
     {
@@ -1218,7 +1281,8 @@ document.addEventListener('DOMContentLoaded', function() {
                   <Label className="text-white text-sm mb-2 block">Select Platform:</Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {[
-                      { id: "shopify", name: "Shopify", icon: "🛍️" },
+                      { id: "shopify-simple", name: "Shopify Simple", icon: "🛍️" },
+                      { id: "shopify", name: "Shopify Web Pixel", icon: "🛍️" },
                       { id: "woocommerce", name: "WooCommerce", icon: "🛒" },
                       { id: "magento", name: "Magento", icon: "🏢" },
                       { id: "custom", name: "Custom", icon: "🌐" }
