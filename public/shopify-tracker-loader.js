@@ -8,6 +8,13 @@
 (function () {
   "use strict";
 
+  // Prevent multiple loader initializations
+  if (window.PriceHuntLoaderInitialized) {
+    console.log("[PriceHunt] Loader already initialized, skipping...");
+    return;
+  }
+  window.PriceHuntLoaderInitialized = true;
+
   // Get configuration from script tag
   const script =
     document.currentScript ||

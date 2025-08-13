@@ -5,6 +5,9 @@ import fs from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+  },
   server: {
     host: "::",
     port: 8083,

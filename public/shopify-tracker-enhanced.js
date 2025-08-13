@@ -2,6 +2,12 @@
 (function () {
   "use strict";
 
+  // Prevent multiple initializations
+  if (window.PriceHuntTracker && window.PriceHuntTracker.initialized) {
+    console.log("[PriceHunt] Tracker already initialized, skipping...");
+    return;
+  }
+
   // Configuration
   const config = {
     businessId: null,
@@ -74,6 +80,11 @@
     // Check for purchase completion
     if (trackPurchaseCompletion()) {
       log("Purchase completion tracked on page load", "success");
+    }
+
+    // Mark as initialized to prevent duplicate initialization
+    if (window.PriceHuntTracker) {
+      window.PriceHuntTracker.initialized = true;
     }
   }
 
@@ -725,16 +736,24 @@
   // Send event to server
   function sendEvent(eventData) {
     // Prevent duplicate events with better deduplication
-    const eventKey = `${eventData.event_type}_${eventData.session_id}_${JSON.stringify(eventData.data)}`;
+    // For checkout events, include form action in the key for better deduplication
+    let eventKey;
+    if (eventData.event_type === "checkout_start") {
+      eventKey = `${eventData.event_type}_${eventData.session_id}_${eventData.data.form_action || 'unknown'}`;
+    } else {
+      eventKey = `${eventData.event_type}_${eventData.session_id}_${JSON.stringify(eventData.data)}`;
+    }
+    
     if (config.eventsSent.includes(eventKey)) {
       log("Duplicate event detected, skipping: " + eventData.event_type, "warn");
       return;
     }
     
-    // Prevent rapid duplicate events (same type within 2 seconds)
+    // Prevent rapid duplicate events (same type within 5 seconds for checkout events, 2 seconds for others)
     const now = Date.now();
     const lastTime = config.lastEventTime[eventData.event_type] || 0;
-    if (now - lastTime < 2000) {
+    const timeThreshold = eventData.event_type === "checkout_start" ? 5000 : 2000;
+    if (now - lastTime < timeThreshold) {
       log("Rapid duplicate event detected, skipping: " + eventData.event_type, "warn");
       return;
     }
@@ -822,6 +841,8 @@
 
   // Expose tracking functions globally for manual tracking
   window.PriceHuntTracker = {
+    initialized: false, // Will be set to true after initialization
+    
     track: function (eventType, data) {
       const eventData = {
         event_type: eventType,

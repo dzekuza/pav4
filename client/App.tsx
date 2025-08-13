@@ -35,7 +35,9 @@ const BusinessManagement = lazy(() =>
 );
 const BusinessLogin = lazy(() => import("./pages/BusinessLogin"));
 const BusinessDashboardLayout = lazy(
-  () => import("./components/BusinessDashboardLayout"),
+  () => import("./components/BusinessDashboardLayout").then((m) => ({
+    default: m.default,
+  })),
 );
 const BusinessDashboardHome = lazy(
   () => import("./pages/BusinessDashboardHome"),
