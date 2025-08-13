@@ -41,7 +41,8 @@ interface Product {
 }
 
 export default function BusinessProductsDashboard() {
-  const { stats } = useOutletContext<{ stats: BusinessStats }>();
+  const context = useOutletContext<{ stats: BusinessStats }>();
+  const stats = context?.stats;
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);

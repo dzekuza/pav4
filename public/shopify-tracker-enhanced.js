@@ -1,4 +1,4 @@
-// PriceHunt Enhanced Shopify Integration for godislove.lt
+// PriceHunt Enhanced Shopify Integration
 (function () {
   "use strict";
 
@@ -6,8 +6,8 @@
   const config = {
     businessId: null,
     affiliateId: null,
-    debug: true, // Enable debug mode for troubleshooting
-    endpoint: "https://pavlo4.netlify.app/.netlify/functions/track-event",
+    debug: false,
+    endpoint: null,
     sessionId: generateSessionId(),
     pageLoadTime: Date.now(),
     eventsSent: [],
@@ -22,7 +22,8 @@
     if (script) {
       config.businessId = script.getAttribute("data-business-id");
       config.affiliateId = script.getAttribute("data-affiliate-id");
-      config.debug = script.getAttribute("data-debug") === "true" || true; // Force debug for troubleshooting
+      config.debug = script.getAttribute("data-debug") === "true";
+      config.endpoint = script.getAttribute("data-endpoint") || "https://pavlo4.netlify.app/.netlify/functions/track-event";
     }
 
     // Try to get from URL parameters as fallback
@@ -32,50 +33,47 @@
     }
     if (!config.affiliateId) {
       const urlParams = new URLSearchParams(window.location.search);
-      config.affiliateId = urlParams.get('utm_medium') || urlParams.get('affiliate_id') || 'default';
-    }
-
-    // For godislove.lt, use hardcoded values as fallback
-    if (window.location.hostname === 'godislove.lt') {
-      if (!config.businessId) config.businessId = '2'; // Business ID for godislove.lt
-      if (!config.affiliateId) config.affiliateId = 'pavlo4'; // Default affiliate ID
+      config.affiliateId = urlParams.get('utm_medium') || urlParams.get('affiliate_id');
     }
 
     // Validate required parameters
     if (!config.businessId || !config.affiliateId) {
-      log(
-        "Error: Missing required parameters (business-id or affiliate-id)",
-        "error",
-      );
+      log("Error: Missing required parameters (business-id or affiliate-id)", "error");
       log("Current config:", config);
       return;
     }
 
-    log(
-      "PriceHunt Enhanced Shopify Tracker initialized for godislove.lt",
-      "info",
-    );
-    log("Config:", {
-      businessId: config.businessId,
-      affiliateId: config.affiliateId,
-      endpoint: config.endpoint,
-      sessionId: config.sessionId,
-    });
+    log("PriceHunt Enhanced Shopify Tracker initialized for " + window.location.hostname);
+    log("Config:", config);
 
-    // Track page load
-    trackPageView();
+    // Send page view event
+    sendEvent({
+      event_type: "page_view",
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      url: window.location.href,
+      data: {
+        page_title: document.title,
+        referrer: document.referrer,
+        user_agent: navigator.userAgent,
+      },
+      timestamp: config.pageLoadTime,
+    });
 
     // Set up event listeners
     setupEventListeners();
 
-      // Track initial product data if available
-  trackInitialProduct();
+    // Check for product data and send product view
+    checkForProductData();
 
-  // Set up mutation observer for dynamic content
-  setupMutationObserver();
+    // Set up mutation observer for dynamic content
+    setupMutationObserver();
 
-  // Check for purchase completion (thank you page)
-  checkForPurchaseCompletion();
+    // Check for purchase completion
+    if (trackPurchaseCompletion()) {
+      log("Purchase completion tracked on page load", "success");
+    }
   }
 
   // Generate unique session ID
@@ -103,25 +101,8 @@
     }
   }
 
-  // Track page view
-  function trackPageView() {
-    const eventData = {
-      event_type: "page_view",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      page_title: document.title,
-      referrer: document.referrer,
-      user_agent: navigator.userAgent,
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Track initial product data
-  function trackInitialProduct() {
+  // Check for product data and send product view
+  function checkForProductData() {
     log("Checking for product data...");
 
     // Try multiple methods to get product data
@@ -218,204 +199,119 @@
     }
   }
 
-  // Check for purchase completion (thank you page)
-  function checkForPurchaseCompletion() {
-    log("Checking for purchase completion...");
-    
-    // Check if we're on a thank you/order confirmation page
-    const isThankYouPage = 
-      window.location.pathname.includes('/thank-you') ||
-      window.location.pathname.includes('/order-confirmation') ||
-      window.location.pathname.includes('/checkout/thank_you') ||
-      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you') ||
-      document.title.toLowerCase().includes('thank you') ||
-      document.title.toLowerCase().includes('order confirmation') ||
-      document.title.toLowerCase().includes('order received');
-
-    // For godislove.lt, also check for checkout completion patterns
-    const isCheckoutPage = window.location.pathname.includes('/checkouts/');
-    const hasCheckoutId = window.location.pathname.match(/\/checkouts\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+/);
-    
-    log("Checkout page detection:", {
-      isThankYouPage,
-      isCheckoutPage,
-      hasCheckoutId: !!hasCheckoutId,
-      pathname: window.location.pathname,
-      title: document.title
-    });
-
-    if (isThankYouPage || (isCheckoutPage && hasCheckoutId)) {
-      log("Checkout/thank you page detected, extracting order data...");
-      
-      // Extract order data from the page
-      const orderData = extractOrderData();
-      
-      if (orderData.orderId) {
-        log("Order data extracted:", orderData);
-        trackPurchaseCompletion(orderData);
-      } else {
-        log("Could not extract order data, but tracking checkout completion anyway", "warn");
-        // Track checkout completion even without order data
-        trackCheckoutCompletion();
-      }
-    }
-  }
-
-  // Extract order data from thank you page
-  function extractOrderData() {
-    const orderData = {
-      orderId: null,
-      totalAmount: null,
-      currency: 'EUR', // Default for godislove.lt
-      products: []
-    };
-
-    // Try multiple selectors to find order ID
-    const orderIdSelectors = [
-      '.order-number',
-      '.order-id',
-      '.confirmation-number',
-      '[data-order-id]',
-      '[data-order-number]',
-      '.checkout-success .order-number',
-      '.order-confirmation .order-number',
-      'h1:contains("Confirmation")',
-      '.order-details .order-number'
-    ];
-
-    for (const selector of orderIdSelectors) {
-      const element = document.querySelector(selector);
-      if (element) {
-        const text = element.textContent || element.getAttribute('data-order-id') || element.getAttribute('data-order-number');
-        if (text) {
-          // Extract order ID from text (remove any prefix/suffix)
-          const match = text.match(/([A-Z0-9]{6,})/);
-          if (match) {
-            orderData.orderId = match[1];
-            break;
-          }
-        }
-      }
-    }
-
-    // Try to find total amount
-    const totalSelectors = [
-      '.order-total .price',
-      '.total .amount',
-      '.checkout-success .total',
-      '[data-total]',
-      '.order-summary .total',
-      '.total-price'
-    ];
-
-    for (const selector of totalSelectors) {
-      const element = document.querySelector(selector);
-      if (element) {
-        const text = element.textContent;
-        if (text) {
-          // Extract amount from text (e.g., "€1.20" -> 1.20)
-          const match = text.match(/[€$]?([0-9]+[.,]?[0-9]*)/);
-          if (match) {
-            orderData.totalAmount = parseFloat(match[1].replace(',', '.'));
-            break;
-          }
-        }
-      }
-    }
-
-    // Try to extract product information
-    const productElements = document.querySelectorAll('.order-item, .product-item, [data-product-id]');
-    productElements.forEach(element => {
-      const productName = element.querySelector('.product-name, .item-name')?.textContent?.trim();
-      const productPrice = element.querySelector('.product-price, .item-price')?.textContent?.trim();
-      
-      if (productName) {
-        orderData.products.push({
-          name: productName,
-          price: productPrice
-        });
-      }
-    });
-
-    return orderData;
-  }
-
-  // Track checkout completion (when order data is not available)
-  function trackCheckoutCompletion() {
-    const eventData = {
-      event_type: "checkout_complete",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        checkout_id: window.location.pathname.split('/').pop(),
-        page_title: document.title,
-        checkout_url: window.location.href
-      },
-      timestamp: Date.now(),
-    };
-
-    log("Tracking checkout completion:", eventData);
-    sendEvent(eventData);
-  }
-
   // Track purchase completion
-  function trackPurchaseCompletion(orderData) {
-    const eventData = {
-      event_type: "purchase_complete",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        order_id: orderData.orderId,
-        total_amount: orderData.totalAmount,
-        currency: orderData.currency,
-        products: orderData.products,
-        page_title: document.title
-      },
-      timestamp: Date.now(),
-    };
+  function trackPurchaseCompletion() {
+    // Check for purchase completion indicators
+    const purchaseIndicators = [
+      // Shopify checkout completion
+      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank_you'),
+      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you'),
+      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/complete'),
+      
+      // Order confirmation pages
+      window.location.pathname.includes('/orders/'),
+      window.location.pathname.includes('/order/'),
+      
+      // Thank you pages
+      window.location.pathname.includes('/thank-you'),
+      window.location.pathname.includes('/thank_you'),
+      window.location.pathname.includes('/success'),
+      window.location.pathname.includes('/complete'),
+      
+      // Check for order confirmation in page content
+      document.title.toLowerCase().includes('order confirmation'),
+      document.title.toLowerCase().includes('thank you'),
+      document.title.toLowerCase().includes('purchase complete'),
+    ];
 
-    sendEvent(eventData);
+    if (purchaseIndicators.some(indicator => indicator)) {
+      log("Purchase completion detected", "info");
+      
+      // Extract order information
+      let orderData = {};
+      
+      // Try to get order ID from URL
+      const urlMatch = window.location.pathname.match(/\/orders?\/([^\/]+)/);
+      if (urlMatch) {
+        orderData.order_id = urlMatch[1];
+      }
+      
+      // Try to get order information from page content
+      const orderElements = document.querySelectorAll('[data-order-id], [data-order-number], .order-id, .order-number');
+      if (orderElements.length > 0) {
+        orderData.order_id = orderData.order_id || orderElements[0].textContent.trim();
+      }
+      
+      // Try to get total amount from page
+      const totalElements = document.querySelectorAll('[data-total], .total, .order-total, .amount');
+      if (totalElements.length > 0) {
+        const totalText = totalElements[0].textContent.trim();
+        const amountMatch = totalText.match(/[\d,]+\.?\d*/);
+        if (amountMatch) {
+          orderData.total_amount = parseFloat(amountMatch[0].replace(/,/g, ''));
+        }
+      }
+      
+      // Send purchase completion event
+      sendEvent({
+        event_type: "purchase_complete",
+        business_id: config.businessId,
+        affiliate_id: config.affiliateId,
+        session_id: config.sessionId,
+        url: window.location.href,
+        data: {
+          ...orderData,
+          platform: "shopify"
+        },
+        timestamp: Date.now(),
+      });
+      
+      // Also send sale data to business dashboard
+      if (orderData.order_id && orderData.total_amount) {
+        sendSaleData(orderData);
+      }
+      
+      return true;
+    }
     
-    // Also send to track-sale endpoint for business dashboard
-    sendSaleData(orderData);
+    return false;
   }
 
-  // Send sale data to track-sale endpoint
+  // Send sale data to business dashboard
   function sendSaleData(orderData) {
     const saleData = {
       businessId: config.businessId,
-      orderId: orderData.orderId,
-      amount: orderData.totalAmount,
+      orderId: orderData.order_id,
+      amount: orderData.total_amount,
       domain: window.location.hostname,
       customerId: null // Could be extracted if available
     };
 
-    log("Sending sale data:", saleData);
-
+    // Send to track-sale endpoint
     fetch("https://pavlo4.netlify.app/api/track-sale", {
       method: "POST",
+      mode: "cors",
+      credentials: "omit",
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Origin": window.location.origin,
       },
       body: JSON.stringify(saleData),
     })
-      .then((response) => {
-        log("Sale tracking response status:", response.status);
-        if (!response.ok) {
-          throw new Error("Sale tracking failed: " + response.status);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        log("Sale tracked successfully:", data);
-      })
-      .catch((error) => {
-        log("Failed to track sale: " + error.message, "error");
-      });
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to send sale data: " + response.status);
+      }
+      return response.json();
+    })
+    .then(data => {
+      log("Sale data sent successfully", "success");
+      log("Sale response:", data);
+    })
+    .catch(error => {
+      log("Failed to send sale data: " + error.message, "error");
+    });
   }
 
   // Set up event listeners
@@ -546,7 +442,7 @@
       document.addEventListener('visibilitychange', function() {
         if (!document.hidden && window.location.pathname.includes('/checkouts/')) {
           log("Page became visible, checking for checkout completion...");
-          checkForPurchaseCompletion();
+          trackPurchaseCompletion();
         }
       });
     }
@@ -687,6 +583,26 @@
     sendEvent(eventData);
   }
 
+  // Track checkout completion
+  function trackCheckoutCompletion() {
+    const eventData = {
+      event_type: "checkout_complete",
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      url: window.location.href,
+      data: {
+        checkout_id: window.location.pathname.split('/').pop(),
+        page_title: document.title,
+        checkout_url: window.location.href
+      },
+      timestamp: Date.now(),
+    };
+
+    log("Tracking checkout completion:", eventData);
+    sendEvent(eventData);
+  }
+
   // Track cart update
   function trackCartUpdate(cart) {
     const eventData = {
@@ -798,13 +714,18 @@
 
   // Send event to server
   function sendEvent(eventData) {
-    // Prevent duplicate events
-    const eventKey = `${eventData.event_type}_${eventData.session_id}_${Date.now()}`;
+    // Prevent duplicate events with better deduplication
+    const eventKey = `${eventData.event_type}_${eventData.session_id}_${JSON.stringify(eventData.data)}`;
     if (config.eventsSent.includes(eventKey)) {
-      log("Duplicate event detected, skipping:", eventData.event_type);
+      log("Duplicate event detected, skipping: " + eventData.event_type, "warn");
       return;
     }
     config.eventsSent.push(eventKey);
+    
+    // Keep only last 50 events to prevent memory leaks
+    if (config.eventsSent.length > 50) {
+      config.eventsSent = config.eventsSent.slice(-50);
+    }
 
     log("Sending event: " + eventData.event_type, "info");
     log("Event data:", eventData);
@@ -822,27 +743,20 @@
       body: JSON.stringify(eventData),
     })
       .then((response) => {
-        log("Response status:", response.status);
-        log("Response headers:", Object.fromEntries(response.headers.entries()));
+        log("Response status: " + response.status);
+        log("Response headers: " + JSON.stringify([...response.headers.entries()]));
         
         if (!response.ok) {
-          throw new Error("Network response was not ok: " + response.status + " " + response.statusText);
+          throw new Error("Network response was not ok: " + response.status);
         }
         return response.json();
       })
       .then((data) => {
-        log("Event sent successfully: " + eventData.event_type, "info");
+        log("Event sent successfully: " + eventData.event_type, "success");
         log("Server response:", data);
       })
       .catch((error) => {
         log("Failed to send event: " + error.message, "error");
-        
-        // Log additional error details for debugging
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-          log("CORS or network error detected. Check if the server is accessible and CORS is properly configured.", "error");
-          log("Current endpoint:", config.endpoint);
-          log("Current origin:", window.location.origin);
-        }
         
         // Try alternative endpoint if main one fails
         if (config.endpoint.includes('netlify.app')) {
@@ -861,10 +775,15 @@
               body: JSON.stringify(eventData),
             })
             .then(response => {
-              log("Alternative endpoint response:", response.status);
-              if (response.ok) {
-                log("Event sent via alternative endpoint", "info");
+              log("Alternative endpoint response status: " + response.status);
+              if (!response.ok) {
+                throw new Error("Alternative endpoint also failed: " + response.status);
               }
+              return response.json();
+            })
+            .then(data => {
+              log("Alternative endpoint succeeded: " + eventData.event_type, "success");
+              log("Server response:", data);
             })
             .catch(altError => {
               log("Alternative endpoint also failed: " + altError.message, "error");
@@ -896,8 +815,7 @@
       sendEvent(eventData);
     },
 
-    trackPageView: trackPageView,
-    trackProductView: trackInitialProduct,
+    trackProductView: checkForProductData,
     trackAddToCart: trackAddToCart,
     trackProductClick: trackProductClick,
     trackCheckoutStart: trackCheckoutStart,

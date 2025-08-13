@@ -18,6 +18,7 @@ import {
   DollarSign,
   LogOut,
   Settings,
+  Package,
 } from "lucide-react";
 
 interface BusinessStats {
@@ -160,6 +161,13 @@ export default function BusinessDashboard() {
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
               Integrate
+            </Button>
+            <Button
+              onClick={() => navigate("/business/dashboard/products")}
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+            >
+              <Package className="mr-2 h-4 w-4" />
+              Products
             </Button>
             <Button
               onClick={() => navigate("/business/dashboard/settings")}
