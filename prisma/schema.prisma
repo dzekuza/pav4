@@ -472,3 +472,26 @@ model Product {
 
   @@map("products")
 }
+
+model ShopifyEvent {
+  id          Int      @id @default(autoincrement())
+  event_id    String   @unique
+  shop_domain String
+  topic       String
+  triggered_at DateTime
+  processed_at DateTime
+  event_type  String
+  resource_id String
+  payload     Json
+  metadata    Json     @default("{}")
+
+  @@index([event_id])
+  @@index([shop_domain])
+  @@index([topic])
+  @@index([event_type])
+  @@index([triggered_at])
+  @@index([processed_at])
+  @@index([shop_domain, topic])
+  @@index([event_type, triggered_at])
+  @@map("shopify_events")
+}

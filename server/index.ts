@@ -98,6 +98,7 @@ import {
   getPublicProducts,
   getCategories,
 } from "./routes/products";
+import { handleShopifyWebhook, getWebhookStats } from "./routes/shopify-webhooks";
 
 // Load environment variables
 dotenv.config();
@@ -323,6 +324,10 @@ export async function createServer() {
     trackEvent(req, res, next);
   });
   app.get("/api/tracking-events", getTrackingEvents);
+
+  // Shopify webhook routes
+  app.post("/api/shopify-webhooks", handleShopifyWebhook);
+  app.get("/api/shopify-webhooks/stats", getWebhookStats);
 
   // Test tracking route
   app.post("/api/test-tracking", async (req, res) => {

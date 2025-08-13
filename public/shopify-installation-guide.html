@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceHunt Shopify Tracking Installation Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .step h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .note {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            color: #004085;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 PriceHunt Shopify Tracking Installation Guide</h1>
+        <p>Follow this guide to properly install PriceHunt tracking on your Shopify store</p>
+    </div>
+
+    <div class="step">
+        <h3>Step 1: Access Your Shopify Theme</h3>
+        <ol>
+            <li>Log in to your Shopify admin panel</li>
+            <li>Go to <strong>Online Store</strong> → <strong>Themes</strong></li>
+            <li>Click <strong>Actions</strong> → <strong>Edit code</strong> on your active theme</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: Add Head Script</h3>
+        <p>In the theme editor, find and open <code>theme.liquid</code> file. Add the following code in the <code>&lt;head&gt;</code> section:</p>
+        
+        <pre><code>&lt;!-- PriceHunt Tracking - Head Script --&gt;
+&lt;script 
+    src="https://pavlo4.netlify.app/shopify-tracker-head.js"
+    data-business-id="YOUR_BUSINESS_ID"
+    data-affiliate-id="YOUR_AFFILIATE_ID"
+    data-debug="false"&gt;
+&lt;/script&gt;</code></pre>
+
+        <div class="warning">
+            <strong>Important:</strong> Replace <code>YOUR_BUSINESS_ID</code> and <code>YOUR_AFFILIATE_ID</code> with your actual PriceHunt credentials.
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>Step 3: Add Body Script</h3>
+        <p>In the same <code>theme.liquid</code> file, add the following code just before the closing <code>&lt;/body&gt;</code> tag:</p>
+        
+        <pre><code>&lt;!-- PriceHunt Tracking - Body Script --&gt;
+&lt;script src="https://pavlo4.netlify.app/shopify-tracker-body.js"&gt;&lt;/script&gt;</code></pre>
+    </div>
+
+    <div class="step">
+        <h3>Step 4: Save and Test</h3>
+        <ol>
+            <li>Click <strong>Save</strong> to save your changes</li>
+            <li>Visit your store and test the tracking by:
+                <ul>
+                    <li>Viewing a product page</li>
+                    <li>Adding an item to cart</li>
+                    <li>Starting checkout</li>
+                    <li>Completing a purchase</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="note">
+        <h4>📝 Complete Example</h4>
+        <p>Here's how your <code>theme.liquid</code> file should look:</p>
+        
+        <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta name="viewport" content="width=device-width,initial-scale=1"&gt;
+    &lt;title&gt;{{ page_title }}&lt;/title&gt;
+    
+    &lt;!-- PriceHunt Tracking - Head Script --&gt;
+    &lt;script 
+        src="https://pavlo4.netlify.app/shopify-tracker-head.js"
+        data-business-id="YOUR_BUSINESS_ID"
+        data-affiliate-id="YOUR_AFFILIATE_ID"
+        data-debug="false"&gt;
+    &lt;/script&gt;
+    
+    {{ content_for_header }}
+&lt;/head&gt;
+
+&lt;body&gt;
+    {{ content_for_layout }}
+    
+    &lt;!-- PriceHunt Tracking - Body Script --&gt;
+    &lt;script src="https://pavlo4.netlify.app/shopify-tracker-body.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+    </div>
+
+    <div class="success">
+        <h4>✅ What Gets Tracked</h4>
+        <ul>
+            <li><strong>Page Views:</strong> Every page visit on your store</li>
+            <li><strong>Product Views:</strong> When customers view product pages</li>
+            <li><strong>Add to Cart:</strong> When items are added to cart</li>
+            <li><strong>Checkout Start:</strong> When customers begin checkout</li>
+            <li><strong>Purchase Completion:</strong> When orders are completed</li>
+        </ul>
+    </div>
+
+    <div class="warning">
+        <h4>⚠️ Troubleshooting</h4>
+        <ul>
+            <li><strong>Events not showing:</strong> Check browser console for errors</li>
+            <li><strong>Duplicate events:</strong> Ensure scripts are only added once</li>
+            <li><strong>Purchase not tracked:</strong> Verify you're on the thank-you page</li>
+            <li><strong>Debug mode:</strong> Set <code>data-debug="true"</code> for detailed logs</li>
+        </ul>
+    </div>
+
+    <div class="note">
+        <h4>🔧 Advanced Configuration</h4>
+        <p>You can also pass parameters via URL for testing:</p>
+        <code>https://yourstore.com?business_id=123&affiliate_id=456</code>
+    </div>
+
+    <div class="step">
+        <h3>Step 5: Verify Installation</h3>
+        <p>To verify the tracking is working:</p>
+        <ol>
+            <li>Open browser developer tools (F12)</li>
+            <li>Go to the Console tab</li>
+            <li>Look for <code>[PriceHunt]</code> log messages</li>
+            <li>Check your PriceHunt dashboard for incoming events</li>
+        </ol>
+    </div>
+
+    <div class="success">
+        <h4>🎉 You're All Set!</h4>
+        <p>Your Shopify store is now properly configured with PriceHunt tracking. All customer interactions will be tracked and available in your PriceHunt dashboard.</p>
+    </div>
+</body>
+</html>

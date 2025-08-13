@@ -82,6 +82,18 @@
       log("Purchase completion tracked on page load", "success");
     }
 
+    // Check if we're on a checkout page and track checkout start
+    if (window.location.pathname.includes('/checkout') || window.location.pathname.includes('/checkouts/')) {
+      log("Checkout page detected, tracking checkout start");
+      trackCheckoutPageVisit();
+    }
+    
+    // Check specifically for Shopify thank-you page format
+    if (window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you')) {
+      log("Shopify thank-you page detected, tracking purchase completion");
+      trackShopifyPurchaseCompletion();
+    }
+
     // Mark as initialized to prevent duplicate initialization
     if (window.PriceHuntTracker) {
       window.PriceHuntTracker.initialized = true;
@@ -213,12 +225,15 @@
 
   // Track purchase completion
   function trackPurchaseCompletion() {
+    log("Checking for purchase completion on URL: " + window.location.pathname, "info");
+    
     // Check for purchase completion indicators
     const purchaseIndicators = [
-      // Shopify checkout completion
-      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank_you'),
+      // Shopify checkout completion - more specific patterns
       window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you'),
+      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank_you'),
       window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/complete'),
+      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/success'),
       
       // Order confirmation pages
       window.location.pathname.includes('/orders/'),
@@ -234,7 +249,15 @@
       document.title.toLowerCase().includes('order confirmation'),
       document.title.toLowerCase().includes('thank you'),
       document.title.toLowerCase().includes('purchase complete'),
+      document.title.toLowerCase().includes('order received'),
     ];
+
+    // Log each indicator for debugging
+    purchaseIndicators.forEach((indicator, index) => {
+      if (indicator) {
+        log(`Purchase indicator ${index} matched: ${indicator}`, "info");
+      }
+    });
 
     if (purchaseIndicators.some(indicator => indicator)) {
       log("Purchase completion detected", "info");
@@ -242,26 +265,44 @@
       // Extract order information
       let orderData = {};
       
-      // Try to get order ID from URL
-      const urlMatch = window.location.pathname.match(/\/orders?\/([^\/]+)/);
+      // Try to get order ID from URL (Shopify format: /checkouts/cn/order_id/thank-you)
+      const urlMatch = window.location.pathname.match(/\/checkouts\/[^\/]+\/([^\/]+)\/thank-you/);
       if (urlMatch) {
         orderData.order_id = urlMatch[1];
+        log("Extracted order ID from URL: " + orderData.order_id, "info");
+      }
+      
+      // Try alternative URL patterns
+      if (!orderData.order_id) {
+        const altUrlMatch = window.location.pathname.match(/\/orders?\/([^\/]+)/);
+        if (altUrlMatch) {
+          orderData.order_id = altUrlMatch[1];
+          log("Extracted order ID from alternative URL pattern: " + orderData.order_id, "info");
+        }
       }
       
       // Try to get order information from page content
-      const orderElements = document.querySelectorAll('[data-order-id], [data-order-number], .order-id, .order-number');
+      const orderElements = document.querySelectorAll('[data-order-id], [data-order-number], .order-id, .order-number, [data-order-name]');
       if (orderElements.length > 0) {
         orderData.order_id = orderData.order_id || orderElements[0].textContent.trim();
+        log("Extracted order ID from page content: " + orderData.order_id, "info");
       }
       
       // Try to get total amount from page
-      const totalElements = document.querySelectorAll('[data-total], .total, .order-total, .amount');
+      const totalElements = document.querySelectorAll('[data-total], .total, .order-total, .amount, .order-summary__total, .total-line__price');
       if (totalElements.length > 0) {
         const totalText = totalElements[0].textContent.trim();
         const amountMatch = totalText.match(/[\d,]+\.?\d*/);
         if (amountMatch) {
           orderData.total_amount = parseFloat(amountMatch[0].replace(/,/g, ''));
+          log("Extracted total amount: " + orderData.total_amount, "info");
         }
+      }
+      
+      // If no order ID found, generate one from the URL
+      if (!orderData.order_id) {
+        orderData.order_id = window.location.pathname.split('/').filter(Boolean).join('_');
+        log("Generated order ID from URL: " + orderData.order_id, "info");
       }
       
       // Send purchase completion event
@@ -287,6 +328,67 @@
     }
     
     return false;
+  }
+
+  // Track Shopify-specific purchase completion
+  function trackShopifyPurchaseCompletion() {
+    log("Tracking Shopify purchase completion", "info");
+    
+    // Extract order ID from URL (format: /checkouts/cn/order_id/thank-you)
+    const urlMatch = window.location.pathname.match(/\/checkouts\/[^\/]+\/([^\/]+)\/thank-you/);
+    const orderId = urlMatch ? urlMatch[1] : 'unknown';
+    
+    log("Extracted order ID: " + orderId, "info");
+    
+    // Try to extract order details from the page
+    let orderData = {
+      order_id: orderId,
+      platform: "shopify",
+      url: window.location.href,
+      page_title: document.title
+    };
+    
+    // Try to get order total from various selectors
+    const totalSelectors = [
+      '.order-summary__total',
+      '.total-line__price',
+      '[data-total]',
+      '.total',
+      '.order-total',
+      '.amount'
+    ];
+    
+    for (const selector of totalSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const totalText = element.textContent.trim();
+        const amountMatch = totalText.match(/[\d,]+\.?\d*/);
+        if (amountMatch) {
+          orderData.total_amount = parseFloat(amountMatch[0].replace(/,/g, ''));
+          log("Found total amount: " + orderData.total_amount, "info");
+          break;
+        }
+      }
+    }
+    
+    // Send purchase completion event
+    const eventData = {
+      event_type: "purchase_complete",
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      url: window.location.href,
+      data: orderData,
+      timestamp: Date.now(),
+    };
+    
+    log("Sending purchase completion event:", eventData);
+    sendEvent(eventData);
+    
+    // Also send sale data if we have total amount
+    if (orderData.total_amount) {
+      sendSaleData(orderData);
+    }
   }
 
   // Send sale data to business dashboard
@@ -355,11 +457,35 @@
       }
     });
 
-    // Track form submissions (checkout)
+    // Track form submissions (cart and checkout)
     document.addEventListener("submit", function (e) {
-      if (isCheckoutForm(e.target)) {
-        log("Checkout form submitted:", e.target);
-        trackCheckoutStart(e.target);
+      const form = e.target;
+      
+      if (isCartForm(form)) {
+        log("Cart form submitted (add to cart):", form);
+        // Extract product data from the form and track add to cart
+        const productData = extractProductDataFromForm(form);
+        if (productData.id) {
+          const eventData = {
+            event_type: "add_to_cart",
+            business_id: config.businessId,
+            affiliate_id: config.affiliateId,
+            session_id: config.sessionId,
+            url: window.location.href,
+            data: {
+              product_id: productData.id,
+              product_name: productData.name,
+              product_price: productData.price,
+              product_variant_id: productData.variantId,
+              quantity: productData.quantity || 1,
+            },
+            timestamp: Date.now(),
+          };
+          sendEvent(eventData);
+        }
+      } else if (isCheckoutForm(form)) {
+        log("Checkout form submitted:", form);
+        trackCheckoutStart(form);
       }
     });
 
@@ -514,10 +640,40 @@
 
   // Check if form is checkout form
   function isCheckoutForm(form) {
+    // More specific checkout form detection
+    const action = form.action || '';
+    const dataAction = form.getAttribute("data-action") || '';
+    
+    // Check for actual checkout forms (not cart forms)
     return (
-      form.action.includes("checkout") ||
-      form.action.includes("cart") ||
-      form.getAttribute("data-action") === "checkout"
+      action.includes("/checkout") ||
+      action.includes("/checkouts/") ||
+      dataAction === "checkout" ||
+      dataAction.includes("checkout") ||
+      // Check for checkout-specific form classes or IDs
+      form.classList.contains("checkout-form") ||
+      form.id === "checkout-form" ||
+      form.querySelector('[name="checkout"]') ||
+      form.querySelector('[data-checkout]')
+    );
+  }
+
+  // Check if form is cart form (add to cart)
+  function isCartForm(form) {
+    const action = form.action || '';
+    const dataAction = form.getAttribute("data-action") || '';
+    
+    // Check for cart forms (add to cart)
+    return (
+      action.includes("/cart/add") ||
+      action.includes("cart/add") ||
+      dataAction === "add" ||
+      dataAction.includes("add") ||
+      // Check for cart-specific form classes or IDs
+      form.classList.contains("cart-form") ||
+      form.id === "cart-form" ||
+      form.querySelector('[name="add"]') ||
+      form.querySelector('[data-add-to-cart]')
     );
   }
 
@@ -587,7 +743,7 @@
     sendEvent(eventData);
   }
 
-  // Track checkout start
+  // Track checkout start from form submission
   function trackCheckoutStart(form) {
     const eventData = {
       event_type: "checkout_start",
@@ -597,6 +753,25 @@
       url: window.location.href,
       data: {
         form_action: form.action,
+        trigger: "form_submission",
+      },
+      timestamp: Date.now(),
+    };
+
+    sendEvent(eventData);
+  }
+
+  // Track checkout start from page visit
+  function trackCheckoutPageVisit() {
+    const eventData = {
+      event_type: "checkout_start",
+      business_id: config.businessId,
+      affiliate_id: config.affiliateId,
+      session_id: config.sessionId,
+      url: window.location.href,
+      data: {
+        trigger: "page_visit",
+        page_title: document.title,
       },
       timestamp: Date.now(),
     };
@@ -640,6 +815,60 @@
     };
 
     sendEvent(eventData);
+  }
+
+  // Extract product data from form
+  function extractProductDataFromForm(form) {
+    let data = {
+      id: null,
+      name: null,
+      price: null,
+      variantId: null,
+      quantity: 1,
+    };
+
+    log("Extracting product data from form:", form);
+
+    // Try to get data from form inputs
+    const formData = new FormData(form);
+    data.id = formData.get("id") || formData.get("product_id") || formData.get("variant_id");
+    data.quantity = parseInt(formData.get("quantity")) || 1;
+
+    // Try to get data from data attributes on the form
+    data.id = data.id || 
+      form.getAttribute("data-product-id") ||
+      form.getAttribute("data-id");
+
+    data.name = 
+      form.getAttribute("data-product-name") ||
+      form.getAttribute("data-title");
+
+    data.price = 
+      form.getAttribute("data-price");
+
+    data.variantId = 
+      form.getAttribute("data-variant-id") ||
+      form.getAttribute("data-variant");
+
+    // Try to get data from parent elements
+    const parent = form.closest("[data-product-id], .product-item, .product-card");
+    if (parent) {
+      if (!data.id) data.id = parent.getAttribute("data-product-id");
+      if (!data.name) data.name = parent.getAttribute("data-product-name");
+      if (!data.price) data.price = parent.getAttribute("data-price");
+      if (!data.variantId) data.variantId = parent.getAttribute("data-variant-id");
+    }
+
+    // Try to get data from Shopify global object
+    if (window.Shopify && window.Shopify.theme && window.Shopify.theme.product) {
+      const product = window.Shopify.theme.product;
+      if (!data.id) data.id = product.id;
+      if (!data.name) data.name = product.title;
+      if (!data.price) data.price = product.price;
+      if (!data.variantId) data.variantId = product.selected_or_first_available_variant?.id;
+    }
+
+    return data;
   }
 
   // Extract product data from element
@@ -862,6 +1091,7 @@
     trackCheckoutStart: trackCheckoutStart,
     trackCartUpdate: trackCartUpdate,
     trackPurchaseCompletion: trackPurchaseCompletion,
+    trackShopifyPurchaseCompletion: trackShopifyPurchaseCompletion,
 
     // Debug functions
     getConfig: function () {
