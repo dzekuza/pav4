@@ -650,6 +650,7 @@ export const businessService = {
         adminCommissionRate: true,
         affiliateId: true,
         trackingVerified: true,
+        logo: true,
       },
     });
 
@@ -735,6 +736,7 @@ export const businessService = {
         domain: true,
         adminCommissionRate: true,
         affiliateId: true,
+        logo: true,
       },
     });
 
@@ -970,6 +972,7 @@ export const businessService = {
       country?: string | null;
       category?: string | null;
       description?: string | null;
+      logo?: string | null;
     }
   ) {
     return prisma.business.update({
@@ -983,6 +986,7 @@ export const businessService = {
         country: data.country,
         category: data.category,
         description: data.description,
+        logo: data.logo,
       },
     });
   },

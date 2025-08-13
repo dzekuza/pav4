@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   Settings,
   User,
@@ -28,6 +29,7 @@ import {
   Save,
   Edit,
   Trash2,
+  Info,
 } from "lucide-react";
 import { DeleteAccountModal } from "../components/DeleteAccountModal";
 import { NotificationSettings } from "../components/NotificationSettings";
@@ -46,6 +48,7 @@ interface BusinessStats {
   projectedFee: number;
   averageOrderValue: number;
   conversionRate: number;
+  logo?: string | null;
 }
 
 interface BusinessSettings {
@@ -58,17 +61,13 @@ interface BusinessSettings {
     country: string;
     category: string;
     description: string;
+    logo?: string | null;
   };
   trackingSettings: {
     enableTracking: boolean;
     enableNotifications: boolean;
     enableAnalytics: boolean;
     trackingCode: string;
-  };
-  commissionSettings: {
-    commissionRate: number;
-    autoPayout: boolean;
-    payoutThreshold: number;
   };
   securitySettings: {
     twoFactorAuth: boolean;
@@ -91,17 +90,13 @@ export default function BusinessSettingsDashboard() {
       country: "United States",
       category: "E-commerce",
       description: "Your business description here",
+      logo: stats?.logo || null,
     },
     trackingSettings: {
       enableTracking: true,
       enableNotifications: true,
       enableAnalytics: true,
       trackingCode: "YOUR_TRACKING_CODE",
-    },
-    commissionSettings: {
-      commissionRate: stats?.adminCommissionRate || 10,
-      autoPayout: false,
-      payoutThreshold: 100,
     },
     securitySettings: {
       twoFactorAuth: false,
@@ -121,10 +116,7 @@ export default function BusinessSettingsDashboard() {
           ...prev.businessInfo,
           name: stats.name || prev.businessInfo.name,
           domain: stats.domain || prev.businessInfo.domain,
-        },
-        commissionSettings: {
-          ...prev.commissionSettings,
-          commissionRate: stats.adminCommissionRate || prev.commissionSettings.commissionRate,
+          logo: stats.logo || prev.businessInfo.logo,
         },
       }));
     }
@@ -150,6 +142,7 @@ export default function BusinessSettingsDashboard() {
             country: settings.businessInfo.country,
             category: settings.businessInfo.category,
             description: settings.businessInfo.description,
+            logo: settings.businessInfo.logo,
           }),
         });
 
@@ -171,6 +164,26 @@ export default function BusinessSettingsDashboard() {
         } catch (jsonError) {
           throw new Error("Invalid response from server");
         }
+        
+        // Update local state with the response data
+        if (data.business) {
+          setSettings((prev) => ({
+            ...prev,
+            businessInfo: {
+              ...prev.businessInfo,
+              name: data.business.name,
+              domain: data.business.domain,
+              email: data.business.email,
+              phone: data.business.phone,
+              address: data.business.address,
+              country: data.business.country,
+              category: data.business.category,
+              description: data.business.description,
+              logo: data.business.logo,
+            },
+          }));
+        }
+        
         toast({
           title: "Profile Updated",
           description:
@@ -213,13 +226,21 @@ export default function BusinessSettingsDashboard() {
     }));
   };
 
+  const handleLogoUpload = (imageData: string) => {
+    updateSettings("businessInfo", "logo", imageData);
+  };
+
+  const handleLogoRemove = () => {
+    updateSettings("businessInfo", "logo", null);
+  };
+
   return (
     <div className="space-y-6 text-white">
       {/* Settings Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Business Settings</h2>
-          <p className="text-white/70">
+          <h2 className="text-xl md:text-2xl font-bold text-white">Business Settings</h2>
+          <p className="text-sm md:text-base text-white/70">
             Manage your business profile, tracking, and security settings
           </p>
         </div>
@@ -227,17 +248,30 @@ export default function BusinessSettingsDashboard() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="tracking">Tracking</TabsTrigger>
-          <TabsTrigger value="commission">Commission</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="danger" className="text-destructive">Danger Zone</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto tabs-scroll-container">
+          <TabsList className="flex w-full min-w-max space-x-1 bg-white/5 border border-white/10">
+            <TabsTrigger value="profile" className="flex-shrink-0 px-3 md:px-4">Profile</TabsTrigger>
+            <TabsTrigger value="tracking" className="flex-shrink-0 px-3 md:px-4">Tracking</TabsTrigger>
+            <TabsTrigger value="commission" className="flex-shrink-0 px-3 md:px-4">Commission</TabsTrigger>
+            <TabsTrigger value="notifications" className="flex-shrink-0 px-3 md:px-4">Notifications</TabsTrigger>
+            <TabsTrigger value="security" className="flex-shrink-0 px-3 md:px-4">Security</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-4">
+          {/* Logo Upload */}
+          <ImageUpload
+            currentImage={settings.businessInfo.logo}
+            onImageUpload={handleLogoUpload}
+            onImageRemove={handleLogoRemove}
+            isLoading={isLoading}
+            title="Business Logo"
+            description="Upload your business logo. This will be displayed on your dashboard and in your business profile."
+            maxSize={2}
+          />
+
+          {/* Business Information */}
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
@@ -249,7 +283,7 @@ export default function BusinessSettingsDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="business-name">Business Name</Label>
                   <Input
@@ -381,7 +415,7 @@ export default function BusinessSettingsDashboard() {
                     }
                   />
                 </div>
-                <Separator />
+                <Separator className="bg-border" />
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Enable Notifications</Label>
@@ -400,7 +434,7 @@ export default function BusinessSettingsDashboard() {
                     }
                   />
                 </div>
-                <Separator />
+                <Separator className="bg-border" />
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Enable Analytics</Label>
@@ -432,76 +466,91 @@ export default function BusinessSettingsDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Commission Settings */}
+        {/* Commission Information (Read-only) */}
         <TabsContent value="commission" className="space-y-4">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <CreditCard className="h-5 w-5" />
-                Commission Settings
+                Commission Information
               </CardTitle>
               <CardDescription className="text-white/80">
-                Configure your commission rates and payout preferences
+                Your current commission rate and earnings information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="commission-rate">Commission Rate (%)</Label>
-                  <Input
-                    id="commission-rate"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={settings.commissionSettings.commissionRate}
-                    onChange={(e) =>
-                      updateSettings(
-                        "commissionSettings",
-                        "commissionRate",
-                        parseFloat(e.target.value),
-                      )
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="payout-threshold">Payout Threshold ($)</Label>
-                  <Input
-                    id="payout-threshold"
-                    type="number"
-                    min="0"
-                    value={settings.commissionSettings.payoutThreshold}
-                    onChange={(e) =>
-                      updateSettings(
-                        "commissionSettings",
-                        "payoutThreshold",
-                        parseFloat(e.target.value),
-                      )
-                    }
-                  />
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-400 mt-0.5" />
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-blue-400">
+                      Commission Rate Managed by Admin
+                    </h4>
+                    <p className="text-sm text-white/70">
+                      Your commission rate is set by the platform administrator and cannot be changed from this dashboard. 
+                      Contact support if you need to discuss your commission rate.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Auto Payout</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically payout when threshold is reached
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="commission-rate">Current Commission Rate</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="commission-rate"
+                      type="number"
+                      value={stats?.adminCommissionRate || 0}
+                      disabled
+                      className="bg-white/10 text-white/70"
+                    />
+                    <Badge variant="secondary" className="text-white/70">
+                      %
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-white/50">
+                    Set by platform administrator
                   </p>
                 </div>
-                <Switch
-                  checked={settings.commissionSettings.autoPayout}
-                  onCheckedChange={(checked) =>
-                    updateSettings("commissionSettings", "autoPayout", checked)
-                  }
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="projected-fee">Projected Fee</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="projected-fee"
+                      type="number"
+                      value={stats?.projectedFee || 0}
+                      disabled
+                      className="bg-white/10 text-white/70"
+                    />
+                    <Badge variant="secondary" className="text-white/70">
+                      $
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-white/50">
+                    Based on current commission rate
+                  </p>
+                </div>
               </div>
-              <Button
-                onClick={() => handleSaveSettings("Commission")}
-                disabled={isLoading}
-                className="w-full md:w-auto"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save Commission Settings
-              </Button>
+              
+              <div className="space-y-2">
+                <Label>Commission Details</Label>
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-white/70">Total Revenue:</span>
+                    <span className="text-sm font-medium">${stats?.totalRevenue || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-white/70">Commission Rate:</span>
+                    <span className="text-sm font-medium">{stats?.adminCommissionRate || 0}%</span>
+                  </div>
+                  <Separator className="bg-border" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Projected Commission:</span>
+                    <span className="text-sm font-medium text-green-400">${stats?.projectedFee || 0}</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -546,7 +595,7 @@ export default function BusinessSettingsDashboard() {
                     }
                   />
                 </div>
-                <Separator />
+                <Separator className="bg-border" />
                 <div className="space-y-2">
                   <Label htmlFor="session-timeout">
                     Session Timeout (minutes)
@@ -566,7 +615,7 @@ export default function BusinessSettingsDashboard() {
                     }
                   />
                 </div>
-                <Separator />
+                <Separator className="bg-border" />
                 <div className="space-y-2">
                   <Label>Change Password</Label>
                   <div className="flex gap-2">
@@ -600,43 +649,6 @@ export default function BusinessSettingsDashboard() {
                 <Save className="mr-2 h-4 w-4" />
                 Save Security Settings
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Danger Zone */}
-        <TabsContent value="danger" className="space-y-4">
-          <Card className="border-destructive/20 bg-destructive/5 text-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <Trash2 className="h-5 w-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription className="text-white/80">
-                Irreversible and destructive actions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-destructive">
-                      Delete Business Account
-                    </h4>
-                    <p className="text-sm text-white/70">
-                      Permanently delete your business account and all associated data. This action cannot be undone.
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Account
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

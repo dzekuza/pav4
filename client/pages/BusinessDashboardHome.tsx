@@ -28,6 +28,7 @@ interface BusinessStats {
   totalProductViews: number;
   totalSessions: number;
   cartToPurchaseRate: number;
+  logo?: string | null;
 }
 
 export default function BusinessDashboardHome() {
@@ -119,7 +120,7 @@ export default function BusinessDashboardHome() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">
@@ -184,7 +185,7 @@ export default function BusinessDashboardHome() {
       </div>
 
       {/* Additional Statistics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">

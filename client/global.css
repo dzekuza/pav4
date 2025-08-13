@@ -236,7 +236,7 @@
   }
 
   .sidebar-mobile {
-    background: hsl(var(--sidebar-background));
+    background: hsl(0 0% 0%);
   }
 
   .skeleton-width {
@@ -278,6 +278,24 @@
     .mobile-text-xs {
       font-size: 0.75rem;
       line-height: 1rem;
+    }
+
+    /* Mobile tabs scrolling */
+    .tabs-scroll-container {
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      scroll-behavior: smooth;
+    }
+
+    .tabs-scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Ensure tabs are touch-friendly on mobile */
+    .tabs-scroll-container .tabs-trigger {
+      min-width: 80px;
+      touch-action: manipulation;
     }
   }
 

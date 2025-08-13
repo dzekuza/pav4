@@ -567,6 +567,7 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
       country,
       category,
       description,
+      logo,
     } = req.body;
 
     // Validate required fields
@@ -611,6 +612,7 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
         country: country || null,
         category: category || null,
         description: description || null,
+        logo: logo || null,
       }
     );
 
@@ -627,6 +629,7 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
         country: updatedBusiness.country,
         category: updatedBusiness.category,
         description: updatedBusiness.description,
+        logo: updatedBusiness.logo,
       },
     });
   } catch (error) {
@@ -695,117 +698,7 @@ export const forgotPassword: RequestHandler = async (req, res) => {
   }
 };
 
-// Send test email
-export const sendTestEmail: RequestHandler = async (req, res) => {
-  try {
-    // Check for business authentication
-    let token = req.cookies.business_token;
 
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: "Not authenticated",
-      });
-    }
-
-    const decoded = verifyBusinessToken(token);
-    if (!decoded || decoded.type !== "business") {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid token",
-      });
-    }
-
-    const { email, businessName } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        error: "Email is required",
-      });
-    }
-
-    // Send test email
-    const emailResult = await emailService.sendEmail({
-      to: email,
-      subject: "Test Email - Notification System",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Test Email</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .success { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>✅ Test Email Successful!</h1>
-            </div>
-            <div class="content">
-              <h2>Hello${businessName ? ` ${businessName}` : ''}!</h2>
-              <p>This is a test email to verify that your notification system is working correctly.</p>
-              
-              <div class="success">
-                <strong>🎉 Congratulations!</strong> Your email configuration is working perfectly.
-              </div>
-              
-              <p>You will now receive notifications for:</p>
-              <ul>
-                <li>New sales and conversions</li>
-                <li>Weekly and monthly reports</li>
-                <li>Domain verification updates</li>
-                <li>Security alerts</li>
-              </ul>
-              
-              <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-            </div>
-            <div class="footer">
-              <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-    });
-
-    if (emailResult.success) {
-      res.json({
-        success: true,
-        message: "Test email sent successfully",
-      });
-    } else {
-      console.error("Failed to send test email:", emailResult.error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to send test email",
-        details: emailResult.error,
-      });
-    }
-  } catch (error) {
-    console.error("Error sending test email:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to send test email",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
 
 // Reset password with token
 export const resetPassword: RequestHandler = async (req, res) => {

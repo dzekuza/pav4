@@ -98,26 +98,6 @@ The system includes these pre-built email templates:
 
 ## 🧪 Testing
 
-### Test Email Endpoint
-
-Use the test email endpoint to verify your setup:
-
-```bash
-curl -X POST http://localhost:3000/api/business/test-email \
-  -H "Content-Type: application/json" \
-  -H "Cookie: business_token=your_token" \
-  -d '{
-    "email": "test@example.com",
-    "businessName": "Test Business"
-  }'
-```
-
-### Frontend Testing
-
-1. Go to Business Settings → Notifications
-2. Click "Send Test Email"
-3. Check your email inbox
-
 ## 📊 Monitoring
 
 ### Email Logs

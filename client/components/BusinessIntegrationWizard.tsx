@@ -749,20 +749,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   return (
     <div className="space-y-6 text-white">
-      {/* Debug Info - Remove this after testing */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="border border-yellow-500/20 bg-yellow-500/10 rounded-lg p-4 mb-4">
-          <h4 className="font-medium text-yellow-400 mb-2">Debug Info:</h4>
-          <div className="text-sm text-white/80 space-y-1">
-            <div>Business ID: {business.id}</div>
-            <div>Domain: {business.domain}</div>
-            <div>Domain Verified: {String(business.domainVerified)}</div>
-            <div>Tracking Verified: {String(business.trackingVerified)}</div>
-            <div>Showing: {business.domainVerified === true ? "Status Dashboard" : "Setup Wizard"}</div>
-          </div>
-        </div>
-      )}
-
       {/* Show different content based on verification status */}
       {business.domainVerified === true ? (
         // Verified Business - Show Status Dashboard

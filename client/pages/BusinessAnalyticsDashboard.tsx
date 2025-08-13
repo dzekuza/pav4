@@ -50,6 +50,7 @@ interface BusinessStats {
   projectedFee: number;
   averageOrderValue: number;
   conversionRate: number;
+  logo?: string | null;
 }
 
 interface AnalyticsData {
@@ -164,7 +165,22 @@ export default function BusinessAnalyticsDashboard() {
       const productPurchases = new Map<string, number>();
 
       clicks.forEach((click: any) => {
-        const productName = extractProductName(click.productId);
+        // Extract product name from URL or productId
+        let productName = "Unknown Product";
+        
+        if (click.url) {
+          productName = extractProductName(click.url);
+        } else if (click.productId) {
+          productName = extractProductName(click.productId);
+        } else if (click.productName) {
+          productName = click.productName;
+        }
+        
+        // Skip if we couldn't extract a meaningful name
+        if (productName === "Unknown Product" || productName.length < 2) {
+          return;
+        }
+        
         productClicks.set(
           productName,
           (productClicks.get(productName) || 0) + 1,
@@ -172,7 +188,24 @@ export default function BusinessAnalyticsDashboard() {
       });
 
       conversions.forEach((conversion: any) => {
-        const productName = `Order ${conversion.orderId}`;
+        // For conversions, try to get the actual product name
+        let productName = "Unknown Product";
+        
+        if (conversion.url) {
+          productName = extractProductName(conversion.url);
+        } else if (conversion.productId) {
+          productName = extractProductName(conversion.productId);
+        } else if (conversion.productName) {
+          productName = conversion.productName;
+        } else if (conversion.orderId) {
+          productName = `Order ${conversion.orderId}`;
+        }
+        
+        // Skip if we couldn't extract a meaningful name
+        if (productName === "Unknown Product" || productName.length < 2) {
+          return;
+        }
+        
         productPurchases.set(
           productName,
           (productPurchases.get(productName) || 0) + 1,
@@ -187,6 +220,11 @@ export default function BusinessAnalyticsDashboard() {
         }))
         .sort((a, b) => b.clicks - a.clicks)
         .slice(0, 5);
+
+      // If no products with meaningful names, show a message
+      if (topProducts.length === 0 || topProducts.every(p => p.name === "Unknown Product")) {
+        console.log("No meaningful product names found in analytics data");
+      }
 
       // Calculate conversion trends
       const conversionTrends = dailyVisits.map((day) => {
@@ -239,9 +277,59 @@ export default function BusinessAnalyticsDashboard() {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split("/").filter(Boolean);
-      return pathParts[pathParts.length - 1] || "Product";
+      
+      // Get the last meaningful part of the URL
+      const lastPart = pathParts[pathParts.length - 1];
+      
+      if (!lastPart) {
+        // If no path parts, try to get meaningful info from hostname
+        const hostname = urlObj.hostname;
+        if (hostname && hostname !== 'localhost') {
+          return hostname.replace(/^www\./, '').split('.')[0];
+        }
+        return "Unknown Product";
+      }
+      
+      // Clean up the product name
+      let productName = lastPart
+        .replace(/[-_]/g, ' ') // Replace dashes and underscores with spaces
+        .replace(/\.(html|php|asp|jsp)$/i, '') // Remove file extensions
+        .replace(/\d+$/, '') // Remove trailing numbers
+        .trim();
+      
+      // Capitalize words
+      productName = productName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      
+      // If the result is empty or too short, try the parent directory
+      if (productName.length < 2 && pathParts.length > 1) {
+        const parentPart = pathParts[pathParts.length - 2];
+        productName = parentPart
+          .replace(/[-_]/g, ' ')
+          .replace(/\.(html|php|asp|jsp)$/i, '')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      }
+      
+      return productName || "Unknown Product";
     } catch {
-      return "Product";
+      // If URL parsing fails, try to extract meaningful info from the string
+      if (typeof url === 'string' && url.length > 0) {
+        const parts = url.split('/').filter(Boolean);
+        const lastPart = parts[parts.length - 1];
+        if (lastPart) {
+          return lastPart
+            .replace(/[-_]/g, ' ')
+            .replace(/\.(html|php|asp|jsp)$/i, '')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ') || "Unknown Product";
+        }
+      }
+      return "Unknown Product";
     }
   };
 
@@ -257,7 +345,7 @@ export default function BusinessAnalyticsDashboard() {
       <div className="space-y-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 mb-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-200 rounded"></div>
             ))}
@@ -271,7 +359,7 @@ export default function BusinessAnalyticsDashboard() {
   return (
     <div className="space-y-6 text-white">
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">
@@ -503,10 +591,13 @@ export default function BusinessAnalyticsDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {analyticsData?.topProducts.length === 0 ? (
+              {analyticsData?.topProducts.length === 0 || analyticsData.topProducts.every(p => p.name === "Unknown Product") ? (
                 <div className="text-center py-8">
                   <p className="text-white/70">
                     No product data available for the selected time range.
+                  </p>
+                  <p className="text-xs text-white/50 mt-2">
+                    Product names will appear here once tracking data is available.
                   </p>
                 </div>
               ) : (

@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { SearchHeader } from "@/components/SearchHeader";
+import { ProfileDropdown } from "@/components/ui/profile-dropdown";
 import {
   TrendingUp,
   Users,
@@ -23,6 +24,9 @@ import {
   BarChart3,
   Code,
   Home,
+  Building2,
+  User,
+  Package,
 } from "lucide-react";
 
 interface BusinessStats {
@@ -37,6 +41,7 @@ interface BusinessStats {
   projectedFee: number;
   averageOrderValue: number;
   conversionRate: number;
+  logo?: string | null;
 }
 
 export default function BusinessDashboardLayout() {
@@ -153,25 +158,49 @@ export default function BusinessDashboardLayout() {
         className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-100"
       />
       <SearchHeader showBackButton={false} />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
-            <p className="text-white/70">{stats.domain}</p>
+        <div className="flex justify-between items-start md:items-center mb-6 md:mb-8">
+          <div className="flex flex-col gap-3 md:gap-4 min-w-0">
+            {/* Logo */}
+            {stats.logo ? (
+              <img
+                src={stats.logo}
+                alt={`${stats.name} logo`}
+                className="max-h-16 w-auto object-contain"
+                onError={(e) => {
+                  // Fallback to icon if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-white/60" />
+              </div>
+            )}
+            
+            {/* Business Info */}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl md:text-3xl font-bold text-white truncate">{stats.name}</h1>
+              <p className="text-white/70 text-sm md:text-base truncate">{stats.domain}</p>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          
+          {/* Profile Dropdown - Only show on desktop */}
+          <div className="hidden md:flex flex-shrink-0 ml-4">
+            <ProfileDropdown
+              businessName={stats.name}
+              businessDomain={stats.domain}
+              businessLogo={stats.logo}
+              onLogout={handleLogout}
+              onNavigate={navigate}
+            />
+          </div>
         </div>
 
-        {/* Navigation */}
-        <div className="flex space-x-2 mb-6">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex space-x-2 mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/business/dashboard")}
@@ -226,6 +255,19 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
+            onClick={() => navigate("/business/dashboard/products")}
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute("/business/dashboard/products")
+                ? "bg-white text-black border border-black/10 hover:bg-white/90"
+                : "text-white hover:bg-white/10",
+            )}
+          >
+            <Package className="mr-2 h-4 w-4" />
+            Products
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => navigate("/business/dashboard/settings")}
             className={cn(
               "flex items-center rounded-full",
@@ -240,8 +282,79 @@ export default function BusinessDashboardLayout() {
         </div>
 
         {/* Content Area */}
-        <div className="space-y-6">
+        <div className="space-y-6 pb-20 md:pb-6">
           <Outlet context={{ stats }} />
+        </div>
+      </div>
+
+      {/* Mobile Navigation - Updated to black background */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-t border-white/20 shadow-lg">
+        <div className="flex justify-around items-center py-3 px-4">
+          <button
+            onClick={() => navigate("/business/dashboard")}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
+              isActiveRoute("/business/dashboard")
+                ? "text-white bg-white/20 shadow-sm"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Home className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Dashboard</span>
+          </button>
+          
+          <button
+            onClick={() => navigate("/business/dashboard/activity")}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
+              isActiveRoute("/business/dashboard/activity")
+                ? "text-white bg-white/20 shadow-sm"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Activity className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Activity</span>
+          </button>
+          
+          <button
+            onClick={() => navigate("/business/dashboard/integrate")}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
+              isActiveRoute("/business/dashboard/integrate")
+                ? "text-white bg-white/20 shadow-sm"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Code className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Integrate</span>
+          </button>
+          
+          <button
+            onClick={() => navigate("/business/dashboard/analytics")}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
+              isActiveRoute("/business/dashboard/analytics")
+                ? "text-white bg-white/20 shadow-sm"
+                : "text-white/70 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <BarChart3 className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Analytics</span>
+          </button>
+          
+          {/* Profile dropdown in mobile navigation */}
+          <div className="flex flex-col items-center justify-center py-2 px-3">
+            <ProfileDropdown
+              businessName={stats.name}
+              businessDomain={stats.domain}
+              businessLogo={stats.logo}
+              onLogout={handleLogout}
+              onNavigate={navigate}
+              className="h-5 w-5"
+              isMobile={true}
+            />
+            <span className="text-xs font-medium text-white/70 mt-1">Profile</span>
+          </div>
         </div>
       </div>
     </div>

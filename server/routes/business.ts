@@ -498,3 +498,136 @@ export const getBusinessRealTimeStats: RequestHandler = async (req, res) => {
       .json({ success: false, error: "Failed to get business statistics" });
   }
 };
+
+// Update business profile
+export const updateBusinessProfile: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    const {
+      name,
+      domain,
+      email,
+      phone,
+      address,
+      country,
+      category,
+      description,
+      logo,
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !domain || !email) {
+      return res.status(400).json({
+        success: false,
+        error: "Name, domain, and email are required",
+      });
+    }
+
+    // Validate email format
+    if (!email.includes("@")) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
+      });
+    }
+
+    // Validate domain format
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid domain format",
+      });
+    }
+
+    // Check if domain is already taken by another business
+    const existingBusiness = await businessService.findBusinessByDomain(domain);
+    if (existingBusiness && existingBusiness.id !== business.id) {
+      return res.status(400).json({
+        success: false,
+        error: "A business with this domain already exists",
+      });
+    }
+
+    // Check if email is already taken by another business
+    const existingBusinessByEmail = await businessService.findBusinessByEmail(email);
+    if (existingBusinessByEmail && existingBusinessByEmail.id !== business.id) {
+      return res.status(400).json({
+        success: false,
+        error: "A business with this email already exists",
+      });
+    }
+
+    // Update the business profile
+    const updatedBusiness = await prisma.business.update({
+      where: { id: business.id },
+      data: {
+        name: name || business.name,
+        domain: domain || business.domain,
+        contactEmail: email || business.contactEmail,
+        contactPhone: phone || business.contactPhone,
+        address: address || business.address,
+        country: country || business.country,
+        category: category || business.category,
+        description: description || business.description,
+        logo: logo !== undefined ? logo : business.logo,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Business profile updated successfully",
+      business: {
+        id: updatedBusiness.id,
+        name: updatedBusiness.name,
+        domain: updatedBusiness.domain,
+        contactEmail: updatedBusiness.contactEmail,
+        contactPhone: updatedBusiness.contactPhone,
+        address: updatedBusiness.address,
+        country: updatedBusiness.country,
+        category: updatedBusiness.category,
+        description: updatedBusiness.description,
+        logo: updatedBusiness.logo,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating business profile:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update business profile",
+    });
+  }
+};

@@ -35,7 +35,7 @@ interface ActivityItem {
   productName: string;
   productUrl: string;
   status: "browsed" | "purchased" | "abandoned" | "added_to_cart" | "checkout_started" | "checkout_completed" | "viewed";
-  amount?: number;
+  amount?: number | string;
   timestamp: string;
   userAgent?: string;
   referrer?: string;
@@ -193,34 +193,40 @@ export default function BusinessActivityDashboard() {
             case "add_to_cart":
               type = "add_to_cart";
               status = "added_to_cart";
-              productName = eventData.product_name || extractProductName(event.url) || "Product";
+              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
+              // Extract product price for add to cart events - check multiple possible field names
+              amount = eventData.product_price || eventData.price || eventData.amount || eventData.total || undefined;
               break;
             case "checkout_start":
               type = "checkout_start";
               status = "checkout_started";
-              productName = eventData.product_name || extractProductName(event.url) || "Product";
+              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
+              // Extract product price for checkout start events - check multiple possible field names
+              amount = eventData.product_price || eventData.price || eventData.amount || eventData.total || undefined;
               break;
             case "checkout_complete":
               type = "checkout_complete";
               status = "checkout_completed";
-              productName = eventData.product_name || extractProductName(event.url) || "Product";
-              amount = eventData.total;
+              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
+              // For checkout complete, prioritize total amount, then fall back to product price
+              amount = eventData.total || eventData.total_amount || eventData.product_price || eventData.price || eventData.amount;
               break;
             case "purchase":
               type = "purchase";
               status = "purchased";
-              productName = eventData.product_name || `Order ${eventData.order_id || "Unknown"}`;
-              amount = eventData.total;
+              productName = eventData.product_name || eventData.name || `Order ${eventData.order_id || "Unknown"}`;
+              // For purchases, prioritize total amount, then fall back to product price
+              amount = eventData.total || eventData.total_amount || eventData.product_price || eventData.price || eventData.amount;
               break;
             case "page_view":
               type = "page_view";
               status = "viewed";
-              productName = eventData.product_name || extractProductName(event.url) || "Page";
+              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Page";
               break;
             case "product_view":
               type = "product_view";
               status = "viewed";
-              productName = eventData.product_name || extractProductName(event.url) || "Product";
+              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
               break;
             default:
               type = "click";
@@ -473,6 +479,32 @@ export default function BusinessActivityDashboard() {
     });
   };
 
+  const formatAmount = (amount: number | string | undefined): string => {
+    if (!amount) return "-";
+    
+    let numericAmount: number;
+    
+    // Handle string amounts
+    if (typeof amount === 'string') {
+      // Remove currency symbols and commas
+      const cleanAmount = amount.replace(/[$,€£]/g, '').trim();
+      numericAmount = parseFloat(cleanAmount);
+    } else {
+      numericAmount = amount;
+    }
+    
+    // Handle amounts that might be in cents (common in e-commerce)
+    if (numericAmount && numericAmount < 1000 && numericAmount > 0) {
+      // If amount is less than 1000, it might be in cents
+      // Check if it looks like cents (e.g., 1999 for $19.99)
+      if (numericAmount > 100) {
+        numericAmount = numericAmount / 100;
+      }
+    }
+    
+    return numericAmount && !isNaN(numericAmount) ? `$${numericAmount.toFixed(2)}` : "-";
+  };
+
   const getTypeDisplayName = (type: string) => {
     switch (type) {
       case "click":
@@ -509,7 +541,7 @@ export default function BusinessActivityDashboard() {
       <div className="space-y-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 mb-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-200 rounded"></div>
             ))}
@@ -541,7 +573,7 @@ export default function BusinessActivityDashboard() {
   return (
     <div className="space-y-6 text-white">
       {/* Activity Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">
@@ -619,7 +651,7 @@ export default function BusinessActivityDashboard() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">
@@ -717,7 +749,7 @@ export default function BusinessActivityDashboard() {
           <CardTitle className="text-white">Key Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             <div className="text-center p-4 bg-white/5 rounded-lg">
               <div className="text-2xl font-bold text-green-400">
                 {stats.totalPurchases > 0
@@ -875,9 +907,7 @@ export default function BusinessActivityDashboard() {
                       </TableCell>
                       <TableCell className="py-4 hidden sm:table-cell">
                         <span className="text-white">
-                          {activity.amount
-                            ? `$${activity.amount.toFixed(2)}`
-                            : "-"}
+                          {formatAmount(activity.amount)}
                         </span>
                       </TableCell>
                       <TableCell className="py-4">
