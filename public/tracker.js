@@ -1,5 +1,5 @@
 // Universal PriceHunt Tracker
-// Tracks user interactions on business websites after redirects from pavlo4.netlify.app or ipick.io
+// Tracks user interactions on business websites after redirects from ipick.io
 
 (function() {
   'use strict';
@@ -9,7 +9,7 @@
     const currentHost = window.location.hostname;
     
     // If we're on the main app domain, use the production endpoint
-    if (currentHost === 'ipick.io' || currentHost === 'pavlo4.netlify.app') {
+    if (currentHost === 'ipick.io') {
       return 'https://ipick.io/api/track-event';
     }
     

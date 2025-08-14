@@ -7,7 +7,7 @@ export const schema: GadgetModel = {
   type: "gadget/model-schema/v1",
   storageKey: "D0GGme9R8Zr8",
   comment:
-    "This model tracks user referrals from the pavlo4.netlify.app price comparison app to business websites, allowing us to monitor the success of our referrals and conversions.",
+    "This model tracks user referrals from the ipick.io price comparison app to business websites, allowing us to monitor the success of our referrals and conversions.",
   fields: {
     businessDomain: {
       type: "string",
