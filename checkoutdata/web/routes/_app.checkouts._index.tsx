@@ -1,5 +1,5 @@
 import { AutoTable } from "@gadgetinc/react/auto/polaris";
-import { Page, Card, BlockStack, Text, Badge, InlineStack } from "@shopify/polaris";
+import { Page, Card, BlockStack, Text, Badge, InlineStack, Tooltip } from "@shopify/polaris";
 import { Link } from "@remix-run/react";
 import { api } from "../api";
 
@@ -41,12 +41,24 @@ export default function CheckoutsIndex() {
     const sourceName = record.sourceName as string;
     const sourceIdentifier = record.sourceIdentifier as string;
 
-    // Check for pavlo4 referral
-    if (sourceUrl && sourceUrl.includes('pavlo4.netlify.app')) {
+    // Enhanced pavlo4 referral detection - check for multiple variations
+    const isPavloReferral = (url: string) => {
+      if (!url) return false;
+      const lowerUrl = url.toLowerCase();
+      return lowerUrl.includes('pavl4') || 
+             lowerUrl.includes('pavlo4') || 
+             lowerUrl.includes('pavlo4.netlify.app') ||
+             lowerUrl.includes('pavl4.netlify.app');
+    };
+
+    // Check for pavlo4 referral with enhanced detection
+    if (sourceUrl && isPavloReferral(sourceUrl)) {
       return {
         text: 'Pavlo4 Price Comparison',
         tone: 'attention' as const,
-        isPavlo: true
+        isPavlo: true,
+        rawUrl: sourceUrl,
+        debugInfo: `Detected from URL: ${sourceUrl}`
       };
     }
 
@@ -55,7 +67,9 @@ export default function CheckoutsIndex() {
       return {
         text: sourceName,
         tone: 'info' as const,
-        isPavlo: false
+        isPavlo: false,
+        rawUrl: sourceUrl || 'N/A',
+        debugInfo: `Source Name: ${sourceName}, URL: ${sourceUrl || 'None'}, Identifier: ${sourceIdentifier || 'None'}`
       };
     }
 
@@ -65,13 +79,17 @@ export default function CheckoutsIndex() {
         return {
           text: url.hostname,
           tone: 'info' as const,
-          isPavlo: false
+          isPavlo: false,
+          rawUrl: sourceUrl,
+          debugInfo: `Hostname from URL: ${url.hostname}, Full URL: ${sourceUrl}`
         };
       } catch {
         return {
           text: sourceUrl,
           tone: 'info' as const,
-          isPavlo: false
+          isPavlo: false,
+          rawUrl: sourceUrl,
+          debugInfo: `Invalid URL format: ${sourceUrl}`
         };
       }
     }
@@ -80,15 +98,19 @@ export default function CheckoutsIndex() {
       return {
         text: sourceIdentifier,
         tone: 'info' as const,
-        isPavlo: false
+        isPavlo: false,
+        rawUrl: 'N/A',
+        debugInfo: `Source Identifier: ${sourceIdentifier}, No URL or Name available`
       };
     }
 
     // No source information available
     return {
       text: 'Direct',
-      tone: 'subdued' as const,
-      isPavlo: false
+      tone: 'info' as const,
+      isPavlo: false,
+      rawUrl: 'N/A',
+      debugInfo: 'No source information available (direct traffic)'
     };
   };
 
@@ -159,14 +181,45 @@ export default function CheckoutsIndex() {
               {
                 header: "Referral Source",
                 render: ({ record }) => {
-                  const { text, tone, isPavlo } = getReferralSourceInfo(record);
+                  const { text, tone, isPavlo, rawUrl, debugInfo } = getReferralSourceInfo(record);
                   return (
-                    <InlineStack gap="200" align="start">
-                      <Badge tone={tone}>{text}</Badge>
-                      {isPavlo && (
-                        <Badge tone="warning" size="small">⭐ Pavlo4</Badge>
+                    <BlockStack gap="100">
+                      <InlineStack gap="200" align="start">
+                        <Tooltip content={debugInfo}>
+                          <Badge tone={tone}>{text}</Badge>
+                        </Tooltip>
+                        {isPavlo && (
+                          <Badge tone="warning" size="small">⭐ Pavlo4</Badge>
+                        )}
+                      </InlineStack>
+                      {rawUrl && rawUrl !== 'N/A' && (
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          URL: {rawUrl.length > 50 ? `${rawUrl.substring(0, 50)}...` : rawUrl}
+                        </Text>
                       )}
-                    </InlineStack>
+                    </BlockStack>
+                  );
+                }
+              },
+              {
+                header: "Debug: Full Source URL",
+                render: ({ record }) => {
+                  const sourceUrl = record.sourceUrl as string;
+                  const sourceName = record.sourceName as string;
+                  const sourceIdentifier = record.sourceIdentifier as string;
+                  
+                  return (
+                    <BlockStack gap="100">
+                      <Text as="span" variant="bodySm" fontWeight="medium">
+                        URL: {sourceUrl || 'None'}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        Name: {sourceName || 'None'}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        ID: {sourceIdentifier || 'None'}
+                      </Text>
+                    </BlockStack>
                   );
                 }
               },

@@ -45,11 +45,12 @@ export const trackEvent: RequestHandler = async (req, res) => {
       });
     }
 
-    // Only allow post-redirect events (no checkout or purchase tracking)
+    // Allow post-redirect events and checkout events
     const allowedEvents = [
       "page_view",
       "product_view", 
       "add_to_cart",
+      "checkout",
       "browse",
       "search",
       "category_view",
@@ -151,6 +152,18 @@ export const trackEvent: RequestHandler = async (req, res) => {
         where: { id: parseInt(business_id) },
         data: {
           totalVisits: {
+            increment: 1,
+          },
+        },
+      });
+    }
+
+    if (event_type === "checkout") {
+      console.log("Updating business checkouts...");
+      await prisma.business.update({
+        where: { id: parseInt(business_id) },
+        data: {
+          totalPurchases: {
             increment: 1,
           },
         },

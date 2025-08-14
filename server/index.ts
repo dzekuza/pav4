@@ -55,6 +55,9 @@ import {
   getBusinessRealTimeStats,
   getCheckoutAnalytics,
   getBusinessDashboardData,
+  debugShops,
+  debugLocalDatabase,
+  testDashboardData,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -314,6 +317,9 @@ export async function createServer() {
   // Checkout analytics routes
   app.get("/api/business/analytics/checkouts", requireBusinessAuth, getCheckoutAnalytics);
   app.get("/api/business/dashboard", requireBusinessAuth, getBusinessDashboardData);
+  app.get("/api/business/debug/shops", debugShops);
+  app.get("/api/business/debug/local", debugLocalDatabase);
+  app.get("/api/business/test/dashboard", testDashboardData);
 
 
   // Open CORS for tracking endpoint so third-party business sites can send events

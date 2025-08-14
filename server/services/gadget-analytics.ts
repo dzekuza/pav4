@@ -101,6 +101,51 @@ export class GadgetAnalytics {
   // Get all shops data
   async getShops(businessDomain: string | null = null) {
     try {
+      let query = `
+        query getShops {
+          shopifyShops(first: 100) {
+            edges {
+              node {
+                id
+                domain
+                myshopifyDomain
+                name
+                email
+                currency
+                planName
+                createdAt
+              }
+            }
+          }
+        }
+      `;
+
+      if (businessDomain) {
+        query = `
+          query getShops($businessDomain: String) {
+            shopifyShops(first: 100, filter: {
+              OR: [
+                { domain: { equals: $businessDomain } },
+                { myshopifyDomain: { equals: $businessDomain } }
+              ]
+            }) {
+              edges {
+                node {
+                  id
+                  domain
+                  myshopifyDomain
+                  name
+                  email
+                  currency
+                  planName
+                  createdAt
+                }
+              }
+            }
+          }
+        `;
+      }
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -108,32 +153,8 @@ export class GadgetAnalytics {
           'Authorization': `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          query: `
-            query getShops($businessDomain: String) {
-              shopifyShops(first: 100, filter: {
-                ${businessDomain ? `OR: [
-                  { domain: { equals: $businessDomain } },
-                  { myshopifyDomain: { equals: $businessDomain } }
-                ]` : ''}
-              }) {
-                edges {
-                  node {
-                    id
-                    domain
-                    myshopifyDomain
-                    name
-                    email
-                    currency
-                    planName
-                    createdAt
-                  }
-                }
-              }
-            }
-          `,
-          variables: {
-            businessDomain
-          }
+          query,
+          variables: businessDomain ? { businessDomain } : {}
         })
       });
 

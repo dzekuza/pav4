@@ -764,14 +764,14 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
 
     res.json({
       success: true,
-      analytics: {
+      dashboardData: {
         summary: {
           totalCheckouts,
           completedCheckouts,
           totalOrders,
           totalRevenue,
           averageOrderValue,
-          checkoutConversionRate,
+          conversionRate: checkoutConversionRate,
         },
         dailyCheckouts: Array.from(dailyCheckouts.entries()).map(([date, count]) => ({
           date,
@@ -789,6 +789,15 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
           totalPrice: checkout.totalPrice,
           currency: checkout.currency,
           status: checkout.completedAt ? 'completed' : 'started',
+        })),
+        recentOrders: data.recentOrders.slice(-10).map((order: any) => ({
+          id: order.id,
+          eventType: 'order',
+          timestamp: order.createdAt,
+          email: order.email,
+          totalPrice: order.totalPrice,
+          currency: order.currency,
+          status: order.financialStatus,
         })),
       },
     });
@@ -884,5 +893,159 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
   } catch (error) {
     console.error("Error fetching business dashboard data:", error);
     res.status(500).json({ success: false, error: "Failed to fetch business dashboard data" });
+  }
+};
+
+// Debug endpoint to check available shops
+export const debugShops: RequestHandler = async (req, res) => {
+  try {
+    const { gadgetAnalytics } = await import('../services/gadget-analytics');
+    
+    // Get all shops without domain filter
+    const allShops = await gadgetAnalytics.getShops(null);
+    
+    // Get shops filtered by godislove.lt
+    const filteredShops = await gadgetAnalytics.getShops('godislove.lt');
+    
+    // Get all checkouts without filtering
+    const allCheckouts = await gadgetAnalytics.getCheckouts([], null, null, 20);
+    
+    res.json({
+      success: true,
+      debug: {
+        allShops: allShops.map(shop => ({
+          id: shop.id,
+          domain: shop.domain,
+          myshopifyDomain: shop.myshopifyDomain,
+          name: shop.name,
+          email: shop.email
+        })),
+        filteredShops: filteredShops.map(shop => ({
+          id: shop.id,
+          domain: shop.domain,
+          myshopifyDomain: shop.myshopifyDomain,
+          name: shop.name,
+          email: shop.email
+        })),
+        recentCheckouts: allCheckouts.slice(0, 5).map(checkout => ({
+          id: checkout.id,
+          email: checkout.email,
+          totalPrice: checkout.totalPrice,
+          currency: checkout.currency,
+          createdAt: checkout.createdAt,
+          shopDomain: checkout.shop?.domain,
+          shopName: checkout.shop?.name
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in debug shops:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to debug shops",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+// Debug endpoint to check local database
+export const debugLocalDatabase: RequestHandler = async (req, res) => {
+  try {
+    const { prisma } = await import('../services/database');
+    
+    // Get all tracking events
+    const trackingEvents = await prisma.trackingEvent.findMany({
+      where: {
+        eventType: 'checkout'
+      },
+      orderBy: {
+        timestamp: 'desc'
+      },
+      take: 10
+    });
+
+    // Get all Shopify events
+    const shopifyEvents = await prisma.shopifyEvent.findMany({
+      where: {
+        topic: {
+          contains: 'checkout'
+        }
+      },
+      orderBy: {
+        triggered_at: 'desc'
+      },
+      take: 10
+    });
+
+    // Get all track events
+    const trackEvents = await prisma.trackingEvent.findMany({
+      where: {
+        eventType: 'shopify_cart'
+      },
+      orderBy: {
+        timestamp: 'desc'
+      },
+      take: 10
+    });
+
+    res.json({
+      success: true,
+      debug: {
+        trackingEvents: trackingEvents.map(event => ({
+          id: event.id,
+          eventType: event.eventType,
+          businessId: event.businessId,
+          timestamp: event.timestamp,
+          data: event.eventData
+        })),
+        shopifyEvents: shopifyEvents.map(event => ({
+          id: event.id,
+          topic: event.topic,
+          shopDomain: event.shop_domain,
+          triggeredAt: event.triggered_at,
+          metadata: event.metadata
+        })),
+        trackEvents: trackEvents.map(event => ({
+          id: event.id,
+          eventType: event.eventType,
+          timestamp: event.timestamp,
+          data: event.eventData
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error in debug local database:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to debug local database",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+// Test dashboard data endpoint (no auth required)
+export const testDashboardData: RequestHandler = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const { gadgetAnalytics } = await import('../services/gadget-analytics');
+    
+    const dashboardData = await gadgetAnalytics.generateDashboardData(
+      'godislove.lt',
+      startDate as string || null,
+      endDate as string || null
+    );
+
+    res.json({
+      success: true,
+      dashboardData
+    });
+  } catch (error) {
+    console.error('Error testing dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to test dashboard data",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 };

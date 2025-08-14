@@ -206,6 +206,18 @@
     });
   }
 
+  // Track checkout events
+  function trackCheckout(checkoutData = {}) {
+    log('Tracking checkout');
+    sendTrackingData("checkout", {
+      checkout_id: checkoutData.id,
+      total_price: checkoutData.totalPrice,
+      currency: checkoutData.currency,
+      email: checkoutData.email,
+      ...checkoutData
+    });
+  }
+
   // Track product view
   function trackProductView() {
     log('Tracking product view');
@@ -372,6 +384,9 @@
         case "add_to_cart":
           trackAddToCart(data);
           break;
+        case "checkout":
+          trackCheckout(data);
+          break;
         case "browse":
           trackBrowse();
           break;
@@ -382,6 +397,7 @@
     trackPageView: trackPageView,
     trackProductView: trackProductView,
     trackAddToCart: trackAddToCart,
+    trackCheckout: trackCheckout,
     trackBrowse: trackBrowse
   };
 
