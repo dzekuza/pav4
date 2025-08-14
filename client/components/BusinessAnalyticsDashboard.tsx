@@ -152,7 +152,7 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setDashboardData(data.dashboardData);
+          setDashboardData(data);
         } else {
           toast({
             title: "Error",

@@ -2,8 +2,12 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const GADGET_API_URL = 'https://checkoutdata--development.gadget.app/api/graphql';
-const API_KEY = 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL'; // Replace with your actual API key
+// Use development environment if PAVLP_DASHBOARD_ACCESS is set
+const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
+  ? 'https://checkoutdata--development.gadget.app/api/graphql'
+  : 'https://checkoutdata.gadget.app/api/graphql';
+
+const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
 
 export class GadgetAnalytics {
   private apiKey: string;
@@ -402,6 +406,10 @@ export class GadgetAnalytics {
 
   // Generate comprehensive dashboard data
   async generateDashboardData(businessDomain: string | null = null, startDate: string | null = null, endDate: string | null = null) {
+    console.log('=== generateDashboardData called ===');
+    console.log('businessDomain:', businessDomain);
+    console.log('startDate:', startDate);
+    console.log('endDate:', endDate);
     try {
       // Get shops
       const shops = await this.getShops(businessDomain);
@@ -415,11 +423,13 @@ export class GadgetAnalytics {
       }
 
       // Get all data
+      console.log('Getting data for shop IDs:', shopIds);
       const [checkouts, orders, referrals] = await Promise.all([
         this.getCheckouts(shopIds, startDate, endDate),
         this.getOrders(shopIds, startDate, endDate),
         this.getReferrals(shopIds, startDate, endDate)
       ]);
+      console.log('Data retrieved - checkouts:', checkouts.length, 'orders:', orders.length, 'referrals:', referrals.length);
 
       // Calculate metrics
       const totalCheckouts = checkouts.length;

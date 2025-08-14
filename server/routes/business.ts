@@ -728,7 +728,7 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
     
     // Use the same logic as the test endpoint that works
     const dashboardData = await gadgetAnalytics.generateDashboardData(
-      'godislove.lt', // Use the hardcoded domain that we know works
+      business.domain, // Use the actual business domain
       startDate as string || null,
       endDate as string || null
     );
@@ -873,28 +873,191 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
 
     const { startDate, endDate, limit } = req.query;
     
-    // Import the Gadget analytics service
-    const { gadgetAnalytics } = await import('../services/gadget-analytics');
+    // Direct API call to CheckoutData
+    const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
+      ? 'https://checkoutdata--development.gadget.app/api/graphql'
+      : 'https://checkoutdata.gadget.app/api/graphql';
+    const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
     
-    // Get real data from Gadget
-    const dashboardData = await gadgetAnalytics.generateDashboardData(
-      business.domain,
-      startDate as string || null,
-      endDate as string || null
-    );
+    console.log('=== NEW CODE PATH ===');
+    console.log('Direct API call for domain:', business.domain);
     
-    if (!dashboardData.success) {
-      return res.status(500).json({
+    // Get shops
+    const shopsResponse = await fetch(GADGET_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query getShops($businessDomain: String) {
+            shopifyShops(first: 100, filter: {
+              OR: [
+                { domain: { equals: $businessDomain } },
+                { myshopifyDomain: { equals: $businessDomain } }
+              ]
+            }) {
+              edges {
+                node {
+                  id
+                  domain
+                  myshopifyDomain
+                  name
+                  email
+                  currency
+                  planName
+                  createdAt
+                }
+              }
+            }
+          }
+        `,
+        variables: { businessDomain: business.domain }
+      })
+    });
+
+    const shopsData = await shopsResponse.json();
+    console.log('Shops response:', JSON.stringify(shopsData, null, 2));
+    
+    const shops = shopsData.data.shopifyShops.edges.map((edge) => edge.node);
+    const shopIds = shops.map(shop => shop.id);
+    
+    console.log('Shop IDs found:', shopIds);
+    
+    if (shopIds.length === 0) {
+      return res.status(404).json({
         success: false,
-        error: (dashboardData as any).error || "Failed to fetch dashboard data"
+        error: "No shops found for the specified domain"
       });
     }
-
-    res.json({ 
-      success: true, 
-      dashboardData: (dashboardData as any).data, 
-      metadata: (dashboardData as any).metadata
+    
+    // Get checkouts
+    const checkoutsResponse = await fetch(GADGET_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query getCheckouts($limit: Int) {
+            shopifyCheckouts(
+              first: $limit,
+              sort: { createdAt: Descending }
+            ) {
+              edges {
+                node {
+                  id
+                  email
+                  totalPrice
+                  currency
+                  createdAt
+                  completedAt
+                  sourceUrl
+                  sourceName
+                  name
+                  token
+                  processingStatus
+                  shop {
+                    id
+                    domain
+                    name
+                  }
+                }
+              }
+            }
+          }
+        `,
+        variables: { limit: 100 }
+      })
     });
+
+    const checkoutsData = await checkoutsResponse.json();
+    console.log('Checkouts response:', JSON.stringify(checkoutsData, null, 2));
+    
+    const allCheckouts = checkoutsData.data.shopifyCheckouts.edges.map((edge) => edge.node);
+    console.log('Total checkouts found:', allCheckouts.length);
+    
+    // Filter by shop IDs
+    const filteredCheckouts = allCheckouts.filter((checkout) => 
+      checkout.shop && shopIds.includes(checkout.shop.id)
+    );
+    
+    console.log('Filtered checkouts:', filteredCheckouts.length);
+    
+    // Calculate metrics
+    const totalCheckouts = filteredCheckouts.length;
+    const completedCheckouts = filteredCheckouts.filter(c => c.completedAt).length;
+    const totalOrders = 0; // No orders yet
+    const conversionRate = totalCheckouts > 0 ? (completedCheckouts / totalCheckouts) * 100 : 0;
+    const totalRevenue = 0; // No orders yet
+
+    const response = {
+      success: true,
+      summary: {
+        totalBusinesses: shops.length,
+        businessDomain: business.domain,
+        totalCheckouts,
+        completedCheckouts,
+        totalOrders,
+        conversionRate: Math.round(conversionRate * 100) / 100,
+        totalRevenue,
+        currency: shops[0]?.currency || 'USD'
+      },
+      businesses: shops.map(shop => ({
+        id: shop.id,
+        domain: shop.domain,
+        myshopifyDomain: shop.myshopifyDomain,
+        name: shop.name,
+        email: shop.email,
+        currency: shop.currency,
+        plan: shop.planName,
+        createdAt: shop.createdAt
+      })),
+      recentCheckouts: filteredCheckouts.slice(0, 20).map(checkout => ({
+        id: checkout.id,
+        email: checkout.email,
+        totalPrice: checkout.totalPrice,
+        currency: checkout.currency,
+        createdAt: checkout.createdAt,
+        completedAt: checkout.completedAt,
+        sourceUrl: checkout.sourceUrl,
+        sourceName: checkout.sourceName,
+        name: checkout.name,
+        token: checkout.token,
+        processingStatus: checkout.processingStatus,
+        isPavlo4Referral: checkout.sourceUrl?.toLowerCase().includes('pavlo4') || 
+                         checkout.sourceName?.toLowerCase().includes('pavlo4'),
+        shop: checkout.shop
+      })),
+      recentOrders: [],
+      referralStatistics: {
+        totalReferrals: 0,
+        pavlo4Referrals: 0,
+        pavlo4ConversionRate: 0,
+        totalConversions: 0,
+        referralRevenue: 0,
+        topSources: {}
+      },
+      trends: {
+        last30Days: {
+          checkouts: totalCheckouts,
+          orders: 0,
+          revenue: 0
+        },
+        last7Days: {
+          checkouts: totalCheckouts,
+          orders: 0,
+          revenue: 0
+        }
+      },
+      orderStatuses: {},
+      recentReferrals: []
+    };
+
+    console.log('Sending response with checkouts:', totalCheckouts);
+    res.json(response);
   } catch (error) {
     console.error("Error fetching business dashboard data:", error);
     res.status(500).json({ success: false, error: "Failed to fetch business dashboard data" });
