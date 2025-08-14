@@ -47,7 +47,7 @@ export default function CheckoutsIndex() {
       const lowerUrl = url.toLowerCase();
       return lowerUrl.includes('pavl4') || 
              lowerUrl.includes('pavlo4') || 
-             lowerUrl.includes('pavlo4.netlify.app') ||
+             lowerUrl.includes('ipick.io') ||
              lowerUrl.includes('pavl4.netlify.app');
     };
 

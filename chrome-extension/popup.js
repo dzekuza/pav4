@@ -52,12 +52,12 @@ class PriceHuntPopup {
 
     // Open app button
     document.getElementById("openApp").addEventListener("click", () => {
-      chrome.tabs.create({ url: "https://pavlo4.netlify.app" });
+      chrome.tabs.create({ url: "https://ipick.io" });
     });
 
     // View history button
     document.getElementById("viewHistory").addEventListener("click", () => {
-      chrome.tabs.create({ url: "https://pavlo4.netlify.app/history" });
+      chrome.tabs.create({ url: "https://ipick.io/history" });
     });
 
     // Clear cache button (if exists)
@@ -85,7 +85,7 @@ class PriceHuntPopup {
     // Help link
     document.getElementById("helpLink").addEventListener("click", (e) => {
       e.preventDefault();
-      chrome.tabs.create({ url: "https://pavlo4.netlify.app" });
+      chrome.tabs.create({ url: "https://ipick.io" });
     });
   }
 
@@ -423,7 +423,7 @@ class PriceHuntPopup {
 
     try {
       // Send the current URL to PriceHunt for analysis
-      const response = await fetch("https://pavlo4.netlify.app/api/scrape", {
+      const response = await fetch("https://ipick.io/api/scrape", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -469,7 +469,7 @@ class PriceHuntPopup {
 
     try {
       // Send the current URL to PriceHunt for similar products analysis
-      const response = await fetch("https://pavlo4.netlify.app/api/scrape", {
+      const response = await fetch("https://ipick.io/api/scrape", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

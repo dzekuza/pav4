@@ -446,13 +446,13 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
 
     // Check for tracking script presence
     const trackingScripts = [
-      "https://pavlo4.netlify.app/tracker.js",
-      "https://pavlo4.netlify.app/shopify-tracker.js",
-      "https://pavlo4.netlify.app/shopify-tracker-enhanced.js",
-      "https://pavlo4.netlify.app/shopify-tracker-loader.js",
-      "https://pavlo4.netlify.app/woocommerce-tracker.js",
-      "https://pavlo4.netlify.app/magento-tracker.js",
-      "https://pavlo4.netlify.app/event-tracker.js",
+      "https://ipick.io/tracker.js",
+      "https://ipick.io/shopify-tracker.js",
+      "https://ipick.io/shopify-tracker-enhanced.js",
+      "https://ipick.io/shopify-tracker-loader.js",
+      "https://ipick.io/woocommerce-tracker.js",
+      "https://ipick.io/magento-tracker.js",
+      "https://ipick.io/event-tracker.js",
     ];
 
     console.log("Checking for tracking scripts...");
@@ -475,7 +475,7 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
         "No tracking script found on the page. Please add the tracking script to your website's HTML head section.";
       let instructions = {
         step1: "Add this script to your website's <head> section:",
-        script: `<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"></script>`,
+        script: `<script src="https://ipick.io/shopify-tracker-loader.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"></script>`,
         step2: "Make sure the script is placed before the closing </head> tag",
         step3: "Refresh the page and try verification again",
       };
@@ -485,7 +485,7 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
           "Google Tag Manager detected but no tracking script found. Please add the tracking script via GTM or directly in HTML.";
         instructions = {
           step1: "For Google Tag Manager implementation:",
-          script: `<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"></script>`,
+          script: `<script src="https://ipick.io/shopify-tracker-loader.js" data-business-id="${business.id}" data-affiliate-id="${business.affiliateId}" data-platform="shopify"></script>`,
           step2: "1. Go to your GTM container",
           step3: "2. Create a new Custom HTML tag with this code:",
         } as any;

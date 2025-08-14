@@ -96,7 +96,7 @@ export const SearchInput = memo(({
   value,
   onChange,
   onSubmit,
-  placeholder = "Enter product URL, search keywords, or use @https://pavlo4.netlify.app + URL to search external products",
+          placeholder = "Enter product URL, search keywords, or use @https://ipick.io + URL to search external products",
   isLoading = false,
   selectedCountry = "ua",
   onCountryChange,

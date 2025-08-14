@@ -189,7 +189,7 @@ export default function Index() {
               isLoading={isLoading}
               selectedCountry={selectedCountry}
               onCountryChange={setSelectedCountry}
-              placeholder="Paste a product URL, enter keywords, or use @https://pavlo4.netlify.app + URL to search external products"
+              placeholder="Paste a product URL, enter keywords, or use @https://ipick.io + URL to search external products"
             />
             {error && (
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg max-w-md mx-auto">
@@ -200,10 +200,10 @@ export default function Index() {
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-md mx-auto">
               <p className="text-blue-700 text-sm">
                 <strong>💡 Tip:</strong> To search external products, prefix any URL with{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">@https://pavlo4.netlify.app</code>
+                <code className="bg-blue-100 px-1 rounded text-xs">@https://ipick.io</code>
                 <br />
                 <span className="text-xs text-blue-600">
-                  Example: @https://pavlo4.netlify.apphttps://godislove.lt/products/cotton-logo-socks
+                  Example: @https://ipick.iohttps://godislove.lt/products/cotton-logo-socks
                 </span>
               </p>
             </div>

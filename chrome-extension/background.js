@@ -70,7 +70,7 @@ class PriceHuntBackground {
       // First time installation
       this.setDefaultSettings();
       chrome.tabs.create({
-        url: "https://pavlo4.netlify.app?welcome=extension",
+        url: "https://ipick.io?welcome=extension",
       });
     } else if (details.reason === "update") {
       // Extension update
@@ -203,7 +203,7 @@ class PriceHuntBackground {
 
   async searchPrices(url) {
     try {
-      const response = await fetch("https://pavlo4.netlify.app/api/scrape", {
+      const response = await fetch("https://ipick.io/api/scrape", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -234,11 +234,11 @@ class PriceHuntBackground {
       if (this.isSupportedSite(tab.url)) {
         const productUrl = tab.url;
         chrome.tabs.create({
-          url: `https://pavlo4.netlify.app/${encodeURIComponent(productUrl)}`,
+          url: `https://ipick.io/${encodeURIComponent(productUrl)}`,
         });
       } else {
         chrome.tabs.create({
-          url: "https://pavlo4.netlify.app",
+          url: "https://ipick.io",
         });
       }
     }
@@ -249,13 +249,13 @@ class PriceHuntBackground {
       case "searchPrices":
         const targetUrl = info.linkUrl || info.pageUrl;
         chrome.tabs.create({
-          url: `https://pavlo4.netlify.app/${encodeURIComponent(targetUrl)}`,
+          url: `https://ipick.io/${encodeURIComponent(targetUrl)}`,
         });
         break;
 
       case "openPriceHunt":
         chrome.tabs.create({
-          url: "https://pavlo4.netlify.app",
+          url: "https://ipick.io",
         });
         break;
     }

@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // Configuration
-const MAIN_APP_WEBHOOK_URL = process.env.MAIN_APP_WEBHOOK_URL || 'https://pavlo4.netlify.app/.netlify/functions/track-event';
+const MAIN_APP_WEBHOOK_URL = process.env.MAIN_APP_WEBHOOK_URL || 'https://ipick.io/.netlify/functions/track-event';
 const MAIN_APP_API_KEY = process.env.MAIN_APP_API_KEY || '16272754ed68cbdcb55e8f579703d92e';
 
 /**

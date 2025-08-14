@@ -25,7 +25,7 @@
   // Load the enhanced tracking script
   function loadEnhancedTracker() {
     const trackingScript = document.createElement('script');
-    trackingScript.src = 'https://pavlo4.netlify.app/shopify-tracker-enhanced.js';
+    trackingScript.src = 'https://ipick.io/shopify-tracker-enhanced.js';
     trackingScript.setAttribute('data-business-id', businessId);
     trackingScript.setAttribute('data-affiliate-id', affiliateId);
     if (debug) {

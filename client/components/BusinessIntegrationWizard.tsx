@@ -135,7 +135,7 @@ export default function BusinessIntegrationWizard({
       ],
       get scriptTemplate() {
         return `<!-- PriceHunt Shopify Integration -->
-<script src="https://pavlo4.netlify.app/shopify-tracker-loader.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}" data-debug="true"></script>
+<script src="https://ipick.io/shopify-tracker-loader.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}" data-debug="true"></script>
 <!-- End PriceHunt Shopify Integration -->`;
       },
     },
@@ -161,7 +161,7 @@ import {register} from '@shopify/web-pixels-extension';
 register(({analytics}) => {
   // Configuration
   const config = {
-    apiUrl: "https://pavlo4.netlify.app/.netlify/functions/track-event",
+    apiUrl: "https://ipick.io/.netlify/functions/track-event",
     businessId: "${business?.id || "YOUR_BUSINESS_ID"}",
     affiliateId: "${business?.affiliateId || "YOUR_AFFILIATE_ID"}",
     apiKey: "16272754ed68cbdcb55e8f579703d92e"
@@ -520,7 +520,7 @@ register(({analytics}) => {
       ],
       get scriptTemplate() {
         return `<!-- PriceHunt WooCommerce Integration -->
-<script src="https://pavlo4.netlify.app/woocommerce-tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
+<script src="https://ipick.io/woocommerce-tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
 <script>
 // WooCommerce-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -562,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
       ],
       get scriptTemplate() {
         return `<!-- PriceHunt Magento Integration -->
-<script src="https://pavlo4.netlify.app/magento-tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
+<script src="https://ipick.io/magento-tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
 <script>
 // Magento-specific tracking
 document.addEventListener('DOMContentLoaded', function() {
@@ -604,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
       ],
       get scriptTemplate() {
         return `<!-- PriceHunt Custom Integration -->
-<script src="https://pavlo4.netlify.app/tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
+<script src="https://ipick.io/tracker.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}"></script>
 <script>
 // Custom website tracking
 document.addEventListener('DOMContentLoaded', function() {

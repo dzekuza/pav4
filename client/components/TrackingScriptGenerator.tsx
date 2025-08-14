@@ -40,25 +40,25 @@ export const TrackingScriptGenerator: React.FC<
 
     if (platform === "shopify") {
       return `<script 
-  src="https://pavlo4.netlify.app/shopify-tracker-loader.js" 
+  src="https://ipick.io/shopify-tracker-loader.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
     } else if (platform === "woocommerce") {
       return `<script 
-  src="https://pavlo4.netlify.app/woocommerce-tracker.js" 
+  src="https://ipick.io/woocommerce-tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
     } else if (platform === "magento") {
       return `<script 
-  src="https://pavlo4.netlify.app/magento-tracker.js" 
+  src="https://ipick.io/magento-tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}"${debugAttr}>
 </script>`;
     } else {
       return `<script 
-  src="https://pavlo4.netlify.app/tracker.js" 
+  src="https://ipick.io/tracker.js" 
   data-business-id="${businessId}" 
   data-affiliate-id="${affiliateId}" 
   data-platform="${platform}"${debugAttr}>
@@ -136,8 +136,8 @@ export const TrackingScriptGenerator: React.FC<
   const openTestPage = () => {
     const testUrl =
       platform === "shopify"
-        ? "https://pavlo4.netlify.app/shopify-test.html"
-        : "https://pavlo4.netlify.app/test-tracking.html";
+        ? "https://ipick.io/shopify-test.html"
+        : "https://ipick.io/test-tracking.html";
     window.open(testUrl, "_blank");
   };
 

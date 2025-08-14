@@ -4,7 +4,7 @@
   "description": "Cloud Function to handle Shopify webhook messages",
   "main": "index.js",
   "scripts": {
-    "deploy": "gcloud functions deploy shopify-webhook-handler --runtime nodejs20 --trigger-topic shopify-webhooks --entry-point shopifyWebhookHandler --set-env-vars MAIN_APP_WEBHOOK_URL=https://pavlo4.netlify.app/.netlify/functions/track-event,MAIN_APP_API_KEY=16272754ed68cbdcb55e8f579703d92e"
+    "deploy": "gcloud functions deploy shopify-webhook-handler --runtime nodejs20 --trigger-topic shopify-webhooks --entry-point shopifyWebhookHandler --set-env-vars MAIN_APP_WEBHOOK_URL=https://ipick.io/.netlify/functions/track-event,MAIN_APP_API_KEY=16272754ed68cbdcb55e8f579703d92e"
   },
   "dependencies": {
     "axios": "^1.6.0"

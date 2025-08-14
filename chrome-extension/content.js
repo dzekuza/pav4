@@ -543,7 +543,7 @@ class PriceHuntContentScript {
                           )
                           .join("")}
                     </div>
-                    <button class="pricehunt-view-all" onclick="window.open('https://pavlo4.netlify.app/${encodeURIComponent(window.location.href)}', '_blank')">
+                    <button class="pricehunt-view-all" onclick="window.open('https://ipick.io/${encodeURIComponent(window.location.href)}', '_blank')">
                         View all ${alternatives.length} results
                     </button>
                 </div>

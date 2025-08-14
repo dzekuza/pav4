@@ -53,7 +53,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
             currency: 'USD',
             createdAt: '2024-08-14T10:00:00Z',
             completedAt: '2024-08-14T10:05:00Z',
-            sourceUrl: 'https://pavlo4.netlify.app/product/123',
+            sourceUrl: 'https://ipick.io/product/123',
             sourceName: 'Pavlo4 Price Comparison',
             name: '#1001',
             token: 'token1',

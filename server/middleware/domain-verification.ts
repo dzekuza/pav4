@@ -40,7 +40,7 @@ export const requireDomainVerification = async (
         success: false,
         error:
           "Domain not verified. Please verify your domain ownership to use PriceHunt tracking.",
-        verificationUrl: "https://pavlo4.netlify.app/business-integrate",
+        verificationUrl: "https://ipick.io/business-integrate",
       });
     }
 

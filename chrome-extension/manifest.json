@@ -14,7 +14,7 @@
   ],
 
   "host_permissions": [
-    "https://pavlo4.netlify.app/*",
+    "https://ipick.io/*",
     "https://*.amazon.com/*",
     "https://*.ebay.com/*",
     "https://*.walmart.com/*",

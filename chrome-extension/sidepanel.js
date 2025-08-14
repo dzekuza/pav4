@@ -60,11 +60,11 @@ class PriceHuntSidePanel {
 
     // Quick actions
     document.getElementById("openApp").addEventListener("click", () => {
-      chrome.tabs.create({ url: "https://pavlo4.netlify.app" });
+      chrome.tabs.create({ url: "https://ipick.io" });
     });
 
     document.getElementById("viewHistory").addEventListener("click", () => {
-      chrome.tabs.create({ url: "https://pavlo4.netlify.app/history" });
+      chrome.tabs.create({ url: "https://ipick.io/history" });
     });
 
     // Footer links
@@ -75,7 +75,7 @@ class PriceHuntSidePanel {
 
     document.getElementById("helpLink").addEventListener("click", (e) => {
       e.preventDefault();
-      chrome.tabs.create({ url: "https://pavlo4.netlify.app/help" });
+      chrome.tabs.create({ url: "https://ipick.io/help" });
     });
   }
 
@@ -282,7 +282,7 @@ class PriceHuntSidePanel {
 
       // Make API request
       const response = await fetch(
-        "https://pavlo4.netlify.app/api/n8n-scrape",
+        "https://ipick.io/api/n8n-scrape",
         {
           method: "POST",
           headers: {
