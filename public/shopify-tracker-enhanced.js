@@ -348,18 +348,23 @@
       log('Shopify theme detected');
     }
     
-    // Track initial page view
-    trackPageView();
-    
-    // Track product view if on product page
-    if (window.location.pathname.includes('/product') || 
-        window.location.pathname.includes('/products') ||
-        document.querySelector('[data-testid="product-title"]') ||
-        document.querySelector('.product-single__title')) {
-      trackProductView();
+    // Ensure functions are available before calling them
+    if (typeof trackPageView === 'function') {
+      // Track initial page view
+      trackPageView();
+      
+      // Track product view if on product page
+      if (window.location.pathname.includes('/product') || 
+          window.location.pathname.includes('/products') ||
+          document.querySelector('[data-testid="product-title"]') ||
+          document.querySelector('.product-single__title')) {
+        trackProductView();
+      } else {
+        // Track browse/category view
+        trackBrowse();
+      }
     } else {
-      // Track browse/category view
-      trackBrowse();
+      log('Warning: trackPageView function not available yet');
     }
     
     // Setup event listeners
