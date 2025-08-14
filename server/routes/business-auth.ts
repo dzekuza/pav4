@@ -469,7 +469,7 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
         "No tracking script found on the page. Please add the tracking script to your website's HTML head section.";
       let instructions = {
         step1: "Add this script to your website's <head> section:",
-        script: `<script src="https://ipick.io/tracker.js"></script>
+        script: `<script src="https://ipick.io/tracker.js" defer></script>
 <meta name="ipick-business-id" content="${business.id}">
 <meta name="ipick-affiliate-id" content="${business.affiliateId}">`,
         step2: "Make sure the script is placed before the closing </head> tag",
@@ -481,7 +481,7 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
           "Google Tag Manager detected but no tracking script found. Please add the tracking script via GTM or directly in HTML.";
         instructions = {
           step1: "For Google Tag Manager implementation:",
-          script: `<script src="https://ipick.io/tracker.js"></script>
+          script: `<script src="https://ipick.io/tracker.js" defer></script>
 <meta name="ipick-business-id" content="${business.id}">
 <meta name="ipick-affiliate-id" content="${business.affiliateId}">`,
           step2: "1. Go to your GTM container",

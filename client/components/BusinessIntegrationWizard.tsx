@@ -135,7 +135,7 @@ export default function BusinessIntegrationWizard({
       ],
       get scriptTemplate() {
         return `<!-- iPick Tracker Integration -->
-<script src="https://ipick.io/tracker.js"></script>
+        <script src="https://ipick.io/tracker.js" defer></script>
 <meta name="ipick-business-id" content="${business?.id || "YOUR_BUSINESS_ID"}">
 <meta name="ipick-affiliate-id" content="${business?.affiliateId || "YOUR_AFFILIATE_ID"}">
 <!-- End iPick Tracker Integration -->`;

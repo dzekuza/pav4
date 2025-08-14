@@ -5,12 +5,76 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { lazy, Suspense, useState, useEffect } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
 import LoadingSkeleton from "@/components/ui/loading-skeleton";
 
 import { initializeTracking } from "@/lib/tracking";
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Error caught by boundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        this.props.fallback || (
+          <div style={{ 
+            padding: '20px', 
+            textAlign: 'center',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}>
+            <h2>Something went wrong</h2>
+            <p>We're having trouble loading this page. Please try refreshing.</p>
+            <button 
+              onClick={() => window.location.reload()}
+              style={{
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Refresh Page
+            </button>
+            {this.state.error && (
+              <details style={{ marginTop: '20px', textAlign: 'left' }}>
+                <summary>Error Details</summary>
+                <pre style={{ 
+                  background: '#f8f9fa', 
+                  padding: '10px', 
+                  borderRadius: '5px',
+                  overflow: 'auto'
+                }}>
+                  {this.state.error.message}
+                </pre>
+              </details>
+            )}
+          </div>
+        )
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const Index = lazy(() => import("./pages/Index"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
@@ -248,9 +312,11 @@ const router = createBrowserRouter(
         {
           path: "activity",
           element: (
-            <Suspense fallback={null}>
-              <BusinessActivityDashboard />
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={null}>
+                <BusinessActivityDashboard />
+              </Suspense>
+            </ErrorBoundary>
           ),
         },
         {

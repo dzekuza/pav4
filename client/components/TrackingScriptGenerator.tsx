@@ -39,7 +39,7 @@ export const TrackingScriptGenerator: React.FC<
     const debugAttr = debugMode ? ' data-debug="true"' : "";
 
     // Unified tracker for all platforms
-    return `<script src="https://ipick.io/tracker.js"></script>
+    return `<script src="https://ipick.io/tracker.js" defer></script>
 <meta name="ipick-business-id" content="${businessId}">
 <meta name="ipick-affiliate-id" content="${affiliateId}">`;
   };

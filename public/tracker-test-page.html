@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPick Tracker Test - godislove.lt</title>
+    
+    <!-- iPick Tracker Integration -->
+    <script src="https://ipick.io/tracker.js" defer></script>
+    <meta name="ipick-business-id" content="2">
+    <meta name="ipick-affiliate-id" content="aff_godislovel_1755091745057_n7ccoo">
+    <!-- End iPick Tracker Integration -->
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #2980b9;
+        }
+        .button.success {
+            background: #27ae60;
+        }
+        .button.success:hover {
+            background: #229954;
+        }
+        .tracker-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .tracker-info h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 iPick Tracker Test - godislove.lt</h1>
+        
+        <div class="status info">
+            <h3>📊 Tracker Configuration</h3>
+            <p><strong>Business ID:</strong> 2</p>
+            <p><strong>Affiliate ID:</strong> aff_godislovel_1755091745057_n7ccoo</p>
+            <p><strong>Tracker URL:</strong> https://ipick.io/tracker.js</p>
+            <p><strong>API Endpoint:</strong> https://checkoutdata.gadget.app/api</p>
+        </div>
+
+        <div class="status" id="tracker-status">
+            <h3>🔍 Tracker Status</h3>
+            <p id="status-message">Checking tracker status...</p>
+        </div>
+
+        <div class="tracker-info">
+            <h4>🧪 Test Controls</h4>
+            <button class="button" onclick="testPageView()">Test Page View</button>
+            <button class="button" onclick="testProductView()">Test Product View</button>
+            <button class="button" onclick="testAddToCart()">Test Add to Cart</button>
+            <button class="button success" onclick="testAllEvents()">Test All Events</button>
+            <button class="button" onclick="checkNetworkRequests()">Check Network</button>
+        </div>
+
+        <div class="tracker-info">
+            <h4>📝 Console Log</h4>
+            <div class="log" id="console-log">Initializing tracker test...</div>
+        </div>
+
+        <div class="tracker-info">
+            <h4>🔧 Expected Console Messages</h4>
+            <ul>
+                <li><code>[iPick Tracker] Initializing iPick Tracker with CheckoutData API</code></li>
+                <li><code>[iPick Tracker] Business ID: 2</code></li>
+                <li><code>[iPick Tracker] Affiliate ID: aff_godislovel_1755091745057_n7ccoo</code></li>
+                <li><code>[iPick Tracker] Page view tracked</code></li>
+                <li><code>[iPick Tracker] Event sent to CheckoutData API</code></li>
+            </ul>
+        </div>
+
+        <div class="tracker-info">
+            <h4>🌐 Network Requests to Check</h4>
+            <p>Open Developer Tools → Network tab and look for:</p>
+            <ul>
+                <li><code>https://ipick.io/tracker.js</code> - Tracker script loading</li>
+                <li><code>https://checkoutdata.gadget.app/api/track-event</code> - Event tracking</li>
+                <li><code>https://ipick.io/api/track-event</code> - Fallback tracking</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('console-log');
+            const timestamp = new Date().toISOString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('tracker-status');
+            const messageDiv = document.getElementById('status-message');
+            messageDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function testPageView() {
+            log('🧪 Testing Page View Event...');
+            if (window.iPickTracker) {
+                window.iPickTracker.trackPageView();
+                log('✅ Page view event triggered');
+            } else {
+                log('❌ iPickTracker not available');
+            }
+        }
+
+        function testProductView() {
+            log('🧪 Testing Product View Event...');
+            if (window.iPickTracker) {
+                window.iPickTracker.trackProductView();
+                log('✅ Product view event triggered');
+            } else {
+                log('❌ iPickTracker not available');
+            }
+        }
+
+        function testAddToCart() {
+            log('🧪 Testing Add to Cart Event...');
+            if (window.iPickTracker) {
+                window.iPickTracker.trackAddToCart({
+                    title: 'Test Product - Godislove',
+                    price: '99.99',
+                    currency: 'EUR',
+                    image: 'https://example.com/test-product.jpg',
+                    url: window.location.href
+                });
+                log('✅ Add to cart event triggered');
+            } else {
+                log('❌ iPickTracker not available');
+            }
+        }
+
+        function testAllEvents() {
+            log('🧪 Testing All Events...');
+            testPageView();
+            setTimeout(() => testProductView(), 1000);
+            setTimeout(() => testAddToCart(), 2000);
+            log('✅ All events triggered with delays');
+        }
+
+        function checkNetworkRequests() {
+            log('🔍 Checking network requests...');
+            log('📋 Open Developer Tools → Network tab to see:');
+            log('   - tracker.js loading from ipick.io');
+            log('   - track-event requests to checkoutdata.gadget.app');
+            log('   - Any fallback requests to ipick.io/api/track-event');
+        }
+
+        // Monitor tracker initialization
+        let checkCount = 0;
+        const checkTracker = setInterval(() => {
+            checkCount++;
+            if (window.iPickTracker) {
+                log('✅ iPickTracker initialized successfully');
+                updateStatus('Tracker is working correctly!', 'success');
+                clearInterval(checkTracker);
+                
+                // Log tracker configuration
+                log('🔧 Tracker Configuration:');
+                log('   - Business ID: 2');
+                log('   - Affiliate ID: aff_godislovel_1755091745057_n7ccoo');
+                log('   - API Endpoint: https://checkoutdata.gadget.app/api');
+                
+                // Test initial page view
+                setTimeout(() => {
+                    log('🔄 Triggering initial page view...');
+                    window.iPickTracker.trackPageView();
+                }, 1000);
+                
+            } else if (checkCount > 20) {
+                log('❌ iPickTracker failed to initialize after 10 seconds');
+                updateStatus('Tracker failed to initialize - check console for errors', 'error');
+                clearInterval(checkTracker);
+            }
+        }, 500);
+
+        // Override console methods to capture tracker logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('[iPick')) {
+                log('LOG: ' + args.join(' '));
+            }
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('[iPick')) {
+                log('ERROR: ' + args.join(' '));
+            }
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('[iPick')) {
+                log('WARN: ' + args.join(' '));
+            }
+            originalWarn.apply(console, args);
+        };
+
+        // Initialize test page
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 iPick Tracker Test Page initialized');
+            log('📍 Testing on: ' + window.location.hostname);
+            log('🔗 Page URL: ' + window.location.href);
+            log('🔧 Business ID: 2');
+            log('🔧 Affiliate ID: aff_godislovel_1755091745057_n7ccoo');
+        });
+    </script>
+</body>
+</html>
