@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopify Web Pixel Installation - Official Web Pixels API</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .step {
+            background: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .method {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .advantage {
+            background: #e8f5e8;
+            padding: 15px;
+            border-left: 4px solid #27ae60;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Shopify Web Pixel Installation - Official API</h1>
+        
+        <div class="highlight">
+            <strong>🚀 RECOMMENDED APPROACH!</strong> This uses Shopify's official Web Pixels API for reliable checkout tracking.
+        </div>
+
+        <p>This guide shows you how to install the ipick.io Web Pixel using Shopify's official Web Pixels API. This approach provides the most reliable tracking, especially for checkout events.</p>
+
+        <div class="advantage">
+            <strong>✅ Advantages of Web Pixels API:</strong>
+            <ul>
+                <li><strong>Official Shopify API</strong> - No CSP restrictions</li>
+                <li><strong>Reliable Checkout Tracking</strong> - Works on all checkout pages</li>
+                <li><strong>Rich Event Data</strong> - Complete order and customer information</li>
+                <li><strong>No Theme Modifications</strong> - Installed via Shopify Admin</li>
+                <li><strong>Future-Proof</strong> - Uses Shopify's recommended approach</li>
+            </ul>
+        </div>
+
+        <h2>📋 Events Tracked</h2>
+        <ul>
+            <li><strong>Page Views:</strong> Every page visit with detailed page information, cart context, and customer data</li>
+            <li><strong>Product Views:</strong> Product page interactions with complete product data, variants, pricing, and availability</li>
+            <li><strong>Cart Views:</strong> Cart page visits with detailed item information and totals</li>
+            <li><strong>Add to Cart:</strong> Product additions with variant information, pricing, and cart context</li>
+            <li><strong>Checkout Started:</strong> Checkout initiation with complete cart details, line items, and discount codes</li>
+            <li><strong>Checkout Completed:</strong> Purchase completion with full order data, shipping/billing addresses, and payment terms</li>
+            <li><strong>Collection Views:</strong> Collection page visits with collection metadata</li>
+            <li><strong>Search:</strong> Search queries and results count</li>
+        </ul>
+
+        <h2>🚀 Installation Methods</h2>
+
+        <div class="method">
+            <h3>Method 1: Shopify Admin Web Pixels (Recommended)</h3>
+            <div class="step">
+                <ol>
+                    <li>Go to your Shopify Admin → Settings → Apps and sales channels</li>
+                    <li>Click "Develop apps" → "Create an app"</li>
+                    <li>Name your app: "ipick.io Web Pixel"</li>
+                    <li>Go to "Extensions" → "Add extension" → "Web pixel"</li>
+                    <li>Configure the web pixel with the code below</li>
+                    <li>Install the web pixel on your store</li>
+                </ol>
+            </div>
+
+            <h4>Web Pixel Code:</h4>
+            <div class="code-block">
+// Copy this code into your web pixel extension
+import {register} from '@shopify/web-pixels-extension';
+
+register(({analytics}) => {
+  // Configuration
+  const config = {
+    apiUrl: "https://pavlo4.netlify.app/.netlify/functions/track-event",
+    businessId: "2", // Replace with your business ID
+    affiliateId: "aff_godislovel_1755091745057_n7ccoo", // Replace with your affiliate ID
+    apiKey: "16272754ed68cbdcb55e8f579703d92e"
+  };
+
+  // Extract business ID and affiliate ID from URL parameters
+  function extractBusinessId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('business_id') || 
+           urlParams.get('utm_source') || 
+           config.businessId;
+  }
+
+  function extractAffiliateId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('affiliate_id') || 
+           urlParams.get('utm_medium') || 
+           config.affiliateId;
+  }
+
+  // Generate unique session ID
+  function generateSessionId() {
+    return `webpixel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Send tracking data to our API
+  function sendTrackingData(eventType, data) {
+    const businessId = extractBusinessId();
+    const affiliateId = extractAffiliateId();
+    
+    const trackingData = {
+      event_type: eventType,
+      business_id: businessId,
+      affiliate_id: affiliateId,
+      platform: "shopify",
+      session_id: generateSessionId(),
+      user_agent: navigator.userAgent,
+      referrer: document.referrer,
+      timestamp: Date.now(),
+      url: window.location.href,
+      page_title: document.title,
+      data: {
+        ...data,
+        shop_domain: window.location.hostname,
+        source: "shopify-web-pixel"
+      }
+    };
+
+    // Send to our API
+    fetch(config.apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify(trackingData),
+      keepalive: true
+    })
+    .then(response => {
+      if (response.ok) {
+        console.log(`[ipick Web Pixel] ${eventType} event sent successfully`);
+        return response.json();
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    })
+    .catch(error => {
+      console.error(`[ipick Web Pixel] Failed to send ${eventType} event:`, error);
+    });
+  }
+
+  // Track page viewed events
+  analytics.subscribe('page_viewed', (event) => {
+    console.log('[ipick Web Pixel] Page viewed event:', event);
+    
+    const pageData = {
+      page_title: event.data.page.title,
+      page_url: event.data.page.url,
+      page_type: event.data.page.type,
+      page_id: event.data.page.id
+    };
+
+    // Add cart data if available
+    if (event.data.cart) {
+      pageData.cart = {
+        id: event.data.cart.id,
+        total_price: event.data.cart.totalPrice?.amount,
+        currency: event.data.cart.totalPrice?.currencyCode,
+        item_count: event.data.cart.lineItems?.length || 0
+      };
+    }
+
+    // Add customer data if available
+    if (event.data.customer) {
+      pageData.customer = {
+        id: event.data.customer.id,
+        email: event.data.customer.email,
+        first_name: event.data.customer.firstName,
+        last_name: event.data.customer.lastName
+      };
+    }
+
+    sendTrackingData('page_view', pageData);
+  });
+
+  // Track product viewed events
+  analytics.subscribe('product_viewed', (event) => {
+    console.log('[ipick Web Pixel] Product viewed event:', event);
+    
+    const product = event.data.product;
+    const productData = {
+      product_id: product.id,
+      product_name: product.title,
+      product_type: product.productType,
+      vendor: product.vendor,
+      price: product.price?.amount,
+      currency: product.price?.currencyCode,
+      compare_at_price: product.compareAtPrice?.amount,
+      available: product.availableForSale,
+      tags: product.tags,
+      category: product.productType
+    };
+
+    // Add variant data if available
+    if (event.data.variant) {
+      const variant = event.data.variant;
+      productData.variant = {
+        id: variant.id,
+        title: variant.title,
+        price: variant.price?.amount,
+        compare_at_price: variant.compareAtPrice?.amount,
+        available: variant.availableForSale,
+        sku: variant.sku,
+        barcode: variant.barcode
+      };
+    }
+
+    sendTrackingData('product_view', productData);
+  });
+
+  // Track add to cart events
+  analytics.subscribe('product_added_to_cart', (event) => {
+    console.log('[ipick Web Pixel] Product added to cart event:', event);
+    
+    const product = event.data.product;
+    const variant = event.data.variant;
+    
+    const cartData = {
+      product_id: product.id,
+      product_name: product.title,
+      product_type: product.productType,
+      vendor: product.vendor,
+      variant_id: variant.id,
+      variant_title: variant.title,
+      price: variant.price?.amount,
+      currency: variant.price?.currencyCode,
+      quantity: event.data.quantity,
+      total_price: (parseFloat(variant.price?.amount || 0) * event.data.quantity).toString()
+    };
+
+    // Add cart context if available
+    if (event.data.cart) {
+      cartData.cart = {
+        id: event.data.cart.id,
+        total_price: event.data.cart.totalPrice?.amount,
+        item_count: event.data.cart.lineItems?.length || 0
+      };
+    }
+
+    sendTrackingData('add_to_cart', cartData);
+  });
+
+  // Track checkout started events
+  analytics.subscribe('checkout_started', (event) => {
+    console.log('[ipick Web Pixel] Checkout started event:', event);
+    
+    const checkout = event.data.checkout;
+    
+    const checkoutData = {
+      checkout_id: checkout.id,
+      total_price: checkout.totalPrice?.amount,
+      currency: checkout.totalPrice?.currencyCode,
+      subtotal_price: checkout.subtotalPrice?.amount,
+      total_tax: checkout.totalTax?.amount,
+      total_discounts: checkout.totalDiscounts?.amount,
+      item_count: checkout.lineItems?.length || 0,
+      email: checkout.email,
+      phone: checkout.phone,
+      customer_id: checkout.customer?.id
+    };
+
+    // Extract line items
+    if (checkout.lineItems) {
+      checkoutData.items = checkout.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount,
+        discount: item.discountAllocations?.[0]?.amount
+      }));
+    }
+
+    // Extract discount codes
+    if (checkout.discountApplications) {
+      checkoutData.discount_codes = checkout.discountApplications
+        .filter(discount => discount.type === 'DISCOUNT_CODE')
+        .map(discount => discount.title);
+    }
+
+    sendTrackingData('checkout_start', checkoutData);
+  });
+
+  // Track checkout completed events (most important!)
+  analytics.subscribe('checkout_completed', (event) => {
+    console.log('[ipick Web Pixel] Checkout completed event:', event);
+    
+    const checkout = event.data.checkout;
+    
+    const orderData = {
+      checkout_id: checkout.id,
+      order_id: checkout.order?.id,
+      total_price: checkout.totalPrice?.amount,
+      currency: checkout.totalPrice?.currencyCode,
+      subtotal_price: checkout.subtotalPrice?.amount,
+      total_tax: checkout.totalTax?.amount,
+      total_discounts: checkout.totalDiscounts?.amount,
+      item_count: checkout.lineItems?.length || 0,
+      email: checkout.email,
+      phone: checkout.phone,
+      customer_id: checkout.customer?.id,
+      shipping_address: checkout.shippingAddress ? {
+        first_name: checkout.shippingAddress.firstName,
+        last_name: checkout.shippingAddress.lastName,
+        address1: checkout.shippingAddress.address1,
+        address2: checkout.shippingAddress.address2,
+        city: checkout.shippingAddress.city,
+        province: checkout.shippingAddress.province,
+        country: checkout.shippingAddress.country,
+        zip: checkout.shippingAddress.zip
+      } : null,
+      billing_address: checkout.billingAddress ? {
+        first_name: checkout.billingAddress.firstName,
+        last_name: checkout.billingAddress.lastName,
+        address1: checkout.billingAddress.address1,
+        address2: checkout.billingAddress.address2,
+        city: checkout.billingAddress.city,
+        province: checkout.billingAddress.province,
+        country: checkout.billingAddress.country,
+        zip: checkout.billingAddress.zip
+      } : null
+    };
+
+    // Extract line items
+    if (checkout.lineItems) {
+      orderData.items = checkout.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount,
+        discount: item.discountAllocations?.[0]?.amount,
+        sku: item.variant?.sku,
+        barcode: item.variant?.barcode
+      }));
+    }
+
+    // Extract discount codes
+    if (checkout.discountApplications) {
+      orderData.discount_codes = checkout.discountApplications
+        .filter(discount => discount.type === 'DISCOUNT_CODE')
+        .map(discount => discount.title);
+    }
+
+    // Extract payment information
+    if (checkout.paymentTerms) {
+      orderData.payment_terms = checkout.paymentTerms;
+    }
+
+    sendTrackingData('purchase_complete', orderData);
+  });
+
+  // Track cart viewed events
+  analytics.subscribe('cart_viewed', (event) => {
+    console.log('[ipick Web Pixel] Cart viewed event:', event);
+    
+    const cart = event.data.cart;
+    
+    const cartData = {
+      cart_id: cart.id,
+      total_price: cart.totalPrice?.amount,
+      currency: cart.totalPrice?.currencyCode,
+      subtotal_price: cart.subtotalPrice?.amount,
+      total_tax: cart.totalTax?.amount,
+      total_discounts: cart.totalDiscounts?.amount,
+      item_count: cart.lineItems?.length || 0
+    };
+
+    // Extract line items
+    if (cart.lineItems) {
+      cartData.items = cart.lineItems.map(item => ({
+        product_id: item.product?.id,
+        variant_id: item.variant?.id,
+        title: item.title,
+        quantity: item.quantity,
+        price: item.cost?.totalAmount?.amount
+      }));
+    }
+
+    sendTrackingData('cart_view', cartData);
+  });
+
+  // Track collection viewed events
+  analytics.subscribe('collection_viewed', (event) => {
+    console.log('[ipick Web Pixel] Collection viewed event:', event);
+    
+    const collection = event.data.collection;
+    
+    const collectionData = {
+      collection_id: collection.id,
+      collection_title: collection.title,
+      collection_handle: collection.handle,
+      collection_description: collection.description,
+      products_count: collection.productsCount
+    };
+
+    sendTrackingData('collection_view', collectionData);
+  });
+
+  // Track search events
+  analytics.subscribe('search_submitted', (event) => {
+    console.log('[ipick Web Pixel] Search submitted event:', event);
+    
+    const searchData = {
+      search_term: event.data.searchTerm,
+      results_count: event.data.resultsCount
+    };
+
+    sendTrackingData('search', searchData);
+  });
+
+  console.log('[ipick Web Pixel] Web pixel registered successfully with comprehensive event tracking');
+});
+            </div>
+        </div>
+
+        <div class="method">
+            <h3>Method 2: Download and Install Extension</h3>
+            <div class="step">
+                <ol>
+                    <li>Download the web pixel extension files from our repository</li>
+                    <li>Create a new app in Shopify Partners Dashboard</li>
+                    <li>Add a Web Pixel extension to your app</li>
+                    <li>Upload the extension files</li>
+                    <li>Install the app on your store</li>
+                </ol>
+            </div>
+        </div>
+
+        <h2>🔧 Configuration</h2>
+        
+        <h3>Business ID & Affiliate ID Setup</h3>
+        <p>The web pixel automatically detects your business ID and affiliate ID from:</p>
+        <ol>
+            <li><strong>Hardcoded Config:</strong> Set in the web pixel code</li>
+            <li><strong>URL Parameters:</strong> <code>?business_id=2&affiliate_id=aff_xxx</code></li>
+            <li><strong>UTM Parameters:</strong> <code>?utm_source=2&utm_medium=aff_xxx</code></li>
+            <li><strong>Default Values:</strong> Falls back to configured defaults</li>
+        </ol>
+
+        <h3>Customizing the Web Pixel</h3>
+        <div class="code-block">
+// Update these values in your web pixel code:
+const config = {
+  apiUrl: "https://pavlo4.netlify.app/.netlify/functions/track-event",
+  businessId: "2", // Your business ID
+  affiliateId: "aff_godislovel_1755091745057_n7ccoo", // Your affiliate ID
+  apiKey: "16272754ed68cbdcb55e8f579703d92e"
+};
+        </div>
+
+        <h2>🧪 Testing</h2>
+        
+        <div class="step">
+            <ol>
+                <li>Install the web pixel via Shopify Admin</li>
+                <li>Open browser console (F12)</li>
+                <li>Visit a product page</li>
+                <li>Add product to cart</li>
+                <li>Proceed to checkout</li>
+                <li>Complete a test purchase</li>
+                <li>Check console for web pixel logs</li>
+                <li>Verify events in your ipick.io dashboard</li>
+            </ol>
+        </div>
+
+        <h2>📊 Expected Console Output</h2>
+        <div class="code-block">
+[ipick Web Pixel] Web pixel registered successfully with comprehensive event tracking
+[ipick Web Pixel] Page viewed event: {data: {...}}
+[ipick Web Pixel] page_view event sent successfully
+[ipick Web Pixel] Product viewed event: {data: {...}}
+[ipick Web Pixel] product_view event sent successfully
+[ipick Web Pixel] Cart viewed event: {data: {...}}
+[ipick Web Pixel] cart_view event sent successfully
+[ipick Web Pixel] Product added to cart event: {data: {...}}
+[ipick Web Pixel] add_to_cart event sent successfully
+[ipick Web Pixel] Checkout started event: {data: {...}}
+[ipick Web Pixel] checkout_start event sent successfully
+[ipick Web Pixel] Checkout completed event: {data: {...}}
+[ipick Web Pixel] purchase_complete event sent successfully
+[ipick Web Pixel] Collection viewed event: {data: {...}}
+[ipick Web Pixel] collection_view event sent successfully
+[ipick Web Pixel] Search submitted event: {data: {...}}
+[ipick Web Pixel] search event sent successfully
+        </div>
+
+        <h2>🔍 Troubleshooting</h2>
+
+        <h3>Common Issues:</h3>
+        <ul>
+            <li><strong>Web pixel not loading:</strong> Check app installation and permissions</li>
+            <li><strong>No events tracked:</strong> Verify web pixel is active in Shopify Admin</li>
+            <li><strong>Checkout not tracking:</strong> Web pixels work reliably on checkout pages</li>
+            <li><strong>Wrong business ID:</strong> Check URL parameters or hardcoded config</li>
+            <li><strong>API errors:</strong> Verify API key and endpoint URL</li>
+        </ul>
+
+        <h3>Debug Mode:</h3>
+        <div class="code-block">
+// Add this to your web pixel code for detailed logging:
+console.log('[ipick Web Pixel] Debug mode enabled');
+console.log('[ipick Web Pixel] Event data:', event);
+        </div>
+
+        <h2>📈 Dashboard Integration</h2>
+        <p>Once installed, you'll see these comprehensive metrics in your ipick.io dashboard:</p>
+        <ul>
+            <li><strong>Revenue Tracking:</strong> Complete order data with line items, discount codes, and payment terms</li>
+            <li><strong>Conversion Funnel:</strong> Page view → Product view → Cart view → Add to cart → Checkout start → Purchase</li>
+            <li><strong>Product Performance:</strong> Detailed product and variant data including SKUs, barcodes, and availability</li>
+            <li><strong>Customer Data:</strong> Email, phone, shipping and billing addresses</li>
+            <li><strong>Cart Analytics:</strong> Cart abandonment rates, average cart value, and item analysis</li>
+            <li><strong>Search Analytics:</strong> Search terms and results performance</li>
+            <li><strong>Collection Performance:</strong> Collection view tracking and product discovery</li>
+            <li><strong>Business Attribution:</strong> Which business generated each sale with detailed affiliate tracking</li>
+        </ul>
+
+        <div class="success">
+            <strong>✅ Success!</strong> Your Shopify store is now tracking all customer interactions using Shopify's official Web Pixels API. This provides the most reliable tracking, especially for checkout events.
+        </div>
+
+        <h2>📞 Support</h2>
+        <p>If you need help with installation or have questions:</p>
+        <ul>
+            <li>Check the browser console for web pixel logs</li>
+            <li>Verify your business ID and affiliate ID are correct</li>
+            <li>Test with a small purchase first</li>
+            <li>Ensure the web pixel is active in Shopify Admin</li>
+            <li>Contact support at support@ipick.io</li>
+        </ul>
+
+        <div class="warning">
+            <strong>⚠️ Important Notes:</strong>
+            <ul>
+                <li>Web Pixels API is the official Shopify approach for tracking</li>
+                <li>No theme modifications required</li>
+                <li>Works reliably on all pages including checkout</li>
+                <li>Provides rich event data from Shopify</li>
+                <li>Future-proof and supported by Shopify</li>
+            </ul>
+        </div>
+
+        <h2>🔗 Reference</h2>
+        <p>For more information about Shopify Web Pixels API:</p>
+        <ul>
+            <li><a href="https://shopify.dev/docs/api/web-pixels-api" target="_blank">Shopify Web Pixels API Documentation</a></li>
+            <li><a href="https://shopify.dev/docs/api/web-pixels-api/standard-events/checkout_completed" target="_blank">Checkout Completed Event Reference</a></li>
+            <li><a href="https://shopify.dev/docs/apps/marketing-and-conversion/web-pixels" target="_blank">Web Pixels App Development Guide</a></li>
+        </ul>
+    </div>
+</body>
+</html>

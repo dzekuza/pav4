@@ -11,6 +11,7 @@ import {
 import { Badge } from "../components/ui/badge";
 import { useToast } from "../hooks/use-toast";
 import { SearchHeader } from "../components/SearchHeader";
+import BusinessAnalyticsDashboard from "../components/BusinessAnalyticsDashboard";
 import {
   TrendingUp,
   Users,
@@ -49,6 +50,7 @@ interface BusinessStats {
 export default function BusinessDashboard() {
   const [stats, setStats] = useState<BusinessStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'basic' | 'analytics'>('basic');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -392,8 +394,41 @@ export default function BusinessDashboard() {
           </Card>
         )}
 
-        {/* Detailed Statistics - Only show if domain is verified or verification not required */}
+        {/* Tab Navigation */}
         {(isDomainVerified || !domainVerificationRequired) && (
+          <div className="mb-6">
+            <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'basic'
+                    ? 'bg-white text-black'
+                    : 'text-white hover:text-white/80'
+                }`}
+              >
+                Basic Stats
+              </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'analytics'
+                    ? 'bg-white text-black'
+                    : 'text-white hover:text-white/80'
+                }`}
+              >
+                Enhanced Analytics
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced Analytics Dashboard */}
+        {activeTab === 'analytics' && (isDomainVerified || !domainVerificationRequired) && (
+          <BusinessAnalyticsDashboard businessDomain={stats?.domain || ''} />
+        )}
+
+        {/* Basic Statistics - Only show if domain is verified or verification not required */}
+        {activeTab === 'basic' && (isDomainVerified || !domainVerificationRequired) && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>

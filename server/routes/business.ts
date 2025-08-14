@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import { businessService, prisma } from "../services/database";
 import { requireAdminAuth } from "../middleware/admin-auth";
 import { verifyBusinessToken } from "../middleware/business-auth";
+import { isAnalyticsAllowed, DOMAIN_VERIFICATION_CONFIG } from "../config/domain-verification";
 import bcrypt from "bcryptjs";
 
 // Register a new business
@@ -797,5 +798,214 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
       success: false,
       error: "Failed to fetch checkout analytics",
     });
+  }
+};
+
+// Get business dashboard data from checkout system
+export const getBusinessDashboardData: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Check domain verification status
+    const domainVerification = await prisma.domainVerification.findFirst({
+      where: {
+        businessId: business.id,
+        status: "verified",
+      },
+      orderBy: {
+        verifiedAt: "desc",
+      },
+    });
+    const domainVerified = !!domainVerification;
+
+    if (!isAnalyticsAllowed(domainVerified)) {
+      return res.status(403).json({
+        success: false,
+        error: "Domain verification required for analytics access",
+        message: DOMAIN_VERIFICATION_CONFIG.WARNING_MESSAGE,
+      });
+    }
+
+    const { startDate, endDate, limit } = req.query;
+    
+    // For now, return mock data to test the dashboard
+    const mockDashboardData = {
+      summary: {
+        totalBusinesses: 1,
+        businessDomain: business.domain,
+        totalCheckouts: 15,
+        completedCheckouts: 8,
+        totalOrders: 8,
+        conversionRate: 53.33,
+        totalRevenue: 1250.50,
+        currency: 'USD'
+      },
+      businesses: [{
+        id: '1',
+        domain: business.domain,
+        myshopifyDomain: `${business.domain}.myshopify.com`,
+        name: `${business.domain} Store`,
+        email: business.email,
+        currency: 'USD',
+        plan: 'Basic',
+        createdAt: '2024-01-01T00:00:00Z'
+      }],
+      recentCheckouts: [
+        {
+          id: '1',
+          email: 'customer1@example.com',
+          totalPrice: '150.00',
+          currency: 'USD',
+          createdAt: '2024-08-14T10:00:00Z',
+          completedAt: '2024-08-14T10:05:00Z',
+          sourceUrl: 'https://pavlo4.netlify.app/product/123',
+          sourceName: 'Pavlo4 Price Comparison',
+          name: '#1001',
+          token: 'token1',
+          processingStatus: 'complete',
+          isPavlo4Referral: true
+        },
+        {
+          id: '2',
+          email: 'customer2@example.com',
+          totalPrice: '75.50',
+          currency: 'USD',
+          createdAt: '2024-08-14T09:30:00Z',
+          completedAt: null,
+          sourceUrl: 'https://google.com',
+          sourceName: 'Google Search',
+          name: '#1002',
+          token: 'token2',
+          processingStatus: 'processing',
+          isPavlo4Referral: false
+        }
+      ],
+      recentOrders: [
+        {
+          id: '1',
+          name: '#1001',
+          email: 'customer1@example.com',
+          totalPrice: '150.00',
+          currency: 'USD',
+          financialStatus: 'paid',
+          fulfillmentStatus: 'fulfilled',
+          createdAt: '2024-08-14T10:05:00Z'
+        },
+        {
+          id: '2',
+          name: '#1000',
+          email: 'customer3@example.com',
+          totalPrice: '200.00',
+          currency: 'USD',
+          financialStatus: 'pending',
+          fulfillmentStatus: 'unfulfilled',
+          createdAt: '2024-08-14T08:00:00Z'
+        }
+      ],
+      referralStatistics: {
+        totalReferrals: 25,
+        pavlo4Referrals: 12,
+        pavlo4ConversionRate: 66.67,
+        totalConversions: 8,
+        referralRevenue: 850.00,
+        topSources: {
+          'pavlo4': 12,
+          'google': 8,
+          'facebook': 3,
+          'direct': 2
+        }
+      },
+      trends: {
+        last30Days: {
+          checkouts: 15,
+          orders: 8,
+          revenue: 1250.50
+        },
+        last7Days: {
+          checkouts: 5,
+          orders: 3,
+          revenue: 450.00
+        }
+      },
+      orderStatuses: {
+        'paid': 6,
+        'pending': 2,
+        'refunded': 0
+      },
+      recentReferrals: [
+        {
+          id: '1',
+          referralId: 'ref1',
+          businessDomain: business.domain,
+          source: 'pavlo4',
+          medium: 'referral',
+          campaign: 'price-comparison',
+          conversionStatus: 'converted',
+          conversionValue: 150.00,
+          clickedAt: '2024-08-14T09:45:00Z',
+          isPavlo4: true
+        },
+        {
+          id: '2',
+          referralId: 'ref2',
+          businessDomain: business.domain,
+          source: 'google',
+          medium: 'organic',
+          campaign: 'search',
+          conversionStatus: 'clicked',
+          conversionValue: 0,
+          clickedAt: '2024-08-14T09:30:00Z',
+          isPavlo4: false
+        }
+      ]
+    };
+
+    res.json({ 
+      success: true, 
+      dashboardData: mockDashboardData, 
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        filters: { 
+          businessDomain: business.domain, 
+          startDate: startDate as string, 
+          endDate: endDate as string, 
+          limit: limit ? parseInt(limit as string) : 100 
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching business dashboard data:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch business dashboard data" });
   }
 };

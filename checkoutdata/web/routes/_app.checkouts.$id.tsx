@@ -107,11 +107,18 @@ export default function CheckoutDetail() {
     }).format(parsedAmount);
   };
 
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString || dateString === "") return "N/A";
+  const formatDate = (dateValue: string | Date | null | undefined) => {
+    if (!dateValue || dateValue === "") return "N/A";
+    
+    // Handle both Date objects and strings
+    let date: Date;
+    if (dateValue instanceof Date) {
+      date = dateValue;
+    } else {
+      date = new Date(dateValue);
+    }
     
     // Type guard for date validation
-    const date = new Date(dateString);
     if (isNaN(date.getTime())) return "N/A";
     
     return date.toLocaleString();

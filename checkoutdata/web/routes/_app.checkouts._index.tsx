@@ -36,6 +36,62 @@ export default function CheckoutsIndex() {
     return { status: 'In Progress', tone: 'info' as const };
   };
 
+  const getReferralSourceInfo = (record: any) => {
+    const sourceUrl = record.sourceUrl as string;
+    const sourceName = record.sourceName as string;
+    const sourceIdentifier = record.sourceIdentifier as string;
+
+    // Check for pavlo4 referral
+    if (sourceUrl && sourceUrl.includes('pavlo4.netlify.app')) {
+      return {
+        text: 'Pavlo4 Price Comparison',
+        tone: 'attention' as const,
+        isPavlo: true
+      };
+    }
+
+    // If we have source information, show it
+    if (sourceName) {
+      return {
+        text: sourceName,
+        tone: 'info' as const,
+        isPavlo: false
+      };
+    }
+
+    if (sourceUrl) {
+      try {
+        const url = new URL(sourceUrl);
+        return {
+          text: url.hostname,
+          tone: 'info' as const,
+          isPavlo: false
+        };
+      } catch {
+        return {
+          text: sourceUrl,
+          tone: 'info' as const,
+          isPavlo: false
+        };
+      }
+    }
+
+    if (sourceIdentifier) {
+      return {
+        text: sourceIdentifier,
+        tone: 'info' as const,
+        isPavlo: false
+      };
+    }
+
+    // No source information available
+    return {
+      text: 'Direct',
+      tone: 'subdued' as const,
+      isPavlo: false
+    };
+  };
+
   return (
     <Page fullWidth>
       <BlockStack gap="500">
@@ -56,6 +112,9 @@ export default function CheckoutsIndex() {
               "token",
               "createdAt",
               "completedAt",
+              "sourceUrl",
+              "sourceName", 
+              "sourceIdentifier",
               {
                 header: "Checkout Status",
                 render: ({ record }) => {
@@ -94,6 +153,20 @@ export default function CheckoutsIndex() {
                     <Badge tone={accepts ? 'success' : 'info'}>
                       {accepts ? 'Accepts Marketing' : 'No Marketing'}
                     </Badge>
+                  );
+                }
+              },
+              {
+                header: "Referral Source",
+                render: ({ record }) => {
+                  const { text, tone, isPavlo } = getReferralSourceInfo(record);
+                  return (
+                    <InlineStack gap="200" align="start">
+                      <Badge tone={tone}>{text}</Badge>
+                      {isPavlo && (
+                        <Badge tone="warning" size="small">⭐ Pavlo4</Badge>
+                      )}
+                    </InlineStack>
                   );
                 }
               },
