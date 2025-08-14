@@ -51,11 +51,12 @@ export default function BusinessActivity() {
     try {
       setIsLoading(true);
 
-      // Fetch click logs, conversions, and tracking events
-      const [clicksResponse, conversionsResponse, eventsResponse] = await Promise.all([
+      // Fetch click logs, conversions, tracking events, and checkout analytics
+      const [clicksResponse, conversionsResponse, eventsResponse, checkoutResponse] = await Promise.all([
         fetch("/api/business/activity/clicks", { credentials: "include" }),
         fetch("/api/business/activity/conversions", { credentials: "include" }),
         fetch("/api/business/activity/events", { credentials: "include" }),
+        fetch("/api/business/analytics/checkouts", { credentials: "include" }),
       ]);
 
       const clicksJson = clicksResponse.ok
@@ -67,6 +68,9 @@ export default function BusinessActivity() {
       const eventsJson = eventsResponse.ok
         ? await eventsResponse.json()
         : { events: [] };
+      const checkoutJson = checkoutResponse.ok
+        ? await checkoutResponse.json()
+        : { success: false, analytics: { recentCheckouts: [] } };
 
       const clicks = Array.isArray(clicksJson)
         ? clicksJson
@@ -77,6 +81,7 @@ export default function BusinessActivity() {
       const events = Array.isArray(eventsJson)
         ? eventsJson
         : eventsJson.events || [];
+      const checkouts = checkoutJson.success ? checkoutJson.analytics.recentCheckouts : [];
 
       // Combine and format the data
       const combinedActivities: ActivityItem[] = [
@@ -90,6 +95,28 @@ export default function BusinessActivity() {
           userAgent: click.userAgent,
           referrer: click.referrer,
           ip: click.ipAddress,
+        })),
+        ...conversions.map((conversion: any) => ({
+          id: `purchase-${conversion.id}`,
+          type: "purchase" as const,
+          productName: `Order ${conversion.orderId}`,
+          productUrl: conversion.domain,
+          status: "purchased" as const,
+          amount: conversion.amount,
+        })),
+        ...checkouts.map((checkout: any) => ({
+          id: `checkout-${checkout.id}`,
+          type: checkout.eventType === 'checkout_start' ? "checkout_start" as const :
+                checkout.eventType === 'checkout_complete' ? "checkout_complete" as const :
+                "purchase" as const,
+          productName: checkout.email || 'Checkout',
+          productUrl: 'Shopify Checkout',
+          status: checkout.eventType === 'checkout_start' ? "checkout started" as const :
+                 checkout.eventType === 'checkout_complete' ? "checkout completed" as const :
+                 "purchased" as const,
+          amount: parseFloat(checkout.totalPrice) || 0,
+          timestamp: checkout.timestamp,
+          customerId: checkout.email,
         })),
         ...conversions.map((conversion: any) => ({
           id: `purchase-${conversion.id}`,
@@ -129,7 +156,7 @@ export default function BusinessActivity() {
 
       setActivities(combinedActivities);
 
-      // Calculate stats including tracking events
+      // Calculate stats including tracking events and checkouts
       const totalClicks = clicks.length;
       const totalPurchases = conversions.length;
       const totalRevenue = conversions.reduce(
@@ -145,13 +172,19 @@ export default function BusinessActivity() {
         return sum + (eventData.total || eventData.value || 0);
       }, 0);
       
-      const totalRevenueCombined = totalRevenue + trackingRevenue;
+      // Add revenue from checkout events
+      const checkoutRevenue = checkouts.reduce((sum: number, checkout: any) => {
+        return sum + (parseFloat(checkout.totalPrice) || 0);
+      }, 0);
+      
+      const totalRevenueCombined = totalRevenue + trackingRevenue + checkoutRevenue;
+      const totalOrders = conversions.length + checkouts.filter((c: any) => c.eventType === 'order_created').length;
       const conversionRate =
-        totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+        totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0;
 
       setStats({
         totalClicks,
-        totalPurchases,
+        totalPurchases: totalOrders,
         totalRevenue: totalRevenueCombined,
         conversionRate,
       });

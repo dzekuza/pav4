@@ -679,3 +679,123 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
     });
   }
 };
+
+// Get checkout analytics for business dashboard
+export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
+  try {
+    const businessId = req.business?.id;
+    if (!businessId) {
+      return res.status(401).json({
+        success: false,
+        error: "Business authentication required",
+      });
+    }
+
+    const { startDate, endDate } = req.query;
+    
+    // Get business domain
+    const business = await businessService.findBusinessById(businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Fetch checkout analytics from Gadget app
+    const gadgetResponse = await fetch('https://checkoutdata.gadget.app/api/actions/getBusinessAnalytics', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GADGET_API_KEY || ''}`,
+      },
+      body: JSON.stringify({
+        businessDomain: business.domain,
+        startDate: startDate || null,
+        endDate: endDate || null,
+      }),
+    });
+
+    if (!gadgetResponse.ok) {
+      console.error('Gadget API error:', await gadgetResponse.text());
+      return res.status(500).json({
+        success: false,
+        error: "Failed to fetch checkout analytics",
+      });
+    }
+
+    const checkoutData = await gadgetResponse.json();
+    
+    // Process checkout events
+    const checkouts = checkoutData.filter((event: any) => 
+      event.event_type === 'checkout_start' || event.event_type === 'checkout_complete'
+    );
+    
+    const orders = checkoutData.filter((event: any) => 
+      event.event_type === 'order_created'
+    );
+
+    // Calculate analytics
+    const totalCheckouts = checkouts.filter((c: any) => c.event_type === 'checkout_start').length;
+    const completedCheckouts = checkouts.filter((c: any) => c.event_type === 'checkout_complete').length;
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum: number, order: any) => {
+      return sum + (parseFloat(order.data?.totalPrice) || 0);
+    }, 0);
+    
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const checkoutConversionRate = totalCheckouts > 0 ? (completedCheckouts / totalCheckouts) * 100 : 0;
+
+    // Group by date for charts
+    const dailyCheckouts = new Map<string, number>();
+    const dailyRevenue = new Map<string, number>();
+    
+    checkouts.forEach((checkout: any) => {
+      const date = new Date(checkout.timestamp).toISOString().split('T')[0];
+      dailyCheckouts.set(date, (dailyCheckouts.get(date) || 0) + 1);
+    });
+    
+    orders.forEach((order: any) => {
+      const date = new Date(order.timestamp).toISOString().split('T')[0];
+      const revenue = parseFloat(order.data?.totalPrice) || 0;
+      dailyRevenue.set(date, (dailyRevenue.get(date) || 0) + revenue);
+    });
+
+    res.json({
+      success: true,
+      analytics: {
+        summary: {
+          totalCheckouts,
+          completedCheckouts,
+          totalOrders,
+          totalRevenue,
+          averageOrderValue,
+          checkoutConversionRate,
+        },
+        dailyCheckouts: Array.from(dailyCheckouts.entries()).map(([date, count]) => ({
+          date,
+          count,
+        })),
+        dailyRevenue: Array.from(dailyRevenue.entries()).map(([date, revenue]) => ({
+          date,
+          revenue,
+        })),
+        recentCheckouts: checkouts.slice(-10).map((checkout: any) => ({
+          id: checkout.data?.checkout_id || checkout.data?.order_id,
+          eventType: checkout.event_type,
+          timestamp: checkout.timestamp,
+          email: checkout.data?.email,
+          totalPrice: checkout.data?.totalPrice,
+          currency: checkout.data?.currency,
+          status: checkout.event_type === 'checkout_complete' ? 'completed' : 'started',
+        })),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching checkout analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch checkout analytics",
+    });
+  }
+};

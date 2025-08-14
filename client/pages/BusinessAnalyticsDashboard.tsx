@@ -58,6 +58,19 @@ interface AnalyticsData {
   dailyRevenue: { date: string; revenue: number }[];
   topProducts: { name: string; clicks: number; purchases: number }[];
   conversionTrends: { date: string; rate: number }[];
+  checkoutAnalytics?: {
+    summary: {
+      totalCheckouts: number;
+      completedCheckouts: number;
+      totalOrders: number;
+      totalRevenue: number;
+      averageOrderValue: number;
+      checkoutConversionRate: number;
+    };
+    dailyCheckouts: { date: string; count: number }[];
+    dailyRevenue: { date: string; revenue: number }[];
+    recentCheckouts: any[];
+  };
 }
 
 export default function BusinessAnalyticsDashboard() {
@@ -95,13 +108,16 @@ export default function BusinessAnalyticsDashboard() {
       setIsLoading(true);
 
       // Fetch real analytics data from API
-      const [clicksResponse, conversionsResponse, realTimeStatsResponse] =
+      const [clicksResponse, conversionsResponse, realTimeStatsResponse, checkoutAnalyticsResponse] =
         await Promise.all([
           fetch("/api/business/activity/clicks", { credentials: "include" }),
           fetch("/api/business/activity/conversions", {
             credentials: "include",
           }),
           fetch("/api/business/stats/realtime", { credentials: "include" }),
+          fetch(`/api/business/analytics/checkouts?startDate=${getStartDate()}&endDate=${getEndDate()}`, { 
+            credentials: "include" 
+          }),
         ]);
 
       // Check if any response is not ok
@@ -117,6 +133,11 @@ export default function BusinessAnalyticsDashboard() {
         }
         throw new Error("Failed to fetch analytics data. Please try again.");
       }
+      
+      // Checkout analytics is optional - don't fail if it's not available
+      const checkoutAnalyticsData = checkoutAnalyticsResponse.ok 
+        ? await checkoutAnalyticsResponse.json() 
+        : null;
 
       // Check content type to ensure we're getting JSON
       const contentType = clicksResponse.headers.get("content-type");
@@ -243,6 +264,7 @@ export default function BusinessAnalyticsDashboard() {
         dailyRevenue,
         topProducts,
         conversionTrends,
+        checkoutAnalytics: checkoutAnalyticsData?.success ? checkoutAnalyticsData.analytics : undefined,
       };
 
       setAnalyticsData(realData);
@@ -271,6 +293,18 @@ export default function BusinessAnalyticsDashboard() {
       });
     }
     return data;
+  };
+
+  const getStartDate = () => {
+    const today = new Date();
+    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days);
+    return startDate.toISOString().split("T")[0];
+  };
+
+  const getEndDate = () => {
+    return new Date().toISOString().split("T")[0];
   };
 
   const extractProductName = (url: string): string => {
@@ -390,12 +424,10 @@ export default function BusinessAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              $
-              {analyticsData?.dailyRevenue
-                .reduce((sum, day) => sum + day.revenue, 0)
-                .toLocaleString()}
+              €
+              {(analyticsData?.checkoutAnalytics?.summary.totalRevenue || 0).toFixed(2)}
             </div>
-            <p className="text-xs text-white/80">Total revenue</p>
+            <p className="text-xs text-white/80">From tracked orders</p>
           </CardContent>
         </Card>
 
@@ -408,31 +440,24 @@ export default function BusinessAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {businessStats?.conversionRate.toFixed(1)}%
+              {(analyticsData?.checkoutAnalytics?.summary.checkoutConversionRate || 0).toFixed(1)}%
             </div>
-            <p className="text-xs text-white/80">Overall rate</p>
+            <p className="text-xs text-white/80">Checkout to order</p>
           </CardContent>
         </Card>
 
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">
-              Avg Daily Visits
+              Total Orders
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
+            <ShoppingCart className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {analyticsData?.dailyVisits.length > 0
-                ? Math.round(
-                    analyticsData.dailyVisits.reduce(
-                      (sum, day) => sum + day.visits,
-                      0,
-                    ) / analyticsData.dailyVisits.length,
-                  )
-                : 0}
+            <div className="text-2xl font-bold text-green-600">
+              {analyticsData?.checkoutAnalytics?.summary.totalOrders || 0}
             </div>
-            <p className="text-xs text-white/80">Average per day</p>
+            <p className="text-xs text-white/80">Completed orders</p>
           </CardContent>
         </Card>
       </div>
@@ -466,6 +491,7 @@ export default function BusinessAnalyticsDashboard() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="checkouts">Checkouts</TabsTrigger>
           <TabsTrigger value="products">Top Products</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
@@ -641,6 +667,165 @@ export default function BusinessAnalyticsDashboard() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="checkouts" className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-white">
+                  Total Checkouts
+                </CardTitle>
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analyticsData?.checkoutAnalytics?.summary.totalCheckouts || 0}
+                </div>
+                <p className="text-xs text-white/80">Started checkouts</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-white">
+                  Completed Orders
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analyticsData?.checkoutAnalytics?.summary.totalOrders || 0}
+                </div>
+                <p className="text-xs text-white/80">Successful orders</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-white">
+                  Total Revenue
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  €{(analyticsData?.checkoutAnalytics?.summary.totalRevenue || 0).toFixed(2)}
+                </div>
+                <p className="text-xs text-white/80">From tracked orders</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-white">
+                  Conversion Rate
+                </CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {(analyticsData?.checkoutAnalytics?.summary.checkoutConversionRate || 0).toFixed(1)}%
+                </div>
+                <p className="text-xs text-white/80">Checkout to order</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader>
+                <CardTitle className="text-white">Daily Checkouts</CardTitle>
+                <CardDescription className="text-white/80">
+                  Checkout activity over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analyticsData?.checkoutAnalytics?.dailyCheckouts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70">
+                      No checkout data available. Make sure your Shopify app is properly connected.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {analyticsData.checkoutAnalytics.dailyCheckouts.slice(-7).map((day) => {
+                      const maxCheckouts = Math.max(
+                        ...analyticsData.checkoutAnalytics.dailyCheckouts.map((d) => d.count),
+                        1,
+                      );
+                      return (
+                        <div
+                          key={day.date}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm text-white/70">
+                            {formatDate(day.date)}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{
+                                  width: `${(day.count / maxCheckouts) * 100}%`,
+                                }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-medium">
+                              {day.count}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader>
+                <CardTitle className="text-white">Recent Checkouts</CardTitle>
+                <CardDescription className="text-white/80">
+                  Latest checkout activity
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analyticsData?.checkoutAnalytics?.recentCheckouts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70">
+                      No recent checkouts found.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {analyticsData.checkoutAnalytics.recentCheckouts.slice(-5).map((checkout) => (
+                      <div key={checkout.id} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                        <div>
+                          <div className="font-medium text-sm">
+                            {checkout.eventType === 'checkout_start' ? 'Checkout Started' : 
+                             checkout.eventType === 'checkout_complete' ? 'Checkout Completed' : 
+                             checkout.eventType === 'order_created' ? 'Order Created' : checkout.eventType}
+                          </div>
+                          <div className="text-xs text-white/70">
+                            {checkout.email || 'No email'}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-sm">
+                            €{parseFloat(checkout.totalPrice || '0').toFixed(2)}
+                          </div>
+                          <div className="text-xs text-white/70">
+                            {new Date(checkout.timestamp).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">

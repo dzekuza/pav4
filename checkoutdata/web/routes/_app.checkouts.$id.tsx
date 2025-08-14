@@ -31,20 +31,8 @@ export default function CheckoutDetail() {
       customerLocale: true,
       phone: true,
       name: true,
-      billingAddress: true,
-      shippingLine: true,
       buyerAcceptsMarketing: true,
-      abandonedCheckoutUrl: true,
-      subtotalPrice: true,
-      totalTax: true,
-      taxesIncluded: true,
-      requiresShipping: true,
-      discountCodes: true,
-      noteAttributes: true,
       token: true,
-      webUrl: true,
-      shopifyCreatedAt: true,
-      shopifyUpdatedAt: true,
     },
   });
 
@@ -109,28 +97,44 @@ export default function CheckoutDetail() {
     );
   }
 
-  const formatCurrency = (amount: string, currency: string) => {
-    if (!amount) return "N/A";
+  const formatCurrency = (amount: string | null | undefined, currency: string | null | undefined) => {
+    if (!amount || amount === "") return "N/A";
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount)) return "N/A";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency || "USD",
-    }).format(parseFloat(amount));
+    }).format(parsedAmount);
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleString();
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString || dateString === "") return "N/A";
+    
+    // Type guard for date validation
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
+    
+    return date.toLocaleString();
   };
 
-  const getProcessingStatusBadge = (status: string) => {
+  const getProcessingStatusBadge = (status: string | null | undefined) => {
     const statusMap: Record<string, "success" | "attention" | "info"> = {
       complete: "success",
       processing: "attention",
       pending: "info",
     };
+    
+    if (!status || status === "") {
+      return (
+        <Badge tone="info">
+          Unknown
+        </Badge>
+      );
+    }
+    
     return (
       <Badge tone={statusMap[status] || "info"}>
-        {status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown"}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
   };
@@ -225,26 +229,6 @@ export default function CheckoutDetail() {
                 Order Summary
               </Text>
               <BlockStack gap="200">
-                {checkout.subtotalPrice && (
-                  <InlineStack gap="200" align="space-between">
-                    <Text as="span" variant="bodyMd">
-                      Subtotal:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {formatCurrency(checkout.subtotalPrice, checkout.currency)}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.totalTax && (
-                  <InlineStack gap="200" align="space-between">
-                    <Text as="span" variant="bodyMd">
-                      Tax:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {formatCurrency(checkout.totalTax, checkout.currency)}
-                    </Text>
-                  </InlineStack>
-                )}
                 {checkout.totalPrice && (
                   <InlineStack gap="200" align="space-between">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
@@ -264,63 +248,6 @@ export default function CheckoutDetail() {
                       {checkout.currency}
                     </Text>
                   </InlineStack>
-                )}
-                {checkout.taxesIncluded !== null && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Taxes Included:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.taxesIncluded ? "Yes" : "No"}
-                    </Text>
-                  </InlineStack>
-                )}
-              </BlockStack>
-            </BlockStack>
-
-            <Divider />
-
-            {/* Shipping & Billing Information */}
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
-                Addresses & Shipping
-              </Text>
-              <BlockStack gap="300">
-                {checkout.requiresShipping !== null && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Requires Shipping:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.requiresShipping ? "Yes" : "No"}
-                    </Text>
-                  </InlineStack>
-                )}
-
-                {checkout.billingAddress && (
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingSm">
-                      Billing Address
-                    </Text>
-                    <Box paddingInlineStart="400">
-                      <Text as="pre" variant="bodyMd">
-                        {JSON.stringify(checkout.billingAddress, null, 2)}
-                      </Text>
-                    </Box>
-                  </BlockStack>
-                )}
-
-                {checkout.shippingLine && (
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingSm">
-                      Shipping Information
-                    </Text>
-                    <Box paddingInlineStart="400">
-                      <Text as="pre" variant="bodyMd">
-                        {JSON.stringify(checkout.shippingLine, null, 2)}
-                      </Text>
-                    </Box>
-                  </BlockStack>
                 )}
               </BlockStack>
             </BlockStack>
@@ -351,26 +278,7 @@ export default function CheckoutDetail() {
                     </Text>
                   </InlineStack>
                 )}
-                {checkout.shopifyCreatedAt && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Shopify Created:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {formatDate(checkout.shopifyCreatedAt)}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.shopifyUpdatedAt && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Shopify Updated:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {formatDate(checkout.shopifyUpdatedAt)}
-                    </Text>
-                  </InlineStack>
-                )}
+
                 {checkout.token && (
                   <InlineStack gap="200">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
@@ -391,62 +299,8 @@ export default function CheckoutDetail() {
                     </Text>
                   </InlineStack>
                 )}
-                {checkout.abandonedCheckoutUrl && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Abandoned URL:
-                    </Text>
-                    <Text as="a" variant="bodyMd" href={checkout.abandonedCheckoutUrl} target="_blank" rel="noopener noreferrer">
-                      View Abandoned Checkout
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.webUrl && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Web URL:
-                    </Text>
-                    <Text as="a" variant="bodyMd" href={checkout.webUrl} target="_blank" rel="noopener noreferrer">
-                      View Checkout
-                    </Text>
-                  </InlineStack>
-                )}
               </BlockStack>
             </BlockStack>
-
-            {/* Discount Codes */}
-            {checkout.discountCodes && (
-              <>
-                <Divider />
-                <BlockStack gap="300">
-                  <Text as="h2" variant="headingMd">
-                    Discount Codes
-                  </Text>
-                  <Box paddingInlineStart="400">
-                    <Text as="pre" variant="bodyMd">
-                      {JSON.stringify(checkout.discountCodes, null, 2)}
-                    </Text>
-                  </Box>
-                </BlockStack>
-              </>
-            )}
-
-            {/* Note Attributes */}
-            {checkout.noteAttributes && (
-              <>
-                <Divider />
-                <BlockStack gap="300">
-                  <Text as="h2" variant="headingMd">
-                    Note Attributes
-                  </Text>
-                  <Box paddingInlineStart="400">
-                    <Text as="pre" variant="bodyMd">
-                      {JSON.stringify(checkout.noteAttributes, null, 2)}
-                    </Text>
-                  </Box>
-                </BlockStack>
-              </>
-            )}
           </BlockStack>
         </Card>
       </BlockStack>
