@@ -58,6 +58,7 @@ import {
   debugShops,
   debugLocalDatabase,
   testDashboardData,
+  testCheckoutAnalytics,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -320,6 +321,7 @@ export async function createServer() {
   app.get("/api/business/debug/shops", debugShops);
   app.get("/api/business/debug/local", debugLocalDatabase);
   app.get("/api/business/test/dashboard", testDashboardData);
+  app.get("/api/business/test/checkout-analytics", testCheckoutAnalytics);
 
 
   // Open CORS for tracking endpoint so third-party business sites can send events
