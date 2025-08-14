@@ -135,9 +135,15 @@ export default function BusinessAnalyticsDashboard() {
       }
       
       // Checkout analytics is optional - don't fail if it's not available
-      const checkoutAnalyticsData = checkoutAnalyticsResponse.ok 
-        ? await checkoutAnalyticsResponse.json() 
-        : null;
+      let checkoutAnalyticsData = null;
+      try {
+        if (checkoutAnalyticsResponse.ok) {
+          checkoutAnalyticsData = await checkoutAnalyticsResponse.json();
+        }
+      } catch (error) {
+        console.warn('Failed to parse checkout analytics response:', error);
+        checkoutAnalyticsData = null;
+      }
 
       // Check content type to ensure we're getting JSON
       const contentType = clicksResponse.headers.get("content-type");
@@ -264,7 +270,19 @@ export default function BusinessAnalyticsDashboard() {
         dailyRevenue,
         topProducts,
         conversionTrends,
-        checkoutAnalytics: checkoutAnalyticsData?.success ? checkoutAnalyticsData.analytics : undefined,
+        checkoutAnalytics: checkoutAnalyticsData?.success ? checkoutAnalyticsData.analytics : {
+          summary: {
+            totalCheckouts: 0,
+            completedCheckouts: 0,
+            totalOrders: 0,
+            totalRevenue: 0,
+            averageOrderValue: 0,
+            checkoutConversionRate: 0,
+          },
+          dailyCheckouts: [],
+          dailyRevenue: [],
+          recentCheckouts: [],
+        },
       };
 
       setAnalyticsData(realData);
@@ -741,7 +759,7 @@ export default function BusinessAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {analyticsData?.checkoutAnalytics?.dailyCheckouts.length === 0 ? (
+                {!analyticsData?.checkoutAnalytics?.dailyCheckouts || analyticsData.checkoutAnalytics.dailyCheckouts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-white/70">
                       No checkout data available. Make sure your Shopify app is properly connected.
@@ -791,7 +809,7 @@ export default function BusinessAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {analyticsData?.checkoutAnalytics?.recentCheckouts.length === 0 ? (
+                {!analyticsData?.checkoutAnalytics?.recentCheckouts || analyticsData.checkoutAnalytics.recentCheckouts.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-white/70">
                       No recent checkouts found.
