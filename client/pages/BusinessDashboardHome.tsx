@@ -45,9 +45,18 @@ export default function BusinessDashboardHome() {
         setIsLoading(true);
       }
 
-      const response = await fetch("/api/business/stats/realtime", {
-        credentials: "include",
-      });
+      // Calculate date range for the last 30 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 30);
+
+      // Fetch consolidated data from the dashboard API (same as analytics)
+      const response = await fetch(
+        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.status === 401) {
         navigate("/business/login");
@@ -59,8 +68,48 @@ export default function BusinessDashboardHome() {
       }
 
       const data = await response.json();
-      if (data.success && data.stats) {
-        setStats(data.stats);
+      if (data.success) {
+        // Extract and calculate stats from the consolidated data
+        const { summary, recentCheckouts, recentOrders } = data;
+        
+        // Calculate stats from scratch using the actual data
+        const totalCheckouts = recentCheckouts?.length || 0;
+        const totalOrders = recentOrders?.length || 0;
+        
+        // Calculate total revenue from orders
+        const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
+          const price = parseFloat(order.totalPrice || '0');
+          return sum + (isNaN(price) ? 0 : price);
+        }, 0) || 0;
+        
+        // Calculate conversion rate: orders / checkouts
+        const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+        
+        // Calculate average order value
+        const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        
+        // Calculate projected fee (5% commission)
+        const projectedFee = totalRevenue * 0.05;
+        
+        // Create consolidated stats object
+        const consolidatedStats = {
+          totalVisits: totalCheckouts, // Use checkouts as visits
+          totalPurchases: totalOrders,
+          totalRevenue: totalRevenue,
+          conversionRate: conversionRate,
+          averageOrderValue: averageOrderValue,
+          projectedFee: projectedFee,
+          adminCommissionRate: 5, // Default commission rate
+          totalClicks: totalCheckouts, // Use checkouts as clicks
+          totalConversions: totalOrders,
+          totalAddToCart: 0, // Not tracked in Gadget data
+          totalPageViews: 1, // Default value
+          totalProductViews: 0, // Not tracked in Gadget data
+          totalSessions: 1, // Default value
+          cartToPurchaseRate: 0, // Not applicable with current data
+        };
+        
+        setStats(consolidatedStats);
       }
     } catch (error) {
       console.error("Error fetching business stats:", error);

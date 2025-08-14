@@ -99,159 +99,95 @@ export default function BusinessActivityDashboard() {
       }
       setError(null);
 
-      // Fetch real-time statistics and activity data
-      const [statsResponse, clicksResponse, conversionsResponse, eventsResponse] =
-        await Promise.all([
-          fetch("/api/business/stats/realtime", { credentials: "include" }),
-          fetch("/api/business/activity/clicks", { credentials: "include" }),
-          fetch("/api/business/activity/conversions", {
-            credentials: "include",
-          }),
-          fetch("/api/business/activity/events", { credentials: "include" }),
-        ]);
+      // Calculate date range for the last 30 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 30);
 
-      // Check if any response is not ok
-      if (!statsResponse.ok || !clicksResponse.ok || !conversionsResponse.ok || !eventsResponse.ok) {
-        // Check if it's an authentication error
-        if (
-          statsResponse.status === 401 ||
-          clicksResponse.status === 401 ||
-          conversionsResponse.status === 401 ||
-          eventsResponse.status === 401
-        ) {
+      // Fetch consolidated data from the dashboard API (same as other pages)
+      const dashboardResponse = await fetch(
+        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!dashboardResponse.ok) {
+        if (dashboardResponse.status === 401) {
           navigate("/business-login");
           return;
         }
         throw new Error("Failed to fetch activity data. Please try again.");
       }
 
-      // Check content type to ensure we're getting JSON
-      const contentType = clicksResponse.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Invalid response format. Please try again.");
+      const dashboardData = await dashboardResponse.json();
+      
+      if (!dashboardData.success) {
+        throw new Error(dashboardData.error || "Failed to fetch dashboard data");
       }
 
-      const statsJson = await statsResponse.json();
-      const clicksJson = await clicksResponse.json();
-      const conversionsJson = await conversionsResponse.json();
-      const eventsJson = await eventsResponse.json();
+      // Extract data from the consolidated dashboard response
+      const { recentCheckouts, recentOrders } = dashboardData;
+      
+      // Use consolidated data for all activity
+      const clicks = recentCheckouts || [];
+      const conversions = recentOrders || [];
+      const events = recentCheckouts || []; // Use checkouts as events
+      
+      // Create consolidated stats from the data
+      const totalCheckouts = recentCheckouts?.length || 0;
+      const totalOrders = recentOrders?.length || 0;
+      const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
+        const price = parseFloat(order.totalPrice || '0');
+        return sum + (isNaN(price) ? 0 : price);
+      }, 0) || 0;
+      const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      
+      const realTimeStats = {
+        totalVisits: totalCheckouts,
+        totalPurchases: totalOrders,
+        totalRevenue: totalRevenue,
+        conversionRate: conversionRate,
+        averageOrderValue: averageOrderValue,
+        projectedFee: totalRevenue * 0.05,
+        totalClicks: totalCheckouts,
+        totalConversions: totalOrders,
+        totalAddToCart: 0,
+        totalPageViews: 1,
+        totalProductViews: 0,
+        totalSessions: 1,
+        cartToPurchaseRate: 0,
+      };
 
-      // Use real-time stats for calculations
-      const realTimeStats = statsJson.success ? statsJson.stats : null;
-      const clicks = Array.isArray(clicksJson)
-        ? clicksJson
-        : clicksJson.clicks || [];
-      const conversions = Array.isArray(conversionsJson)
-        ? conversionsJson
-        : conversionsJson.conversions || [];
-      const events = Array.isArray(eventsJson)
-        ? eventsJson
-        : eventsJson.events || [];
-
-      // Combine and format the data
+      // Combine and format the data using consolidated structure
       const combinedActivities: ActivityItem[] = [
-        // Business clicks
-        ...clicks.map((click: any) => ({
-          id: `click-${click.id}`,
-          type: "click" as const,
-          productName: extractProductName(click.productUrl),
-          productUrl: click.productUrl,
-          status: "browsed" as const,
-          timestamp: click.timestamp,
-          userAgent: click.userAgent,
-          referrer: click.referrer,
-          ip: click.ipAddress,
+        // Checkouts (from consolidated data)
+        ...clicks.map((checkout: any) => ({
+          id: `checkout-${checkout.id}`,
+          type: "checkout_start" as const,
+          productName: checkout.name || checkout.email || 'Checkout',
+          productUrl: checkout.sourceUrl || 'Shopify Checkout',
+          status: "checkout_started" as const,
+          amount: parseFloat(checkout.totalPrice) || 0,
+          timestamp: checkout.createdAt,
+          userAgent: checkout.userAgent,
+          referrer: checkout.sourceUrl,
+          ip: checkout.ipAddress,
         })),
-        // Business conversions
-        ...conversions.map((conversion: any) => ({
-          id: `conversion-${conversion.id}`,
-          type: "conversion" as const,
-          productName:
-            conversion.productTitle ||
-            extractProductName(conversion.productUrl),
-          productUrl: conversion.productUrl,
+        // Orders (from consolidated data)
+        ...conversions.map((order: any) => ({
+          id: `order-${order.id}`,
+          type: "purchase" as const,
+          productName: order.name || `Order ${order.id}`,
+          productUrl: order.shop?.domain || 'Shopify Order',
           status: "purchased" as const,
-          amount: conversion.productPrice
-            ? parseFloat(conversion.productPrice)
-            : undefined,
-          timestamp: conversion.timestamp,
-          userAgent: conversion.userAgent,
-          referrer: conversion.referrer,
-          ip: conversion.ipAddress,
+          amount: parseFloat(order.totalPrice) || 0,
+          timestamp: order.createdAt,
+          userAgent: order.userAgent,
+          referrer: order.referrer,
+          ip: order.ipAddress,
         })),
-        // Tracking events (add to cart, purchases, page views, etc.)
-        ...events.map((event: any) => {
-          const eventData =
-            typeof event.eventData === "string"
-              ? JSON.parse(event.eventData)
-              : event.eventData;
-
-          let type: ActivityItem["type"] = "click";
-          let status: ActivityItem["status"] = "browsed";
-          let productName = "Product";
-          let amount: number | undefined;
-
-          switch (event.eventType) {
-            case "add_to_cart":
-              type = "add_to_cart";
-              status = "added_to_cart";
-              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
-              // Extract product price for add to cart events - check multiple possible field names
-              amount = eventData.product_price || eventData.price || eventData.amount || eventData.total || undefined;
-              break;
-            case "checkout_start":
-              type = "checkout_start";
-              status = "checkout_started";
-              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
-              // Extract product price for checkout start events - check multiple possible field names
-              amount = eventData.product_price || eventData.price || eventData.amount || eventData.total || undefined;
-              break;
-            case "checkout_complete":
-              type = "checkout_complete";
-              status = "checkout_completed";
-              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
-              // For checkout complete, prioritize total amount, then fall back to product price
-              amount = eventData.total || eventData.total_amount || eventData.product_price || eventData.price || eventData.amount;
-              break;
-            case "purchase":
-              type = "purchase";
-              status = "purchased";
-              productName = eventData.product_name || eventData.name || `Order ${eventData.order_id || "Unknown"}`;
-              // For purchases, prioritize total amount, then fall back to product price
-              amount = eventData.total || eventData.total_amount || eventData.product_price || eventData.price || eventData.amount;
-              break;
-            case "page_view":
-              type = "page_view";
-              status = "viewed";
-              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Page";
-              break;
-            case "product_view":
-              type = "product_view";
-              status = "viewed";
-              productName = eventData.product_name || eventData.name || extractProductName(event.url) || "Product";
-              break;
-            default:
-              type = "click";
-              status = "browsed";
-              productName = extractProductName(event.url) || "Product";
-          }
-
-          return {
-            id: `event-${event.id}`,
-            type,
-            productName,
-            productUrl: event.url || "",
-            status,
-            amount,
-            timestamp: event.timestamp,
-            userAgent: event.userAgent,
-            referrer: event.referrer,
-            ip: event.ipAddress,
-            eventData,
-            platform: event.platform,
-            sessionId: event.sessionId,
-          };
-        }),
       ];
 
       // Sort by timestamp (newest first)

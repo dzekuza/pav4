@@ -107,78 +107,95 @@ export default function BusinessAnalyticsDashboard() {
     try {
       setIsLoading(true);
 
-      // Fetch real analytics data from API
-      const [clicksResponse, conversionsResponse, realTimeStatsResponse, checkoutAnalyticsResponse] =
-        await Promise.all([
-          fetch("/api/business/activity/clicks", { credentials: "include" }),
-          fetch("/api/business/activity/conversions", {
-            credentials: "include",
-          }),
-          fetch("/api/business/stats/realtime", { credentials: "include" }),
-          fetch(`/api/business/analytics/checkouts?startDate=${getStartDate()}&endDate=${getEndDate()}`, { 
-            credentials: "include" 
-          }),
-        ]);
+      // Calculate date range
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (timeRange) {
+        case "7d":
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case "30d":
+          startDate.setDate(endDate.getDate() - 30);
+          break;
+        case "90d":
+          startDate.setDate(endDate.getDate() - 90);
+          break;
+        default:
+          startDate.setDate(endDate.getDate() - 30);
+      }
 
-      // Check if any response is not ok
-      if (!clicksResponse.ok || !conversionsResponse.ok || !realTimeStatsResponse.ok) {
-        // Check if it's an authentication error
-        if (
-          clicksResponse.status === 401 ||
-          conversionsResponse.status === 401 ||
-          realTimeStatsResponse.status === 401
-        ) {
+      // Fetch consolidated analytics data from the main dashboard API
+      const dashboardResponse = await fetch(
+        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!dashboardResponse.ok) {
+        if (dashboardResponse.status === 401) {
           navigate("/business-login");
           return;
         }
         throw new Error("Failed to fetch analytics data. Please try again.");
       }
+
+      const dashboardData = await dashboardResponse.json();
       
-      // Checkout analytics is optional - don't fail if it's not available
-      let checkoutAnalyticsData = null;
-      try {
-        if (checkoutAnalyticsResponse.ok) {
-          checkoutAnalyticsData = await checkoutAnalyticsResponse.json();
+      if (!dashboardData.success) {
+        throw new Error(dashboardData.error || "Failed to fetch dashboard data");
+      }
+
+      // Extract data from the consolidated dashboard response
+      const { summary, recentCheckouts, recentOrders, referralStatistics, trends } = dashboardData;
+      
+      // Calculate stats from scratch using the actual data
+      const totalCheckouts = recentCheckouts?.length || 0;
+      const totalOrders = recentOrders?.length || 0;
+      
+      // Calculate total revenue from orders
+      const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
+        const price = parseFloat(order.totalPrice || '0');
+        return sum + (isNaN(price) ? 0 : price);
+      }, 0) || 0;
+      
+      // Calculate conversion rate: orders / checkouts
+      const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+      
+      // Calculate average order value
+      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      
+      // Calculate projected fee (5% commission)
+      const projectedFee = totalRevenue * 0.05;
+      
+      const realTimeStatsData = { 
+        success: true, 
+        stats: {
+          totalVisits: totalCheckouts, // Use checkouts as visits
+          totalPurchases: totalOrders,
+          totalRevenue: totalRevenue,
+          conversionRate: conversionRate,
+          averageOrderValue: averageOrderValue,
+          projectedFee: projectedFee,
         }
-      } catch (error) {
-        console.warn('Failed to parse checkout analytics response:', error);
-        checkoutAnalyticsData = null;
-      }
+      };
 
-      // Check content type to ensure we're getting JSON
-      const contentType = clicksResponse.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Invalid response format. Please try again.");
-      }
-
-      const clicksJson = await clicksResponse.json();
-      const conversionsJson = await conversionsResponse.json();
-      const realTimeStatsData = realTimeStatsResponse.ok
-        ? await realTimeStatsResponse.json()
-        : { success: false, stats: {} };
-
-      // Ensure clicks and conversions are arrays
-      const clicks = Array.isArray(clicksJson)
-        ? clicksJson
-        : clicksJson.clicks || [];
-      const conversions = Array.isArray(conversionsJson)
-        ? conversionsJson
-        : conversionsJson.conversions || [];
-
-      // Process clicks data for daily visits
+      // Process checkout data for daily visits (using consolidated data)
       const dailyVisitsMap = new Map<string, number>();
-      clicks.forEach((click: any) => {
-        const date = new Date(click.timestamp).toISOString().split("T")[0];
+      recentCheckouts?.forEach((checkout: any) => {
+        const date = new Date(checkout.createdAt).toISOString().split("T")[0];
         dailyVisitsMap.set(date, (dailyVisitsMap.get(date) || 0) + 1);
       });
 
-      // Process conversions data for daily revenue
+      // Process orders data for daily revenue (using consolidated data)
       const dailyRevenueMap = new Map<string, number>();
-      conversions.forEach((conversion: any) => {
-        const date = new Date(conversion.timestamp).toISOString().split("T")[0];
+      recentOrders?.forEach((order: any) => {
+        const date = new Date(order.createdAt).toISOString().split("T")[0];
+        const price = parseFloat(order.totalPrice || '0');
         dailyRevenueMap.set(
           date,
-          (dailyRevenueMap.get(date) || 0) + conversion.amount,
+          (dailyRevenueMap.get(date) || 0) + price,
         );
       });
 
@@ -187,20 +204,20 @@ export default function BusinessAnalyticsDashboard() {
       const dailyVisits = generateDailyDataFromMap(dailyVisitsMap, days);
       const dailyRevenue = generateDailyDataFromMap(dailyRevenueMap, days);
 
-      // Process top products from clicks and conversions
+      // Process top products from checkouts and orders
       const productClicks = new Map<string, number>();
       const productPurchases = new Map<string, number>();
 
-      clicks.forEach((click: any) => {
-        // Extract product name from URL or productId
+      recentCheckouts?.forEach((checkout: any) => {
+        // Extract product name from checkout data
         let productName = "Unknown Product";
         
-        if (click.url) {
-          productName = extractProductName(click.url);
-        } else if (click.productId) {
-          productName = extractProductName(click.productId);
-        } else if (click.productName) {
-          productName = click.productName;
+        if (checkout.sourceUrl) {
+          productName = extractProductName(checkout.sourceUrl);
+        } else if (checkout.name) {
+          productName = checkout.name;
+        } else if (checkout.email) {
+          productName = `Checkout ${checkout.email}`;
         }
         
         // Skip if we couldn't extract a meaningful name
@@ -214,18 +231,14 @@ export default function BusinessAnalyticsDashboard() {
         );
       });
 
-      conversions.forEach((conversion: any) => {
-        // For conversions, try to get the actual product name
+      recentOrders?.forEach((order: any) => {
+        // For orders, try to get the actual product name
         let productName = "Unknown Product";
         
-        if (conversion.url) {
-          productName = extractProductName(conversion.url);
-        } else if (conversion.productId) {
-          productName = extractProductName(conversion.productId);
-        } else if (conversion.productName) {
-          productName = conversion.productName;
-        } else if (conversion.orderId) {
-          productName = `Order ${conversion.orderId}`;
+        if (order.name) {
+          productName = order.name;
+        } else if (order.email) {
+          productName = `Order ${order.email}`;
         }
         
         // Skip if we couldn't extract a meaningful name
@@ -270,30 +283,18 @@ export default function BusinessAnalyticsDashboard() {
         dailyRevenue,
         topProducts,
         conversionTrends,
-        checkoutAnalytics: checkoutAnalyticsData?.success ? {
+        checkoutAnalytics: {
           summary: {
-            totalCheckouts: checkoutAnalyticsData.dashboardData?.summary?.totalCheckouts || 0,
-            completedCheckouts: checkoutAnalyticsData.dashboardData?.summary?.completedCheckouts || 0,
-            totalOrders: checkoutAnalyticsData.dashboardData?.summary?.totalOrders || 0,
-            totalRevenue: checkoutAnalyticsData.dashboardData?.summary?.totalRevenue || 0,
-            averageOrderValue: checkoutAnalyticsData.dashboardData?.summary?.averageOrderValue || 0,
-            checkoutConversionRate: checkoutAnalyticsData.dashboardData?.summary?.conversionRate || 0,
+            totalCheckouts: totalCheckouts,
+            completedCheckouts: totalCheckouts, // All checkouts are considered completed for analytics
+            totalOrders: totalOrders,
+            totalRevenue: totalRevenue,
+            averageOrderValue: averageOrderValue,
+            checkoutConversionRate: conversionRate,
           },
-          dailyCheckouts: checkoutAnalyticsData.dashboardData?.dailyCheckouts || [],
-          dailyRevenue: checkoutAnalyticsData.dashboardData?.dailyRevenue || [],
-          recentCheckouts: checkoutAnalyticsData.dashboardData?.recentCheckouts || [],
-        } : {
-          summary: {
-            totalCheckouts: 0,
-            completedCheckouts: 0,
-            totalOrders: 0,
-            totalRevenue: 0,
-            averageOrderValue: 0,
-            checkoutConversionRate: 0,
-          },
-          dailyCheckouts: [],
-          dailyRevenue: [],
-          recentCheckouts: [],
+          dailyCheckouts: dailyVisits,
+          dailyRevenue: dailyRevenue,
+          recentCheckouts: recentCheckouts?.slice(0, 10) || [],
         },
       };
 
@@ -833,9 +834,7 @@ export default function BusinessAnalyticsDashboard() {
                       <div key={checkout.id} className="flex items-center justify-between p-2 bg-white/5 rounded">
                         <div>
                           <div className="font-medium text-sm">
-                            {checkout.eventType === 'checkout_start' ? 'Checkout Started' : 
-                             checkout.eventType === 'checkout_complete' ? 'Checkout Completed' : 
-                             checkout.eventType === 'order_created' ? 'Order Created' : checkout.eventType}
+                            Checkout #{checkout.name || checkout.id}
                           </div>
                           <div className="text-xs text-white/70">
                             {checkout.email || 'No email'}
@@ -846,7 +845,7 @@ export default function BusinessAnalyticsDashboard() {
                             €{parseFloat(checkout.totalPrice || '0').toFixed(2)}
                           </div>
                           <div className="text-xs text-white/70">
-                            {new Date(checkout.timestamp).toLocaleDateString()}
+                            {new Date(checkout.createdAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>

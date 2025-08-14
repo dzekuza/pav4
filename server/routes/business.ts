@@ -985,13 +985,69 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
     );
     
     console.log('Filtered checkouts:', filteredCheckouts.length);
+
+    // Get orders
+    const ordersResponse = await fetch(GADGET_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query getOrders($limit: Int) {
+            shopifyOrders(
+              first: $limit,
+              sort: { createdAt: Descending }
+            ) {
+              edges {
+                node {
+                  id
+                  name
+                  email
+                  totalPrice
+                  currency
+                  financialStatus
+                  fulfillmentStatus
+                  createdAt
+                  shop {
+                    id
+                    domain
+                    name
+                  }
+                }
+              }
+            }
+          }
+        `,
+        variables: { limit: 100 }
+      })
+    });
+
+    const ordersData = await ordersResponse.json();
+    console.log('Orders response:', JSON.stringify(ordersData, null, 2));
+    
+    const allOrders = ordersData.data.shopifyOrders.edges.map((edge) => edge.node);
+    console.log('Total orders found:', allOrders.length);
+    
+    // Filter by shop IDs
+    const filteredOrders = allOrders.filter((order) => 
+      order.shop && shopIds.includes(order.shop.id)
+    );
+    
+    console.log('Filtered orders:', filteredOrders.length);
     
     // Calculate metrics
     const totalCheckouts = filteredCheckouts.length;
     const completedCheckouts = filteredCheckouts.filter(c => c.completedAt).length;
-    const totalOrders = 0; // No orders yet
+    const totalOrders = filteredOrders.length;
     const conversionRate = totalCheckouts > 0 ? (completedCheckouts / totalCheckouts) * 100 : 0;
-    const totalRevenue = 0; // No orders yet
+    
+    // Calculate revenue from orders
+    const totalRevenue = filteredOrders.reduce((sum, order) => {
+      const price = parseFloat(order.totalPrice || '0');
+      return sum + (isNaN(price) ? 0 : price);
+    }, 0);
 
     const response = {
       success: true,
@@ -1003,7 +1059,7 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
         totalOrders,
         conversionRate: Math.round(conversionRate * 100) / 100,
         totalRevenue,
-        currency: shops[0]?.currency || 'USD'
+        currency: shops[0]?.currency || 'EUR'
       },
       businesses: shops.map(shop => ({
         id: shop.id,
@@ -1031,7 +1087,17 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
                          checkout.sourceName?.toLowerCase().includes('pavlo4'),
         shop: checkout.shop
       })),
-      recentOrders: [],
+      recentOrders: filteredOrders.slice(0, 20).map(order => ({
+        id: order.id,
+        name: order.name,
+        email: order.email,
+        totalPrice: order.totalPrice,
+        currency: order.currency,
+        financialStatus: order.financialStatus,
+        fulfillmentStatus: order.fulfillmentStatus,
+        createdAt: order.createdAt,
+        shop: order.shop
+      })),
       referralStatistics: {
         totalReferrals: 0,
         pavlo4Referrals: 0,
@@ -1043,16 +1109,20 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
       trends: {
         last30Days: {
           checkouts: totalCheckouts,
-          orders: 0,
-          revenue: 0
+          orders: totalOrders,
+          revenue: totalRevenue
         },
         last7Days: {
           checkouts: totalCheckouts,
-          orders: 0,
-          revenue: 0
+          orders: totalOrders,
+          revenue: totalRevenue
         }
       },
-      orderStatuses: {},
+      orderStatuses: filteredOrders.reduce((acc, order) => {
+        const status = order.financialStatus || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {}),
       recentReferrals: []
     };
 

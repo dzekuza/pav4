@@ -179,7 +179,7 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = "USD") => {
+  const formatCurrency = (amount: number, currency: string = "EUR") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency,

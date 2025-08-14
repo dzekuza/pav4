@@ -691,7 +691,7 @@ export const businessService = {
       return null;
     }
 
-    // Get recent clicks, conversions, and tracking events
+    // Get recent clicks, conversions, and tracking events from local database
     const [clicks, conversions, trackingEvents] = await Promise.all([
       prisma.businessClick.findMany({
         where: { businessId },
@@ -710,36 +710,205 @@ export const businessService = {
       }),
     ]);
 
-    // Calculate derived fields
-    const averageOrderValue =
-      business.totalPurchases > 0
-        ? business.totalRevenue / business.totalPurchases
-        : 0;
-    const conversionRate =
-      business.totalVisits > 0
-        ? (business.totalPurchases / business.totalVisits) * 100
-        : 0;
-    const projectedFee =
-      business.totalRevenue * (business.adminCommissionRate / 100);
+    // Fetch Gadget API data for consolidated statistics
+    let gadgetStats = {
+      totalCheckouts: 0,
+      totalOrders: 0,
+      totalRevenue: 0,
+      recentCheckouts: [],
+      recentOrders: []
+    };
 
-    // Calculate post-redirect event metrics from tracking events
-    const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
-    const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
-    const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
+    try {
+      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
+        ? 'https://checkoutdata--development.gadget.app/api/graphql'
+        : 'https://checkoutdata.gadget.app/api/graphql';
+      const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
 
-    return {
+      // Get shops for this business domain
+      const shopsResponse = await fetch(GADGET_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({
+          query: `
+            query getShops($businessDomain: String) {
+              shopifyShops(first: 100, filter: {
+                OR: [
+                  { domain: { equals: $businessDomain } },
+                  { myshopifyDomain: { equals: $businessDomain } }
+                ]
+              }) {
+                edges {
+                  node {
+                    id
+                    domain
+                    myshopifyDomain
+                    name
+                    email
+                    currency
+                    planName
+                    createdAt
+                  }
+                }
+              }
+            }
+          `,
+          variables: { businessDomain: business.domain }
+        })
+      });
+
+      const shopsData = await shopsResponse.json();
+      const shops = shopsData.data?.shopifyShops?.edges?.map((edge) => edge.node) || [];
+      const shopIds = shops.map(shop => shop.id);
+
+      if (shopIds.length > 0) {
+        // Get checkouts and orders for these shops
+        const [checkoutsResponse, ordersResponse] = await Promise.all([
+          fetch(GADGET_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              query: `
+                query getCheckouts($limit: Int) {
+                  shopifyCheckouts(
+                    first: $limit,
+                    sort: { createdAt: Descending }
+                  ) {
+                    edges {
+                      node {
+                        id
+                        email
+                        totalPrice
+                        currency
+                        createdAt
+                        completedAt
+                        sourceUrl
+                        sourceName
+                        name
+                        token
+                        processingStatus
+                        shop {
+                          id
+                          domain
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              `,
+              variables: { limit: 100 }
+            })
+          }),
+          fetch(GADGET_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              query: `
+                query getOrders($limit: Int) {
+                  shopifyOrders(
+                    first: $limit,
+                    sort: { createdAt: Descending }
+                  ) {
+                    edges {
+                      node {
+                        id
+                        name
+                        email
+                        totalPrice
+                        currency
+                        financialStatus
+                        fulfillmentStatus
+                        createdAt
+                        shop {
+                          id
+                          domain
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              `,
+              variables: { limit: 100 }
+            })
+          })
+        ]);
+
+        const checkoutsData = await checkoutsResponse.json();
+        const ordersData = await ordersResponse.json();
+
+        const allCheckouts = checkoutsData.data?.shopifyCheckouts?.edges?.map((edge) => edge.node) || [];
+        const allOrders = ordersData.data?.shopifyOrders?.edges?.map((edge) => edge.node) || [];
+
+        // Filter by shop IDs
+        const filteredCheckouts = allCheckouts.filter((checkout) => 
+          checkout.shop && shopIds.includes(checkout.shop.id)
+        );
+        const filteredOrders = allOrders.filter((order) => 
+          order.shop && shopIds.includes(order.shop.id)
+        );
+
+        // Calculate Gadget metrics
+        gadgetStats = {
+          totalCheckouts: filteredCheckouts.length,
+          totalOrders: filteredOrders.length,
+          totalRevenue: filteredOrders.reduce((sum, order) => {
+            const price = parseFloat(order.totalPrice || '0');
+            return sum + (isNaN(price) ? 0 : price);
+          }, 0),
+          recentCheckouts: filteredCheckouts.slice(0, 10),
+          recentOrders: filteredOrders.slice(0, 10)
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching Gadget stats:', error);
+      // Continue with local stats only if Gadget API fails
+    }
+
+    // Use Gadget data as primary source, fallback to local data
+    const consolidatedStats = {
       ...business,
       domainVerified,
-      averageOrderValue,
-      conversionRate,
-      projectedFee,
-      totalAddToCart: addToCartEvents.length,
-      totalPageViews: pageViewEvents.length,
-      totalProductViews: productViewEvents.length,
+      // Use Gadget data for checkout/order metrics
+      totalCheckouts: gadgetStats.totalCheckouts,
+      totalOrders: gadgetStats.totalOrders,
+      totalRevenue: gadgetStats.totalRevenue > 0 ? gadgetStats.totalRevenue : business.totalRevenue,
+      // Keep local data for visit tracking
+      totalVisits: business.totalVisits,
+      totalPurchases: business.totalPurchases,
+      // Calculate derived fields using consolidated data
+      averageOrderValue: gadgetStats.totalOrders > 0 
+        ? gadgetStats.totalRevenue / gadgetStats.totalOrders 
+        : (business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0),
+      conversionRate: business.totalVisits > 0 
+        ? (gadgetStats.totalOrders / business.totalVisits) * 100 
+        : 0,
+      projectedFee: gadgetStats.totalRevenue > 0 
+        ? gadgetStats.totalRevenue * (business.adminCommissionRate / 100)
+        : business.totalRevenue * (business.adminCommissionRate / 100),
+      // Local tracking events
+      totalAddToCart: trackingEvents.filter(event => event.eventType === 'add_to_cart').length,
+      totalPageViews: trackingEvents.filter(event => event.eventType === 'page_view').length,
+      totalProductViews: trackingEvents.filter(event => event.eventType === 'product_view').length,
       recentClicks: clicks,
       recentConversions: conversions,
       recentEvents: trackingEvents,
+      // Gadget data
+      recentCheckouts: gadgetStats.recentCheckouts,
+      recentOrders: gadgetStats.recentOrders,
     };
+
+    return consolidatedStats;
   },
 
   // New function to calculate real-time statistics from tracking data
@@ -798,7 +967,7 @@ export const businessService = {
       }),
     ]);
 
-    // Calculate real-time statistics
+    // Calculate local tracking statistics
     const totalClicks = clicks.length;
     const totalConversions = conversions.length;
     
@@ -808,12 +977,12 @@ export const businessService = {
     const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
 
     // Calculate revenue from conversions only
-    const totalRevenue = conversions.reduce((sum, conv) => {
+    const localRevenue = conversions.reduce((sum, conv) => {
       const price = conv.productPrice ? parseFloat(conv.productPrice) : 0;
       return sum + price;
     }, 0);
 
-    const totalPurchases = totalConversions;
+    const localPurchases = totalConversions;
 
     // Calculate unique sessions
     const allSessionIds = new Set([
@@ -823,8 +992,178 @@ export const businessService = {
     ]);
     const totalSessions = allSessionIds.size;
 
-    // Calculate conversion rates
-    const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
+    // Fetch Gadget API data for consolidated statistics
+    let gadgetStats = {
+      totalCheckouts: 0,
+      totalOrders: 0,
+      totalRevenue: 0,
+      recentCheckouts: [],
+      recentOrders: []
+    };
+
+    try {
+      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
+        ? 'https://checkoutdata--development.gadget.app/api/graphql'
+        : 'https://checkoutdata.gadget.app/api/graphql';
+      const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
+
+      // Get shops for this business domain
+      const shopsResponse = await fetch(GADGET_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({
+          query: `
+            query getShops($businessDomain: String) {
+              shopifyShops(first: 100, filter: {
+                OR: [
+                  { domain: { equals: $businessDomain } },
+                  { myshopifyDomain: { equals: $businessDomain } }
+                ]
+              }) {
+                edges {
+                  node {
+                    id
+                    domain
+                    myshopifyDomain
+                    name
+                    email
+                    currency
+                    planName
+                    createdAt
+                  }
+                }
+              }
+            }
+          `,
+          variables: { businessDomain: business.domain }
+        })
+      });
+
+      const shopsData = await shopsResponse.json();
+      const shops = shopsData.data?.shopifyShops?.edges?.map((edge) => edge.node) || [];
+      const shopIds = shops.map(shop => shop.id);
+
+      if (shopIds.length > 0) {
+        // Get checkouts and orders for these shops
+        const [checkoutsResponse, ordersResponse] = await Promise.all([
+          fetch(GADGET_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              query: `
+                query getCheckouts($limit: Int) {
+                  shopifyCheckouts(
+                    first: $limit,
+                    sort: { createdAt: Descending }
+                  ) {
+                    edges {
+                      node {
+                        id
+                        email
+                        totalPrice
+                        currency
+                        createdAt
+                        completedAt
+                        sourceUrl
+                        sourceName
+                        name
+                        token
+                        processingStatus
+                        shop {
+                          id
+                          domain
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              `,
+              variables: { limit: 100 }
+            })
+          }),
+          fetch(GADGET_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              query: `
+                query getOrders($limit: Int) {
+                  shopifyOrders(
+                    first: $limit,
+                    sort: { createdAt: Descending }
+                  ) {
+                    edges {
+                      node {
+                        id
+                        name
+                        email
+                        totalPrice
+                        currency
+                        financialStatus
+                        fulfillmentStatus
+                        createdAt
+                        shop {
+                          id
+                          domain
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              `,
+              variables: { limit: 100 }
+            })
+          })
+        ]);
+
+        const checkoutsData = await checkoutsResponse.json();
+        const ordersData = await ordersResponse.json();
+
+        const allCheckouts = checkoutsData.data?.shopifyCheckouts?.edges?.map((edge) => edge.node) || [];
+        const allOrders = ordersData.data?.shopifyOrders?.edges?.map((edge) => edge.node) || [];
+
+        // Filter by shop IDs
+        const filteredCheckouts = allCheckouts.filter((checkout) => 
+          checkout.shop && shopIds.includes(checkout.shop.id)
+        );
+        const filteredOrders = allOrders.filter((order) => 
+          order.shop && shopIds.includes(order.shop.id)
+        );
+
+        // Calculate Gadget metrics
+        gadgetStats = {
+          totalCheckouts: filteredCheckouts.length,
+          totalOrders: filteredOrders.length,
+          totalRevenue: filteredOrders.reduce((sum, order) => {
+            const price = parseFloat(order.totalPrice || '0');
+            return sum + (isNaN(price) ? 0 : price);
+          }, 0),
+          recentCheckouts: filteredCheckouts.slice(0, 10),
+          recentOrders: filteredOrders.slice(0, 10)
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching Gadget stats:', error);
+      // Continue with local stats only if Gadget API fails
+    }
+
+    // Use consolidated data - Gadget data takes priority for orders/revenue
+    const totalPurchases = gadgetStats.totalOrders > 0 ? gadgetStats.totalOrders : localPurchases;
+    const totalRevenue = gadgetStats.totalRevenue > 0 ? gadgetStats.totalRevenue : localRevenue;
+    const totalVisits = totalClicks; // Keep local visits count
+
+    // Calculate conversion rates using consolidated data
+    const conversionRate = totalVisits > 0 ? (totalPurchases / totalVisits) * 100 : 0;
     const cartToPurchaseRate = addToCartEvents.length > 0 ? (totalPurchases / addToCartEvents.length) * 100 : 0;
     const averageOrderValue = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
@@ -839,8 +1178,8 @@ export const businessService = {
       affiliateId: business.affiliateId,
       category: business.category,
       
-      // Real-time calculated stats
-      totalVisits: totalClicks,
+      // Consolidated stats - Gadget data takes priority
+      totalVisits,
       totalPurchases,
       totalRevenue,
       averageOrderValue,
@@ -860,6 +1199,8 @@ export const businessService = {
       recentClicks: clicks.slice(0, 10),
       recentConversions: conversions.slice(0, 10),
       recentEvents: trackingEvents.slice(0, 10),
+      recentCheckouts: gadgetStats.recentCheckouts,
+      recentOrders: gadgetStats.recentOrders,
     };
   },
 

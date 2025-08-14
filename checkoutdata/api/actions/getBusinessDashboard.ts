@@ -187,7 +187,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           totalOrders,
           conversionRate: Math.round(conversionRate * 100) / 100,
           totalRevenue: Math.round(totalRevenue * 100) / 100,
-          currency: orders[0]?.currency || 'USD'
+          currency: orders[0]?.currency || 'EUR'
         },
         businesses: shops.map(shop => ({
           id: shop.id,
