@@ -1,4 +1,4 @@
-import { useParams, Link } from "@remix-run/react";
+import { useParams, Link, useNavigate } from "@remix-run/react";
 import { useFindOne } from "@gadgetinc/react";
 import {
   Card,
@@ -17,6 +17,7 @@ import { api } from "../api";
 export default function CheckoutDetail() {
   const params = useParams();
   const checkoutId = params.id!;
+  const navigate = useNavigate();
 
   const [{ data: checkout, fetching, error }] = useFindOne(api.shopifyCheckout, checkoutId, {
     select: {
@@ -72,8 +73,7 @@ export default function CheckoutDetail() {
               {error.toString()}
             </Text>
             <Button
-              as={Link}
-              to="/checkouts"
+              onClick={() => navigate('/checkouts')}
               icon={ArrowLeftIcon}
               variant="primary"
             >
@@ -97,8 +97,7 @@ export default function CheckoutDetail() {
               The checkout with ID {checkoutId} could not be found.
             </Text>
             <Button
-              as={Link}
-              to="/checkouts"
+              onClick={() => navigate('/checkouts')}
               icon={ArrowLeftIcon}
               variant="primary"
             >
@@ -142,8 +141,7 @@ export default function CheckoutDetail() {
         {/* Header with back button */}
         <InlineStack gap="200" align="start">
           <Button
-            as={Link}
-            to="/checkouts"
+            onClick={() => navigate('/checkouts')}
             icon={ArrowLeftIcon}
             variant="tertiary"
           >
