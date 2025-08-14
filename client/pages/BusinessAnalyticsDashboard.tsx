@@ -115,7 +115,7 @@ export default function BusinessAnalyticsDashboard() {
             credentials: "include",
           }),
           fetch("/api/business/stats/realtime", { credentials: "include" }),
-          fetch(`/api/business/analytics/checkouts?startDate=${getStartDate()}&endDate=${getEndDate()}`, { 
+          fetch(`/api/business/dashboard?startDate=${getStartDate()}&endDate=${getEndDate()}`, { 
             credentials: "include" 
           }),
         ]);
@@ -270,7 +270,26 @@ export default function BusinessAnalyticsDashboard() {
         dailyRevenue,
         topProducts,
         conversionTrends,
-        checkoutAnalytics: checkoutAnalyticsData?.success ? checkoutAnalyticsData.analytics : {
+        checkoutAnalytics: checkoutAnalyticsData?.success ? {
+          summary: {
+            totalCheckouts: checkoutAnalyticsData.dashboardData?.summary?.totalCheckouts || 0,
+            completedCheckouts: checkoutAnalyticsData.dashboardData?.summary?.completedCheckouts || 0,
+            totalOrders: checkoutAnalyticsData.dashboardData?.summary?.totalOrders || 0,
+            totalRevenue: checkoutAnalyticsData.dashboardData?.summary?.totalRevenue || 0,
+            averageOrderValue: checkoutAnalyticsData.dashboardData?.summary?.totalOrders > 0 ? 
+              (checkoutAnalyticsData.dashboardData?.summary?.totalRevenue || 0) / checkoutAnalyticsData.dashboardData?.summary?.totalOrders : 0,
+            checkoutConversionRate: checkoutAnalyticsData.dashboardData?.summary?.conversionRate || 0,
+          },
+          dailyCheckouts: checkoutAnalyticsData.dashboardData?.recentCheckouts?.map((checkout: any) => ({
+            date: new Date(checkout.createdAt).toISOString().split('T')[0],
+            count: 1,
+          })) || [],
+          dailyRevenue: checkoutAnalyticsData.dashboardData?.recentOrders?.map((order: any) => ({
+            date: new Date(order.createdAt).toISOString().split('T')[0],
+            revenue: parseFloat(order.totalPrice) || 0,
+          })) || [],
+          recentCheckouts: checkoutAnalyticsData.dashboardData?.recentCheckouts || [],
+        } : {
           summary: {
             totalCheckouts: 0,
             completedCheckouts: 0,

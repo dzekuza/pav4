@@ -684,18 +684,32 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
 // Get checkout analytics for business dashboard
 export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
   try {
-    const businessId = req.business?.id;
-    if (!businessId) {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
       return res.status(401).json({
         success: false,
-        error: "Business authentication required",
+        error: "Not authenticated",
       });
     }
 
-    const { startDate, endDate } = req.query;
-    
-    // Get business domain
-    const business = await businessService.findBusinessById(businessId);
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
     if (!business) {
       return res.status(404).json({
         success: false,
@@ -703,62 +717,48 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
       });
     }
 
-    // Fetch checkout analytics from Gadget app
-    const gadgetResponse = await fetch('https://checkoutdata.gadget.app/api/actions/getBusinessAnalytics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GADGET_API_KEY || ''}`,
-      },
-      body: JSON.stringify({
-        businessDomain: business.domain,
-        startDate: startDate || null,
-        endDate: endDate || null,
-      }),
-    });
+    const { startDate, endDate } = req.query;
 
-    if (!gadgetResponse.ok) {
-      console.error('Gadget API error:', await gadgetResponse.text());
+    // Use the working dashboard data service
+    const { gadgetAnalytics } = await import('../services/gadget-analytics');
+    
+    const dashboardData = await gadgetAnalytics.generateDashboardData(
+      business.domain,
+      startDate as string || null,
+      endDate as string || null
+    );
+
+    if (!dashboardData.success) {
       return res.status(500).json({
         success: false,
-        error: "Failed to fetch checkout analytics",
+        error: "Failed to fetch checkout analytics"
       });
     }
 
-    const checkoutData = await gadgetResponse.json();
+    const data = (dashboardData as any).data;
     
-    // Process checkout events
-    const checkouts = checkoutData.filter((event: any) => 
-      event.event_type === 'checkout_start' || event.event_type === 'checkout_complete'
-    );
-    
-    const orders = checkoutData.filter((event: any) => 
-      event.event_type === 'order_created'
-    );
-
-    // Calculate analytics
-    const totalCheckouts = checkouts.filter((c: any) => c.event_type === 'checkout_start').length;
-    const completedCheckouts = checkouts.filter((c: any) => c.event_type === 'checkout_complete').length;
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum: number, order: any) => {
-      return sum + (parseFloat(order.data?.totalPrice) || 0);
-    }, 0);
-    
+    // Calculate analytics from the dashboard data
+    const totalCheckouts = data.summary.totalCheckouts;
+    const completedCheckouts = data.summary.completedCheckouts;
+    const totalOrders = data.summary.totalOrders;
+    const totalRevenue = data.summary.totalRevenue;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const checkoutConversionRate = totalCheckouts > 0 ? (completedCheckouts / totalCheckouts) * 100 : 0;
+    const checkoutConversionRate = data.summary.conversionRate;
 
     // Group by date for charts
     const dailyCheckouts = new Map<string, number>();
     const dailyRevenue = new Map<string, number>();
     
-    checkouts.forEach((checkout: any) => {
-      const date = new Date(checkout.timestamp).toISOString().split('T')[0];
+    // Process recent checkouts for daily data
+    data.recentCheckouts.forEach((checkout: any) => {
+      const date = new Date(checkout.createdAt).toISOString().split('T')[0];
       dailyCheckouts.set(date, (dailyCheckouts.get(date) || 0) + 1);
     });
     
-    orders.forEach((order: any) => {
-      const date = new Date(order.timestamp).toISOString().split('T')[0];
-      const revenue = parseFloat(order.data?.totalPrice) || 0;
+    // Process recent orders for daily revenue
+    data.recentOrders.forEach((order: any) => {
+      const date = new Date(order.createdAt).toISOString().split('T')[0];
+      const revenue = parseFloat(order.totalPrice) || 0;
       dailyRevenue.set(date, (dailyRevenue.get(date) || 0) + revenue);
     });
 
@@ -781,14 +781,14 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
           date,
           revenue,
         })),
-        recentCheckouts: checkouts.slice(-10).map((checkout: any) => ({
-          id: checkout.data?.checkout_id || checkout.data?.order_id,
-          eventType: checkout.event_type,
-          timestamp: checkout.timestamp,
-          email: checkout.data?.email,
-          totalPrice: checkout.data?.totalPrice,
-          currency: checkout.data?.currency,
-          status: checkout.event_type === 'checkout_complete' ? 'completed' : 'started',
+        recentCheckouts: data.recentCheckouts.slice(-10).map((checkout: any) => ({
+          id: checkout.id,
+          eventType: 'checkout',
+          timestamp: checkout.createdAt,
+          email: checkout.email,
+          totalPrice: checkout.totalPrice,
+          currency: checkout.currency,
+          status: checkout.completedAt ? 'completed' : 'started',
         })),
       },
     });
@@ -859,150 +859,27 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
 
     const { startDate, endDate, limit } = req.query;
     
-    // For now, return mock data to test the dashboard
-    const mockDashboardData = {
-      summary: {
-        totalBusinesses: 1,
-        businessDomain: business.domain,
-        totalCheckouts: 15,
-        completedCheckouts: 8,
-        totalOrders: 8,
-        conversionRate: 53.33,
-        totalRevenue: 1250.50,
-        currency: 'USD'
-      },
-      businesses: [{
-        id: '1',
-        domain: business.domain,
-        myshopifyDomain: `${business.domain}.myshopify.com`,
-        name: `${business.domain} Store`,
-        email: business.email,
-        currency: 'USD',
-        plan: 'Basic',
-        createdAt: '2024-01-01T00:00:00Z'
-      }],
-      recentCheckouts: [
-        {
-          id: '1',
-          email: 'customer1@example.com',
-          totalPrice: '150.00',
-          currency: 'USD',
-          createdAt: '2024-08-14T10:00:00Z',
-          completedAt: '2024-08-14T10:05:00Z',
-          sourceUrl: 'https://pavlo4.netlify.app/product/123',
-          sourceName: 'Pavlo4 Price Comparison',
-          name: '#1001',
-          token: 'token1',
-          processingStatus: 'complete',
-          isPavlo4Referral: true
-        },
-        {
-          id: '2',
-          email: 'customer2@example.com',
-          totalPrice: '75.50',
-          currency: 'USD',
-          createdAt: '2024-08-14T09:30:00Z',
-          completedAt: null,
-          sourceUrl: 'https://google.com',
-          sourceName: 'Google Search',
-          name: '#1002',
-          token: 'token2',
-          processingStatus: 'processing',
-          isPavlo4Referral: false
-        }
-      ],
-      recentOrders: [
-        {
-          id: '1',
-          name: '#1001',
-          email: 'customer1@example.com',
-          totalPrice: '150.00',
-          currency: 'USD',
-          financialStatus: 'paid',
-          fulfillmentStatus: 'fulfilled',
-          createdAt: '2024-08-14T10:05:00Z'
-        },
-        {
-          id: '2',
-          name: '#1000',
-          email: 'customer3@example.com',
-          totalPrice: '200.00',
-          currency: 'USD',
-          financialStatus: 'pending',
-          fulfillmentStatus: 'unfulfilled',
-          createdAt: '2024-08-14T08:00:00Z'
-        }
-      ],
-      referralStatistics: {
-        totalReferrals: 25,
-        pavlo4Referrals: 12,
-        pavlo4ConversionRate: 66.67,
-        totalConversions: 8,
-        referralRevenue: 850.00,
-        topSources: {
-          'pavlo4': 12,
-          'google': 8,
-          'facebook': 3,
-          'direct': 2
-        }
-      },
-      trends: {
-        last30Days: {
-          checkouts: 15,
-          orders: 8,
-          revenue: 1250.50
-        },
-        last7Days: {
-          checkouts: 5,
-          orders: 3,
-          revenue: 450.00
-        }
-      },
-      orderStatuses: {
-        'paid': 6,
-        'pending': 2,
-        'refunded': 0
-      },
-      recentReferrals: [
-        {
-          id: '1',
-          referralId: 'ref1',
-          businessDomain: business.domain,
-          source: 'pavlo4',
-          medium: 'referral',
-          campaign: 'price-comparison',
-          conversionStatus: 'converted',
-          conversionValue: 150.00,
-          clickedAt: '2024-08-14T09:45:00Z',
-          isPavlo4: true
-        },
-        {
-          id: '2',
-          referralId: 'ref2',
-          businessDomain: business.domain,
-          source: 'google',
-          medium: 'organic',
-          campaign: 'search',
-          conversionStatus: 'clicked',
-          conversionValue: 0,
-          clickedAt: '2024-08-14T09:30:00Z',
-          isPavlo4: false
-        }
-      ]
-    };
+    // Import the Gadget analytics service
+    const { gadgetAnalytics } = await import('../services/gadget-analytics');
+    
+    // Get real data from Gadget
+    const dashboardData = await gadgetAnalytics.generateDashboardData(
+      business.domain,
+      startDate as string || null,
+      endDate as string || null
+    );
+    
+    if (!dashboardData.success) {
+      return res.status(500).json({
+        success: false,
+        error: (dashboardData as any).error || "Failed to fetch dashboard data"
+      });
+    }
 
     res.json({ 
       success: true, 
-      dashboardData: mockDashboardData, 
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        filters: { 
-          businessDomain: business.domain, 
-          startDate: startDate as string, 
-          endDate: endDate as string, 
-          limit: limit ? parseInt(limit as string) : 100 
-        }
-      }
+      dashboardData: (dashboardData as any).data, 
+      metadata: (dashboardData as any).metadata
     });
   } catch (error) {
     console.error("Error fetching business dashboard data:", error);

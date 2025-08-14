@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gadget Analytics Integration Demo - Pavlo4</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+        }
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .demo-section h2 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .feature-card h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        .pavlo4-highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .setup-steps {
+            background: #e8f4fd;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .setup-steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .setup-steps li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        .api-key-note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .api-key-note strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Pavlo4 + Gadget Analytics Integration</h1>
+            <p>Complete dashboard showing checkout data from all your business partners</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎯 What This Integration Provides</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>📊 Real-time Analytics</h3>
+                    <p>View live checkout data from all businesses using your Pavlo4 tracking system. See conversion rates, revenue, and performance metrics in real-time.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔥 Pavlo4 Referral Tracking</h3>
+                    <p>Highlight and track all referrals coming from your price comparison platform. See exactly how much revenue your platform is generating for each business.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🏪 Multi-Business Dashboard</h3>
+                    <p>Switch between different business domains to view their individual performance. Compare metrics across all your partners.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📈 Performance Trends</h3>
+                    <p>Track performance over time with 7-day and 30-day trend analysis. See growth patterns and identify opportunities.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💰 Revenue Attribution</h3>
+                    <p>See exactly how much revenue each business generates from Pavlo4 referrals vs other sources. Track your platform's impact.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎨 Beautiful UI</h3>
+                    <p>Modern, responsive dashboard with clear visual indicators for Pavlo4 referrals and easy-to-read metrics.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔧 Integration Setup</h2>
+            
+            <div class="api-key-note">
+                <strong>⚠️ Important:</strong> You need to get the correct API key from your Gadget app settings. The current key in the code needs to be replaced with your actual API key.
+            </div>
+
+            <div class="setup-steps">
+                <h3>Step-by-Step Setup:</h3>
+                <ol>
+                    <li><strong>Get API Key:</strong> Go to your Gadget app → Settings → API Keys → Copy the key for "pavlo4-dashboard-access"</li>
+                    <li><strong>Update Code:</strong> Replace <code>gsk-X89z6jDWkTRqgq7htYnZi4wcXQ8L3B9g</code> with your actual API key</li>
+                    <li><strong>Add Files:</strong> Copy the JavaScript and CSS files to your pavlo4.netlify.app</li>
+                    <li><strong>Initialize:</strong> Add the dashboard initialization code to your main JavaScript file</li>
+                    <li><strong>Test:</strong> Visit your dashboard page to see the analytics in action</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📋 Sample Dashboard Data Structure</h2>
+            <p>Here's what the dashboard will display for each business:</p>
+            
+            <div class="code-block">
+{
+  "summary": {
+    "totalBusinesses": 1,
+    "businessDomain": "example.com",
+    "totalCheckouts": 15,
+    "completedCheckouts": 8,
+    "totalOrders": 8,
+    "conversionRate": 53.33,
+    "totalRevenue": 1250.50,
+    "currency": "USD"
+  },
+  "referralStatistics": {
+    "totalReferrals": 25,
+    "pavlo4Referrals": 12,
+    "pavlo4ConversionRate": 66.67,
+    "totalConversions": 8,
+    "referralRevenue": 850.00,
+    "topSources": {
+      "pavlo4": 12,
+      "google": 8,
+      "facebook": 3,
+      "direct": 2
+    }
+  },
+  "recentCheckouts": [
+    {
+      "id": "1",
+      "email": "customer@example.com",
+      "totalPrice": "150.00",
+      "isPavlo4Referral": true,
+      "sourceUrl": "https://pavlo4.netlify.app/product/123",
+      "sourceName": "Pavlo4 Price Comparison"
+    }
+  ]
+}
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎨 Key Features Highlighted</h2>
+            
+            <div class="feature-card">
+                <h3><span class="pavlo4-highlight">🔥 Pavlo4 Referrals</span></h3>
+                <p>All checkouts and orders from Pavlo4 referrals are highlighted with special styling and badges. This makes it easy to see your platform's impact at a glance.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>📊 Conversion Tracking</h3>
+                <p>Track how many Pavlo4 referrals convert to actual orders vs other traffic sources. See your platform's conversion rate compared to other channels.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>💰 Revenue Attribution</h3>
+                <p>See exactly how much revenue each business generates from Pavlo4 referrals. This helps you demonstrate your platform's value to business partners.</p>
+            </div>
+
+            <div class="feature-card">
+                <h3>📈 Performance Trends</h3>
+                <p>Compare performance over different time periods (7 days vs 30 days) to see growth trends and seasonal patterns.</p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 Next Steps</h2>
+            <p>To get this working in your pavlo4.netlify.app:</p>
+            
+            <div class="setup-steps">
+                <ol>
+                    <li><strong>Get the correct API key</strong> from your Gadget app settings</li>
+                    <li><strong>Update the API key</strong> in the <code>gadget-analytics.ts</code> service file</li>
+                    <li><strong>Test the GraphQL connection</strong> to ensure it can access your checkout data</li>
+                    <li><strong>Deploy the dashboard</strong> to your pavlo4.netlify.app</li>
+                    <li><strong>Share with business partners</strong> so they can see their Pavlo4 performance</li>
+                </ol>
+            </div>
+
+            <p><strong>Expected Result:</strong> A beautiful dashboard showing all checkout data from your business partners, with special highlighting for Pavlo4 referrals, conversion rates, revenue metrics, and performance trends.</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>💡 Business Value</h2>
+            <p>This integration provides immense value for your Pavlo4 platform:</p>
+            
+            <ul>
+                <li><strong>Prove Platform Value:</strong> Show businesses exactly how much revenue they generate from Pavlo4 referrals</li>
+                <li><strong>Attract New Partners:</strong> Use the dashboard as a sales tool to demonstrate your platform's effectiveness</li>
+                <li><strong>Optimize Performance:</strong> Identify which businesses perform best and optimize your partnerships</li>
+                <li><strong>Track Growth:</strong> Monitor your platform's growth and impact over time</li>
+                <li><strong>Revenue Transparency:</strong> Provide clear, transparent reporting to your business partners</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
