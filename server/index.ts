@@ -9,7 +9,7 @@ import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
 import favoritesRouter from "./routes/favorites";
 import affiliateRouter from "./routes/affiliate";
-import salesRouter from "./routes/sales";
+
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import {
   register,
@@ -83,7 +83,7 @@ import {
 } from "./middleware/security";
 import { requireBusinessAuth } from "./middleware/business-auth";
 import redirectRouter from "./routes/redirect";
-import trackSaleRouter from "./routes/track-sale";
+
 import trackProductVisitRouter from "./routes/track-product-visit";
 import { trackEvent, getTrackingEvents } from "./routes/track-event";
 import {
@@ -158,6 +158,7 @@ export async function createServer() {
             "https://api.searchapi.io",
             "https://n8n.srv824584.hstgr.cloud",
             "https://pavlo4.netlify.app",
+            "https://ipick.io",
             "http://localhost:5746",
             "http://localhost:5747",
             "http://localhost:8082",
@@ -202,6 +203,7 @@ export async function createServer() {
     "http://localhost:8083",
     "http://localhost:8084",
     "https://pavlo4.netlify.app",
+    "https://ipick.io",
     "https://app.pavlo.com", // Assuming this is your custom domain
     "http://127.0.0.1:8083",
     "http://[::1]:8083",
@@ -280,7 +282,7 @@ export async function createServer() {
 
   // Affiliate routes
   app.use("/api/affiliate", affiliateRouter);
-  app.use("/api/sales", salesRouter);
+
 
   // Business authentication routes without rate limiting
   app.post(
@@ -462,7 +464,7 @@ export async function createServer() {
 
   // Redirect routes - mount before catch-all to ensure priority
   app.use("/api", redirectRouter);
-  app.use("/api", trackSaleRouter);
+
   app.use("/api", trackProductVisitRouter);
 
   app.use("/api", validateUrl, n8nScrapeRouter); // N8N scraping routes (public)

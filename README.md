@@ -166,8 +166,8 @@ Make sure to set these in your Netlify dashboard:
 
 ### Tracking
 
-- `POST /api/track-event` - Track user events
-- `POST /api/track-sale` - Track sales conversions
+- `POST /api/track-event` - Track post-redirect user events (page views, product
+  views, add to cart, browse)
 
 ## 🛡️ **Security**
 

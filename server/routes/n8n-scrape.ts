@@ -43,6 +43,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
       process.env.N8N_WEBHOOK_URL ||
       "https://n8n.srv824584.hstgr.cloud/webhook/new-test";
 
+    console.log("Environment N8N_WEBHOOK_URL:", process.env.N8N_WEBHOOK_URL);
     console.log("Using n8n webhook URL:", n8nWebhookUrl);
 
     const params: any = { url };
@@ -55,11 +56,15 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
       `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`,
     );
 
+    console.log("Making axios request with params:", params);
+    console.log("Full URL being called:", `${n8nWebhookUrl}?${new URLSearchParams(params).toString()}`);
+    
     const response = await axios.get(n8nWebhookUrl, {
       params: params,
       timeout: 60000, // 60 second timeout
       headers: {
-        "Content-Type": "application/json",
+        "Accept": "*/*",
+        "User-Agent": "curl/8.7.1",
       },
     });
 
@@ -283,6 +288,7 @@ async function scrapeWithN8nWebhook(url: string, gl?: string): Promise<any> {
         url: error.config?.url,
         method: error.config?.method,
         params: error.config?.params,
+        headers: error.config?.headers,
         fullUrl:
           error.config?.url +
           "?" +

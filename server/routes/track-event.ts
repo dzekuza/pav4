@@ -45,6 +45,26 @@ export const trackEvent: RequestHandler = async (req, res) => {
       });
     }
 
+    // Only allow post-redirect events (no checkout or purchase tracking)
+    const allowedEvents = [
+      "page_view",
+      "product_view", 
+      "add_to_cart",
+      "browse",
+      "search",
+      "category_view",
+      "wishlist_add",
+      "wishlist_remove"
+    ];
+
+    if (!allowedEvents.includes(event_type)) {
+      console.log("Event type not allowed:", event_type);
+      return res.status(400).json({
+        success: false,
+        error: `Event type '${event_type}' not allowed. Only post-redirect events are supported.`,
+      });
+    }
+
     // Check for duplicate events (same session, event type, and similar data within 5 seconds)
     if (session_id) {
       const fiveSecondsAgo = new Date(Date.now() - 5000);
@@ -112,7 +132,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
 
     console.log("Tracking event created:", trackingEvent.id);
 
-    // Update business statistics based on event type
+    // Update business statistics based on event type (only post-redirect events)
     if (event_type === "page_view" || event_type === "product_view") {
       console.log("Updating business visits...");
       await prisma.business.update({
@@ -132,22 +152,6 @@ export const trackEvent: RequestHandler = async (req, res) => {
         data: {
           totalVisits: {
             increment: 1,
-          },
-        },
-      });
-    }
-
-    if (event_type === "conversion" || event_type === "purchase" || event_type === "purchase_complete") {
-      console.log("Updating business purchases...");
-      const totalAmount = parseFloat(data?.total_amount || data?.amount || "0");
-      await prisma.business.update({
-        where: { id: parseInt(business_id) },
-        data: {
-          totalPurchases: {
-            increment: 1,
-          },
-          totalRevenue: {
-            increment: totalAmount,
           },
         },
       });

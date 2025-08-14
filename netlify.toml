@@ -17,25 +17,7 @@
   to = "/.netlify/functions/track-event"
   status = 200
 
-[[redirects]]
-  from = "/api/test-db"
-  to = "/.netlify/functions/test-db"
-  status = 200
 
-[[redirects]]
-  from = "/api/test-simple"
-  to = "/.netlify/functions/test-simple"
-  status = 200
-
-[[redirects]]
-  from = "/api/test-simple-mjs"
-  to = "/.netlify/functions/test-simple.mjs"
-  status = 200
-
-[[redirects]]
-  from = "/api/test-db-mjs"
-  to = "/.netlify/functions/test-db.mjs"
-  status = 200
 
 [[redirects]]
   from = "/api/*"

@@ -722,10 +722,10 @@ export const businessService = {
     const projectedFee =
       business.totalRevenue * (business.adminCommissionRate / 100);
 
-    // Calculate checkout-related metrics from tracking events
-    const checkoutCompleteEvents = trackingEvents.filter(event => event.eventType === 'checkout_complete' || event.eventType === 'checkout_start');
+    // Calculate post-redirect event metrics from tracking events
     const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
-    const cartToPurchaseRate = addToCartEvents.length > 0 ? (checkoutCompleteEvents.length / addToCartEvents.length) * 100 : 0;
+    const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
+    const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
 
     return {
       ...business,
@@ -733,9 +733,9 @@ export const businessService = {
       averageOrderValue,
       conversionRate,
       projectedFee,
-      totalCheckouts: checkoutCompleteEvents.length,
       totalAddToCart: addToCartEvents.length,
-      cartToPurchaseRate,
+      totalPageViews: pageViewEvents.length,
+      totalProductViews: productViewEvents.length,
       recentClicks: clicks,
       recentConversions: conversions,
       recentEvents: trackingEvents,
@@ -802,37 +802,18 @@ export const businessService = {
     const totalClicks = clicks.length;
     const totalConversions = conversions.length;
     
-    // Calculate other metrics from tracking events
+    // Calculate post-redirect event metrics from tracking events
     const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
     const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
     const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
-    const checkoutCompleteEvents = trackingEvents.filter(event => event.eventType === 'checkout_complete' || event.eventType === 'checkout_start');
-    const purchaseEvents = trackingEvents.filter(event => event.eventType === 'purchase');
 
-    // Calculate revenue from conversions
+    // Calculate revenue from conversions only
     const totalRevenue = conversions.reduce((sum, conv) => {
       const price = conv.productPrice ? parseFloat(conv.productPrice) : 0;
       return sum + price;
     }, 0);
 
-    // Calculate revenue from tracking events (purchases and checkouts)
-    const trackingRevenue = purchaseEvents.reduce((sum, event) => {
-      const eventData = typeof event.eventData === 'string' 
-        ? JSON.parse(event.eventData) 
-        : event.eventData;
-      return sum + (eventData.total || 0);
-    }, 0);
-
-    // Calculate revenue from checkout events
-    const checkoutRevenue = checkoutCompleteEvents.reduce((sum, event) => {
-      const eventData = typeof event.eventData === 'string' 
-        ? JSON.parse(event.eventData) 
-        : event.eventData;
-      return sum + (eventData.total || eventData.value || 0);
-    }, 0);
-
-    const totalRevenueCombined = totalRevenue + trackingRevenue + checkoutRevenue;
-    const totalPurchases = totalConversions + purchaseEvents.length + checkoutCompleteEvents.length;
+    const totalPurchases = totalConversions;
 
     // Calculate unique sessions
     const allSessionIds = new Set([
@@ -845,10 +826,10 @@ export const businessService = {
     // Calculate conversion rates
     const conversionRate = totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
     const cartToPurchaseRate = addToCartEvents.length > 0 ? (totalPurchases / addToCartEvents.length) * 100 : 0;
-    const averageOrderValue = totalPurchases > 0 ? totalRevenueCombined / totalPurchases : 0;
+    const averageOrderValue = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
     // Calculate projected commission
-    const projectedFee = totalRevenueCombined * (business.adminCommissionRate / 100);
+    const projectedFee = totalRevenue * (business.adminCommissionRate / 100);
 
     return {
       id: business.id,
@@ -861,7 +842,7 @@ export const businessService = {
       // Real-time calculated stats
       totalVisits: totalClicks,
       totalPurchases,
-      totalRevenue: totalRevenueCombined,
+      totalRevenue,
       averageOrderValue,
       conversionRate,
       projectedFee,
@@ -872,7 +853,6 @@ export const businessService = {
       totalAddToCart: addToCartEvents.length,
       totalPageViews: pageViewEvents.length,
       totalProductViews: productViewEvents.length,
-      totalCheckouts: checkoutCompleteEvents.length,
       totalSessions,
       cartToPurchaseRate,
       

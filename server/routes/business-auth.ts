@@ -4,6 +4,13 @@ import jwt from "jsonwebtoken";
 import axios from "axios";
 import { businessService, prisma } from "../services/database";
 import { emailService } from "../services/email";
+import { 
+  DOMAIN_VERIFICATION_CONFIG, 
+  isDashboardAccessAllowed, 
+  isTrackingAllowed, 
+  isAnalyticsAllowed,
+  getAvailableFeatures 
+} from "../config/domain-verification";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -105,38 +112,35 @@ export const registerBusiness: RequestHandler = async (req, res) => {
     res.cookie("business_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Send welcome email (async, don't wait for it)
-    emailService.sendWelcomeEmail(business.name, business.email, business.domain)
-      .then(result => {
-        if (result.success) {
-          console.log('Welcome email sent successfully to:', business.email);
-        } else {
-          console.error('Failed to send welcome email:', result.error);
-        }
-      })
-      .catch(error => {
-        console.error('Error sending welcome email:', error);
-      });
+    // Get available features based on domain verification status
+    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
 
-    res.status(201).json({
+    res.json({
       success: true,
+      message: "Business registered successfully",
       business: {
         id: business.id,
         name: business.name,
         domain: business.domain,
         email: business.email,
+        affiliateId: business.affiliateId,
+        domainVerified: business.domainVerified,
+        trackingVerified: business.trackingVerified,
+        availableFeatures,
+        domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
-      message: "Business registered successfully",
+      token,
     });
   } catch (error) {
     console.error("Error registering business:", error);
-    res
-      .status(500)
-      .json({ success: false, error: "Failed to register business" });
+    res.status(500).json({
+      success: false,
+      error: "Failed to register business",
+    });
   }
 };
 
@@ -160,18 +164,19 @@ export const loginBusiness: RequestHandler = async (req, res) => {
       });
     }
 
-    if (!business.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: "Business account is deactivated",
-      });
-    }
-
     const isPasswordValid = await bcrypt.compare(password, business.password);
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
         error: "Invalid email or password",
+      });
+    }
+
+    // Check if business account is active
+    if (!business.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: "Business account is deactivated. Please contact support.",
       });
     }
 
@@ -182,19 +187,28 @@ export const loginBusiness: RequestHandler = async (req, res) => {
     res.cookie("business_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
+    // Get available features based on domain verification status
+    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+
     res.json({
       success: true,
+      message: "Business logged in successfully",
       business: {
         id: business.id,
         name: business.name,
         domain: business.domain,
         email: business.email,
+        affiliateId: business.affiliateId,
+        domainVerified: business.domainVerified,
+        trackingVerified: business.trackingVerified,
+        availableFeatures,
+        domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
-      message: "Business login successful",
+      token,
     });
   } catch (error) {
     console.error("Error logging in business:", error);
@@ -238,6 +252,9 @@ export const getCurrentBusiness: RequestHandler = async (req, res) => {
       });
     }
 
+    // Get available features based on domain verification status
+    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+
     res.json({
       business: {
         id: business.id,
@@ -246,6 +263,9 @@ export const getCurrentBusiness: RequestHandler = async (req, res) => {
         email: business.email,
         affiliateId: business.affiliateId,
         trackingVerified: business.trackingVerified,
+        domainVerified: business.domainVerified,
+        availableFeatures,
+        domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
       authenticated: true,
     });
@@ -292,6 +312,23 @@ export const getBusinessStats: RequestHandler = async (req, res) => {
       });
     }
 
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Check if analytics are allowed based on domain verification status
+    if (!isAnalyticsAllowed(business.domainVerified || false)) {
+      return res.status(403).json({
+        success: false,
+        error: "Domain verification required for analytics access",
+        message: DOMAIN_VERIFICATION_CONFIG.WARNING_MESSAGE,
+      });
+    }
+
     const stats = await businessService.getBusinessStatistics(
       decoded.businessId,
     );
@@ -302,7 +339,15 @@ export const getBusinessStats: RequestHandler = async (req, res) => {
       });
     }
 
-    res.json({ success: true, stats });
+    // Get available features
+    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+
+    res.json({ 
+      success: true, 
+      stats,
+      availableFeatures,
+      domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
+    });
   } catch (error) {
     console.error("Error getting business stats:", error);
     res

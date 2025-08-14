@@ -15,6 +15,13 @@ export default defineConfig(({ mode }) => ({
       "X-Frame-Options": "SAMEORIGIN",
       "Content-Security-Policy": "frame-ancestors 'self'",
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   build: {
     outDir: "dist/spa",

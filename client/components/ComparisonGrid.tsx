@@ -14,6 +14,7 @@ interface Product {
   condition?: string;
   isLocal?: boolean;
   distance?: string;
+  businessDomain?: string; // Add business domain for Shopify tracking
 }
 
 interface ComparisonGridProps {
@@ -103,8 +104,8 @@ export function ComparisonGrid({
                   savings={savings}
                   isLocal={product.isLocal}
                   distance={product.distance}
-                  affiliateId={product.store}
-                  productId={extractProductId(product.url)}
+                  businessDomain={product.businessDomain} // Pass business domain for Shopify tracking
+                  showBuyNow={true}
                 />
               );
             })}
@@ -117,11 +118,7 @@ export function ComparisonGrid({
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <h3 className="text-lg font-semibold">
-              {localDealers.length > 0
-                ? "Other Retailers"
-                : "Available Retailers"}
-            </h3>
+            <h3 className="text-lg font-semibold">Global Dealers</h3>
             <span className="text-sm text-muted-foreground">
               ({globalDealers.length} found)
             </span>
@@ -150,8 +147,10 @@ export function ComparisonGrid({
                   condition={product.condition}
                   isBestPrice={isBestPrice}
                   savings={savings}
-                  affiliateId={product.store}
-                  productId={extractProductId(product.url)}
+                  isLocal={product.isLocal}
+                  distance={product.distance}
+                  businessDomain={product.businessDomain} // Pass business domain for Shopify tracking
+                  showBuyNow={true}
                 />
               );
             })}

@@ -19,6 +19,9 @@ import {
   LogOut,
   Settings,
   Package,
+  AlertTriangle,
+  CheckCircle,
+  Globe,
 } from "lucide-react";
 
 interface BusinessStats {
@@ -37,6 +40,10 @@ interface BusinessStats {
   totalAddToCart?: number;
   cartToPurchaseRate?: number;
   logo?: string | null;
+  domainVerified?: boolean;
+  trackingVerified?: boolean;
+  availableFeatures?: string[];
+  domainVerificationRequired?: boolean;
 }
 
 export default function BusinessDashboard() {
@@ -62,6 +69,32 @@ export default function BusinessDashboard() {
         // Redirect to login if not authenticated
         navigate("/business-login");
         return;
+      } else if (response.status === 403) {
+        // Domain verification required but not verified
+        const errorData = await response.json();
+        toast({
+          title: "Domain Verification Required",
+          description: errorData.message || "Domain verification is required for analytics access.",
+          variant: "destructive",
+        });
+        // Still show dashboard but with limited features
+        setStats({
+          id: 0,
+          name: "Business Dashboard",
+          domain: "",
+          affiliateId: "",
+          totalVisits: 0,
+          totalPurchases: 0,
+          totalRevenue: 0,
+          adminCommissionRate: 0,
+          projectedFee: 0,
+          averageOrderValue: 0,
+          conversionRate: 0,
+          domainVerified: false,
+          trackingVerified: false,
+          availableFeatures: ["dashboard_access", "profile_management"],
+          domainVerificationRequired: true,
+        });
       } else {
         toast({
           title: "Error",
@@ -91,6 +124,10 @@ export default function BusinessDashboard() {
     } catch (error) {
       console.error("Logout error:", error);
     }
+  };
+
+  const handleDomainVerification = () => {
+    navigate("/business/dashboard/integrate");
   };
 
   if (isLoading) {
@@ -134,6 +171,10 @@ export default function BusinessDashboard() {
     );
   }
 
+  const isDomainVerified = stats.domainVerified || false;
+  const isTrackingVerified = stats.trackingVerified || false;
+  const domainVerificationRequired = stats.domainVerificationRequired || false;
+
   return (
     <div className="min-h-screen relative overflow-hidden text-white">
       <img
@@ -144,10 +185,76 @@ export default function BusinessDashboard() {
       <SearchHeader showBackButton={false} />
 
       <div className="container mx-auto px-4 py-8">
+        {/* Domain Verification Status Banner */}
+        {!isDomainVerified && (
+          <Card className="mb-6 border-yellow-500/20 bg-yellow-500/10">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-yellow-500">
+                    Domain Verification Recommended
+                  </h3>
+                  <p className="text-sm text-yellow-400/80">
+                    Verify your domain to unlock enhanced features and accurate tracking.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleDomainVerification}
+                  variant="outline"
+                  size="sm"
+                  className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white"
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  Verify Domain
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Domain Verification Success Banner */}
+        {isDomainVerified && (
+          <Card className="mb-6 border-green-500/20 bg-green-500/10">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-500">
+                    Domain Verified Successfully
+                  </h3>
+                  <p className="text-sm text-green-400/80">
+                    You have access to all features including advanced analytics and tracking.
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-green-500 text-green-500">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Verified
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
             <p className="text-white/70">{stats.domain}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge 
+                variant={isDomainVerified ? "default" : "secondary"}
+                className={isDomainVerified ? "bg-green-500" : "bg-yellow-500"}
+              >
+                <Globe className="mr-1 h-3 w-3" />
+                {isDomainVerified ? "Domain Verified" : "Domain Not Verified"}
+              </Badge>
+              {isTrackingVerified && (
+                <Badge variant="default" className="bg-blue-500">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Tracking Verified
+                </Badge>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -266,263 +373,284 @@ export default function BusinessDashboard() {
           </Card>
         </div>
 
-        {/* Detailed Statistics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardHeader>
-              <CardTitle className="text-white">Revenue Analysis</CardTitle>
-              <CardDescription className="text-white/80">
-                Detailed breakdown of your business performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">
-                  Average Order Value
-                </span>
-                <span className="text-sm font-bold text-white">
-                  ${stats.averageOrderValue.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">
-                  Commission Rate
-                </span>
-                <Badge variant="outline" className="text-white border-white/30">
-                  {stats.adminCommissionRate}%
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">
-                  Projected Fee
-                </span>
-                <span className="text-sm font-bold text-white">
-                  ${stats.projectedFee.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">
-                  Total Checkouts
-                </span>
-                <span className="text-sm font-bold text-white">
-                  {(stats.totalCheckouts || 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">
-                  Add to Cart Events
-                </span>
-                <span className="text-sm font-bold text-white">
-                  {(stats.totalAddToCart || 0).toLocaleString()}
-                </span>
+        {/* Limited Access Notice */}
+        {!isDomainVerified && domainVerificationRequired && (
+          <Card className="mb-6 border-orange-500/20 bg-orange-500/10">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-orange-500">
+                    Limited Access Mode
+                  </h3>
+                  <p className="text-sm text-orange-400/80">
+                    Some features are limited. Verify your domain to unlock full access to analytics and tracking features.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
+        )}
 
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardHeader>
-              <CardTitle className="text-white">Performance Metrics</CardTitle>
-              <CardDescription className="text-white/80">
-                Key performance indicators for your business
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+        {/* Detailed Statistics - Only show if domain is verified or verification not required */}
+        {(isDomainVerified || !domainVerificationRequired) && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader>
+                <CardTitle className="text-white">Revenue Analysis</CardTitle>
+                <CardDescription className="text-white/80">
+                  Detailed breakdown of your business performance
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-white">
-                    Total Visits
+                    Average Order Value
                   </span>
-                  <span className="text-sm text-white">
-                    {stats.totalVisits.toLocaleString()}
+                  <span className="text-sm font-bold text-white">
+                    ${stats.averageOrderValue.toFixed(2)}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min((stats.totalVisits / 1000) * 100, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-white">
-                    Total Purchases
+                    Commission Rate
                   </span>
-                  <span className="text-sm text-white">
-                    {stats.totalPurchases.toLocaleString()}
-                  </span>
+                  <Badge variant="outline" className="text-white border-white/30">
+                    {stats.adminCommissionRate}%
+                  </Badge>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min((stats.totalPurchases / 100) * 100, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-white">
-                    Conversion Rate
+                    Projected Fee
                   </span>
-                  <span className="text-sm text-white">
-                    {stats.conversionRate.toFixed(1)}%
+                  <span className="text-sm font-bold text-white">
+                    ${stats.projectedFee.toFixed(2)}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-purple-600 h-2 rounded-full"
-                    style={{ width: `${Math.min(stats.conversionRate, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-white">
                     Total Checkouts
                   </span>
-                  <span className="text-sm text-white">
+                  <span className="text-sm font-bold text-white">
                     {(stats.totalCheckouts || 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-orange-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(((stats.totalCheckouts || 0) / Math.max(stats.totalVisits, 1)) * 100, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-white">
-                    Add to Cart
+                    Add to Cart Events
                   </span>
-                  <span className="text-sm text-white">
+                  <span className="text-sm font-bold text-white">
                     {(stats.totalAddToCart || 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(((stats.totalAddToCart || 0) / Math.max(stats.totalVisits, 1)) * 100, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">
-                    Cart to Purchase Rate
-                  </span>
-                  <span className="text-sm text-white">
-                    {(stats.cartToPurchaseRate || 0).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: `${Math.min(stats.cartToPurchaseRate || 0, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardHeader>
-              <CardTitle className="text-white">Checkout Analytics</CardTitle>
-              <CardDescription className="text-white/80">
-                Detailed checkout and conversion funnel analysis
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">
-                    Checkout Completion Rate
-                  </span>
-                  <span className="text-sm text-white">
-                    {stats.totalVisits > 0 ? ((stats.totalCheckouts || 0) / stats.totalVisits * 100).toFixed(1) : 0}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-orange-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(stats.totalVisits > 0 ? ((stats.totalCheckouts || 0) / stats.totalVisits * 100) : 0, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">
-                    Add to Cart Rate
-                  </span>
-                  <span className="text-sm text-white">
-                    {stats.totalVisits > 0 ? ((stats.totalAddToCart || 0) / stats.totalVisits * 100).toFixed(1) : 0}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(stats.totalVisits > 0 ? ((stats.totalAddToCart || 0) / stats.totalVisits * 100) : 0, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-white">
-                    Cart Abandonment Rate
-                  </span>
-                  <span className="text-sm text-white">
-                    {(stats.totalAddToCart || 0) > 0 ? (((stats.totalAddToCart || 0) - (stats.totalCheckouts || 0)) / (stats.totalAddToCart || 0) * 100).toFixed(1) : 0}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-red-600 h-2 rounded-full"
-                    style={{
-                      width: `${Math.min((stats.totalAddToCart || 0) > 0 ? (((stats.totalAddToCart || 0) - (stats.totalCheckouts || 0)) / (stats.totalAddToCart || 0) * 100) : 0, 100)}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-white/10">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <div className="text-lg font-bold text-white">
-                      {(stats.totalAddToCart || 0).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-white/80">Add to Cart</div>
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader>
+                <CardTitle className="text-white">Performance Metrics</CardTitle>
+                <CardDescription className="text-white/80">
+                  Key performance indicators for your business
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Total Visits
+                    </span>
+                    <span className="text-sm text-white">
+                      {stats.totalVisits.toLocaleString()}
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-lg font-bold text-white">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min((stats.totalVisits / 1000) * 100, 100)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Total Purchases
+                    </span>
+                    <span className="text-sm text-white">
+                      {stats.totalPurchases.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min((stats.totalPurchases / 100) * 100, 100)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Conversion Rate
+                    </span>
+                    <span className="text-sm text-white">
+                      {stats.conversionRate.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full"
+                      style={{ width: `${Math.min(stats.conversionRate, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Total Checkouts
+                    </span>
+                    <span className="text-sm text-white">
                       {(stats.totalCheckouts || 0).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-white/80">Checkouts</div>
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-orange-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min(((stats.totalCheckouts || 0) / Math.max(stats.totalVisits, 1)) * 100, 100)}%`,
+                      }}
+                    ></div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Add to Cart
+                    </span>
+                    <span className="text-sm text-white">
+                      {(stats.totalAddToCart || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min(((stats.totalAddToCart || 0) / Math.max(stats.totalVisits, 1)) * 100, 100)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Cart to Purchase Rate
+                    </span>
+                    <span className="text-sm text-white">
+                      {(stats.cartToPurchaseRate || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
+                      style={{ width: `${Math.min(stats.cartToPurchaseRate || 0, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardHeader>
+                <CardTitle className="text-white">Checkout Analytics</CardTitle>
+                <CardDescription className="text-white/80">
+                  Detailed checkout and conversion funnel analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Checkout Completion Rate
+                    </span>
+                    <span className="text-sm text-white">
+                      {stats.totalVisits > 0 ? ((stats.totalCheckouts || 0) / stats.totalVisits * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-orange-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min(stats.totalVisits > 0 ? ((stats.totalCheckouts || 0) / stats.totalVisits * 100) : 0, 100)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Add to Cart Rate
+                    </span>
+                    <span className="text-sm text-white">
+                      {stats.totalVisits > 0 ? ((stats.totalAddToCart || 0) / stats.totalVisits * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min(stats.totalVisits > 0 ? ((stats.totalAddToCart || 0) / stats.totalVisits * 100) : 0, 100)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-white">
+                      Cart Abandonment Rate
+                    </span>
+                    <span className="text-sm text-white">
+                      {(stats.totalAddToCart || 0) > 0 ? (((stats.totalAddToCart || 0) - (stats.totalCheckouts || 0)) / (stats.totalAddToCart || 0) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min((stats.totalAddToCart || 0) > 0 ? (((stats.totalAddToCart || 0) - (stats.totalCheckouts || 0)) / (stats.totalAddToCart || 0) * 100) : 0, 100)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/10">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <div className="text-lg font-bold text-white">
+                        {(stats.totalAddToCart || 0).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-white/80">Add to Cart</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-bold text-white">
+                        {(stats.totalCheckouts || 0).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-white/80">Checkouts</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

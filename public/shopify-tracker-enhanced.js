@@ -1,1290 +1,395 @@
-// PriceHunt Enhanced Shopify Integration
-(function () {
-  "use strict";
+// Enhanced Shopify Tracker - Advanced Event Tracking
+// Tracks user interactions on Shopify stores with enhanced features
 
-  // Prevent multiple initializations
-  if (window.PriceHuntTracker && window.PriceHuntTracker.initialized) {
-    console.log("[PriceHunt] Tracker already initialized, skipping...");
-    return;
-  }
+(function() {
+  'use strict';
 
   // Configuration
-  const config = {
-    businessId: null,
-    affiliateId: null,
-    debug: false,
-    endpoint: null,
-    sessionId: generateSessionId(),
-    pageLoadTime: Date.now(),
-    eventsSent: [],
-    lastEventTime: {}, // Track last event time per type to prevent rapid duplicates
-  };
+  const TRACKING_ENDPOINT = 'https://ipick.io/api/track-event';
+  const DEBUG_MODE = true;
 
-  // Initialize tracking
-  function initTracking() {
-    log("Initializing enhanced tracking...");
+  // Get configuration from script tag
+  const script = document.currentScript || document.querySelector('script[src*="shopify-tracker-enhanced.js"]');
+  const businessId = script?.getAttribute('data-business-id');
+  const affiliateId = script?.getAttribute('data-affiliate-id');
+  const debug = script?.getAttribute('data-debug') === 'true';
 
-    // Check if we're on a checkout page
-    if (window.location.pathname.includes('/checkouts/')) {
-      log("Checkout page detected, loading checkout-specific tracker");
-      loadCheckoutTracker();
+  // Utility functions
+  function log(message, data = null) {
+    if (DEBUG_MODE || debug) {
+      console.log('[PriceHunt]', message, data);
+    }
+  }
+
+  function generateSessionId() {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  function getSessionId() {
+    let sessionId = localStorage.getItem('pricehunt_session_id');
+    if (!sessionId) {
+      sessionId = generateSessionId();
+      localStorage.setItem('pricehunt_session_id', sessionId);
+    }
+    return sessionId;
+  }
+
+  function extractBusinessInfo() {
+    // Use script attributes or fallback to URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const bid = businessId || urlParams.get('business_id') || urlParams.get('bid');
+    const aid = affiliateId || urlParams.get('affiliate_id') || urlParams.get('aid');
+    
+    // Fallback to meta tags
+    let finalBusinessId = bid;
+    let finalAffiliateId = aid;
+    
+    if (!finalBusinessId) {
+      const businessMeta = document.querySelector('meta[name="pricehunt-business-id"]');
+      if (businessMeta) finalBusinessId = businessMeta.getAttribute('content');
+    }
+    
+    if (!finalAffiliateId) {
+      const affiliateMeta = document.querySelector('meta[name="pricehunt-affiliate-id"]');
+      if (affiliateMeta) finalAffiliateId = affiliateMeta.getAttribute('content');
+    }
+
+    return { businessId: finalBusinessId, affiliateId: finalAffiliateId };
+  }
+
+  function extractShopifyProductData() {
+    const productData = {
+      title: '',
+      price: '',
+      currency: '',
+      image: '',
+      url: window.location.href,
+      productId: '',
+      variantId: '',
+      category: '',
+      brand: ''
+    };
+
+    // Enhanced Shopify selectors
+    const titleSelectors = [
+      'h1[data-testid="product-title"]',
+      '.product-title',
+      '.product-name',
+      'h1',
+      '[data-testid="title"]',
+      '.product-single__title',
+      '[data-product-title]',
+      '.product__title'
+    ];
+
+    const priceSelectors = [
+      '[data-testid="price"]',
+      '.price',
+      '.product-price',
+      '.current-price',
+      '[class*="price"]',
+      '.product-single__price',
+      '[data-product-price]',
+      '.product__price'
+    ];
+
+    const imageSelectors = [
+      '[data-testid="product-image"]',
+      '.product-image img',
+      '.product-photo img',
+      'img[alt*="product"]',
+      '.product-single__photo img',
+      '[data-product-image]',
+      '.product__image img'
+    ];
+
+    // Extract title
+    for (const selector of titleSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.textContent.trim()) {
+        productData.title = element.textContent.trim();
+        break;
+      }
+    }
+
+    // Extract price
+    for (const selector of priceSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.textContent.trim()) {
+        const priceText = element.textContent.trim();
+        const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+        if (priceMatch) {
+          productData.price = priceMatch[0];
+          productData.currency = priceText.replace(priceMatch[0], '').trim();
+        }
+        break;
+      }
+    }
+
+    // Extract image
+    for (const selector of imageSelectors) {
+      const element = document.querySelector(selector);
+      if (element && element.src) {
+        productData.image = element.src;
+        break;
+      }
+    }
+
+    // Extract product ID from Shopify meta tags
+    const productIdMeta = document.querySelector('meta[property="og:product:retailer_item_id"]');
+    if (productIdMeta) {
+      productData.productId = productIdMeta.getAttribute('content');
+    }
+
+    // Extract variant ID from URL or form
+    const variantMatch = window.location.search.match(/variant=(\d+)/);
+    if (variantMatch) {
+      productData.variantId = variantMatch[1];
+    }
+
+    return productData;
+  }
+
+  function sendTrackingData(eventType, data = {}) {
+    const { businessId, affiliateId } = extractBusinessInfo();
+    
+    if (!businessId || !affiliateId) {
+      log('Missing business or affiliate ID, skipping tracking');
       return;
     }
 
-    // Process any pending events from checkout pages
-    processPendingEvents();
-
-    // Track page view
-    trackPageView();
-
-    // Track product view if on product page
-    if (getPageType() === 'product') {
-      trackProductView();
-    }
-
-    // Track purchase if on thank you page
-    if (window.location.pathname.includes('/thank_you') || 
-        window.location.pathname.includes('/orders/')) {
-      trackPurchaseCompletion();
-    }
-
-    // Listen for add to cart events
-    document.addEventListener('click', function(e) {
-      const target = e.target;
-      
-      // Track add to cart clicks
-      if (target.matches('[name="add"], .add-to-cart, [class*="add"], [class*="cart"]')) {
-        setTimeout(() => {
-          trackAddToCart();
-        }, 100);
-      }
-    });
-
-    // Listen for form submissions (checkout)
-    document.addEventListener('submit', function(e) {
-      const form = e.target;
-      if (form.matches('[action*="checkout"], [action*="cart"]')) {
-        trackCheckoutStart(form);
-      }
-    });
-
-    // Listen for postMessage events from checkout iframe
-    window.addEventListener('message', function(event) {
-      if (event.data && event.data.type === 'ipick_tracking_event') {
-        log('Received tracking event from checkout:', event.data.data);
-        sendEvent(event.data.data);
-      }
-    });
-
-    // Set up periodic check for pending events
-    setInterval(processPendingEvents, 5000);
-
-    log("Enhanced tracking initialized successfully");
-  }
-
-  // Load checkout-specific tracker
-  function loadCheckoutTracker() {
-    const script = document.createElement('script');
-    script.src = 'https://pavlo4.netlify.app/shopify-checkout-tracker.js';
-    script.onload = function() {
-      log('Checkout tracker loaded successfully');
-    };
-    script.onerror = function() {
-      log('Failed to load checkout tracker, using fallback methods');
-      initCheckoutFallback();
-    };
-    document.head.appendChild(script);
-  }
-
-  // Fallback checkout tracking when external script fails
-  function initCheckoutFallback() {
-    log('Initializing checkout fallback tracking');
-
-    // Track page view
-    trackPageView();
-
-    // Check for purchase completion
-    if (trackPurchaseCompletion()) {
-      log('Purchase completion detected via fallback');
-    }
-
-    // Listen for URL changes
-    let currentUrl = window.location.href;
-    setInterval(() => {
-      if (window.location.href !== currentUrl) {
-        currentUrl = window.location.href;
-        log('URL changed to: ' + currentUrl);
-        
-        if (trackPurchaseCompletion()) {
-          log('Purchase completion detected via URL change');
-        }
-      }
-    }, 2000);
-  }
-
-  // Process pending events from localStorage
-  function processPendingEvents() {
-    try {
-      const pendingEvents = JSON.parse(localStorage.getItem('ipick_pending_events') || '[]');
-      if (pendingEvents.length > 0) {
-        log(`Processing ${pendingEvents.length} pending events`);
-        
-        const processedEvents = [];
-        
-        for (const event of pendingEvents) {
-          // Don't retry events older than 1 hour
-          if (Date.now() - event.timestamp > 3600000) {
-            log(`Skipping old event: ${event.event_type}`);
-            continue;
-          }
-          
-          // Don't retry more than 3 times
-          if (event.retry_count >= 3) {
-            log(`Skipping event with too many retries: ${event.event_type}`);
-            continue;
-          }
-          
-          // Try to send the event
-          sendEvent({
-            ...event,
-            retry_count: (event.retry_count || 0) + 1
-          });
-          
-          processedEvents.push(event);
-        }
-        
-        // Remove processed events from localStorage
-        const remainingEvents = pendingEvents.filter(event => 
-          !processedEvents.includes(event)
-        );
-        localStorage.setItem('ipick_pending_events', JSON.stringify(remainingEvents));
-        
-        log(`Processed ${processedEvents.length} events, ${remainingEvents.length} remaining`);
-      }
-    } catch (error) {
-      log(`Error processing pending events: ${error.message}`);
-    }
-  }
-
-  // Generate unique session ID
-  function generateSessionId() {
-    return (
-      "session_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)
-    );
-  }
-
-  // Logging function
-  function log(message, level = "info") {
-    if (config.debug) {
-      const prefix = "[PriceHunt Tracker]";
-      const timestamp = new Date().toISOString();
-      switch (level) {
-        case "error":
-          console.error(prefix, `[${timestamp}]`, message);
-          break;
-        case "warn":
-          console.warn(prefix, `[${timestamp}]`, message);
-          break;
-        default:
-          console.log(prefix, `[${timestamp}]`, message);
-      }
-    }
-  }
-
-  // Check for product data and send product view
-  function checkForProductData() {
-    log("Checking for product data...");
-
-    // Try multiple methods to get product data
-    let productData = null;
-
-    // Method 1: Shopify theme object
-    if (
-      window.Shopify &&
-      window.Shopify.theme &&
-      window.Shopify.theme.product
-    ) {
-      productData = window.Shopify.theme.product;
-      log("Found product via Shopify.theme.product:", productData);
-    }
-
-    // Method 2: Meta tags
-    if (!productData) {
-      const productIdMeta = document.querySelector(
-        'meta[property="product:price:amount"]',
-      );
-      if (productIdMeta) {
-        productData = {
-          id: document
-            .querySelector('meta[property="product:price:currency"]')
-            ?.getAttribute("content"),
-          title: document.title,
-          price: productIdMeta.getAttribute("content"),
-        };
-        log("Found product via meta tags:", productData);
-      }
-    }
-
-    // Method 3: JSON-LD structured data
-    if (!productData) {
-      const jsonLdScripts = document.querySelectorAll(
-        'script[type="application/ld+json"]',
-      );
-      for (const script of jsonLdScripts) {
-        try {
-          const data = JSON.parse(script.textContent);
-          if (data["@type"] === "Product") {
-            productData = {
-              id: data.sku || data.gtin || data["@id"],
-              title: data.name,
-              price: data.offers?.price,
-            };
-            log("Found product via JSON-LD:", productData);
-            break;
-          }
-        } catch (e) {
-          // Ignore parsing errors
-        }
-      }
-    }
-
-    // Method 4: Product form data
-    if (!productData) {
-      const productForm = document.querySelector('form[action*="/cart/add"]');
-      if (productForm) {
-        const productIdInput = productForm.querySelector('input[name="id"]');
-        const productTitle = document.querySelector(
-          '.product-title, h1, [class*="product"] h1',
-        );
-        if (productIdInput) {
-          productData = {
-            id: productIdInput.value,
-            title: productTitle?.textContent?.trim() || document.title,
-            price: null,
-          };
-          log("Found product via form:", productData);
-        }
-      }
-    }
-
-    if (productData) {
-      const eventData = {
-        event_type: "product_view",
-        business_id: config.businessId,
-        affiliate_id: config.affiliateId,
-        session_id: config.sessionId,
-        url: window.location.href,
-        data: {
-          product_id: productData.id,
-          product_name: productData.title,
-          product_price: productData.price,
-          product_variant_id: productData.variant_id || productData.id,
-        },
-        timestamp: Date.now(),
-      };
-
-      sendEvent(eventData);
-    } else {
-      log("No product data found on this page", "warn");
-    }
-  }
-
-  // Track purchase completion
-  function trackPurchaseCompletion() {
-    log("Checking for purchase completion on URL: " + window.location.pathname, "info");
-    
-    // Check for purchase completion indicators
-    const purchaseIndicators = [
-      // Shopify checkout completion - more specific patterns
-      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank-you'),
-      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/thank_you'),
-      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/complete'),
-      window.location.pathname.includes('/checkouts/') && window.location.pathname.includes('/success'),
-      
-      // Order confirmation pages
-      window.location.pathname.includes('/orders/'),
-      window.location.pathname.includes('/order/'),
-      
-      // Thank you pages
-      window.location.pathname.includes('/thank-you'),
-      window.location.pathname.includes('/thank_you'),
-      window.location.pathname.includes('/success'),
-      window.location.pathname.includes('/complete'),
-      
-      // Check for order confirmation in page content
-      document.title.toLowerCase().includes('order confirmation'),
-      document.title.toLowerCase().includes('thank you'),
-      document.title.toLowerCase().includes('purchase complete'),
-      document.title.toLowerCase().includes('order received'),
-    ];
-
-    // Log each indicator for debugging
-    purchaseIndicators.forEach((indicator, index) => {
-      if (indicator) {
-        log(`Purchase indicator ${index} matched: ${indicator}`, "info");
-      }
-    });
-
-    if (purchaseIndicators.some(indicator => indicator)) {
-      log("Purchase completion detected", "info");
-      
-      // Extract order information
-      let orderData = {};
-      
-      // Try to get order ID from URL (Shopify format: /checkouts/cn/order_id/thank-you)
-      const urlMatch = window.location.pathname.match(/\/checkouts\/[^\/]+\/([^\/]+)\/thank-you/);
-      if (urlMatch) {
-        orderData.order_id = urlMatch[1];
-        log("Extracted order ID from URL: " + orderData.order_id, "info");
-      }
-      
-      // Try alternative URL patterns
-      if (!orderData.order_id) {
-        const altUrlMatch = window.location.pathname.match(/\/orders?\/([^\/]+)/);
-        if (altUrlMatch) {
-          orderData.order_id = altUrlMatch[1];
-          log("Extracted order ID from alternative URL pattern: " + orderData.order_id, "info");
-        }
-      }
-      
-      // Try to get order information from page content
-      const orderElements = document.querySelectorAll('[data-order-id], [data-order-number], .order-id, .order-number, [data-order-name]');
-      if (orderElements.length > 0) {
-        orderData.order_id = orderData.order_id || orderElements[0].textContent.trim();
-        log("Extracted order ID from page content: " + orderData.order_id, "info");
-      }
-      
-      // Try to get total amount from page
-      const totalElements = document.querySelectorAll('[data-total], .total, .order-total, .amount, .order-summary__total, .total-line__price');
-      if (totalElements.length > 0) {
-        const totalText = totalElements[0].textContent.trim();
-        const amountMatch = totalText.match(/[\d,]+\.?\d*/);
-        if (amountMatch) {
-          orderData.total_amount = parseFloat(amountMatch[0].replace(/,/g, ''));
-          log("Extracted total amount: " + orderData.total_amount, "info");
-        }
-      }
-      
-      // If no order ID found, generate one from the URL
-      if (!orderData.order_id) {
-        orderData.order_id = window.location.pathname.split('/').filter(Boolean).join('_');
-        log("Generated order ID from URL: " + orderData.order_id, "info");
-      }
-      
-      // Send purchase completion event
-      sendEvent({
-        event_type: "purchase_complete",
-        business_id: config.businessId,
-        affiliate_id: config.affiliateId,
-        session_id: config.sessionId,
-        url: window.location.href,
-        data: {
-          ...orderData,
-          platform: "shopify"
-        },
-        timestamp: Date.now(),
-      });
-      
-      // Also send sale data to business dashboard
-      if (orderData.order_id && orderData.total_amount) {
-        sendSaleData(orderData);
-      }
-      
-      return true;
-    }
-    
-    return false;
-  }
-
-  // Track Shopify-specific purchase completion
-  function trackShopifyPurchaseCompletion() {
-    log("Tracking Shopify purchase completion", "info");
-    
-    // Extract order ID from URL (format: /checkouts/cn/order_id/thank-you)
-    const urlMatch = window.location.pathname.match(/\/checkouts\/[^\/]+\/([^\/]+)\/thank-you/);
-    const orderId = urlMatch ? urlMatch[1] : 'unknown';
-    
-    log("Extracted order ID: " + orderId, "info");
-    
-    // Try to extract order details from the page
-    let orderData = {
-      order_id: orderId,
-      platform: "shopify",
+    const trackingData = {
+      event_type: eventType,
+      business_id: businessId,
+      affiliate_id: affiliateId,
+      platform: 'shopify',
+      session_id: getSessionId(),
+      user_agent: navigator.userAgent,
+      referrer: document.referrer,
+      timestamp: new Date().toISOString(),
       url: window.location.href,
-      page_title: document.title
-    };
-    
-    // Try to get order total from various selectors
-    const totalSelectors = [
-      '.order-summary__total',
-      '.total-line__price',
-      '[data-total]',
-      '.total',
-      '.order-total',
-      '.amount'
-    ];
-    
-    for (const selector of totalSelectors) {
-      const element = document.querySelector(selector);
-      if (element) {
-        const totalText = element.textContent.trim();
-        const amountMatch = totalText.match(/[\d,]+\.?\d*/);
-        if (amountMatch) {
-          orderData.total_amount = parseFloat(amountMatch[0].replace(/,/g, ''));
-          log("Found total amount: " + orderData.total_amount, "info");
-          break;
-        }
+      page_title: document.title,
+      data: {
+        ...data,
+        ...extractShopifyProductData()
       }
-    }
-    
-    // Send purchase completion event
-    const eventData = {
-      event_type: "purchase_complete",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: orderData,
-      timestamp: Date.now(),
-    };
-    
-    log("Sending purchase completion event:", eventData);
-    sendEvent(eventData);
-    
-    // Also send sale data if we have total amount
-    if (orderData.total_amount) {
-      sendSaleData(orderData);
-    }
-  }
-
-  // Send sale data to business dashboard
-  function sendSaleData(orderData) {
-    const saleData = {
-      businessId: config.businessId,
-      orderId: orderData.order_id,
-      amount: orderData.total_amount,
-      domain: window.location.hostname,
-      customerId: null // Could be extracted if available
     };
 
-    // Send to track-sale endpoint
-    fetch("https://pavlo4.netlify.app/api/track-sale", {
-      method: "POST",
-      mode: "cors",
-      credentials: "omit",
+    log('Sending tracking data:', trackingData);
+
+    fetch(TRACKING_ENDPOINT, {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Origin": window.location.origin,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(saleData),
+      body: JSON.stringify(trackingData)
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Failed to send sale data: " + response.status);
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        log('Event tracked successfully:', eventType);
+      } else {
+        log('Failed to track event:', result.error);
       }
-      return response.json();
-    })
-    .then(data => {
-      log("Sale data sent successfully", "success");
-      log("Sale response:", data);
     })
     .catch(error => {
-      log("Failed to send sale data: " + error.message, "error");
+      log('Error tracking event:', error);
     });
   }
 
-  // Set up event listeners
-  function setupEventListeners() {
-    log("Setting up event listeners...");
-
-    // Use event delegation to prevent multiple handlers
-    let isListenerSetup = false;
-    if (isListenerSetup) {
-      log("Event listeners already setup, skipping", "warn");
-      return;
-    }
-    isListenerSetup = true;
-
-    // Track add to cart events
-    document.addEventListener("click", function (e) {
-      const target = e.target;
-
-      // Check for add to cart buttons
-      if (isAddToCartButton(target)) {
-        log("Add to cart button clicked:", target);
-        trackAddToCart(target);
-      }
-
-      // Check for product clicks
-      if (isProductLink(target)) {
-        log("Product link clicked:", target);
-        trackProductClick(target);
-      }
+  // Track page view - This is the missing function!
+  function trackPageView() {
+    log('Tracking page view');
+    sendTrackingData("page_view", {
+      page_title: document.title,
+      page_url: window.location.href
     });
-
-    // Track form submissions (cart and checkout)
-    document.addEventListener("submit", function (e) {
-      const form = e.target;
-      
-      if (isCartForm(form)) {
-        log("Cart form submitted (add to cart):", form);
-        // Extract product data from the form and track add to cart
-        const productData = extractProductDataFromForm(form);
-        if (productData.id) {
-          const eventData = {
-            event_type: "add_to_cart",
-            business_id: config.businessId,
-            affiliate_id: config.affiliateId,
-            session_id: config.sessionId,
-            url: window.location.href,
-            data: {
-              product_id: productData.id,
-              product_name: productData.name,
-              product_price: productData.price,
-              product_variant_id: productData.variantId,
-              quantity: productData.quantity || 1,
-            },
-            timestamp: Date.now(),
-          };
-          sendEvent(eventData);
-        }
-      } else if (isCheckoutForm(form)) {
-        log("Checkout form submitted:", form);
-        trackCheckoutStart(form);
-      }
-    });
-
-    // Track AJAX add to cart (for dynamic cart updates)
-    if (window.Shopify && window.Shopify.onCartUpdate) {
-      window.Shopify.onCartUpdate = function (cart) {
-        log("Cart updated via Shopify API:", cart);
-        trackCartUpdate(cart);
-      };
-    }
-
-    // Shopify-specific cart tracking
-    if (window.Shopify && window.Shopify.theme) {
-      // Track cart changes via Shopify's cart API
-      if (window.Shopify.theme.cart) {
-        const originalAddItem = window.Shopify.theme.cart.addItem;
-        if (originalAddItem && !window.Shopify.theme.cart._pricehuntWrapped) {
-          window.Shopify.theme.cart._pricehuntWrapped = true;
-          window.Shopify.theme.cart.addItem = function (...args) {
-            log("Shopify cart.addItem called with args:", args);
-            const result = originalAddItem.apply(this, args);
-            result
-              .then(function (item) {
-                log("Shopify cart.addItem success:", item);
-                trackAddToCartSuccess(item);
-              })
-              .catch(function (error) {
-                log("Shopify cart.addItem error:", error);
-              });
-            return result;
-          };
-        }
-      }
-    }
-
-    log("Event listeners setup complete");
   }
 
-  // Set up mutation observer for dynamic content
-  function setupMutationObserver() {
-    if (typeof MutationObserver !== "undefined") {
-      const observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-          if (mutation.type === "childList") {
-            mutation.addedNodes.forEach(function (node) {
-              if (node.nodeType === Node.ELEMENT_NODE) {
-                // Check for new add to cart buttons
-                const addToCartButtons =
-                  node.querySelectorAll &&
-                  node.querySelectorAll(
-                    '[data-action="add-to-cart"], .add-to-cart, [class*="cart"], [class*="add"]',
-                  );
-                if (addToCartButtons) {
-                  addToCartButtons.forEach(function (button) {
-                    log("New add to cart button detected:", button);
-                  });
-                }
-              }
-            });
-          }
+  // Track product view
+  function trackProductView() {
+    log('Tracking product view');
+    const productData = extractShopifyProductData();
+    sendTrackingData("product_view", {
+      product_title: productData.title,
+      product_price: productData.price,
+      product_currency: productData.currency,
+      product_image: productData.image,
+      product_url: productData.url,
+      product_id: productData.productId,
+      variant_id: productData.variantId
+    });
+  }
+
+  // Track add to cart
+  function trackAddToCart(productData) {
+    log('Tracking add to cart');
+    sendTrackingData("add_to_cart", {
+      product_title: productData.title,
+      product_price: productData.price,
+      product_currency: productData.currency,
+      product_image: productData.image,
+      product_url: productData.url,
+      product_id: productData.productId,
+      variant_id: productData.variantId
+    });
+  }
+
+  // Track browse/category view
+  function trackBrowse() {
+    log('Tracking browse');
+    sendTrackingData("browse", {
+      page_title: document.title,
+      page_url: window.location.href,
+      category: extractShopifyProductData().category
+    });
+  }
+
+  // Enhanced add to cart detection for Shopify themes
+  function enhanceAddToCartTracking() {
+    log('Setting up enhanced cart tracking...');
+    
+    // Listen for Shopify's native add to cart events
+    document.addEventListener('DOMContentLoaded', function() {
+      // Common Shopify add to cart selectors
+      const addToCartSelectors = [
+        '[data-action="add-to-cart"]',
+        '.add-to-cart',
+        '[data-add-to-cart]',
+        '[data-testid*="add-to-cart"]',
+        '[aria-label*="add to cart"]',
+        '[title*="add to cart"]',
+        '.btn-add-to-cart',
+        '.product-form__submit',
+        '.add-to-cart-btn',
+        '.product-form__cart-submit',
+        '[data-product-form] button[type="submit"]'
+      ];
+
+      // Add click listeners to all add to cart buttons
+      addToCartSelectors.forEach((selector) => {
+        const buttons = document.querySelectorAll(selector);
+        buttons.forEach((button) => {
+          button.addEventListener('click', function(e) {
+            log('Add to cart button clicked:', button);
+            const productData = extractShopifyProductData();
+            trackAddToCart(productData);
+          });
         });
       });
 
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
+      // Listen for Shopify cart events
+      document.addEventListener("cart:updated", function (e) {
+        log('Cart updated event:', e.detail);
       });
 
-      log("Mutation observer setup complete");
-    }
+      document.addEventListener("cart:added", function (e) {
+        log('Product added to cart event:', e.detail);
+        const productData = extractShopifyProductData();
+        trackAddToCart(productData);
+      });
 
-    // Set up periodic checkout completion check for dynamic checkout flows
-    if (window.location.pathname.includes('/checkouts/')) {
-      log("Setting up periodic checkout completion check...");
-      
-      // Check every 5 seconds for checkout completion
-      const checkoutCheckInterval = setInterval(function() {
-        // Check if we're still on a checkout page
-        if (!window.location.pathname.includes('/checkouts/')) {
-          clearInterval(checkoutCheckInterval);
-          return;
-        }
+      // Listen for form submissions
+      document.addEventListener('submit', function(e) {
+        const form = e.target;
+        const formAction = form.action.toLowerCase();
         
-        // Check for completion indicators
-        const completionIndicators = [
-          document.querySelector('.checkout-success'),
-          document.querySelector('.order-confirmation'),
-          document.querySelector('[data-checkout-complete]'),
-          document.querySelector('.thank-you'),
-          document.querySelector('.order-received')
-        ];
-        
-        if (completionIndicators.some(indicator => indicator !== null)) {
-          log("Checkout completion detected via periodic check");
-          clearInterval(checkoutCheckInterval);
-          trackCheckoutCompletion();
-        }
-      }, 5000);
-      
-      // Also check on page visibility change (user returns to tab)
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden && window.location.pathname.includes('/checkouts/')) {
-          log("Page became visible, checking for checkout completion...");
-          trackPurchaseCompletion();
+        if (formAction.includes('/cart/add') || 
+            formAction.includes('cart') ||
+            form.classList.contains('add-to-cart-form') ||
+            form.classList.contains('product-form')) {
+          
+          log('Add to cart form submitted');
+          const productData = extractShopifyProductData();
+          trackAddToCart(productData);
         }
       });
-    }
+    });
   }
 
-  // Check if element is an add to cart button
-  function isAddToCartButton(element) {
-    const selectors = [
-      '[data-action="add-to-cart"]',
-      ".add-to-cart",
-      '[class*="cart"]',
-      '[class*="add"]',
-      'button[type="submit"]',
-      'input[type="submit"]',
-      "[data-product-add]",
-      "[data-add-to-cart]",
-      '[data-action*="add"]',
-      '[data-action*="cart"]',
-    ];
-
-    const textContent = element.textContent.toLowerCase();
-    const hasAddToCartText =
-      textContent.includes("add to cart") ||
-      textContent.includes("buy now") ||
-      textContent.includes("add to bag") ||
-      textContent.includes("add to basket");
-
-    const matchesSelector = selectors.some((selector) =>
-      element.matches(selector),
-    );
-    const isInForm = element.closest('form[action*="/cart/add"]');
-
-    return matchesSelector || hasAddToCartText || isInForm;
-  }
-
-  // Check if element is a product link
-  function isProductLink(element) {
-    const href = element.href || element.getAttribute("href");
-    if (!href) return false;
-
-    return (
-      href.includes("/products/") ||
-      element.closest('a[href*="/products/"]') ||
-      element.closest(".product-item") ||
-      element.closest('[class*="product"]')
-    );
-  }
-
-  // Check if form is checkout form
-  function isCheckoutForm(form) {
-    // More specific checkout form detection
-    const action = form.action || '';
-    const dataAction = form.getAttribute("data-action") || '';
+  // Event listeners
+  function setupEventListeners() {
+    log('Setting up event listeners...');
     
-    // Check for actual checkout forms (not cart forms)
-    return (
-      action.includes("/checkout") ||
-      action.includes("/checkouts/") ||
-      dataAction === "checkout" ||
-      dataAction.includes("checkout") ||
-      // Check for checkout-specific form classes or IDs
-      form.classList.contains("checkout-form") ||
-      form.id === "checkout-form" ||
-      form.querySelector('[name="checkout"]') ||
-      form.querySelector('[data-checkout]')
-    );
+    // Track "Add to Cart" buttons
+    document.addEventListener('click', function(e) {
+      const target = e.target;
+      const targetText = target.textContent.toLowerCase();
+      
+      if (target.matches('[data-track="add-to-cart"], .add-to-cart, [class*="cart"], [class*="add"]') ||
+          targetText.includes('add to cart') ||
+          targetText.includes('add to bag')) {
+        
+        log('Add to cart button clicked via event listener');
+        const productData = extractShopifyProductData();
+        trackAddToCart(productData);
+      }
+    });
   }
 
-  // Check if form is cart form (add to cart)
-  function isCartForm(form) {
-    const action = form.action || '';
-    const dataAction = form.getAttribute("data-action") || '';
+  // Initialize tracking
+  function init() {
+    log('Initializing enhanced tracking...');
     
-    // Check for cart forms (add to cart)
-    return (
-      action.includes("/cart/add") ||
-      action.includes("cart/add") ||
-      dataAction === "add" ||
-      dataAction.includes("add") ||
-      // Check for cart-specific form classes or IDs
-      form.classList.contains("cart-form") ||
-      form.id === "cart-form" ||
-      form.querySelector('[name="add"]') ||
-      form.querySelector('[data-add-to-cart]')
-    );
-  }
-
-  // Track add to cart event
-  function trackAddToCart(button) {
-    const productData = extractProductData(button);
-    log("Extracted product data for add to cart:", productData);
-
-    const eventData = {
-      event_type: "add_to_cart",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        product_id: productData.id,
-        product_name: productData.name,
-        product_price: productData.price,
-        product_variant_id: productData.variantId,
-        quantity: productData.quantity || 1,
-      },
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Track successful add to cart (from Shopify API)
-  function trackAddToCartSuccess(item) {
-    const eventData = {
-      event_type: "add_to_cart",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        product_id: item.product_id,
-        product_name: item.product_title,
-        product_price: item.price,
-        product_variant_id: item.variant_id,
-        quantity: item.quantity,
-      },
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Track product click
-  function trackProductClick(link) {
-    const productData = extractProductData(link);
-
-    const eventData = {
-      event_type: "product_click",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: link.href || link.getAttribute("href"),
-      data: {
-        product_id: productData.id,
-        product_name: productData.name,
-        product_price: productData.price,
-      },
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Track checkout start from form submission
-  function trackCheckoutStart(form) {
-    const eventData = {
-      event_type: "checkout_start",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        form_action: form.action,
-        trigger: "form_submission",
-      },
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Track checkout start from page visit
-  function trackCheckoutPageVisit() {
-    const eventData = {
-      event_type: "checkout_start",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        trigger: "page_visit",
-        page_title: document.title,
-      },
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Track checkout completion
-  function trackCheckoutCompletion() {
-    const eventData = {
-      event_type: "checkout_complete",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        checkout_id: window.location.pathname.split('/').pop(),
-        page_title: document.title,
-        checkout_url: window.location.href,
-        // Add more checkout data extraction
-        order_id: extractOrderIdFromPage(),
-        total_amount: extractTotalAmountFromPage(),
-        currency: extractCurrencyFromPage()
-      },
-      timestamp: Date.now(),
-    };
-
-    log("Tracking checkout completion:", eventData);
-    sendEvent(eventData);
-  }
-
-  // Extract order ID from checkout page
-  function extractOrderIdFromPage() {
-    // Try multiple methods to extract order ID
-    const methods = [
-      // URL pattern: /checkouts/cn/order_id/thank-you
-      () => {
-        const match = window.location.pathname.match(/\/checkouts\/[^\/]+\/([^\/]+)\/thank-you/);
-        return match ? match[1] : null;
-      },
-      // URL pattern: /orders/order_id
-      () => {
-        const match = window.location.pathname.match(/\/orders?\/([^\/]+)/);
-        return match ? match[1] : null;
-      },
-      // Page content
-      () => {
-        const elements = document.querySelectorAll('[data-order-id], [data-order-number], .order-id, .order-number');
-        return elements.length > 0 ? elements[0].textContent.trim() : null;
-      },
-      // Meta tags
-      () => {
-        const meta = document.querySelector('meta[name="order-id"], meta[property="order-id"]');
-        return meta ? meta.content : null;
-      }
-    ];
-
-    for (const method of methods) {
-      try {
-        const result = method();
-        if (result) {
-          log("Extracted order ID: " + result);
-          return result;
-        }
-      } catch (error) {
-        log("Error extracting order ID: " + error.message);
-      }
+    // Check if we're on a Shopify site
+    if (window.Shopify || document.querySelector('[data-shopify]') || window.location.hostname.includes('myshopify.com')) {
+      log('Shopify theme detected');
     }
-
-    return null;
-  }
-
-  // Extract total amount from checkout page
-  function extractTotalAmountFromPage() {
-    const selectors = [
-      '[data-total]',
-      '.total',
-      '.order-total', 
-      '.amount',
-      '.order-summary__total',
-      '.total-line__price',
-      '[class*="total"]',
-      '[class*="amount"]'
-    ];
-
-    for (const selector of selectors) {
-      try {
-        const elements = document.querySelectorAll(selector);
-        for (const element of elements) {
-          const text = element.textContent.trim();
-          const match = text.match(/[\d,]+\.?\d*/);
-          if (match) {
-            const amount = parseFloat(match[0].replace(/,/g, ''));
-            if (amount > 0) {
-              log("Extracted total amount: " + amount);
-              return amount;
-            }
-          }
-        }
-      } catch (error) {
-        log("Error extracting total amount: " + error.message);
-      }
-    }
-
-    return null;
-  }
-
-  // Extract currency from checkout page
-  function extractCurrencyFromPage() {
-    // Try to get currency from various sources
-    const methods = [
-      // Meta tags
-      () => {
-        const meta = document.querySelector('meta[property="product:price:currency"]');
-        return meta ? meta.content : null;
-      },
-      // Page content with currency symbols
-      () => {
-        const text = document.body.textContent;
-        if (text.includes('$')) return 'USD';
-        if (text.includes('€')) return 'EUR';
-        if (text.includes('£')) return 'GBP';
-        if (text.includes('¥')) return 'JPY';
-        return null;
-      },
-      // Shopify global object
-      () => {
-        return window.Shopify?.currency || null;
-      }
-    ];
-
-    for (const method of methods) {
-      try {
-        const result = method();
-        if (result) {
-          log("Extracted currency: " + result);
-          return result;
-        }
-      } catch (error) {
-        log("Error extracting currency: " + error.message);
-      }
-    }
-
-    return 'USD'; // Default fallback
-  }
-
-  // Track cart update
-  function trackCartUpdate(cart) {
-    const eventData = {
-      event_type: "cart_update",
-      business_id: config.businessId,
-      affiliate_id: config.affiliateId,
-      session_id: config.sessionId,
-      url: window.location.href,
-      data: {
-        cart_total: cart.total_price,
-        item_count: cart.item_count,
-      },
-      timestamp: Date.now(),
-    };
-
-    sendEvent(eventData);
-  }
-
-  // Extract product data from form
-  function extractProductDataFromForm(form) {
-    let data = {
-      id: null,
-      name: null,
-      price: null,
-      variantId: null,
-      quantity: 1,
-    };
-
-    log("Extracting product data from form:", form);
-
-    // Try to get data from form inputs
-    const formData = new FormData(form);
-    data.id = formData.get("id") || formData.get("product_id") || formData.get("variant_id");
-    data.quantity = parseInt(formData.get("quantity")) || 1;
-
-    // Try to get data from data attributes on the form
-    data.id = data.id || 
-      form.getAttribute("data-product-id") ||
-      form.getAttribute("data-id");
-
-    data.name = 
-      form.getAttribute("data-product-name") ||
-      form.getAttribute("data-title");
-
-    data.price = 
-      form.getAttribute("data-price");
-
-    data.variantId = 
-      form.getAttribute("data-variant-id") ||
-      form.getAttribute("data-variant");
-
-    // Try to get data from parent elements
-    const parent = form.closest("[data-product-id], .product-item, .product-card");
-    if (parent) {
-      if (!data.id) data.id = parent.getAttribute("data-product-id");
-      if (!data.name) data.name = parent.getAttribute("data-product-name");
-      if (!data.price) data.price = parent.getAttribute("data-price");
-      if (!data.variantId) data.variantId = parent.getAttribute("data-variant-id");
-    }
-
-    // Try to get data from Shopify global object
-    if (window.Shopify && window.Shopify.theme && window.Shopify.theme.product) {
-      const product = window.Shopify.theme.product;
-      if (!data.id) data.id = product.id;
-      if (!data.name) data.name = product.title;
-      if (!data.price) data.price = product.price;
-      if (!data.variantId) data.variantId = product.selected_or_first_available_variant?.id;
-    }
-
-    return data;
-  }
-
-  // Extract product data from element
-  function extractProductData(element) {
-    let data = {
-      id: null,
-      name: null,
-      price: null,
-      variantId: null,
-      quantity: 1,
-    };
-
-    log("Extracting product data from element:", element);
-
-    // Try to get data from data attributes
-    data.id =
-      element.getAttribute("data-product-id") ||
-      element.getAttribute("data-id") ||
-      element.closest("[data-product-id]")?.getAttribute("data-product-id");
-
-    data.name =
-      element.getAttribute("data-product-name") ||
-      element.getAttribute("data-title") ||
-      element.closest("[data-product-name]")?.getAttribute("data-product-name");
-
-    data.price =
-      element.getAttribute("data-price") ||
-      element.closest("[data-price]")?.getAttribute("data-price");
-
-    data.variantId =
-      element.getAttribute("data-variant-id") ||
-      element.getAttribute("data-variant") ||
-      element.closest("[data-variant-id]")?.getAttribute("data-variant-id");
-
-    // Try to get data from Shopify global object
-    if (
-      window.Shopify &&
-      window.Shopify.theme &&
-      window.Shopify.theme.product
-    ) {
-      const product = window.Shopify.theme.product;
-      if (!data.id) data.id = product.id;
-      if (!data.name) data.name = product.title;
-      if (!data.price) data.price = product.price;
-      if (!data.variantId)
-        data.variantId = product.selected_or_first_available_variant?.id;
-    }
-
-    // Try to get data from meta tags
-    if (!data.name) {
-      const metaTitle = document.querySelector('meta[property="og:title"]');
-      if (metaTitle) data.name = metaTitle.getAttribute("content");
-    }
-
-    if (!data.price) {
-      const metaPrice = document.querySelector(
-        'meta[property="product:price:amount"]',
-      );
-      if (metaPrice) data.price = metaPrice.getAttribute("content");
-    }
-
-    // Try to get data from JSON-LD structured data
-    if (!data.id || !data.name) {
-      const jsonLd = document.querySelector(
-        'script[type="application/ld+json"]',
-      );
-      if (jsonLd) {
-        try {
-          const structuredData = JSON.parse(jsonLd.textContent);
-          if (structuredData["@type"] === "Product") {
-            if (!data.id) data.id = structuredData.sku || structuredData.gtin;
-            if (!data.name) data.name = structuredData.name;
-            if (!data.price) data.price = structuredData.offers?.price;
-          }
-        } catch (e) {
-          // Ignore JSON parsing errors
-        }
-      }
-    }
-
-    // Try to get data from form inputs
-    if (!data.id) {
-      const form = element.closest("form");
-      if (form) {
-        const idInput = form.querySelector('input[name="id"]');
-        if (idInput) data.id = idInput.value;
-      }
-    }
-
-    log("Extracted product data:", data);
-    return data;
-  }
-
-  // Send event to server
-  function sendEvent(eventData) {
-    // Prevent duplicate events with better deduplication
-    // For checkout events, include form action in the key for better deduplication
-    let eventKey;
-    if (eventData.event_type === "checkout_start") {
-      eventKey = `${eventData.event_type}_${eventData.session_id}_${eventData.data.form_action || 'unknown'}`;
+    
+    // Track initial page view
+    trackPageView();
+    
+    // Track product view if on product page
+    if (window.location.pathname.includes('/product') || 
+        window.location.pathname.includes('/products') ||
+        document.querySelector('[data-testid="product-title"]') ||
+        document.querySelector('.product-single__title')) {
+      trackProductView();
     } else {
-      eventKey = `${eventData.event_type}_${eventData.session_id}_${JSON.stringify(eventData.data)}`;
+      // Track browse/category view
+      trackBrowse();
     }
     
-    if (config.eventsSent.includes(eventKey)) {
-      log("Duplicate event detected, skipping: " + eventData.event_type, "warn");
-      return;
-    }
+    // Setup event listeners
+    setupEventListeners();
     
-    // Prevent rapid duplicate events (same type within 5 seconds for checkout events, 2 seconds for others)
-    const now = Date.now();
-    const lastTime = config.lastEventTime[eventData.event_type] || 0;
-    const timeThreshold = eventData.event_type === "checkout_start" ? 5000 : 2000;
-    if (now - lastTime < timeThreshold) {
-      log("Rapid duplicate event detected, skipping: " + eventData.event_type, "warn");
-      return;
-    }
-    config.lastEventTime[eventData.event_type] = now;
+    // Enhanced Shopify-specific tracking
+    enhanceAddToCartTracking();
     
-    config.eventsSent.push(eventKey);
-    
-    // Keep only last 50 events to prevent memory leaks
-    if (config.eventsSent.length > 50) {
-      config.eventsSent = config.eventsSent.slice(-50);
-    }
-
-    log("Sending event: " + eventData.event_type, "info");
-    log("Event data:", eventData);
-
-    // Add CORS mode and better error handling
-    fetch(config.endpoint, {
-      method: "POST",
-      mode: "cors",
-      credentials: "omit", // Don't send cookies for cross-origin requests
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Origin": window.location.origin,
-      },
-      body: JSON.stringify(eventData),
-    })
-      .then((response) => {
-        log("Response status: " + response.status);
-        log("Response headers: " + JSON.stringify([...response.headers.entries()]));
-        
-        if (!response.ok) {
-          throw new Error("Network response was not ok: " + response.status);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        log("Event sent successfully: " + eventData.event_type, "success");
-        log("Server response:", data);
-      })
-      .catch((error) => {
-        log("Failed to send event: " + error.message, "error");
-        
-        // Try alternative endpoint if main one fails
-        if (config.endpoint.includes('netlify.app')) {
-          log("Trying alternative endpoint...", "info");
-          const altEndpoint = config.endpoint.replace('/.netlify/functions/track-event', '/api/track-event');
-          if (altEndpoint !== config.endpoint) {
-            fetch(altEndpoint, {
-              method: "POST",
-              mode: "cors",
-              credentials: "omit",
-              headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Origin": window.location.origin,
-              },
-              body: JSON.stringify(eventData),
-            })
-            .then(response => {
-              log("Alternative endpoint response status: " + response.status);
-              if (!response.ok) {
-                throw new Error("Alternative endpoint also failed: " + response.status);
-              }
-              return response.json();
-            })
-            .then(data => {
-              log("Alternative endpoint succeeded: " + eventData.event_type, "success");
-              log("Server response:", data);
-            })
-            .catch(altError => {
-              log("Alternative endpoint also failed: " + altError.message, "error");
-            });
-          }
-        }
-      });
+    log('Enhanced tracking initialized successfully');
   }
+
+  // Expose functions globally for manual tracking
+  window.PriceHuntTracker = {
+    track: function(eventType, data) {
+      switch(eventType) {
+        case "page_view":
+          trackPageView();
+          break;
+        case "product_view":
+          trackProductView();
+          break;
+        case "add_to_cart":
+          trackAddToCart(data);
+          break;
+        case "browse":
+          trackBrowse();
+          break;
+        default:
+          log('Unknown event type:', eventType);
+      }
+    },
+    trackPageView: trackPageView,
+    trackProductView: trackProductView,
+    trackAddToCart: trackAddToCart,
+    trackBrowse: trackBrowse
+  };
 
   // Initialize when DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initTracking);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initTracking();
+    init();
   }
 
-  // Expose tracking functions globally for manual tracking
-  window.PriceHuntTracker = {
-    initialized: false, // Will be set to true after initialization
-    
-    track: function (eventType, data) {
-      const eventData = {
-        event_type: eventType,
-        business_id: config.businessId,
-        affiliate_id: config.affiliateId,
-        session_id: config.sessionId,
-        url: window.location.href,
-        data: data || {},
-        timestamp: Date.now(),
-      };
-      sendEvent(eventData);
-    },
-
-    trackProductView: checkForProductData,
-    trackAddToCart: trackAddToCart,
-    trackProductClick: trackProductClick,
-    trackCheckoutStart: trackCheckoutStart,
-    trackCartUpdate: trackCartUpdate,
-    trackPurchaseCompletion: trackPurchaseCompletion,
-    trackShopifyPurchaseCompletion: trackShopifyPurchaseCompletion,
-
-    // Debug functions
-    getConfig: function () {
-      return { ...config };
-    },
-
-    getEventsSent: function () {
-      return [...config.eventsSent];
-    },
-  };
 })();
