@@ -8,7 +8,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
 };
 
 export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, connections }) => {
-  // Check for pavlo4 referrals and update business referral conversion status
+  // Check for iPick referrals and update business referral conversion status
   try {
     // Ensure shopId exists before proceeding
     if (!record.shopId) {
@@ -26,8 +26,8 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
       utmParams.campaign = url.searchParams.get('utm_campaign') || undefined;
     }
     
-    // Check if this checkout came from pavlo4 with the expected UTM parameters
-    if (utmParams.source === 'pavlo4' && 
+    // Check if this checkout came from iPick with the expected UTM parameters
+    if (utmParams.source === 'ipick' && 
         utmParams.medium === 'suggestion' && 
         utmParams.campaign === 'business_tracking') {
       
@@ -35,7 +35,7 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
         checkoutId: record.id, 
         shopId: record.shopId,
         utmParams 
-      }, "Detected pavlo4 referral checkout");
+      }, "Detected iPick referral checkout");
       
       // Find existing businessReferral record with matching UTM parameters and shop
       const existingReferral = await api.businessReferral.findFirst({
@@ -68,14 +68,14 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
           checkoutId: record.id,
           shopId: record.shopId,
           utmParams
-        }, "No matching business referral found for pavlo4 checkout");
+        }, "No matching business referral found for iPick checkout");
       }
     }
   } catch (error: unknown) {
     logger.error({ 
       error: error instanceof Error ? error.message : String(error),
       checkoutId: record.id 
-    }, "Error processing pavlo4 referral checkout");
+    }, "Error processing iPick referral checkout");
   }
 };
 

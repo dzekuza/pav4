@@ -138,12 +138,12 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     }, 0);
 
     // Referral statistics
-    const pavlo4Referrals = referrals.filter(r => 
-      r.utmSource?.toLowerCase().includes('pavlo4') || 
-      r.utmSource?.toLowerCase().includes('pavlo4')
+    const ipickReferrals = referrals.filter(r => 
+      r.utmSource?.toLowerCase().includes('ipick') || 
+      r.utmSource?.toLowerCase().includes('ipick')
     );
     const totalReferrals = referrals.length;
-    const pavlo4Conversions = pavlo4Referrals.filter(r => r.conversionStatus === 'converted').length;
+    const ipickConversions = ipickReferrals.filter(r => r.conversionStatus === 'converted').length;
     const totalConversions = referrals.filter(r => r.conversionStatus === 'converted').length;
 
     // Revenue from referrals
@@ -211,8 +211,8 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           name: checkout.name,
           token: checkout.token,
           processingStatus: checkout.processingStatus,
-          isPavlo4Referral: checkout.sourceUrl?.toLowerCase().includes('pavlo4') || 
-                           checkout.sourceName?.toLowerCase().includes('pavlo4')
+          isIpickReferral: checkout.sourceUrl?.toLowerCase().includes('ipick') || 
+                          checkout.sourceName?.toLowerCase().includes('ipick')
         })),
         recentOrders: orders.slice(0, 20).map(order => ({
           id: order.id,
@@ -226,9 +226,9 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         })),
         referralStatistics: {
           totalReferrals,
-          pavlo4Referrals: pavlo4Referrals.length,
-          pavlo4ConversionRate: pavlo4Referrals.length > 0 ? 
-            Math.round((pavlo4Conversions / pavlo4Referrals.length) * 10000) / 100 : 0,
+          ipickReferrals: ipickReferrals.length,
+          ipickConversionRate: ipickReferrals.length > 0 ? 
+            Math.round((ipickConversions / ipickReferrals.length) * 10000) / 100 : 0,
           totalConversions,
           referralRevenue: Math.round(referralRevenue * 100) / 100,
           topSources
@@ -256,7 +256,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           conversionStatus: referral.conversionStatus,
           conversionValue: referral.conversionValue,
           clickedAt: referral.clickedAt,
-          isPavlo4: referral.utmSource?.toLowerCase().includes('pavlo4')
+          isIpick: referral.utmSource?.toLowerCase().includes('ipick')
         }))
       },
       metadata: {

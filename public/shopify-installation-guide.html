@@ -3,54 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PriceHunt Shopify Tracking Installation Guide</title>
+    <title>iPick Tracker Installation Guide</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
-            color: #333;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        .step {
             background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
         }
-        .step h3 {
-            color: #667eea;
-            margin-top: 0;
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        code {
-            background: #e9ecef;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.9em;
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
         }
-        pre {
-            background: #2d3748;
-            color: #e2e8f0;
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
             padding: 20px;
             border-radius: 5px;
             overflow-x: auto;
             margin: 15px 0;
         }
+        .step {
+            background: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
         .warning {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
-            color: #856404;
             padding: 15px;
             border-radius: 5px;
             margin: 15px 0;
@@ -58,148 +52,232 @@
         .success {
             background: #d4edda;
             border: 1px solid #c3e6cb;
-            color: #155724;
             padding: 15px;
             border-radius: 5px;
             margin: 15px 0;
         }
-        .note {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            color: #004085;
-            padding: 15px;
+        .highlight {
+            background: #fff3cd;
+            padding: 10px;
             border-radius: 5px;
+            margin: 10px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .method {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .advantage {
+            background: #e8f5e8;
+            padding: 15px;
+            border-left: 4px solid #27ae60;
             margin: 15px 0;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🚀 PriceHunt Shopify Tracking Installation Guide</h1>
-        <p>Follow this guide to properly install PriceHunt tracking on your Shopify store</p>
-    </div>
-
-    <div class="step">
-        <h3>Step 1: Access Your Shopify Theme</h3>
-        <ol>
-            <li>Log in to your Shopify admin panel</li>
-            <li>Go to <strong>Online Store</strong> → <strong>Themes</strong></li>
-            <li>Click <strong>Actions</strong> → <strong>Edit code</strong> on your active theme</li>
-        </ol>
-    </div>
-
-    <div class="step">
-        <h3>Step 2: Add Head Script</h3>
-        <p>In the theme editor, find and open <code>theme.liquid</code> file. Add the following code in the <code>&lt;head&gt;</code> section:</p>
+    <div class="container">
+        <h1>🎯 iPick Tracker Installation Guide</h1>
         
-        <pre><code>&lt;!-- PriceHunt Tracking - Head Script --&gt;
-&lt;script 
-    src="https://ipick.io/shopify-tracker-head.js"
-    data-business-id="YOUR_BUSINESS_ID"
-    data-affiliate-id="YOUR_AFFILIATE_ID"
-    data-debug="false"&gt;
-&lt;/script&gt;</code></pre>
-
-        <div class="warning">
-            <strong>Important:</strong> Replace <code>YOUR_BUSINESS_ID</code> and <code>YOUR_AFFILIATE_ID</code> with your actual PriceHunt credentials.
+        <div class="highlight">
+            <strong>🚀 UNIFIED TRACKING SOLUTION!</strong> This guide shows you how to install the iPick tracker that integrates with our CheckoutData system.
         </div>
-    </div>
 
-    <div class="step">
-        <h3>Step 3: Add Body Script</h3>
-        <p>In the same <code>theme.liquid</code> file, add the following code just before the closing <code>&lt;/body&gt;</code> tag:</p>
+        <p>This guide shows you how to install the iPick tracker on your website. The tracker monitors user interactions and integrates with our CheckoutData system for comprehensive analytics.</p>
+
+        <div class="advantage">
+            <strong>✅ Features:</strong>
+            <ul>
+                <li><strong>Universal Tracking</strong> - Works on any website platform</li>
+                <li><strong>CheckoutData API Integration</strong> - Direct integration with Gadget CheckoutData API</li>
+                <li><strong>Authenticated API Calls</strong> - Secure tracking with proper authentication</li>
+                <li><strong>Automatic Event Detection</strong> - Detects page views, product views, and add-to-cart events</li>
+                <li><strong>Session Management</strong> - Tracks user sessions across pages</li>
+                <li><strong>Product Data Extraction</strong> - Automatically extracts product information</li>
+                <li><strong>Fallback Support</strong> - Graceful fallback to legacy endpoints if needed</li>
+            </ul>
+        </div>
+
+        <h2>📋 Events Tracked</h2>
+        <ul>
+            <li><strong>Page Views:</strong> Every page visit with page information and referrer data</li>
+            <li><strong>Product Views:</strong> Product page interactions with product data extraction</li>
+            <li><strong>Add to Cart:</strong> Product additions with variant information and pricing</li>
+            <li><strong>Browse/Category Views:</strong> Category page visits and browsing behavior</li>
+        </ul>
+
+        <h2>🚀 Installation Methods</h2>
+
+        <div class="method">
+            <h3>Method 1: Script Tag Installation (Recommended)</h3>
+            <div class="step">
+                <ol>
+                    <li>Add the tracker script to your website's &lt;head&gt; section</li>
+                    <li>Configure your business ID and affiliate ID</li>
+                    <li>Test the installation</li>
+                </ol>
+            </div>
+
+            <h4>Basic Installation:</h4>
+            <div class="code-block">
+&lt;!-- Add this to your website's &lt;head&gt; section --&gt;
+&lt;script src="https://ipick.io/tracker.js"&gt;&lt;/script&gt;
+&lt;meta name="ipick-business-id" content="YOUR_BUSINESS_ID"&gt;
+&lt;meta name="ipick-affiliate-id" content="YOUR_AFFILIATE_ID"&gt;
+            </div>
+
+            <h4>With URL Parameters:</h4>
+            <div class="code-block">
+&lt;!-- For dynamic tracking with URL parameters --&gt;
+&lt;script src="https://ipick.io/tracker.js"&gt;&lt;/script&gt;
+&lt;!-- Business ID and affiliate ID will be extracted from URL parameters --&gt;
+&lt;!-- Example URL: https://yoursite.com/product?business_id=123&affiliate_id=aff_xxx --&gt;
+            </div>
+        </div>
+
+        <div class="method">
+            <h3>Method 2: Manual Integration</h3>
+            <div class="step">
+                <ol>
+                    <li>Download the tracker.js file</li>
+                    <li>Host it on your server</li>
+                    <li>Include it in your website</li>
+                </ol>
+            </div>
+
+            <h4>Download and Host:</h4>
+            <div class="code-block">
+&lt;!-- Download tracker.js and host it on your server --&gt;
+&lt;script src="/path/to/your/tracker.js"&gt;&lt;/script&gt;
+&lt;meta name="ipick-business-id" content="YOUR_BUSINESS_ID"&gt;
+&lt;meta name="ipick-affiliate-id" content="YOUR_AFFILIATE_ID"&gt;
+            </div>
+        </div>
+
+        <h2>🔧 Configuration</h2>
         
-        <pre><code>&lt;!-- PriceHunt Tracking - Body Script --&gt;
-        &lt;script src="https://ipick.io/shopify-tracker-body.js"&gt;&lt;/script&gt;</code></pre>
-    </div>
-
-    <div class="step">
-        <h3>Step 4: Save and Test</h3>
+        <h3>Business ID & Affiliate ID Setup</h3>
+        <p>The tracker automatically detects your business ID and affiliate ID from:</p>
         <ol>
-            <li>Click <strong>Save</strong> to save your changes</li>
-            <li>Visit your store and test the tracking by:
-                <ul>
-                    <li>Viewing a product page</li>
-                    <li>Adding an item to cart</li>
-                    <li>Starting checkout</li>
-                    <li>Completing a purchase</li>
-                </ul>
-            </li>
+            <li><strong>Meta Tags:</strong> <code>&lt;meta name="ipick-business-id" content="123"&gt;</code></li>
+            <li><strong>URL Parameters:</strong> <code>?business_id=123&affiliate_id=aff_xxx</code></li>
+            <li><strong>Fallback Values:</strong> Configured defaults if not found</li>
         </ol>
-    </div>
 
-    <div class="note">
-        <h4>📝 Complete Example</h4>
-        <p>Here's how your <code>theme.liquid</code> file should look:</p>
-        
-        <pre><code>&lt;!DOCTYPE html&gt;
+        <h3>Example Configuration</h3>
+        <div class="code-block">
+&lt;!DOCTYPE html&gt;
 &lt;html&gt;
 &lt;head&gt;
-    &lt;meta charset="utf-8"&gt;
-    &lt;meta name="viewport" content="width=device-width,initial-scale=1"&gt;
-    &lt;title&gt;{{ page_title }}&lt;/title&gt;
+    &lt;title&gt;Your Website&lt;/title&gt;
     
-    &lt;!-- PriceHunt Tracking - Head Script --&gt;
-    &lt;script 
-        src="https://ipick.io/shopify-tracker-head.js"
-        data-business-id="YOUR_BUSINESS_ID"
-        data-affiliate-id="YOUR_AFFILIATE_ID"
-        data-debug="false"&gt;
-    &lt;/script&gt;
+    &lt;!-- iPick Tracker Configuration --&gt;
+    &lt;meta name="ipick-business-id" content="123"&gt;
+    &lt;meta name="ipick-affiliate-id" content="aff_godislovel_1755091745057_n7ccoo"&gt;
     
-    {{ content_for_header }}
+    &lt;!-- iPick Tracker Script --&gt;
+    &lt;script src="https://ipick.io/tracker.js"&gt;&lt;/script&gt;
 &lt;/head&gt;
-
 &lt;body&gt;
-    {{ content_for_layout }}
-    
-    &lt;!-- PriceHunt Tracking - Body Script --&gt;
-    &lt;script src="https://ipick.io/shopify-tracker-body.js"&gt;&lt;/script&gt;
+    &lt;!-- Your website content --&gt;
 &lt;/body&gt;
-&lt;/html&gt;</code></pre>
-    </div>
+&lt;/html&gt;
+        </div>
 
-    <div class="success">
-        <h4>✅ What Gets Tracked</h4>
+        <h2>🧪 Testing</h2>
+        
+        <div class="step">
+            <ol>
+                <li>Install the tracker on your website</li>
+                <li>Open browser console (F12)</li>
+                <li>Visit a product page</li>
+                <li>Add product to cart</li>
+                <li>Check console for tracker logs</li>
+                <li>Verify events in your iPick dashboard</li>
+            </ol>
+        </div>
+
+        <h2>📊 Expected Console Output</h2>
+        <div class="code-block">
+[iPick Tracker] Initializing iPick Tracker with CheckoutData API
+[iPick Tracker] Using API endpoint: https://checkoutdata.gadget.app/api
+[iPick Tracker] Sending tracking data to CheckoutData API: {event_type: "page_view", ...}
+[iPick Tracker] Event tracked successfully via CheckoutData API: page_view
+[iPick Tracker] Sending tracking data to CheckoutData API: {event_type: "product_view", ...}
+[iPick Tracker] Event tracked successfully via CheckoutData API: product_view
+[iPick Tracker] iPick Tracker initialized with CheckoutData integration
+        </div>
+
+        <h2>🔍 Troubleshooting</h2>
+
+        <h3>Common Issues:</h3>
         <ul>
-            <li><strong>Page Views:</strong> Every page visit on your store</li>
-            <li><strong>Product Views:</strong> When customers view product pages</li>
-            <li><strong>Add to Cart:</strong> When items are added to cart</li>
-            <li><strong>Checkout Start:</strong> When customers begin checkout</li>
-            <li><strong>Purchase Completion:</strong> When orders are completed</li>
+            <li><strong>Tracker not loading:</strong> Check script URL and network connectivity</li>
+            <li><strong>No events tracked:</strong> Verify business ID and affiliate ID are set</li>
+            <li><strong>Wrong business ID:</strong> Check meta tags or URL parameters</li>
+            <li><strong>API errors:</strong> Verify tracking endpoint is accessible</li>
         </ul>
-    </div>
 
-    <div class="warning">
-        <h4>⚠️ Troubleshooting</h4>
+        <h3>Debug Mode:</h3>
+        <div class="code-block">
+&lt;!-- Enable debug mode for detailed logging --&gt;
+&lt;script&gt;
+window.iPickDebugMode = true;
+&lt;/script&gt;
+&lt;script src="https://ipick.io/tracker.js"&gt;&lt;/script&gt;
+        </div>
+
+        <h2>📈 CheckoutData API Integration</h2>
+        <p>Once installed, your tracking data will be automatically integrated with our Gadget CheckoutData API:</p>
         <ul>
-            <li><strong>Events not showing:</strong> Check browser console for errors</li>
-            <li><strong>Duplicate events:</strong> Ensure scripts are only added once</li>
-            <li><strong>Purchase not tracked:</strong> Verify you're on the thank-you page</li>
-            <li><strong>Debug mode:</strong> Set <code>data-debug="true"</code> for detailed logs</li>
+            <li><strong>Direct API Integration:</strong> Data flows directly to CheckoutData API with authentication</li>
+            <li><strong>Real-time Analytics:</strong> View tracking data in your CheckoutData dashboard</li>
+            <li><strong>Conversion Tracking:</strong> Monitor user journey from click to purchase</li>
+            <li><strong>Product Performance:</strong> Track which products are viewed and purchased</li>
+            <li><strong>Session Analysis:</strong> Understand user behavior patterns</li>
+            <li><strong>Business Attribution:</strong> Track which business generated each interaction</li>
+            <li><strong>Secure Authentication:</strong> All API calls use proper Bearer token authentication</li>
         </ul>
-    </div>
 
-    <div class="note">
-        <h4>🔧 Advanced Configuration</h4>
-        <p>You can also pass parameters via URL for testing:</p>
-        <code>https://yourstore.com?business_id=123&affiliate_id=456</code>
-    </div>
+        <div class="success">
+            <strong>✅ Success!</strong> Your website is now tracking user interactions and integrating with the iPick CheckoutData system.
+        </div>
 
-    <div class="step">
-        <h3>Step 5: Verify Installation</h3>
-        <p>To verify the tracking is working:</p>
-        <ol>
-            <li>Open browser developer tools (F12)</li>
-            <li>Go to the Console tab</li>
-            <li>Look for <code>[PriceHunt]</code> log messages</li>
-            <li>Check your PriceHunt dashboard for incoming events</li>
-        </ol>
-    </div>
+        <h2>📞 Support</h2>
+        <p>If you need help with installation or have questions:</p>
+        <ul>
+            <li>Check the browser console for tracker logs</li>
+            <li>Verify your business ID and affiliate ID are correct</li>
+            <li>Test with a simple page view first</li>
+            <li>Ensure the tracker script is loading properly</li>
+            <li>Contact support at support@ipick.io</li>
+        </ul>
 
-    <div class="success">
-        <h4>🎉 You're All Set!</h4>
-        <p>Your Shopify store is now properly configured with PriceHunt tracking. All customer interactions will be tracked and available in your PriceHunt dashboard.</p>
+        <div class="warning">
+            <strong>⚠️ Important Notes:</strong>
+            <ul>
+                <li>The tracker is lightweight and won't impact your website performance</li>
+                <li>All tracking data is sent securely to our servers</li>
+                <li>The tracker respects user privacy and doesn't collect personal information</li>
+                <li>Works with all major browsers and devices</li>
+            </ul>
+        </div>
+
+        <h2>🔗 Reference</h2>
+        <p>For more information about the iPick tracking system:</p>
+        <ul>
+            <li><a href="https://ipick.io/dashboard" target="_blank">iPick Dashboard</a></li>
+            <li><a href="https://ipick.io/docs" target="_blank">iPick Documentation</a></li>
+            <li><a href="mailto:support@ipick.io">Contact Support</a></li>
+        </ul>
     </div>
 </body>
 </html>

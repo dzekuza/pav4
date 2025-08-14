@@ -192,11 +192,10 @@
         </div>
     </div>
 
-    <!-- PriceHunt Tracking Script -->
-    <script src="shopify-tracker-enhanced.js" 
-            data-business-id="2" 
-            data-affiliate-id="pavlo4" 
-            data-debug="true"></script>
+    <!-- iPick Tracking Script -->
+    <script src="tracker.js"></script>
+    <meta name="ipick-business-id" content="2">
+    <meta name="ipick-affiliate-id" content="pavlo4">
 
     <script>
         function log(message) {
@@ -213,8 +212,8 @@
         function addToCart(productId, productName, price) {
             log(`Add to cart: ${productName} (€${price})`);
             
-            if (window.PriceHuntTracker) {
-                window.PriceHuntTracker.track('add_to_cart', {
+            if (window.iPickTracker) {
+                window.iPickTracker.track('add_to_cart', {
                     product_id: productId,
                     product_name: productName,
                     product_price: price.toString(),
@@ -232,12 +231,12 @@
         let checkCount = 0;
         const checkTracker = setInterval(() => {
             checkCount++;
-            if (window.PriceHuntTracker) {
-                log('PriceHuntTracker initialized successfully');
+            if (window.iPickTracker) {
+                log('iPickTracker initialized successfully');
                 updateStatus('Active - Tracking Events');
                 clearInterval(checkTracker);
             } else if (checkCount > 20) {
-                log('ERROR: PriceHuntTracker failed to initialize');
+                log('ERROR: iPickTracker failed to initialize');
                 updateStatus('Failed to Initialize');
                 clearInterval(checkTracker);
             }
@@ -249,21 +248,21 @@
         const originalWarn = console.warn;
 
         console.log = function(...args) {
-            if (args[0] && args[0].includes && args[0].includes('[PriceHunt')) {
+            if (args[0] && args[0].includes && args[0].includes('[iPick')) {
                 log('LOG: ' + args.join(' '));
             }
             originalLog.apply(console, args);
         };
 
         console.error = function(...args) {
-            if (args[0] && args[0].includes && args[0].includes('[PriceHunt')) {
+            if (args[0] && args[0].includes && args[0].includes('[iPick')) {
                 log('ERROR: ' + args.join(' '));
             }
             originalError.apply(console, args);
         };
 
         console.warn = function(...args) {
-            if (args[0] && args[0].includes && args[0].includes('[PriceHunt')) {
+            if (args[0] && args[0].includes && args[0].includes('[iPick')) {
                 log('WARN: ' + args.join(' '));
             }
             originalWarn.apply(console, args);
@@ -274,8 +273,8 @@
             log('Simulating user interactions...');
             
             // Simulate product view
-            if (window.PriceHuntTracker) {
-                window.PriceHuntTracker.track('product_view', {
+            if (window.iPickTracker) {
+                window.iPickTracker.track('product_view', {
                     product_id: 'prayer-book-001',
                     product_name: 'Prayer Book Collection',
                     product_price: '29.99'

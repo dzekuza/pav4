@@ -38,32 +38,10 @@ export const TrackingScriptGenerator: React.FC<
   const generateScript = () => {
     const debugAttr = debugMode ? ' data-debug="true"' : "";
 
-    if (platform === "shopify") {
-      return `<script 
-  src="https://ipick.io/shopify-tracker-loader.js" 
-  data-business-id="${businessId}" 
-  data-affiliate-id="${affiliateId}"${debugAttr}>
-</script>`;
-    } else if (platform === "woocommerce") {
-      return `<script 
-  src="https://ipick.io/woocommerce-tracker.js" 
-  data-business-id="${businessId}" 
-  data-affiliate-id="${affiliateId}"${debugAttr}>
-</script>`;
-    } else if (platform === "magento") {
-      return `<script 
-  src="https://ipick.io/magento-tracker.js" 
-  data-business-id="${businessId}" 
-  data-affiliate-id="${affiliateId}"${debugAttr}>
-</script>`;
-    } else {
-      return `<script 
-  src="https://ipick.io/tracker.js" 
-  data-business-id="${businessId}" 
-  data-affiliate-id="${affiliateId}" 
-  data-platform="${platform}"${debugAttr}>
-</script>`;
-    }
+    // Unified tracker for all platforms
+    return `<script src="https://ipick.io/tracker.js"></script>
+<meta name="ipick-business-id" content="${businessId}">
+<meta name="ipick-affiliate-id" content="${affiliateId}">`;
   };
 
   const generateInstallationInstructions = () => {

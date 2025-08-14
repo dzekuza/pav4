@@ -134,9 +134,11 @@ export default function BusinessIntegrationWizard({
         "Debug functions",
       ],
       get scriptTemplate() {
-        return `<!-- PriceHunt Shopify Integration -->
-<script src="https://ipick.io/shopify-tracker-loader.js" data-business-id="${business?.id || "YOUR_BUSINESS_ID"}" data-affiliate-id="${business?.affiliateId || "YOUR_AFFILIATE_ID"}" data-debug="true"></script>
-<!-- End PriceHunt Shopify Integration -->`;
+        return `<!-- iPick Tracker Integration -->
+<script src="https://ipick.io/tracker.js"></script>
+<meta name="ipick-business-id" content="${business?.id || "YOUR_BUSINESS_ID"}">
+<meta name="ipick-affiliate-id" content="${business?.affiliateId || "YOUR_AFFILIATE_ID"}">
+<!-- End iPick Tracker Integration -->`;
       },
     },
     {

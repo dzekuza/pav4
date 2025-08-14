@@ -41,20 +41,17 @@ export default function CheckoutsIndex() {
     const sourceName = record.sourceName as string;
     const sourceIdentifier = record.sourceIdentifier as string;
 
-    // Enhanced pavlo4 referral detection - check for multiple variations
-    const isPavloReferral = (url: string) => {
+    // Enhanced iPick referral detection - check for multiple variations
+    const isIpickReferral = (url: string) => {
       if (!url) return false;
       const lowerUrl = url.toLowerCase();
-      return lowerUrl.includes('pavl4') || 
-             lowerUrl.includes('pavlo4') || 
-             lowerUrl.includes('ipick.io') ||
-             lowerUrl.includes('pavl4.netlify.app');
+      return lowerUrl.includes('ipick.io');
     };
 
-    // Check for pavlo4 referral with enhanced detection
-    if (sourceUrl && isPavloReferral(sourceUrl)) {
+    // Check for iPick referral with enhanced detection
+    if (sourceUrl && isIpickReferral(sourceUrl)) {
       return {
-        text: 'Pavlo4 Price Comparison',
+        text: 'iPick Price Comparison',
         tone: 'attention' as const,
         isPavlo: true,
         rawUrl: sourceUrl,
@@ -189,11 +186,11 @@ export default function CheckoutsIndex() {
                           <Badge tone={tone}>{text}</Badge>
                         </Tooltip>
                         {isPavlo && (
-                          <Badge tone="warning" size="small">⭐ Pavlo4</Badge>
+                          <Badge tone="warning" size="small">⭐ iPick</Badge>
                         )}
                       </InlineStack>
                       {rawUrl && rawUrl !== 'N/A' && (
-                        <Text as="span" variant="bodySm" tone="subdued">
+                        <Text as="span" variant="bodySm" tone="disabled">
                           URL: {rawUrl.length > 50 ? `${rawUrl.substring(0, 50)}...` : rawUrl}
                         </Text>
                       )}
@@ -213,10 +210,10 @@ export default function CheckoutsIndex() {
                       <Text as="span" variant="bodySm" fontWeight="medium">
                         URL: {sourceUrl || 'None'}
                       </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
+                      <Text as="span" variant="bodySm" tone="disabled">
                         Name: {sourceName || 'None'}
                       </Text>
-                      <Text as="span" variant="bodySm" tone="subdued">
+                      <Text as="span" variant="bodySm" tone="disabled">
                         ID: {sourceIdentifier || 'None'}
                       </Text>
                     </BlockStack>

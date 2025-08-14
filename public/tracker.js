@@ -1,34 +1,34 @@
-// Universal PriceHunt Tracker
+// Universal iPick Tracker - Integrated with CheckoutData
 // Tracks user interactions on business websites after redirects from ipick.io
 
 (function() {
   'use strict';
 
-  // Configuration - dynamically detect the appropriate endpoint
-  function getTrackingEndpoint() {
+  // Configuration - Gadget CheckoutData API
+  function getApiEndpoint() {
     const currentHost = window.location.hostname;
     
     // If we're on the main app domain, use the production endpoint
     if (currentHost === 'ipick.io') {
-      return 'https://ipick.io/api/track-event';
+      return 'https://checkoutdata.gadget.app/api';
     }
     
     // For local development
     if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-      return 'http://localhost:8084/api/track-event';
+      return 'http://localhost:3000/api';
     }
     
     // Default to production endpoint
-    return 'https://ipick.io/api/track-event';
+    return 'https://checkoutdata.gadget.app/api';
   }
 
-  const TRACKING_ENDPOINT = getTrackingEndpoint();
+  const API_ENDPOINT = getApiEndpoint();
   const DEBUG_MODE = false;
 
   // Utility functions
   function log(message, data = null) {
     if (DEBUG_MODE) {
-      console.log('[PriceHunt Tracker]', message, data);
+      console.log('[iPick Tracker]', message, data);
     }
   }
 
@@ -37,10 +37,10 @@
   }
 
   function getSessionId() {
-    let sessionId = localStorage.getItem('pricehunt_session_id');
+    let sessionId = localStorage.getItem('ipick_session_id');
     if (!sessionId) {
       sessionId = generateSessionId();
-      localStorage.setItem('pricehunt_session_id', sessionId);
+      localStorage.setItem('ipick_session_id', sessionId);
     }
     return sessionId;
   }
@@ -53,12 +53,12 @@
     
     // Fallback to meta tags
     if (!businessId) {
-      const businessMeta = document.querySelector('meta[name="pricehunt-business-id"]');
+      const businessMeta = document.querySelector('meta[name="ipick-business-id"]');
       if (businessMeta) businessId = businessMeta.getAttribute('content');
     }
     
     if (!affiliateId) {
-      const affiliateMeta = document.querySelector('meta[name="pricehunt-affiliate-id"]');
+      const affiliateMeta = document.querySelector('meta[name="ipick-affiliate-id"]');
       if (affiliateMeta) affiliateId = affiliateMeta.getAttribute('content');
     }
 
@@ -143,6 +143,7 @@
       return;
     }
 
+    // Create tracking data for CheckoutData API
     const trackingData = {
       event_type: eventType,
       business_id: businessId,
@@ -160,25 +161,53 @@
       }
     };
 
-    log('Sending tracking data:', trackingData);
+    log('Sending tracking data to CheckoutData API:', trackingData);
 
-    fetch(TRACKING_ENDPOINT, {
+    // Use the CheckoutData API endpoint
+    fetch(`${API_ENDPOINT}/track-event`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer gsk-X89z6jDWkTRqgq7htYnZi4wcXQ8L3B9g'
       },
       body: JSON.stringify(trackingData)
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(result => {
       if (result.success) {
-        log('Event tracked successfully:', eventType);
+        log('Event tracked successfully via CheckoutData API:', eventType);
       } else {
-        log('Failed to track event:', result.error);
+        log('Failed to track event via CheckoutData API:', result.error);
       }
     })
     .catch(error => {
-      log('Error tracking event:', error);
+      log('Error tracking event via CheckoutData API:', error);
+      
+      // Fallback to legacy endpoint if CheckoutData API fails
+      log('Attempting fallback to legacy tracking endpoint...');
+      fetch('https://ipick.io/api/track-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(trackingData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          log('Event tracked successfully via fallback endpoint:', eventType);
+        } else {
+          log('Failed to track event via fallback endpoint:', result.error);
+        }
+      })
+      .catch(fallbackError => {
+        log('Error tracking event via fallback endpoint:', fallbackError);
+      });
     });
   }
 
@@ -255,8 +284,8 @@
 
   // Initialize tracking
   function init() {
-    log('Initializing PriceHunt Tracker');
-    log('Using tracking endpoint:', TRACKING_ENDPOINT);
+    log('Initializing iPick Tracker with CheckoutData API');
+    log('Using API endpoint:', API_ENDPOINT);
     
     // Track initial page view
     trackPageView();
@@ -274,11 +303,11 @@
     // Setup event listeners
     setupEventListeners();
     
-    log('PriceHunt Tracker initialized');
+    log('iPick Tracker initialized with CheckoutData integration');
   }
 
   // Expose functions globally for manual tracking
-  window.PriceHuntTracker = {
+  window.iPickTracker = {
     track: function(eventType, data) {
       switch(eventType) {
         case "page_view":

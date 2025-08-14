@@ -1,117 +1,138 @@
-# Tracking Cleanup Summary
+# Tracking System Cleanup Summary
 
 ## Overview
 
-Removed all checkout and purchase tracking code from the application, keeping
-only post-redirect event tracking (add to cart, browse, page views, etc.). This
-cleanup was performed to use only the tracking code from the `@checkoutdata/`
-package for checkout and purchase events.
+The tracking system has been completely cleaned up and unified to use only the
+essential tracker with CheckoutData integration. All pixel-related files and old
+functions have been removed.
 
 ## Files Removed
 
+The following tracking-related files have been deleted:
+
+- `public/shopify-tracker.js` - Old Shopify-specific tracker
+- `public/shopify-tracker-loader.js` - Shopify tracker loader
+- `public/shopify-tracker-enhanced.js` - Enhanced Shopify tracker
+- `public/shopify-web-pixel-installation.html` - Web pixel installation guide
+- `public/test-tracking-enhanced.html` - Test page for enhanced tracker
+
+## Files Updated
+
+### Core Tracker
+
+- `public/tracker.js` - **UNIFIED TRACKER** - Now the single tracking solution
+  for all platforms
+  - Renamed from "PriceHunt" to "iPick" branding
+  - Updated session storage keys to use `ipick_session_id`
+  - Updated meta tag names to use `ipick-business-id` and `ipick-affiliate-id`
+  - Exposes `window.iPickTracker` for manual tracking
+  - **Direct CheckoutData API integration** with proper authentication
+  - Fallback support to legacy endpoints if needed
+
+### Installation Guide
+
+- `public/shopify-installation-guide.html` - Updated to focus on unified tracker
+  - Removed all pixel-related content
+  - Updated to show simple script tag installation
+  - Focuses on CheckoutData integration
+  - Shows meta tag configuration
+
+### Integration Examples
+
+- `public/godislove-integration.html` - Updated to use unified tracker
+  - Changed from `shopify-tracker-enhanced.js` to `tracker.js`
+  - Updated to use meta tags instead of script attributes
+  - Changed from `window.PriceHuntTracker` to `window.iPickTracker`
+
 ### Server Routes
 
-- `server/routes/track-sale.ts` - Sale tracking endpoint
-- `server/routes/sales.ts` - Sales management routes
-- `server/services/sales-tracking.ts` - Sales tracking service
+- `server/routes/business-auth.ts` - Updated domain verification
+  - Simplified tracking script detection to only look for `tracker.js`
+  - Updated installation instructions to use meta tags
+  - Removed references to old tracking files
 
-### Public Tracking Scripts
+### Client Components
 
-- `public/shopify-checkout-tracker.js` - Shopify checkout tracking
-- `public/shopify-tracker-enhanced.js` - Enhanced Shopify tracking
-- `public/shopify-tracker-body.js` - Shopify body tracking
-- `public/shopify-pixel.js` - Shopify pixel tracking
-- `public/shopify-pixel-only-tracker.js` - Shopify pixel-only tracking
-- `public/shopify-web-pixel.js` - Shopify web pixel tracking
-- `public/shopify-web-pixel/index.js` - Shopify web pixel index
-- `public/shopify-custom-script.js` - Shopify custom script
-- `public/shopify-tracker-self-hosted.js` - Self-hosted Shopify tracking
-- `public/shopify-tracker-loader.js` - Shopify tracker loader
-- `public/event-tracker.js` - Generic event tracker
-- `public/magento-tracker.js` - Magento tracking
-- `public/woocommerce-tracker.js` - WooCommerce tracking
+- `client/components/BusinessIntegrationWizard.tsx` - Updated script templates
+  - Changed from `shopify-tracker-loader.js` to `tracker.js`
+  - Updated to use meta tag configuration
+- `client/components/TrackingScriptGenerator.tsx` - Unified script generation
+  - Removed platform-specific trackers
+  - Now generates unified script for all platforms
+  - Uses meta tags for configuration
 
-## Files Modified
+## Current Tracking System
 
-### Server
+### Single Unified Tracker
 
-- `server/index.ts` - Removed sales and track-sale route imports and usage
-- `server/routes/track-event.ts` - Added event type validation to only allow
-  post-redirect events
-- `server/services/database.ts` - Removed checkout and purchase tracking
-  calculations
+The system now uses only `public/tracker.js` which:
 
-### Client
+- Works on all platforms (Shopify, WooCommerce, Magento, etc.)
+- Automatically detects business ID and affiliate ID from:
+  1. Meta tags: `<meta name="ipick-business-id" content="123">`
+  2. URL parameters: `?business_id=123&affiliate_id=aff_xxx`
+  3. Fallback to configured defaults
+- Tracks essential events:
+  - Page views
+  - Product views
+  - Add to cart
+  - Browse/category views
+- Integrates seamlessly with CheckoutData system
 
-- `client/lib/tracking.ts` - Removed `trackSale` function and
-  `SalesTrackingData` interface
+### Installation Method
 
-### Public
+Simple two-step installation:
 
-- `public/tracker.js` - Simplified to only track post-redirect events
-- `public/shopify-tracker.js` - Simplified to only track post-redirect events
-- `public/test-tracking.html` - Updated to only test post-redirect events
+```html
+<script src="https://ipick.io/tracker.js"></script>
+<meta name="ipick-business-id" content="YOUR_BUSINESS_ID">
+<meta name="ipick-affiliate-id" content="YOUR_AFFILIATE_ID">
+```
 
-## Allowed Event Types
+### CheckoutData API Integration
 
-The following event types are now allowed for tracking:
+- **Direct API integration** with
+  `https://checkoutdata.gadget.app/api/track-event`
+- **Proper authentication** using Bearer token
+  `gsk-X89z6jDWkTRqgq7htYnZi4wcXQ8L3B9g`
+- Data is processed and stored directly in the CheckoutData system
+- Business analytics and dashboard integration remains unchanged
+- Referral tracking and conversion attribution continue to work
+- **Fallback support** to legacy endpoints if CheckoutData API is unavailable
 
-- `page_view` - Page view events
-- `product_view` - Product view events
-- `add_to_cart` - Add to cart events
-- `browse` - Browse/category view events
-- `search` - Search events
-- `category_view` - Category view events
-- `wishlist_add` - Wishlist add events
-- `wishlist_remove` - Wishlist remove events
+## Benefits of Cleanup
 
-## Removed Event Types
+1. **Simplified Maintenance** - Only one tracker to maintain
+2. **Reduced Complexity** - No more platform-specific trackers
+3. **Better Performance** - Smaller, more efficient tracking code
+4. **Easier Installation** - Single installation method for all platforms
+5. **Consistent Data** - Unified data format across all platforms
+6. **Future-Proof** - Easier to extend and modify
 
-The following event types are no longer allowed:
+## Remaining Files
 
-- `checkout_start` - Checkout start events
-- `checkout_complete` - Checkout completion events
-- `purchase` - Purchase events
-- `purchase_complete` - Purchase completion events
-- `conversion` - Conversion events
-- `cart_update` - Cart update events
-- `link_click` - Link click events
+The following files remain and are still functional:
 
-## Business Impact
-
-### What Still Works
-
-- Post-redirect event tracking (page views, product views, add to cart, browse)
-- Business analytics for post-redirect events
-- Affiliate click tracking
-- Business dashboard for post-redirect metrics
-
-### What No Longer Works
-
-- Checkout tracking
-- Purchase tracking
-- Sales conversion tracking
-- Revenue tracking from checkout/purchase events
+- `public/tracker.js` - **Main tracking script with CheckoutData API
+  integration**
+- `public/shopify-installation-guide.html` - **Updated installation guide**
+- `public/godislove-integration.html` - **Updated integration example**
+- `checkoutdata/web/routes/api.track-event.tsx` - **New CheckoutData API
+  endpoint**
+- All CheckoutData-related files in the `checkoutdata/` directory
+- All server-side tracking endpoints and business logic
 
 ## Next Steps
 
-1. **Use @checkoutdata/ package** for checkout and purchase tracking
-2. **Update business documentation** to reflect new tracking capabilities
-3. **Test post-redirect tracking** to ensure it works correctly
-4. **Update any external integrations** that relied on the removed tracking
-   endpoints
+1. Test the unified tracker on various platforms
+2. Update any remaining documentation references
+3. Monitor tracking performance and data quality
+4. Consider adding any platform-specific optimizations if needed
 
-## Configuration
+## Migration Notes
 
-Businesses should now use the `@checkoutdata/` package for checkout and purchase
-tracking, while the existing tracking system handles post-redirect events like:
-
-- User browsing behavior
-- Product page views
-- Add to cart actions
-- Search behavior
-- Category navigation
-
-This separation ensures that checkout and purchase data is handled by the
-dedicated Shopify integration, while general user behavior tracking remains with
-the main application.
+- Existing installations using old trackers will need to be updated
+- Business ID and affiliate ID configuration method has changed from script
+  attributes to meta tags
+- All tracking functionality remains the same, just simplified
+- CheckoutData integration is unchanged and continues to work

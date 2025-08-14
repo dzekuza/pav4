@@ -1,6 +1,6 @@
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
   // Apply defaults for optional parameters
-  const utmSource = params.utmSource || 'pavlo4';
+  const utmSource = params.utmSource || 'ipick';
   const utmMedium = params.utmMedium || 'suggestion';
   const utmCampaign = params.utmCampaign || 'business_tracking';
 
