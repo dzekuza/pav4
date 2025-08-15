@@ -15,14 +15,18 @@ Your business login was failing in production with the error:
 
 ### Issue 1: Missing JWT_SECRET Environment Variable
 
-- **Problem**: The `JWT_SECRET` environment variable was missing from your `.env` file
+- **Problem**: The `JWT_SECRET` environment variable was missing from your
+  `.env` file
 - **Impact**: JWT tokens couldn't be properly generated or verified
-- **Fix**: Added `JWT_SECRET=your-super-secure-jwt-secret-key-for-production-2024` to `.env`
+- **Fix**: Added
+  `JWT_SECRET=your-super-secure-jwt-secret-key-for-production-2024` to `.env`
 
 ### Issue 2: Incomplete Netlify Server Implementation
 
-- **Problem**: The Netlify server (`server/netlify-server.ts`) only had placeholder endpoints
-- **Impact**: Business authentication endpoints returned "not implemented" messages
+- **Problem**: The Netlify server (`server/netlify-server.ts`) only had
+  placeholder endpoints
+- **Impact**: Business authentication endpoints returned "not implemented"
+  messages
 - **Fix**: Added complete JWT authentication implementation to Netlify server
 
 ### Issue 3: Missing NODE_ENV Configuration
@@ -46,7 +50,8 @@ NODE_ENV=production
 Updated `server/netlify-server.ts` to include:
 
 - ✅ JWT token generation and verification
-- ✅ Business authentication endpoints (`/api/business/auth/login`, `/api/business/auth/me`, `/api/business/auth/logout`)
+- ✅ Business authentication endpoints (`/api/business/auth/login`,
+  `/api/business/auth/me`, `/api/business/auth/logout`)
 - ✅ Password hashing with bcrypt
 - ✅ Proper cookie management
 - ✅ Database integration for business lookup
@@ -66,12 +71,13 @@ You still need to add the environment variables to your Netlify deployment:
 #### Option A: Via Netlify Dashboard
 
 1. Go to https://app.netlify.com/
-2. Navigate to your site: https://pavlo4.netlify.app
+2. Navigate to your site: https://ipick.io.netlify.app
 3. Go to **Site settings** > **Environment variables**
 4. Add these variables:
    - `JWT_SECRET` = `your-super-secure-jwt-secret-key-for-production-2024`
    - `NODE_ENV` = `production`
-   - `DATABASE_URL` = `postgresql://neondb_owner:npg_K3ViucN8RGas@ep-polished-mountain-ab3ggow0-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require`
+   - `DATABASE_URL` =
+     `postgresql://neondb_owner:npg_K3ViucN8RGas@ep-polished-mountain-ab3ggow0-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require`
 
 #### Option B: Via Netlify CLI
 
@@ -86,7 +92,7 @@ netlify env:set NODE_ENV "production"
 
 After the environment variables are set and deployment completes:
 
-1. **Test Business Login**: https://pavlo4.netlify.app/business-login
+1. **Test Business Login**: https://ipick.io.netlify.app/business-login
 2. **Use your business credentials**
 3. **Verify you're redirected to the dashboard**
 
@@ -121,15 +127,18 @@ After the environment variables are set and deployment completes:
 
 ## 🎯 Expected Result
 
-After completing the environment variable setup, your business login should work correctly in production, just like it does on localhost.
+After completing the environment variable setup, your business login should work
+correctly in production, just like it does on localhost.
 
 ## 📞 If Issues Persist
 
 If you still encounter problems after setting the environment variables:
 
 1. **Check Netlify Function Logs**: Look for any deployment or runtime errors
-2. **Verify Environment Variables**: Ensure all variables are properly set in Netlify
-3. **Test Database Connection**: Verify the DATABASE_URL is accessible from Netlify
+2. **Verify Environment Variables**: Ensure all variables are properly set in
+   Netlify
+3. **Test Database Connection**: Verify the DATABASE_URL is accessible from
+   Netlify
 4. **Check CORS Settings**: Ensure the frontend can communicate with the API
 
 The authentication system should now be fully functional in production! 🎉

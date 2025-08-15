@@ -45,7 +45,7 @@ router.get("/redirect", async (req, res) => {
           userAgent: req.get("User-Agent") || undefined,
           referrer: req.get("Referer") || undefined,
           ipAddress: req.ip,
-          utmSource: "pavlo4",
+          utmSource: "ipick.io",
           utmMedium: "redirect",
           utmCampaign: "product_suggestion",
         },
@@ -64,7 +64,7 @@ router.get("/redirect", async (req, res) => {
       
       // Add UTM parameters to the referral URL
       const utmParams = new URLSearchParams({
-        utm_source: "pavlo4",
+        utm_source: "ipick.io",
         utm_medium: "redirect",
         utm_campaign: "product_suggestion",
         target_url: encodeURIComponent(to),
@@ -85,7 +85,7 @@ router.get("/redirect", async (req, res) => {
   // For non-business domains, use the original redirect logic
   if (user_id) url.searchParams.set("track_user", String(user_id));
   if (reseller_id) url.searchParams.set("aff_id", String(reseller_id));
-  url.searchParams.set("utm_source", "pavlo4");
+  url.searchParams.set("utm_source", "ipick.io");
 
   console.log("Redirecting to:", url.toString());
   res.redirect(302, url.toString());

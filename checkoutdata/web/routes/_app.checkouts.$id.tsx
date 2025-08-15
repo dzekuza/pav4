@@ -15,22 +15,25 @@ import {
 } from "@shopify/polaris";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
 import { api } from "../api";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function CheckoutDetail() {
   const params = useParams();
   const checkoutId = params.id!;
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading, error: authError } = useGadget();
+  const [checkoutStatus, setCheckoutStatus] = useState<{
+    status: string;
+    tone: 'success' | 'info' | 'critical';
+  } | null>(null);
 
-  // Debug logging for authentication and data fetching
+  // Debug logging for authentication and data fetching (without timestamps)
   useEffect(() => {
     console.log('🔍 Checkout Detail Debug:', {
       checkoutId,
       isAuthenticated,
       authLoading,
-      authError: authError?.message,
-      timestamp: new Date().toISOString()
+      authError: authError?.message
     });
   }, [checkoutId, isAuthenticated, authLoading, authError]);
 
@@ -54,9 +57,40 @@ export default function CheckoutDetail() {
     },
   });
 
+  // Calculate checkout status on client-side to avoid hydration mismatch
+  useEffect(() => {
+    if (checkout) {
+      const getCheckoutStatus = () => {
+        if (checkout.completedAt) {
+          return { status: 'Completed', tone: 'success' as const };
+        }
+        if (checkout.processingStatus === 'complete') {
+          return { status: 'Completed', tone: 'success' as const };
+        }
+        if (checkout.processingStatus === 'processing') {
+          return { status: 'In Progress', tone: 'info' as const };
+        }
+        // If created more than 24 hours ago and not completed, consider abandoned
+        if (checkout.createdAt && typeof checkout.createdAt === 'string') {
+          try {
+            const createdAt = new Date(checkout.createdAt);
+            const hoursOld = (new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+            if (hoursOld > 24) {
+              return { status: 'Abandoned', tone: 'critical' as const };
+            }
+          } catch (error) {
+            console.error('Error parsing checkout creation date:', error);
+          }
+        }
+        return { status: 'In Progress', tone: 'info' as const };
+      };
+      
+      setCheckoutStatus(getCheckoutStatus());
+    }
+  }, [checkout]);
+
   // Authentication error handling
   if (authError) {
-    console.error('❌ Authentication error in checkout detail:', authError);
     return (
       <Box padding="400">
         <Card>
@@ -74,7 +108,6 @@ export default function CheckoutDetail() {
 
   // Authentication loading
   if (authLoading) {
-    console.log('⏳ Loading authentication state in checkout detail...');
     return (
       <Box padding="400">
         <InlineStack gap="200" align="center">
@@ -89,7 +122,6 @@ export default function CheckoutDetail() {
 
   // Not authenticated
   if (!isAuthenticated) {
-    console.log('❌ Not authenticated in checkout detail, redirecting...');
     return (
       <Box padding="400">
         <Card>
@@ -104,7 +136,6 @@ export default function CheckoutDetail() {
 
   // Data fetching loading
   if (fetching) {
-    console.log('⏳ Loading checkout data...');
     return (
       <Box padding="400">
         <InlineStack gap="200" align="center">
@@ -119,7 +150,6 @@ export default function CheckoutDetail() {
 
   // Data fetching error
   if (error) {
-    console.error('❌ Error fetching checkout data:', error);
     return (
       <Box padding="400">
         <Card>
@@ -152,7 +182,6 @@ export default function CheckoutDetail() {
 
   // Checkout not found
   if (!checkout) {
-    console.log('❌ Checkout not found:', checkoutId);
     return (
       <Box padding="400">
         <Card>
@@ -182,8 +211,6 @@ export default function CheckoutDetail() {
     );
   }
 
-  console.log('✅ Checkout data loaded successfully:', checkout.id);
-
   const formatCurrency = (amount: string | null | undefined, currency: string | null | undefined) => {
     if (!amount || !currency) return 'N/A';
     
@@ -198,26 +225,21 @@ export default function CheckoutDetail() {
     }
   };
 
-  const getCheckoutStatus = () => {
-    if (checkout.completedAt) {
-      return { status: 'Completed', tone: 'success' as const };
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
     }
-    if (checkout.processingStatus === 'complete') {
-      return { status: 'Completed', tone: 'success' as const };
-    }
-    if (checkout.processingStatus === 'processing') {
-      return { status: 'In Progress', tone: 'info' as const };
-    }
-    // If created more than 24 hours ago and not completed, consider abandoned
-    const createdAt = checkout.createdAt ? new Date(checkout.createdAt as unknown as string) : new Date();
-    const hoursOld = (new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-    if (hoursOld > 24) {
-      return { status: 'Abandoned', tone: 'critical' as const };
-    }
-    return { status: 'In Progress', tone: 'info' as const };
   };
-
-  const { status, tone } = getCheckoutStatus();
 
   return (
     <Box padding="400">
@@ -237,7 +259,13 @@ export default function CheckoutDetail() {
             </InlineStack>
             
             <InlineStack gap="200" align="center">
-              <Badge tone={tone}>{status}</Badge>
+              <div suppressHydrationWarning>
+                {checkoutStatus ? (
+                  <Badge tone={checkoutStatus.tone}>{checkoutStatus.status}</Badge>
+                ) : (
+                  <Badge tone="info">Loading...</Badge>
+                )}
+              </div>
               <Text as="span" variant="bodyMd">
                 ID: {checkout.id}
               </Text>
@@ -330,7 +358,7 @@ export default function CheckoutDetail() {
                   Created:
                 </Text>
                 <Text as="span" variant="bodyMd">
-                  {checkout.createdAt ? new Date(checkout.createdAt as unknown as string).toLocaleString() : 'N/A'}
+                  {formatDate(checkout.createdAt)}
                 </Text>
               </InlineStack>
               {checkout.completedAt && (
@@ -339,7 +367,7 @@ export default function CheckoutDetail() {
                     Completed:
                   </Text>
                   <Text as="span" variant="bodyMd">
-                    {new Date(checkout.completedAt as unknown as string).toLocaleString()}
+                    {formatDate(checkout.completedAt)}
                   </Text>
                 </InlineStack>
               )}

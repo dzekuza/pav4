@@ -493,12 +493,12 @@ export class GadgetAnalytics {
       }, 0);
 
       // Referral statistics
-      const pavlo4Referrals = referrals.filter(r => 
-        r.utmSource?.toLowerCase().includes('pavlo4') || 
-        r.utmSource?.toLowerCase().includes('pavlo4')
+      const ipickReferrals = referrals.filter(r => 
+        r.utmSource?.toLowerCase().includes('ipick.io') || 
+        r.utmSource?.toLowerCase().includes('ipick.io')
       );
       const totalReferrals = referrals.length;
-      const pavlo4Conversions = pavlo4Referrals.filter(r => r.conversionStatus === 'converted').length;
+      const ipickConversions = ipickReferrals.filter(r => r.conversionStatus === 'converted').length;
       const totalConversions = referrals.filter(r => r.conversionStatus === 'converted').length;
 
       // Revenue from referrals
@@ -566,8 +566,8 @@ export class GadgetAnalytics {
             name: checkout.name,
             token: checkout.token,
             processingStatus: checkout.processingStatus,
-            isPavlo4Referral: checkout.sourceUrl?.toLowerCase().includes('pavlo4') || 
-                             checkout.sourceName?.toLowerCase().includes('pavlo4'),
+            isIpickReferral: checkout.sourceUrl?.toLowerCase().includes('ipick.io') || 
+                             checkout.sourceName?.toLowerCase().includes('ipick.io'),
             shop: checkout.shop
           })),
           recentOrders: orders.slice(0, 20).map(order => ({
@@ -583,9 +583,9 @@ export class GadgetAnalytics {
           })),
           referralStatistics: {
             totalReferrals,
-            pavlo4Referrals: pavlo4Referrals.length,
-            pavlo4ConversionRate: pavlo4Referrals.length > 0 ? 
-              Math.round((pavlo4Conversions / pavlo4Referrals.length) * 10000) / 100 : 0,
+            ipickReferrals: ipickReferrals.length,
+            ipickConversionRate: ipickReferrals.length > 0 ? 
+              Math.round((ipickConversions / ipickReferrals.length) * 10000) / 100 : 0,
             totalConversions,
             referralRevenue: Math.round(referralRevenue * 100) / 100,
             topSources
@@ -613,7 +613,7 @@ export class GadgetAnalytics {
             conversionStatus: referral.conversionStatus,
             conversionValue: referral.conversionValue,
             clickedAt: referral.clickedAt,
-            isPavlo4: referral.utmSource?.toLowerCase().includes('pavlo4'),
+            isPavlo4: referral.utmSource?.toLowerCase().includes('ipick.io'),
             shop: referral.shop
           }))
         },

@@ -10,7 +10,7 @@ for products from any website directly on the PriceHunt platform.
 
 ### Format
 
-Users can prefix any product URL with `@https://pavlo4.netlify.app` to search
+Users can prefix any product URL with `@https://ipick.io.netlify.app` to search
 for that product on the platform.
 
 ### Examples
@@ -24,7 +24,7 @@ https://godislove.lt/products/cotton-logo-socks?variant=50524518678857
 **With prefix:**
 
 ```
-@https://pavlo4.netlify.apphttps://godislove.lt/products/cotton-logo-socks?variant=50524518678857
+@https://ipick.io.netlify.apphttps://godislove.lt/products/cotton-logo-socks?variant=50524518678857
 ```
 
 ### Usage Methods
@@ -51,7 +51,7 @@ The feature is implemented through the `UrlRedirectHandler` component which:
 
 - **Direct URL format**: `/https://example.com/product`
 - **Prefixed URL format**:
-  `/@https://pavlo4.netlify.apphttps://example.com/product`
+  `/@https://ipick.io.netlify.apphttps://example.com/product`
 
 ### Error Handling
 

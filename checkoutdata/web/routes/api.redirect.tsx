@@ -42,7 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         sourceUrl: request.headers.get("Referer") || "direct",
         userId: userId || resellerId || "unknown",
         clickedAt: new Date(),
-        utmSource: "pavlo4",
+        utmSource: "ipick.io",
         utmMedium: "redirect",
         utmCampaign: "product_suggestion",
         conversionStatus: "pending",
@@ -59,7 +59,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       
       // Add UTM parameters to the referral URL
       const utmParams = new URLSearchParams();
-      utmParams.set("utm_source", "pavlo4");
+      utmParams.set("utm_source", "ipick.io");
       utmParams.set("utm_medium", "redirect");
       utmParams.set("utm_campaign", "product_suggestion");
       utmParams.set("target_url", encodeURIComponent(to));
@@ -79,7 +79,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // For non-business domains, use the original redirect logic
   if (userId) targetUrl.searchParams.set("track_user", String(userId));
   if (resellerId) targetUrl.searchParams.set("aff_id", String(resellerId));
-  targetUrl.searchParams.set("utm_source", "pavlo4");
+  targetUrl.searchParams.set("utm_source", "ipick.io");
 
   console.log("Redirecting to:", targetUrl.toString());
   return redirect(targetUrl.toString());

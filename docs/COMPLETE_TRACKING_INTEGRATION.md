@@ -58,16 +58,16 @@ The tracking library now includes Shopify integration:
 ```typescript
 // Track referral to Shopify store
 const result = await trackReferral(
-    "godislove.lt", // business domain
-    "https://godislove.lt/products/socks", // product URL
-    "Cotton Logo Socks", // product name
-    "user_123", // user ID
+   "godislove.lt", // business domain
+   "https://godislove.lt/products/socks", // product URL
+   "Cotton Logo Socks", // product name
+   "user_123", // user ID
 );
 
 // Enhanced product click handler
 const result = await handleProductClick(
-    { url, title, name: title }, // product object
-    "godislove.lt", // business domain
+   { url, title, name: title }, // product object
+   "godislove.lt", // business domain
 );
 
 // Get complete analytics
@@ -81,13 +81,13 @@ tracking:
 
 ```typescript
 <ProductCard
-    title="Cotton Logo Socks"
-    price={29.99}
-    currency="USD"
-    url="https://godislove.lt/products/socks"
-    store="God is Love"
-    businessDomain="godislove.lt" // Enables Shopify tracking
-    showBuyNow={true}
+   title="Cotton Logo Socks"
+   price={29.99}
+   currency="USD"
+   url="https://godislove.lt/products/socks"
+   store="God is Love"
+   businessDomain="godislove.lt" // Enables Shopify tracking
+   showBuyNow={true}
 />;
 ```
 
@@ -107,7 +107,7 @@ When a user clicks a business product:
 
 1. **Generate Referral ID**: `aff_godislove_1234567890_abc123`
 2. **Add UTM Parameters**:
-   - `utm_source=pavlo4`
+   - `utm_source=ipick.io`
    - `utm_medium=suggestion`
    - `utm_campaign=business_tracking`
    - `ref_id=aff_godislove_1234567890_abc123`
@@ -148,11 +148,11 @@ The system automatically detects the environment:
 
 ```typescript
 const getShopifyApiUrl = () => {
-    const isDevelopment = window.location.hostname.includes("localhost") ||
-        window.location.hostname.includes("--development");
-    return isDevelopment
-        ? "https://checkoutdata--development.gadget.app/api/graphql"
-        : "https://checkoutdata.gadget.app/api/graphql";
+   const isDevelopment = window.location.hostname.includes("localhost") ||
+      window.location.hostname.includes("--development");
+   return isDevelopment
+      ? "https://checkoutdata--development.gadget.app/api/graphql"
+      : "https://checkoutdata.gadget.app/api/graphql";
 };
 ```
 
@@ -160,7 +160,7 @@ const getShopifyApiUrl = () => {
 
 Standard UTM parameters for tracking:
 
-- **Source**: `pavlo4`
+- **Source**: `ipick.io`
 - **Medium**: `suggestion`
 - **Campaign**: `business_tracking`
 - **Ref ID**: Unique referral identifier
@@ -223,9 +223,9 @@ await testIntegration.runAllTests();
 All errors are logged with context:
 
 ```typescript
-logger.error("Error processing pavlo4 referral checkout", {
-    error: error instanceof Error ? error.message : String(error),
-    checkoutId: record.id,
+logger.error("Error processing ipick.io referral checkout", {
+   error: error instanceof Error ? error.message : String(error),
+   checkoutId: record.id,
 });
 ```
 

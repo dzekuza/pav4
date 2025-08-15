@@ -49,7 +49,7 @@ revenue attribution.
 
 1. Go to your Gadget app: https://checkoutdata.gadget.app/edit/development
 2. Navigate to Settings → API Keys
-3. Copy the API key for "pavlo4-dashboard-access" (or create a new one)
+3. Copy the API key for "ipick.io-dashboard-access" (or create a new one)
 
 ### Step 2: Update the API Key
 
@@ -66,7 +66,7 @@ revenue attribution.
 
 ### Step 4: Deploy to Your Pavlo4 App
 
-1. Copy the files to your pavlo4.netlify.app:
+1. Copy the files to your ipick.io.netlify.app:
    - `gadget-analytics.js`
    - `business-dashboard.js`
    - `gadget-analytics.css`
@@ -81,10 +81,10 @@ revenue attribution.
 <div id="business-dashboard"></div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const dashboard = new BusinessDashboard("business-dashboard");
-        dashboard.render(); // Shows all businesses
-    });
+   document.addEventListener("DOMContentLoaded", function () {
+      const dashboard = new BusinessDashboard("business-dashboard");
+      dashboard.render(); // Shows all businesses
+   });
 </script>
 ```
 
@@ -174,18 +174,18 @@ You can test if your API key works by running this in your browser console:
 
 ```javascript
 fetch("https://checkoutdata--development.gadget.app/api/graphql", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer YOUR_API_KEY_HERE",
-    },
-    body: JSON.stringify({
-        query:
-            `query { shopifyShops(first: 5) { edges { node { id domain name } } } }`,
-    }),
+   method: "POST",
+   headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer YOUR_API_KEY_HERE",
+   },
+   body: JSON.stringify({
+      query:
+         `query { shopifyShops(first: 5) { edges { node { id domain name } } } }`,
+   }),
 })
-    .then((response) => response.json())
-    .then((data) => console.log(data));
+   .then((response) => response.json())
+   .then((data) => console.log(data));
 ```
 
 ## 📈 Future Enhancements

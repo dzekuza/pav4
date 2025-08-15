@@ -21,7 +21,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         sourceUrl: request.headers.get("Referer") || "direct",
         userId: affiliateId,
         clickedAt: new Date(),
-        utmSource: "pavlo4",
+        utmSource: "ipick.io",
         utmMedium: "tracking",
         utmCampaign: "domain_tracking",
         conversionStatus: "pending",
@@ -35,7 +35,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     // Redirect to the business domain with UTM parameters
     const utmParams = new URLSearchParams();
-    utmParams.set("utm_source", "pavlo4");
+    utmParams.set("utm_source", "ipick.io");
     utmParams.set("utm_medium", "tracking");
     utmParams.set("utm_campaign", "domain_tracking");
     utmParams.set("aff_id", affiliateId || "");

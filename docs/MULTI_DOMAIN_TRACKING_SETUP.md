@@ -3,7 +3,7 @@
 ## Overview
 
 Updated the tracking system to support events from both
-`https://pavlo4.netlify.app` and `https://ipick.io` domains, ensuring seamless
+`https://ipick.io.netlify.app` and `https://ipick.io` domains, ensuring seamless
 tracking regardless of which domain users enter from.
 
 ## Changes Made
@@ -19,7 +19,7 @@ tracking regardless of which domain users enter from.
 ```typescript
 const allowedOrigins = [
     // ... existing origins
-    "https://pavlo4.netlify.app",
+    "https://ipick.io.netlify.app",
     "https://ipick.io", // ← Added
     // ... other origins
 ];
@@ -36,7 +36,7 @@ function getTrackingEndpoint() {
     const currentHost = window.location.hostname;
 
     // If we're on the main app domain, use the production endpoint
-    if (currentHost === "ipick.io" || currentHost === "pavlo4.netlify.app") {
+    if (currentHost === "ipick.io" || currentHost === "ipick.io.netlify.app") {
         return "https://ipick.io/api/track-event";
     }
 
@@ -87,7 +87,7 @@ function getTrackingEndpoint() {
 ✅ **Successfully Deployed**
 
 - **Production URL**: https://ipick.io
-- **Deploy URL**: https://689e49e4526da830c2bc0b49--pavlo4.netlify.app
+- **Deploy URL**: https://689e49e4526da830c2bc0b49--ipick.io.netlify.app
 - **Functions**: 2 deployed (server.ts, track-event.ts)
 
 ## Testing
@@ -95,7 +95,7 @@ function getTrackingEndpoint() {
 ### Test URLs
 
 1. **Production**: https://ipick.io/test-tracking.html
-2. **Netlify**: https://pavlo4.netlify.app/test-tracking.html
+2. **Netlify**: https://ipick.io.netlify.app/test-tracking.html
 3. **Local**: http://localhost:8084/test-tracking.html
 
 ### Manual Testing
@@ -136,7 +136,7 @@ their users come from:
 ## Next Steps
 
 1. **Monitor**: Watch for tracking events from both domains
-2. **Test**: Verify tracking works on both pavlo4.netlify.app and ipick.io
+2. **Test**: Verify tracking works on both ipick.io.netlify.app and ipick.io
 3. **Optimize**: Consider performance optimizations if needed
 4. **Document**: Update business integration guides to reflect multi-domain
    support

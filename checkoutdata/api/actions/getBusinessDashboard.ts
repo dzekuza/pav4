@@ -1,11 +1,48 @@
 import { ActionOptions } from "gadget-server";
 
+// Interface for journey objects matching Gadget API response
+interface JourneyEvent {
+  id: string;
+  sessionId: string;
+  eventType: string;
+  timestamp: string | Date;
+  pageUrl?: string | null;
+  utmSource?: string | null;
+  businessReferral?: {
+    id?: string;
+    referralId?: string;
+    utmSource?: string | null;
+    utmMedium?: string | null;
+    utmCampaign?: string | null;
+  } | null;
+  cartValue?: number | null;
+  deviceType?: string | null;
+  browserName?: string | null;
+  country?: string | null;
+  email?: string | null;
+  orderId?: string | null;
+  productId?: string | null;
+  productName?: string | null;
+  productPrice?: number | null;
+  discountCode?: string | null;
+  discountValue?: number | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  ipAddress?: string | null;
+  referrerUrl?: string | null;
+  pageTitle?: string | null;
+}
+
+interface SessionEvents {
+  [key: string]: JourneyEvent[];
+}
+
 // Helper function to calculate customer journey analytics
-const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
+const calculateJourneyAnalytics = (journeys: JourneyEvent[], logger: any) => {
   try {
     // Group journeys by session
-    const sessionMap = new Map<string, any[]>();
-    journeys.forEach((journey: any) => {
+    const sessionMap = new Map<string, JourneyEvent[]>();
+    journeys.forEach((journey: JourneyEvent) => {
       if (!sessionMap.has(journey.sessionId)) {
         sessionMap.set(journey.sessionId, []);
       }
@@ -14,12 +51,12 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
 
     // Calculate basic metrics
     const totalSessions = sessionMap.size;
-    const totalPageViews = journeys.filter((j: any) => j.eventType === 'page_view').length;
-    const totalVisits = journeys.filter((j: any) => j.eventType === 'visit').length;
-    const totalPurchases = journeys.filter((j: any) => j.eventType === 'purchase').length;
+    const totalPageViews = journeys.filter((j: JourneyEvent) => j.eventType === 'page_view').length;
+    const totalVisits = journeys.filter((j: JourneyEvent) => j.eventType === 'visit').length;
+    const totalPurchases = journeys.filter((j: JourneyEvent) => j.eventType === 'purchase').length;
 
     // Calculate bounce rate (sessions with only 1 event)
-    const bouncedSessions = Array.from(sessionMap.values()).filter((session: any[]) => session.length === 1).length;
+    const bouncedSessions = Array.from(sessionMap.values()).filter((session: JourneyEvent[]) => session.length === 1).length;
     const bounceRate = totalSessions > 0 ? (bouncedSessions / totalSessions) * 100 : 0;
 
     // Calculate conversion rate (visits to purchases)
@@ -29,9 +66,9 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
     let totalSessionDuration = 0;
     let sessionsWithDuration = 0;
 
-    sessionMap.forEach((sessionEvents: any[]) => {
+    sessionMap.forEach((sessionEvents: JourneyEvent[]) => {
       if (sessionEvents.length > 1) {
-        const sortedEvents = sessionEvents.sort((a: any, b: any) => 
+        const sortedEvents = sessionEvents.sort((a: JourneyEvent, b: JourneyEvent) => 
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
         const firstEvent = sortedEvents[0];
@@ -47,14 +84,16 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
 
     // Get top entry pages
     const entryPages = new Map<string, number>();
-    sessionMap.forEach((sessionEvents: any[]) => {
+    sessionMap.forEach((sessionEvents: JourneyEvent[]) => {
       const sortedEvents = sessionEvents
-        .filter((e: any) => e.eventType === 'page_view' && e.pageUrl)
-        .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        .filter((e: JourneyEvent) => e.eventType === 'page_view' && e.pageUrl)
+        .sort((a: JourneyEvent, b: JourneyEvent) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
       if (sortedEvents.length > 0) {
         const entryPage = sortedEvents[0].pageUrl;
-        entryPages.set(entryPage, (entryPages.get(entryPage) || 0) + 1);
+        if (entryPage) {
+          entryPages.set(entryPage, (entryPages.get(entryPage) || 0) + 1);
+        }
       }
     });
 
@@ -64,50 +103,56 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
       .map(([url, count]) => ({ url, sessions: count }));
 
     // iPick referral journey performance
-    const ipickJourneys = journeys.filter((j: any) => 
-      j.utmSource?.toLowerCase().includes('ipick') || 
-      j.businessReferral?.utmSource?.toLowerCase().includes('ipick')
+    const ipickJourneys = journeys.filter((j: JourneyEvent) => 
+      (j.utmSource && j.utmSource.toLowerCase().includes('ipick')) || 
+      (j.businessReferral?.utmSource && j.businessReferral.utmSource.toLowerCase().includes('ipick'))
     );
 
-    const ipickSessions = new Set(ipickJourneys.map((j: any) => j.sessionId)).size;
-    const ipickPurchases = ipickJourneys.filter((j: any) => j.eventType === 'purchase').length;
+    const ipickSessions = new Set(ipickJourneys.map((j: JourneyEvent) => j.sessionId)).size;
+    const ipickPurchases = ipickJourneys.filter((j: JourneyEvent) => j.eventType === 'purchase').length;
     const ipickConversionRate = ipickSessions > 0 ? (ipickPurchases / ipickSessions) * 100 : 0;
 
     // Calculate revenue from journeys
     const journeyRevenue = journeys
-      .filter((j: any) => j.eventType === 'purchase' && j.cartValue)
-      .reduce((sum: number, j: any) => sum + (j.cartValue || 0), 0);
+      .filter((j: JourneyEvent) => j.eventType === 'purchase' && j.cartValue !== null && j.cartValue !== undefined)
+      .reduce((sum: number, j: JourneyEvent) => sum + (j.cartValue || 0), 0);
 
     const ipickRevenue = ipickJourneys
-      .filter((j: any) => j.eventType === 'purchase' && j.cartValue)
-      .reduce((sum: number, j: any) => sum + (j.cartValue || 0), 0);
+      .filter((j: JourneyEvent) => j.eventType === 'purchase' && j.cartValue !== null && j.cartValue !== undefined)
+      .reduce((sum: number, j: JourneyEvent) => sum + (j.cartValue || 0), 0);
 
     // Event type breakdown
-    const eventBreakdown = journeys.reduce((acc: any, j: any) => {
+    const eventBreakdown = journeys.reduce((acc: Record<string, number>, j: JourneyEvent) => {
       acc[j.eventType] = (acc[j.eventType] || 0) + 1;
       return acc;
     }, {});
 
     // Device and browser analytics
     const deviceBreakdown = journeys
-      .filter((j: any) => j.deviceType)
-      .reduce((acc: any, j: any) => {
-        acc[j.deviceType] = (acc[j.deviceType] || 0) + 1;
+      .filter((j: JourneyEvent) => j.deviceType !== null && j.deviceType !== undefined)
+      .reduce((acc: Record<string, number>, j: JourneyEvent) => {
+        if (j.deviceType) {
+          acc[j.deviceType] = (acc[j.deviceType] || 0) + 1;
+        }
         return acc;
       }, {});
 
     const browserBreakdown = journeys
-      .filter((j: any) => j.browserName)
-      .reduce((acc: any, j: any) => {
-        acc[j.browserName] = (acc[j.browserName] || 0) + 1;
+      .filter((j: JourneyEvent) => j.browserName !== null && j.browserName !== undefined)
+      .reduce((acc: Record<string, number>, j: JourneyEvent) => {
+        if (j.browserName) {
+          acc[j.browserName] = (acc[j.browserName] || 0) + 1;
+        }
         return acc;
       }, {});
 
     // Geographic breakdown
     const countryBreakdown = journeys
-      .filter((j: any) => j.country)
-      .reduce((acc: any, j: any) => {
-        acc[j.country] = (acc[j.country] || 0) + 1;
+      .filter((j: JourneyEvent) => j.country !== null && j.country !== undefined)
+      .reduce((acc: Record<string, number>, j: JourneyEvent) => {
+        if (j.country) {
+          acc[j.country] = (acc[j.country] || 0) + 1;
+        }
         return acc;
       }, {});
 
@@ -115,9 +160,9 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
     const funnelData = {
       visits: totalVisits,
       pageViews: totalPageViews,
-      addToCart: journeys.filter((j: any) => j.eventType === 'add_to_cart').length,
-      checkoutStart: journeys.filter((j: any) => j.eventType === 'checkout_start').length,
-      checkoutComplete: journeys.filter((j: any) => j.eventType === 'checkout_complete').length,
+      addToCart: journeys.filter((j: JourneyEvent) => j.eventType === 'add_to_cart').length,
+      checkoutStart: journeys.filter((j: JourneyEvent) => j.eventType === 'checkout_start').length,
+      checkoutComplete: journeys.filter((j: JourneyEvent) => j.eventType === 'checkout_complete').length,
       purchases: totalPurchases
     };
 
@@ -166,34 +211,34 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
 };
 
 // Helper function to calculate sessions over time
-const calculateSessionsOverTime = (journeys: any[]) => {
+const calculateSessionsOverTime = (journeys: JourneyEvent[]) => {
   const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   
-  const recent7Days = journeys.filter((j: any) => new Date(j.timestamp) >= last7Days);
-  const recent30Days = journeys.filter((j: any) => new Date(j.timestamp) >= last30Days);
+  const recent7Days = journeys.filter((j: JourneyEvent) => new Date(j.timestamp) >= last7Days);
+  const recent30Days = journeys.filter((j: JourneyEvent) => new Date(j.timestamp) >= last30Days);
 
-  const sessions7Days = new Set(recent7Days.map((j: any) => j.sessionId)).size;
-  const sessions30Days = new Set(recent30Days.map((j: any) => j.sessionId)).size;
+  const sessions7Days = new Set(recent7Days.map((j: JourneyEvent) => j.sessionId)).size;
+  const sessions30Days = new Set(recent30Days.map((j: JourneyEvent) => j.sessionId)).size;
 
   return {
     last7Days: {
       sessions: sessions7Days,
-      pageViews: recent7Days.filter((j: any) => j.eventType === 'page_view').length,
-      purchases: recent7Days.filter((j: any) => j.eventType === 'purchase').length
+      pageViews: recent7Days.filter((j: JourneyEvent) => j.eventType === 'page_view').length,
+      purchases: recent7Days.filter((j: JourneyEvent) => j.eventType === 'purchase').length
     },
     last30Days: {
       sessions: sessions30Days,
-      pageViews: recent30Days.filter((j: any) => j.eventType === 'page_view').length,
-      purchases: recent30Days.filter((j: any) => j.eventType === 'purchase').length
+      pageViews: recent30Days.filter((j: JourneyEvent) => j.eventType === 'page_view').length,
+      purchases: recent30Days.filter((j: JourneyEvent) => j.eventType === 'purchase').length
     }
   };
 };
 
 // Helper function to calculate referral journey statistics
-const calculateReferralJourneyStats = (journeys: any[]) => {
-  const referralJourneys = journeys.filter((j: any) => j.businessReferral);
-  const referralSources = referralJourneys.reduce((acc: any, j: any) => {
+const calculateReferralJourneyStats = (journeys: JourneyEvent[]) => {
+  const referralJourneys = journeys.filter((j: JourneyEvent) => j.businessReferral);
+  const referralSources = referralJourneys.reduce((acc: Record<string, { sessions: Set<string>; purchases: number; revenue: number }>, j: JourneyEvent) => {
     const source = j.utmSource || 'unknown';
     if (!acc[source]) {
       acc[source] = { sessions: new Set<string>(), purchases: 0, revenue: 0 };
@@ -207,7 +252,7 @@ const calculateReferralJourneyStats = (journeys: any[]) => {
   }, {});
 
   // Convert sessions Set to count and format the data
-  const formattedSources = Object.entries(referralSources).map(([source, data]: [string, any]) => ({
+  const formattedSources = Object.entries(referralSources).map(([source, data]) => ({
     source,
     sessions: data.sessions.size,
     purchases: data.purchases,
@@ -216,18 +261,18 @@ const calculateReferralJourneyStats = (journeys: any[]) => {
   }));
 
   return {
-    totalReferralSessions: new Set(referralJourneys.map((j: any) => j.sessionId)).size,
-    sourceBreakdown: formattedSources.sort((a: any, b: any) => b.sessions - a.sessions)
+    totalReferralSessions: new Set(referralJourneys.map((j: JourneyEvent) => j.sessionId)).size,
+    sourceBreakdown: formattedSources.sort((a, b) => b.sessions - a.sessions)
   };
 };
 
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
   try {
-    // Parse parameters
-    const businessDomain = params.businessDomain as string | undefined;
-    const startDate = params.startDate ? new Date(params.startDate as string) : undefined;
-    const endDate = params.endDate ? new Date(params.endDate as string) : undefined;
-    const limit = params.limit ? Number(params.limit) : 100;
+    // Parse parameters with proper type checking
+    const businessDomain = typeof params.businessDomain === 'string' ? params.businessDomain : undefined;
+    const startDate = typeof params.startDate === 'string' && params.startDate ? new Date(params.startDate) : undefined;
+    const endDate = typeof params.endDate === 'string' && params.endDate ? new Date(params.endDate) : undefined;
+    const limit = typeof params.limit === 'number' && params.limit > 0 ? params.limit : 100;
 
     // Build date filter for queries
     const dateFilter: any = {};
@@ -405,7 +450,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       let matchedReferral = null;
 
       // Method 1: Check if order has UTM parameters in sourceUrl
-      if (order.sourceUrl) {
+      if (order.sourceUrl && typeof order.sourceUrl === 'string') {
         try {
           const url = new URL(order.sourceUrl);
           const utmSource = url.searchParams.get('utm_source');
@@ -430,7 +475,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         const timeWindowMs = 48 * 60 * 60 * 1000; // 48 hours
         
         for (const referral of convertedReferrals) {
-          if (referral.clickedAt) {
+          if (referral.clickedAt && typeof referral.clickedAt === 'string') {
             const timeDiff = orderCreatedAt.getTime() - new Date(referral.clickedAt).getTime();
             if (timeDiff >= 0 && timeDiff <= timeWindowMs) {
               isAffiliateOrder = true;
@@ -443,7 +488,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       }
 
       // Method 3: Check if order has affiliate indicators in sourceName
-      if (!isAffiliateOrder && order.sourceName) {
+      if (!isAffiliateOrder && order.sourceName && typeof order.sourceName === 'string') {
         const sourceName = order.sourceName.toLowerCase();
         if (sourceName.includes('ipick') || sourceName.includes('pavlo') || sourceName.includes('price comparison')) {
           isAffiliateOrder = true;
@@ -476,24 +521,26 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
 
     // Calculate revenue breakdown
     const totalRevenue = orders.reduce((sum, order) => {
-      const price = parseFloat(order.totalPrice || '0');
+      const priceStr = order.totalPrice && typeof order.totalPrice === 'string' ? order.totalPrice : '0';
+      const price = parseFloat(priceStr);
       return sum + (isNaN(price) ? 0 : price);
     }, 0);
 
     const affiliateRevenue = affiliateOrders.reduce((sum, order) => {
-      const price = parseFloat(order.totalPrice || '0');
+      const priceStr = order.totalPrice && typeof order.totalPrice === 'string' ? order.totalPrice : '0';
+      const price = parseFloat(priceStr);
       return sum + (isNaN(price) ? 0 : price);
     }, 0);
 
     const directRevenue = directOrders.reduce((sum, order) => {
-      const price = parseFloat(order.totalPrice || '0');
+      const priceStr = order.totalPrice && typeof order.totalPrice === 'string' ? order.totalPrice : '0';
+      const price = parseFloat(priceStr);
       return sum + (isNaN(price) ? 0 : price);
     }, 0);
 
     // Referral statistics
     const ipickReferrals = referrals.filter(r => 
-      r.utmSource?.toLowerCase().includes('ipick') || 
-      r.utmSource?.toLowerCase().includes('ipick')
+      (r.utmSource && typeof r.utmSource === 'string' && r.utmSource.toLowerCase().includes('ipick'))
     );
     const totalReferrals = referrals.length;
     const ipickConversions = ipickReferrals.filter(r => r.conversionStatus === 'converted').length;
@@ -522,14 +569,40 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     }, {});
 
     // Top referral sources
-    const topSources = referrals.reduce((acc: any, r) => {
-      const source = r.utmSource || 'unknown';
+    const topSources = referrals.reduce((acc: Record<string, number>, r) => {
+      const source = (r.utmSource && typeof r.utmSource === 'string') ? r.utmSource : 'unknown';
       acc[source] = (acc[source] || 0) + 1;
       return acc;
     }, {});
 
-    // Calculate customer journey analytics
-    const journeyAnalytics = calculateJourneyAnalytics(customerJourneys, logger);
+    // Calculate customer journey analytics - transform the API response to match our interface
+    const transformedJourneys: JourneyEvent[] = customerJourneys.map(journey => ({
+      id: journey.id,
+      sessionId: journey.sessionId,
+      eventType: journey.eventType,
+      timestamp: journey.timestamp,
+      pageUrl: journey.pageUrl,
+      utmSource: journey.utmSource,
+      businessReferral: journey.businessReferral,
+      cartValue: journey.cartValue,
+      deviceType: journey.deviceType,
+      browserName: journey.browserName,
+      country: journey.country,
+      email: journey.email,
+      orderId: journey.orderId,
+      productId: journey.productId,
+      productName: journey.productName,
+      productPrice: journey.productPrice,
+      discountCode: journey.discountCode,
+      discountValue: journey.discountValue,
+      utmMedium: journey.utmMedium,
+      utmCampaign: journey.utmCampaign,
+      ipAddress: journey.ipAddress,
+      referrerUrl: journey.referrerUrl,
+      pageTitle: journey.pageTitle
+    }));
+
+    const journeyAnalytics = calculateJourneyAnalytics(transformedJourneys, logger);
 
     // Format response following Gadget best practices
     const response = {
@@ -571,8 +644,8 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           name: checkout.name,
           token: checkout.token,
           processingStatus: checkout.processingStatus,
-          isIpickReferral: checkout.sourceUrl?.toLowerCase().includes('ipick') || 
-                          checkout.sourceName?.toLowerCase().includes('ipick')
+          isIpickReferral: (checkout.sourceUrl && typeof checkout.sourceUrl === 'string' && checkout.sourceUrl.toLowerCase().includes('ipick')) || 
+                          (checkout.sourceName && typeof checkout.sourceName === 'string' && checkout.sourceName.toLowerCase().includes('ipick'))
         })),
         recentOrders: orders.slice(0, 20).map(order => {
           // Check if this order is an affiliate order
@@ -610,12 +683,18 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           last30Days: {
             checkouts: recentCheckouts.length,
             orders: recentOrders.length,
-            revenue: recentOrders.reduce((sum, o) => sum + parseFloat(o.totalPrice || '0'), 0)
+            revenue: recentOrders.reduce((sum, o) => {
+              const priceStr = o.totalPrice && typeof o.totalPrice === 'string' ? o.totalPrice : '0';
+              return sum + parseFloat(priceStr);
+            }, 0)
           },
           last7Days: {
             checkouts: weeklyCheckouts.length,
             orders: weeklyOrders.length,
-            revenue: weeklyOrders.reduce((sum, o) => sum + parseFloat(o.totalPrice || '0'), 0)
+            revenue: weeklyOrders.reduce((sum, o) => {
+              const priceStr = o.totalPrice && typeof o.totalPrice === 'string' ? o.totalPrice : '0';
+              return sum + parseFloat(priceStr);
+            }, 0)
           }
         },
         orderStatuses: financialStatusBreakdown,
@@ -629,7 +708,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           conversionStatus: referral.conversionStatus,
           conversionValue: referral.conversionValue,
           clickedAt: referral.clickedAt,
-          isIpick: referral.utmSource?.toLowerCase().includes('ipick')
+          isIpick: referral.utmSource && typeof referral.utmSource === 'string' ? referral.utmSource.toLowerCase().includes('ipick') : false
         })),
         affiliateOrders: affiliateOrders.map(affiliateOrder => ({
           ...affiliateOrder,

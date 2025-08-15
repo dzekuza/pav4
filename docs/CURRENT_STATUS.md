@@ -1,4 +1,4 @@
-# 🔥 Pavlo4 + Gadget Analytics Integration - **100% COMPLETE!**
+# 🔥 iPick.io + Gadget Analytics Integration - **100% COMPLETE!**
 
 ## ✅ **COMPLETED - FULLY WORKING!**
 
@@ -8,7 +8,7 @@
 - ✅ Business dashboard component with beautiful UI
 - ✅ Server-side integration with proper authentication
 - ✅ Responsive design that works on mobile and desktop
-- ✅ Pavlo4 referral highlighting and tracking
+- ✅ iPick.io referral highlighting and tracking
 - ✅ Revenue attribution and conversion rate calculations
 - ✅ **REAL DATA CONNECTION WORKING**
 
@@ -34,7 +34,7 @@
 - ✅ **LIVE DATA** from Gadget checkout system
 - ✅ Real businesses, checkouts, orders, and referrals
 - ✅ All features working with actual data
-- ✅ Pavlo4 referral highlighting ready
+- ✅ iPick.io referral highlighting ready
 - ✅ Business selector working
 - ✅ Responsive design working
 
@@ -78,17 +78,17 @@ Successfully fetching real data from your checkout system:
 
 ## 🚀 **Business Value Achieved**
 
-Your Pavlo4 platform now has:
+Your iPick.io platform now has:
 
 1. **✅ Real Analytics Dashboard**: Shows actual data from business partners
 2. **✅ Revenue Attribution**: Tracks revenue from different sources
-3. **✅ Pavlo4 Referral Tracking**: Ready to highlight your platform's referrals
+3. **✅ iPick.io Referral Tracking**: Ready to highlight your platform's referrals
 4. **✅ Multi-Business Support**: Can handle multiple business partners
 5. **✅ Professional Reporting**: Beautiful, responsive dashboard
 
 ## 📁 **Files Ready for Deployment**
 
-All these files are ready to be copied to your pavlo4.netlify.app:
+All these files are ready to be copied to your ipick.io:
 
 - `public/gadget-analytics.js` ✅ (API key updated)
 - `public/business-dashboard.js` ✅
@@ -98,15 +98,15 @@ All these files are ready to be copied to your pavlo4.netlify.app:
 
 ### **Deploy to Production**
 
-1. Copy the files to your pavlo4.netlify.app
+1. Copy the files to your ipick.io
 2. Include them in your business dashboard pages
 3. Start showing real analytics to your business partners
 
-### **Start Tracking Pavlo4 Referrals**
+### **Start Tracking iPick.io Referrals**
 
-1. When businesses use your tracking system, referrals from pavlo4.netlify.app
+1. When businesses use your tracking system, referrals from ipick.io
    will be highlighted
-2. You'll see "🔥 Pavlo4" badges and special styling
+2. You'll see "🔥 iPick.io" badges and special styling
 3. Revenue attribution will show your platform's impact
 
 ### **Attract New Partners**
@@ -123,9 +123,9 @@ You now have a fully functional business analytics dashboard that:
 
 - ✅ Connects to your Gadget checkout system
 - ✅ Shows real data from business partners
-- ✅ Highlights Pavlo4 referrals
+- ✅ Highlights iPick.io referrals
 - ✅ Tracks revenue and conversions
 - ✅ Provides professional reporting
 
-This dashboard will prove the value of your Pavlo4 platform and help you attract
+This dashboard will prove the value of your iPick.io platform and help you attract
 new business partners!

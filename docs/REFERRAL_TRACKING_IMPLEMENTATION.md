@@ -103,13 +103,13 @@ Businesses can see:
 ### Referral URLs
 
 ```
-https://ipick.io/ref/{affiliateId}?target_url={productUrl}&utm_source=pavlo4&utm_medium=referral&utm_campaign=business_referral&aff_id={affiliateId}&ref_token={uniqueToken}
+https://ipick.io/ref/{affiliateId}?target_url={productUrl}&utm_source=ipick.io&utm_medium=referral&utm_campaign=business_referral&aff_id={affiliateId}&ref_token={uniqueToken}
 ```
 
 ### Tracking URLs
 
 ```
-https://ipick.io/track/{affiliateId}/{domain}?utm_source=pavlo4&utm_medium=tracking&utm_campaign=domain_tracking&aff_id={affiliateId}&track_token={uniqueToken}
+https://ipick.io/track/{affiliateId}/{domain}?utm_source=ipick.io&utm_medium=tracking&utm_campaign=domain_tracking&aff_id={affiliateId}&track_token={uniqueToken}
 ```
 
 ## Benefits

@@ -25,7 +25,7 @@ function extractCurrency(priceString: string): string {
 function addUtmToUrl(url: string): string {
   try {
     const u = new URL(url);
-    u.searchParams.set("utm_source", "pavlo4");
+    u.searchParams.set("utm_source", "ipick.io");
     u.searchParams.set("utm_medium", "suggestion");
     u.searchParams.set("utm_campaign", "business_tracking");
     return u.toString();

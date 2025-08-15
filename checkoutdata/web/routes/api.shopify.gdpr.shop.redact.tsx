@@ -30,7 +30,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         // Find and delete shop-related business referrals
         const businessReferrals = await api.businessReferral.findMany({
           filter: {
-            shop: { equals: shop.id }
+            shopId: { equals: shop.id }
           }
         });
 
@@ -39,24 +39,43 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           await api.businessReferral.delete(referral.id);
         }
 
-        // Delete shop data (you may want to anonymize instead of delete)
-        await api.shopifyShop.delete(shop.id);
+        // Anonymize sensitive shop data instead of deleting
+        await api.shopifyShop.update(shop.id, {
+          email: null,
+          customerEmail: null,
+          phone: null,
+          shopOwner: null,
+          address1: null,
+          address2: null,
+          city: null,
+          province: null,
+          provinceCode: null,
+          zipCode: null,
+          country: null,
+          countryCode: null,
+          countryName: null,
+          description: null,
+          billingAddress: null,
+          alerts: null
+        });
 
-        console.log('Shop data erased successfully');
+        console.log('Shop data anonymized successfully');
       } else {
         console.log('Shop not found for domain:', shop_domain);
       }
-    } catch (deleteError) {
-      console.error('Error deleting shop data:', deleteError);
+    } catch (anonymizeError) {
+      console.error('Error anonymizing shop data:', anonymizeError);
+      // Still return success to Shopify to avoid webhook retries
+      // but log the error for internal monitoring
     }
 
     return json({
       success: true,
-      message: 'Shop data erased successfully'
+      message: 'Shop data anonymized successfully'
     });
 
   } catch (error) {
-    console.error('Error processing shop data erasure:', error);
+    console.error('Error processing shop data anonymization:', error);
     return json({ error: 'Internal server error' }, { status: 500 });
   }
 };

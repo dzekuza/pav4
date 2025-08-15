@@ -65,7 +65,7 @@ export const trackReferral = async (businessDomain: string, productUrl: string, 
   
   // Build target URL with UTM parameters
   const targetUrl = new URL(productUrl);
-  targetUrl.searchParams.set('utm_source', 'pavlo4');
+          targetUrl.searchParams.set('utm_source', 'ipick.io');
   targetUrl.searchParams.set('utm_medium', 'suggestion');
   targetUrl.searchParams.set('utm_campaign', 'business_tracking');
   targetUrl.searchParams.set('ref_id', referralId);

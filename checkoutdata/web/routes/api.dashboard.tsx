@@ -99,12 +99,12 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         ],
         referralStatistics: {
           totalReferrals: 25,
-          pavlo4Referrals: 12,
-          pavlo4ConversionRate: 66.67,
+          ipickReferrals: 12,
+          ipickConversionRate: 66.67,
           totalConversions: 8,
           referralRevenue: 850.00,
           topSources: {
-            'pavlo4': 12,
+            'ipick.io': 12,
             'google': 8,
             'facebook': 3,
             'direct': 2
@@ -132,7 +132,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
             id: '1',
             referralId: 'ref1',
             businessDomain: businessDomain || 'example.com',
-            source: 'pavlo4',
+            source: 'ipick.io',
             medium: 'referral',
             campaign: 'price-comparison',
             conversionStatus: 'converted',

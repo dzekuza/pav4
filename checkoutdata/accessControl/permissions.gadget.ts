@@ -67,6 +67,17 @@ export const permissions: GadgetPermissions = {
             run: true,
           },
         },
+        userAuthorization: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/userAuthorization.gelly",
+          },
+          actions: {
+            create: true,
+            delete: true,
+            update: true,
+          },
+        },
       },
     },
     unauthenticated: {

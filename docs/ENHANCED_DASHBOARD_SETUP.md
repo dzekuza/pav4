@@ -8,9 +8,9 @@ integrates with the checkout system to provide comprehensive analytics.
 The enhanced business dashboard provides:
 
 - Business summary (shop info, total checkouts, total orders, conversion rates)
-- Recent checkouts with source tracking (highlighting pavlo4 referrals)
+- Recent checkouts with source tracking (highlighting ipick.io referrals)
 - Recent orders with financial status
-- Referral statistics (pavlo4 vs other sources)
+- Referral statistics (ipick.io vs other sources)
 - Revenue metrics
 - Time-based trends
 
@@ -62,8 +62,8 @@ This endpoint fetches comprehensive business analytics from the checkout system.
     "recentOrders": [...],
     "referralStatistics": {
       "totalReferrals": 50,
-      "pavlo4Referrals": 30,
-      "pavlo4ConversionRate": 85.5,
+      "ipickReferrals": 30,
+      "ipickConversionRate": 85.5,
       "totalConversions": 40,
       "referralRevenue": 8000.00
     },
@@ -143,7 +143,7 @@ A new React component that displays the enhanced analytics data.
 - Recent activity tables
 - Referral source tracking
 - Trend analysis
-- Pavlo4 referral highlighting
+- iPick.io referral highlighting
 
 **Usage:**
 

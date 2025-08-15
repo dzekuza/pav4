@@ -59,7 +59,7 @@ export default function() {
     return (
       <Page>
         <Card padding="500">
-          <Banner status="critical" title="Authentication Error">
+          <Banner tone="critical" title="Authentication Error">
             <p>Failed to authenticate with Shopify: {error.message}</p>
             <Button onClick={() => window.location.reload()}>
               Retry Authentication
@@ -107,14 +107,14 @@ const Unauthenticated = ({ authDebug }: { authDebug: any }) => {
           
           {/* Debug information */}
           <Box paddingBlockStart="400">
-            <Banner status="info" title="Debug Information">
+            <Banner tone="info" title="Debug Information">
               <p>Authentication attempts: {authDebug.attempts}</p>
               <p>Last check: {authDebug.lastCheck?.toISOString()}</p>
               {authDebug.errors.length > 0 && (
                 <div>
                   <p>Recent errors:</p>
                   <ul>
-                    {authDebug.errors.slice(-3).map((error, index) => (
+                    {authDebug.errors.slice(-3).map((error: string, index: number) => (
                       <li key={index}>{error}</li>
                     ))}
                   </ul>

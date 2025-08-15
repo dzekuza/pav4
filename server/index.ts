@@ -547,7 +547,7 @@ export async function createServer() {
     });
     // Build redirect URL with UTM parameters and a unique token
     const utmParams = new URLSearchParams({
-      utm_source: "pavlo4",
+      utm_source: "ipick.io",
       utm_medium: "affiliate",
       utm_campaign: "product_suggestion",
       aff_token: Math.random().toString(36).slice(2, 12),
@@ -689,7 +689,7 @@ export async function createServer() {
           userAgent: req.get("User-Agent") || undefined,
           referrer: req.get("Referer") || undefined,
           ipAddress: req.ip,
-          utmSource: "pavlo4",
+          utmSource: "ipick.io",
           utmMedium: "referral",
           utmCampaign: "business_referral",
         },
@@ -710,7 +710,7 @@ export async function createServer() {
           const targetUrl = new URL(target_url);
           // Add UTM parameters to the target URL
           const utmParams = new URLSearchParams({
-            utm_source: "pavlo4",
+            utm_source: "ipick.io",
             utm_medium: "referral",
             utm_campaign: "business_referral",
             aff_id: affiliateId,
@@ -726,7 +726,7 @@ export async function createServer() {
           console.error("Invalid target_url:", target_url);
           // Fallback to business domain
           const utmParams = new URLSearchParams({
-            utm_source: "pavlo4",
+            utm_source: "ipick.io",
             utm_medium: "referral",
             utm_campaign: "business_referral",
             aff_id: affiliateId,
@@ -737,7 +737,7 @@ export async function createServer() {
       } else {
         // Default redirect to business domain
         const utmParams = new URLSearchParams({
-          utm_source: "pavlo4",
+          utm_source: "ipick.io",
           utm_medium: "referral",
           utm_campaign: "business_referral",
           aff_id: affiliateId,
@@ -779,7 +779,7 @@ export async function createServer() {
           userAgent: req.get("User-Agent") || undefined,
           referrer: req.get("Referer") || undefined,
           ipAddress: req.ip,
-          utmSource: "pavlo4",
+          utmSource: "ipick.io",
           utmMedium: "tracking",
           utmCampaign: "domain_tracking",
         },
@@ -793,7 +793,7 @@ export async function createServer() {
 
       // Redirect to the business domain with UTM parameters
       const utmParams = new URLSearchParams({
-        utm_source: "pavlo4",
+        utm_source: "ipick.io",
         utm_medium: "tracking",
         utm_campaign: "domain_tracking",
         aff_id: affiliateId,

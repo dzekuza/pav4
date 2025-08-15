@@ -37,7 +37,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         sourceUrl: request.headers.get("Referer") || "direct",
         userId: affiliateId,
         clickedAt: new Date(),
-        utmSource: "pavlo4",
+        utmSource: "ipick.io",
         utmMedium: "referral",
         utmCampaign: "business_referral",
         conversionStatus: "pending",
@@ -60,7 +60,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         const targetUrlObj = new URL(targetUrl);
         // Add UTM parameters to the target URL
         const utmParams = new URLSearchParams();
-        utmParams.set("utm_source", "pavlo4");
+        utmParams.set("utm_source", "ipick.io");
         utmParams.set("utm_medium", "referral");
         utmParams.set("utm_campaign", "business_referral");
         utmParams.set("aff_id", affiliateId || "");
@@ -75,7 +75,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         console.error("Invalid target_url:", targetUrl);
         // Fallback to business domain
         const utmParams = new URLSearchParams();
-        utmParams.set("utm_source", "pavlo4");
+        utmParams.set("utm_source", "ipick.io");
         utmParams.set("utm_medium", "referral");
         utmParams.set("utm_campaign", "business_referral");
         utmParams.set("aff_id", affiliateId || "");
@@ -85,7 +85,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     } else {
       // Default redirect to business domain
       const utmParams = new URLSearchParams();
-      utmParams.set("utm_source", "pavlo4");
+      utmParams.set("utm_source", "ipick.io");
       utmParams.set("utm_medium", "referral");
       utmParams.set("utm_campaign", "business_referral");
       utmParams.set("aff_id", affiliateId || "");

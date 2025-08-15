@@ -57,7 +57,7 @@ interface BusinessDashboardData {
     shop: { id: string; domain: string; name: string };
     sourceUrl: string | null;
     sourceName: string | null;
-    isPavlo4Referral: boolean;
+    isIpickReferral: boolean;
   }>;
   recentOrders: Array<{
     id: string;
@@ -72,8 +72,8 @@ interface BusinessDashboardData {
   }>;
   referralStatistics: {
     totalReferrals: number;
-    pavlo4Referrals: number;
-    pavlo4ConversionRate: number;
+    ipick.ioReferrals: number;
+    ipick.ioConversionRate: number;
     totalConversions: number;
     referralRevenue: number;
     topSources: Record<string, number>;
@@ -324,10 +324,10 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {referralStatistics.pavlo4Referrals}
+              {referralStatistics.ipick.ioReferrals}
             </div>
             <p className="text-xs text-white/80">
-              {referralStatistics.pavlo4ConversionRate.toFixed(1)}% conversion
+              {referralStatistics.ipick.ioConversionRate.toFixed(1)}% conversion
             </p>
           </CardContent>
         </Card>
@@ -383,7 +383,7 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-white">Pavlo4 Referrals</span>
-              <span className="text-sm text-white">{referralStatistics.pavlo4Referrals}</span>
+              <span className="text-sm text-white">{referralStatistics.ipick.ioReferrals}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-white">Total Conversions</span>

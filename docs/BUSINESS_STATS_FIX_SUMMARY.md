@@ -2,19 +2,25 @@
 
 ## 🚨 Problem Identified
 
-After successfully logging in, the business dashboard was showing "Unable to load business statistics" because the `/api/business/auth/stats` endpoint was missing from the Netlify server.
+After successfully logging in, the business dashboard was showing "Unable to
+load business statistics" because the `/api/business/auth/stats` endpoint was
+missing from the Netlify server.
 
-**Error**: `GET https://pavlo4.netlify.app/api/business/auth/stats 404 (Not Found)`
+**Error**:
+`GET https://ipick.io.netlify.app/api/business/auth/stats 404 (Not Found)`
 
 ## 🔍 Root Cause
 
-The Netlify server (`server/netlify-server.ts`) was missing the business statistics endpoint that exists in the main server but wasn't implemented in the simplified Netlify version.
+The Netlify server (`server/netlify-server.ts`) was missing the business
+statistics endpoint that exists in the main server but wasn't implemented in the
+simplified Netlify version.
 
 ## ✅ Solution Applied
 
 ### 1. Added Business Statistics Endpoint
 
-Added the missing `/api/business/auth/stats` endpoint to the Netlify server with:
+Added the missing `/api/business/auth/stats` endpoint to the Netlify server
+with:
 
 - ✅ Authentication verification
 - ✅ Business data retrieval
@@ -82,8 +88,10 @@ app.get("/api/business/auth/stats", async (req, res) => {
 ## 📞 Next Steps
 
 1. **Wait for deployment** to complete (usually 2-5 minutes)
-2. **Test the business dashboard** at https://pavlo4.netlify.app/business-login
+2. **Test the business dashboard** at
+   https://ipick.io.netlify.app/business-login
 3. **Verify statistics are loading** correctly
 4. **Check for any remaining errors** in the browser console
 
-The business statistics should now load properly and display all the relevant business data! 🎉
+The business statistics should now load properly and display all the relevant
+business data! 🎉
