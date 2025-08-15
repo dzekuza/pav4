@@ -670,5 +670,4 @@ export const params = {
 
 export const options: ActionOptions = {
   returnType: true,
-  triggers: { shopify: { webhooks: [] } },
 };

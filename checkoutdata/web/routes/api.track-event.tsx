@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import { api } from "../api";
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
@@ -128,6 +128,6 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 };
 
 // Handle POST requests
-export const action = async ({ request, context, params }: LoaderFunctionArgs) => {
+export const action = async ({ request, context, params }: ActionFunctionArgs) => {
   return loader({ request, context, params });
 };
