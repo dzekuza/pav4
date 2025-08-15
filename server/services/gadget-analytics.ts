@@ -2,10 +2,8 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Use development environment if PAVLP_DASHBOARD_ACCESS is set
-const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
-  ? 'https://checkoutdata--development.gadget.app/api/graphql'
-  : 'https://checkoutdata.gadget.app/api/graphql';
+// Use production environment by default (development is paused)
+const GADGET_API_URL = 'https://checkoutdata.gadget.app/api/graphql';
 
 const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
 
@@ -19,7 +17,7 @@ export class GadgetAnalytics {
     console.log('GadgetAnalytics initialized with:', {
       baseUrl: this.baseUrl,
       hasApiKey: !!this.apiKey,
-      environment: process.env.PAVLP_DASHBOARD_ACCESS ? 'development' : 'production'
+      environment: 'production'
     });
   }
 
