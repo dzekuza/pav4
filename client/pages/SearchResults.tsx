@@ -34,6 +34,8 @@ import {
   trackProductSearch,
   trackPriceComparison,
   getStoredUtmParameters,
+  trackProductClick,
+  trackCustomEvent,
 } from "@/lib/tracking";
 import { ComparisonGrid } from "@/components/ComparisonGrid";
 import { getRedirectUrl } from "@/lib/utils";
@@ -259,6 +261,60 @@ const SearchResults = () => {
   const handleRefresh = () => {
     if (location.state?.searchUrl && location.state?.userCountry) {
       fetchProductData(location.state.searchUrl, location.state.userCountry);
+    }
+  };
+
+  // Enhanced product click handler with tracking
+  const handleProductClick = async (comparison: PriceComparison) => {
+    try {
+      // Extract business domain from URL if it's a Shopify store
+      let businessDomain: string | undefined;
+      try {
+        const urlObj = new URL(comparison.url);
+        if (urlObj.hostname.includes('myshopify.com')) {
+          businessDomain = urlObj.hostname;
+        }
+      } catch (error) {
+        console.log('Could not parse URL for business domain extraction');
+      }
+
+      // Track the product click
+      await trackCustomEvent('product_click', {
+        productId: comparison.title, // Use title as ID since there's no id field
+        productName: comparison.title,
+        productPrice: `${comparison.currency}${comparison.price}`,
+        retailer: comparison.merchant || comparison.store,
+        url: comparison.url,
+        isBestPrice: comparison.price > 0 && comparisons.indexOf(comparison) === 0
+      }, businessDomain);
+
+      // Use enhanced product click tracking if business domain is available
+      if (businessDomain) {
+        const result = await trackProductClick(
+          {
+            url: comparison.url,
+            title: comparison.title,
+            name: comparison.title,
+            id: comparison.title, // Use title as ID since there's no id field
+            price: `${comparison.currency}${comparison.price}`,
+            retailer: comparison.merchant || comparison.store
+          },
+          businessDomain
+        );
+
+        if (result.success) {
+          // Open the tracked URL
+          window.open(result.targetUrl, '_blank');
+          return;
+        }
+      }
+
+      // Fallback to regular redirect
+      window.open(getRedirectUrl(comparison.url), '_blank');
+    } catch (error) {
+      console.error('Error handling product click:', error);
+      // Fallback to regular redirect
+      window.open(getRedirectUrl(comparison.url), '_blank');
     }
   };
 
@@ -498,16 +554,59 @@ const SearchResults = () => {
                 </div>
               </div>
               {originalProduct.url && (
-                <Button asChild>
-                  <a
-                    href={getRedirectUrl(originalProduct.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="View original product details"
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View Product
-                  </a>
+                <Button
+                  onClick={async () => {
+                    try {
+                      // Extract business domain from URL if it's a Shopify store
+                      let businessDomain: string | undefined;
+                      try {
+                        const urlObj = new URL(originalProduct.url);
+                        if (urlObj.hostname.includes('myshopify.com')) {
+                          businessDomain = urlObj.hostname;
+                        }
+                      } catch (error) {
+                        console.log('Could not parse URL for business domain extraction');
+                      }
+
+                      // Track the original product click
+                      await trackCustomEvent('original_product_click', {
+                        productId: originalProduct.title,
+                        productName: originalProduct.title,
+                        productPrice: `${originalProduct.currency}${originalProduct.price}`,
+                        url: originalProduct.url
+                      }, businessDomain);
+
+                      // Use enhanced tracking if business domain is available
+                      if (businessDomain) {
+                        const result = await trackProductClick(
+                          {
+                            url: originalProduct.url,
+                            title: originalProduct.title,
+                            name: originalProduct.title,
+                            id: originalProduct.title,
+                            price: `${originalProduct.currency}${originalProduct.price}`,
+                            retailer: 'Original Store'
+                          },
+                          businessDomain
+                        );
+
+                        if (result.success) {
+                          window.open(result.targetUrl, '_blank');
+                          return;
+                        }
+                      }
+
+                      // Fallback to regular redirect
+                      window.open(getRedirectUrl(originalProduct.url), '_blank');
+                    } catch (error) {
+                      console.error('Error handling original product click:', error);
+                      window.open(getRedirectUrl(originalProduct.url), '_blank');
+                    }
+                  }}
+                  aria-label="View original product details"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View Product
                 </Button>
               )}
             </div>
@@ -659,23 +758,16 @@ const SearchResults = () => {
                         {comparison.url && (
                           <div className="flex flex-col gap-2">
                             <Button
-                              asChild
                               size="sm"
                               variant="outline"
                               className="flex-shrink-0"
+                              onClick={() => handleProductClick(comparison)}
+                              title="View product details"
                             >
-                              <a
-                                href={getRedirectUrl(comparison.url)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="View product details"
-                                aria-label="View product details"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                <span className="sr-only">
-                                  View product details
-                                </span>
-                              </a>
+                              <ExternalLink className="h-3 w-3" />
+                              <span className="sr-only">
+                                View product details
+                              </span>
                             </Button>
                             <Button
                               size="sm"

@@ -38,6 +38,7 @@ import { AuthModal } from "../components/AuthModal";
 import { useAuth } from "../hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { getRedirectUrl } from "../lib/utils";
+import { trackProductClick, trackCustomEvent } from "@/lib/tracking";
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -420,6 +421,59 @@ const NewSearchResults = () => {
         isKeywordSearch: !isUrl,
       },
     });
+  };
+
+  // Enhanced product click handler with tracking
+  const handleProductClick = async (suggestion: any) => {
+    try {
+      // Extract business domain from URL if it's a Shopify store
+      let businessDomain: string | undefined;
+      try {
+        const urlObj = new URL(suggestion.link);
+        if (urlObj.hostname.includes('myshopify.com')) {
+          businessDomain = urlObj.hostname;
+        }
+      } catch (error) {
+        console.log('Could not parse URL for business domain extraction');
+      }
+
+      // Track the product click
+      await trackCustomEvent('product_click', {
+        productId: suggestion.title,
+        productName: suggestion.title,
+        productPrice: suggestion.standardPrice || suggestion.discountPrice,
+        retailer: suggestion.merchant || suggestion.site,
+        url: suggestion.link
+      }, businessDomain);
+
+      // Use enhanced product click tracking if business domain is available
+      if (businessDomain) {
+        const result = await trackProductClick(
+          {
+            url: suggestion.link,
+            title: suggestion.title,
+            name: suggestion.title,
+            id: suggestion.title,
+            price: suggestion.standardPrice || suggestion.discountPrice,
+            retailer: suggestion.merchant || suggestion.site
+          },
+          businessDomain
+        );
+
+        if (result.success) {
+          // Open the tracked URL
+          window.open(result.targetUrl, '_blank');
+          return;
+        }
+      }
+
+      // Fallback to regular redirect
+      window.open(getRedirectUrl(suggestion.link), '_blank');
+    } catch (error) {
+      console.error('Error handling product click:', error);
+      // Fallback to regular redirect
+      window.open(getRedirectUrl(suggestion.link), '_blank');
+    }
   };
 
   const toggleFavorite = async (suggestion: any) => {
@@ -820,18 +874,59 @@ const NewSearchResults = () => {
                   {mainProduct.url && (
                     <div className="flex-shrink-0 w-full sm:w-auto">
                       <Button
-                        asChild
                         className="w-full sm:w-auto rounded-full bg-white text-black hover:bg-white/90"
+                        onClick={async () => {
+                          try {
+                            // Extract business domain from URL if it's a Shopify store
+                            let businessDomain: string | undefined;
+                            try {
+                              const urlObj = new URL(mainProduct.url);
+                              if (urlObj.hostname.includes('myshopify.com')) {
+                                businessDomain = urlObj.hostname;
+                              }
+                            } catch (error) {
+                              console.log('Could not parse URL for business domain extraction');
+                            }
+
+                            // Track the original product click
+                            await trackCustomEvent('original_product_click', {
+                              productId: mainProduct.title,
+                              productName: mainProduct.title,
+                              productPrice: `${mainProduct.currency}${mainProduct.price}`,
+                              url: mainProduct.url
+                            }, businessDomain);
+
+                            // Use enhanced tracking if business domain is available
+                            if (businessDomain) {
+                              const result = await trackProductClick(
+                                {
+                                  url: mainProduct.url,
+                                  title: mainProduct.title,
+                                  name: mainProduct.title,
+                                  id: mainProduct.title,
+                                  price: `${mainProduct.currency}${mainProduct.price}`,
+                                  retailer: 'Original Store'
+                                },
+                                businessDomain
+                              );
+
+                              if (result.success) {
+                                window.open(result.targetUrl, '_blank');
+                                return;
+                              }
+                            }
+
+                            // Fallback to regular redirect
+                            window.open(getRedirectUrl(mainProduct.url), '_blank');
+                          } catch (error) {
+                            console.error('Error handling original product click:', error);
+                            window.open(getRedirectUrl(mainProduct.url), '_blank');
+                          }
+                        }}
+                        aria-label="View original product details"
                       >
-                        <a
-                          href={getRedirectUrl(mainProduct.url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="View original product details"
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          View Product
-                        </a>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Product
                       </Button>
                     </div>
                   )}
@@ -982,23 +1077,16 @@ const NewSearchResults = () => {
                         {suggestion.link && (
                           <div className="flex flex-col gap-2 flex-shrink-0">
                             <Button
-                              asChild
                               size="sm"
                               variant="outline"
                               className="flex-shrink-0 rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                              onClick={() => handleProductClick(suggestion)}
+                              title="View product details"
                             >
-                              <a
-                                href={getRedirectUrl(suggestion.link)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="View product details"
-                                aria-label="View product details"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                <span className="sr-only">
-                                  View product details
-                                </span>
-                              </a>
+                              <ExternalLink className="h-3 w-3" />
+                              <span className="sr-only">
+                                View product details
+                              </span>
                             </Button>
                             <Button
                               size="sm"
