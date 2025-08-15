@@ -3,7 +3,7 @@ import { ExternalLink, Heart, Star, Package, Truck, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { generateAffiliateLink, trackAffiliateClick, getStoredUtmParameters, trackSale, handleProductClick } from "@/lib/tracking";
+import { generateAffiliateLink, trackAffiliateClick, getStoredUtmParameters, trackSale, trackProductClick, trackCustomEvent } from "@/lib/tracking";
 
 interface ProductCardProps {
   title: string;
@@ -60,43 +60,38 @@ export function ProductCard({
     setIsProcessing(true);
 
     try {
-      // If we have a business domain, use the enhanced tracking
-      if (businessDomain) {
-        const result = await handleProductClick(
-          { url, title, name: title }, // product object
-          businessDomain
-        );
-        
-        if (result.success) {
-          // Open the tracked URL in a new tab
-          window.open(result.targetUrl, '_blank');
-        } else {
-          // Fallback to regular affiliate link if Shopify tracking fails
-          const affiliateUrl = generateAffiliateLink(url, store || "unknown");
-          window.open(affiliateUrl, '_blank');
-        }
+      // Track the product click event
+      await trackCustomEvent('product_click', {
+        productId: productId,
+        productName: title,
+        productPrice: `${price} ${currency}`,
+        retailer: store,
+        url: url,
+        isBestPrice: isBestPrice,
+        savings: savings
+      }, businessDomain);
+
+      // Use the enhanced product click tracking
+      const result = await trackProductClick(
+        { 
+          url, 
+          title, 
+          name: title, 
+          id: productId,
+          price: `${price} ${currency}`,
+          retailer: store 
+        },
+        businessDomain
+      );
+      
+      if (result.success) {
+        // Open the tracked URL in a new tab
+        window.open(result.targetUrl, '_blank');
       } else {
-        // Use existing affiliate tracking for non-business products
-        const affiliateUrl = generateAffiliateLink(url, store || "unknown");
-
-        // Track the purchase intent (only once)
-        const utmParams = getStoredUtmParameters();
-        const sessionId =
-          sessionStorage.getItem("pricehunt_session_id") ||
-          `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        // Track affiliate click with purchase intent
-        trackAffiliateClick({
-          productUrl: url,
-          productTitle: title,
-          productPrice: `${price} ${currency}`,
-          retailer: store,
-          sessionId: sessionId,
-          referrer: document.referrer,
-          utmSource: utmParams.utm_source,
-          utmMedium: utmParams.utm_medium,
-          utmCampaign: utmParams.utm_campaign,
-        });
+        // Fallback to regular affiliate link if tracking fails
+        const affiliateUrl = generateAffiliateLink(url, store || "unknown", businessDomain, title);
+        window.open(affiliateUrl, '_blank');
+      }
 
         // If we have a business ID, track the sale
         if (businessId) {

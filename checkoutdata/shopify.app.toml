@@ -13,5 +13,20 @@ redirect_urls = [
   "https://checkoutdata.gadget.app/api/connections/auth/shopify/callback"
 ]
 
+[access_scopes]
+scopes = "read_orders"
+
 [webhooks]
 api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  topics = ["checkouts/create"]
+  uri = "https://checkoutdata.gadget.app/api/webhooks/shopify/checkouts/create"
+
+  [[webhooks.subscriptions]]
+  topics = ["checkouts/update"]
+  uri = "https://checkoutdata.gadget.app/api/webhooks/shopify/checkouts/update"
+
+  [[webhooks.subscriptions]]
+  topics = ["orders/create"]
+  uri = "https://checkoutdata.gadget.app/api/webhooks/shopify/orders/create"

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPick.io - Product Comparison</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        .product-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .product-price {
+            color: #e44d26;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .store-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .store-link {
+            background: #007bff;
+            color: white;
+            padding: 8px 12px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .store-link:hover {
+            background: #0056b3;
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>iPick.io - Product Price Comparison</h1>
+    
+    <div class="search-container">
+        <input type="search" class="search-input" placeholder="Search for products..." id="search">
+    </div>
+
+    <div class="product-grid" id="productGrid">
+        <!-- Product cards will be populated here -->
+    </div>
+
+    <!-- Load the tracking script -->
+    <script src="tracking-script-ipick.js"></script>
+    
+    <script>
+        // Initialize tracking with your configuration
+        const tracking = new IpickTracking({
+            affiliateId: 'ipick_main',
+            apiUrl: 'https://checkoutdata--development.gadget.app/api',
+            utmSource: 'ipick',
+            utmMedium: 'price_comparison',
+            utmCampaign: 'product_referral'
+        });
+
+        // Sample product data
+        const products = [
+            {
+                id: '1',
+                name: 'Wireless Bluetooth Headphones',
+                price: '$29.99',
+                stores: [
+                    { name: 'Amazon', url: 'https://amazon.com/product/123', price: '$29.99' },
+                    { name: 'Best Buy', url: 'https://bestbuy.com/product/456', price: '$34.99' },
+                    { name: 'Walmart', url: 'https://walmart.com/product/789', price: '$27.99' }
+                ]
+            },
+            {
+                id: '2',
+                name: 'Smartphone Case',
+                price: '$12.99',
+                stores: [
+                    { name: 'Amazon', url: 'https://amazon.com/product/234', price: '$12.99' },
+                    { name: 'Target', url: 'https://target.com/product/567', price: '$14.99' },
+                    { name: 'Walmart', url: 'https://walmart.com/product/890', price: '$11.99' }
+                ]
+            },
+            {
+                id: '3',
+                name: 'Coffee Maker',
+                price: '$89.99',
+                stores: [
+                    { name: 'Amazon', url: 'https://amazon.com/product/345', price: '$89.99' },
+                    { name: 'Best Buy', url: 'https://bestbuy.com/product/678', price: '$94.99' },
+                    { name: 'Target', url: 'https://target.com/product/901', price: '$87.99' }
+                ]
+            }
+        ];
+
+        // Render products
+        function renderProducts(productsToRender = products) {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '';
+
+            productsToRender.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                
+                const storeLinks = product.stores.map(store => {
+                    // Add data attributes for tracking
+                    return `
+                        <a href="${store.url}" 
+                           class="store-link product-link" 
+                           data-product-id="${product.id}"
+                           data-product-name="${product.name}"
+                           data-price="${store.price}"
+                           data-store="${store.name}"
+                           target="_blank">
+                            ${store.name} - ${store.price}
+                        </a>
+                    `;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="product-title">${product.name}</div>
+                    <div class="product-price">From ${product.price}</div>
+                    <div class="store-links">
+                        ${storeLinks}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Search functionality
+        document.getElementById('search').addEventListener('input', (event) => {
+            const query = event.target.value.toLowerCase();
+            const filteredProducts = products.filter(product => 
+                product.name.toLowerCase().includes(query)
+            );
+            renderProducts(filteredProducts);
+        });
+
+        // Manual tracking example
+        function trackProductView(productId, productName) {
+            tracking.trackCustomEvent('product_view', {
+                productId: productId,
+                productName: productName,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Track when products are viewed
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const productCard = entry.target;
+                    const productId = productCard.querySelector('.store-link')?.dataset.productId;
+                    const productName = productCard.querySelector('.product-title')?.textContent;
+                    
+                    if (productId && productName) {
+                        trackProductView(productId, productName);
+                    }
+                }
+            });
+        });
+
+        // Initialize
+        renderProducts();
+
+        // Observe product cards for view tracking
+        document.querySelectorAll('.product-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // Example of manual tracking URL creation
+        function createManualTrackingUrl(originalUrl, productData) {
+            return tracking.createTrackingUrl(originalUrl, {
+                product_id: productData.id,
+                product_name: productData.name,
+                manual_tracking: 'true'
+            });
+        }
+
+        // Example usage:
+        console.log('Tracking initialized. Example manual tracking URL:');
+        console.log(createManualTrackingUrl('https://amazon.com/product/123', {
+            id: '1',
+            name: 'Wireless Bluetooth Headphones'
+        }));
+    </script>
+</body>
+</html>
