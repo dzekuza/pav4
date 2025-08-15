@@ -456,6 +456,113 @@ async function trackBusinessVisits(suggestions: any[]): Promise<void> {
   }
 }
 
+// Fallback scraping functions
+async function fallbackScraping(url: string, gl?: string): Promise<any> {
+  console.log("Using fallback scraping for URL:", url);
+  
+  // Use SearchAPI.io as fallback
+  const searchApiKey = process.env.SEARCH_API_KEY || "DzqyetWqB73LnNL7v96cWb7i";
+  const searchApiUrl = "https://api.searchapi.io/api/v1/search";
+  
+  try {
+    // Extract product title from URL for search
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+    const searchQuery = pathParts.slice(-2).join(' '); // Use last 2 path segments
+    
+    console.log("Fallback search query:", searchQuery);
+    
+    const response = await axios.get(searchApiUrl, {
+      params: {
+        api_key: searchApiKey,
+        engine: "google",
+        q: searchQuery,
+        gl: gl || "us",
+        num: 10
+      },
+      timeout: 30000
+    });
+    
+    if (response.data && response.data.organic_results) {
+      const results = response.data.organic_results.slice(0, 5);
+      
+      const suggestions = results.map((result: any) => ({
+        title: result.title,
+        link: addUtmToUrl(result.link),
+        site: new URL(result.link).hostname,
+        standardPrice: "Price not available",
+        image: null,
+        merchant: new URL(result.link).hostname,
+        stock: "Unknown",
+        reviewsCount: null,
+        deliveryPrice: null,
+        details: result.snippet,
+        returnPolicy: null,
+        rating: null
+      }));
+      
+      return {
+        mainProduct: {
+          title: searchQuery,
+          price: "Price not available",
+          image: null,
+          url: addUtmToUrl(url)
+        },
+        suggestions: suggestions
+      };
+    }
+    
+    throw new Error("No search results found");
+  } catch (error) {
+    console.error("Fallback scraping failed:", error);
+    throw error;
+  }
+}
+
+async function fallbackKeywordSearch(keywords: string, gl?: string): Promise<any> {
+  console.log("Using fallback keyword search for:", keywords);
+  
+  const searchApiKey = process.env.SEARCH_API_KEY || "DzqyetWqB73LnNL7v96cWb7i";
+  const searchApiUrl = "https://api.searchapi.io/api/v1/search";
+  
+  try {
+    const response = await axios.get(searchApiUrl, {
+      params: {
+        api_key: searchApiKey,
+        engine: "google",
+        q: keywords,
+        gl: gl || "us",
+        num: 10
+      },
+      timeout: 30000
+    });
+    
+    if (response.data && response.data.organic_results) {
+      const results = response.data.organic_results.slice(0, 10);
+      
+      return results.map((result: any) => ({
+        title: result.title,
+        link: addUtmToUrl(result.link),
+        site: new URL(result.link).hostname,
+        standardPrice: "Price not available",
+        image: null,
+        merchant: new URL(result.link).hostname,
+        stock: "Unknown",
+        reviewsCount: null,
+        deliveryPrice: null,
+        details: result.snippet,
+        returnPolicy: null,
+        rating: null
+      }));
+    }
+    
+    throw new Error("No search results found");
+  } catch (error) {
+    console.error("Fallback keyword search failed:", error);
+    throw error;
+  }
+}
+
 // Main n8n webhook route
 router.post("/n8n-scrape", async (req, res) => {
   console.log("=== n8n-scrape route called ===");
@@ -480,17 +587,27 @@ router.post("/n8n-scrape", async (req, res) => {
       }
     } catch (n8nError) {
       console.error("n8n webhook failed:", n8nError);
-
-      // Return error response when n8n fails
-      return res.status(500).json({
-        error: "Failed to fetch product information from n8n",
-        message:
-          n8nError instanceof Error
-            ? n8nError.message
-            : "Unknown error occurred",
-        mainProduct: null,
-        suggestions: [],
-      });
+      
+      // Try fallback to traditional scraping
+      console.log("Attempting fallback to traditional scraping...");
+      try {
+        if (url) {
+          result = await fallbackScraping(url, gl);
+        } else if (keywords) {
+          result = await fallbackKeywordSearch(keywords, gl);
+        }
+        console.log("Fallback scraping successful");
+      } catch (fallbackError) {
+        console.error("Fallback scraping also failed:", fallbackError);
+        
+        // Return error response when both n8n and fallback fail
+        return res.status(500).json({
+          error: "Failed to fetch product information",
+          message: "Both N8N and fallback scraping failed. Please try again later.",
+          mainProduct: null,
+          suggestions: [],
+        });
+      }
     }
 
     // If result is an array (keyword search), send directly
