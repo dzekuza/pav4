@@ -168,7 +168,6 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer gsk-X89z6jDWkTRqgq7htYnZi4wcXQ8L3B9g'
       },
       body: JSON.stringify(trackingData)
     })

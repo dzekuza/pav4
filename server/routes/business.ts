@@ -635,8 +635,14 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
 
 export const getBusinessDashboardData: RequestHandler = async (req, res) => {
   try {
+    console.log('=== getBusinessDashboardData called ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Has PAVLP_DASHBOARD_ACCESS:', !!process.env.PAVLP_DASHBOARD_ACCESS);
+    
     const authResult = await authenticateBusiness(req, res);
     if (!authResult) return;
+
+    console.log('Business authenticated:', authResult.business.domain);
 
     // Check domain verification status
     const domainVerification = await prisma.domainVerification.findFirst({
@@ -650,6 +656,8 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
     });
     const domainVerified = !!domainVerification;
 
+    console.log('Domain verified:', domainVerified);
+
     if (!isAnalyticsAllowed(domainVerified)) {
       return res.status(403).json({
         success: false,
@@ -659,27 +667,105 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
     }
 
     const { startDate, endDate } = req.query;
+    console.log('Query params:', { startDate, endDate });
     
-    const { gadgetAnalytics } = await import('../services/gadget-analytics');
-    
-    const dashboardData = await gadgetAnalytics.generateDashboardData(
-      authResult.business.domain,
-      startDate as string || null,
-      endDate as string || null
-    );
+    try {
+      const { gadgetAnalytics } = await import('../services/gadget-analytics');
+      
+      console.log('Calling gadgetAnalytics.generateDashboardData...');
+      const dashboardData = await gadgetAnalytics.generateDashboardData(
+        authResult.business.domain,
+        startDate as string || null,
+        endDate as string || null
+      );
 
-    if (!dashboardData.success) {
+      console.log('Dashboard data response:', {
+        success: dashboardData.success,
+        hasError: !dashboardData.success,
+        error: !dashboardData.success ? (dashboardData as any).error : null
+      });
+
+      if (!dashboardData.success) {
+        console.error('Gadget analytics failed:', (dashboardData as any).error);
+        
+        // Provide fallback data when Gadget API is not available
+        console.log('Providing fallback dashboard data...');
+        const fallbackData = {
+          success: true,
+          data: {
+            summary: {
+              totalBusinesses: 1,
+              businessDomain: authResult.business.domain,
+              totalCheckouts: 0,
+              completedCheckouts: 0,
+              totalOrders: 0,
+              conversionRate: 0,
+              totalRevenue: 0,
+              currency: 'EUR'
+            },
+            businesses: [{
+              id: 'fallback',
+              domain: authResult.business.domain,
+              myshopifyDomain: authResult.business.domain,
+              name: authResult.business.name || 'Business',
+              email: authResult.business.email || '',
+              currency: 'EUR',
+              plan: 'Basic',
+              createdAt: new Date().toISOString()
+            }],
+            recentCheckouts: [],
+            recentOrders: [],
+            referralStatistics: {
+              totalReferrals: 0,
+              pavlo4Referrals: 0,
+              pavlo4ConversionRate: 0,
+              totalConversions: 0,
+              referralRevenue: 0,
+              topSources: {}
+            },
+            trends: {
+              last30Days: {
+                checkouts: 0,
+                orders: 0,
+                revenue: 0
+              },
+              last7Days: {
+                checkouts: 0,
+                orders: 0,
+                revenue: 0
+              }
+            },
+            orderStatuses: {},
+            recentReferrals: []
+          },
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            filters: {
+              businessDomain: authResult.business.domain,
+              startDate: startDate,
+              endDate: endDate
+            },
+            note: 'Fallback data - Gadget API unavailable'
+          }
+        };
+        
+        return res.json(fallbackData);
+      }
+
+      res.json({
+        success: true,
+        ...dashboardData
+      });
+    } catch (gadgetError) {
+      console.error('Error calling gadget analytics:', gadgetError);
       return res.status(500).json({
         success: false,
-        error: "Failed to fetch dashboard data"
+        error: "Failed to fetch dashboard data",
+        details: gadgetError instanceof Error ? gadgetError.message : String(gadgetError)
       });
     }
-
-    res.json({
-      success: true,
-      ...dashboardData
-    });
   } catch (error) {
+    console.error('Error in getBusinessDashboardData:', error);
     handleError(res, error, "fetch business dashboard data");
   }
 };
@@ -716,5 +802,98 @@ export const generateReferralUrl: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     handleError(res, error, "generating referral URL");
+  }
+};
+
+// Test endpoint to debug Gadget API connectivity
+export const testGadgetApi: RequestHandler = async (req, res) => {
+  try {
+    console.log('=== testGadgetApi called ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Has PAVL_APP:', !!process.env.PAVL_APP);
+    console.log('Has PAVLP_DASHBOARD_ACCESS:', !!process.env.PAVLP_DASHBOARD_ACCESS);
+    console.log('Has SHOPIFY_API_KEY:', !!process.env.SHOPIFY_API_KEY);
+    
+    const apiKey = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+    if (!apiKey) {
+      return res.json({
+        success: false,
+        error: 'API key not configured. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable'
+      });
+    }
+    
+    const { gadgetAnalytics } = await import('../services/gadget-analytics');
+    
+    console.log('Testing Gadget API connectivity...');
+    
+    // Test basic connectivity
+    const testResponse = await fetch('https://checkoutdata.gadget.app/api/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        query: `
+          query {
+            shopifyShops(first: 1) {
+              edges {
+                node {
+                  id
+                  domain
+                }
+              }
+            }
+          }
+        `
+      })
+    });
+    
+    console.log('Test response status:', testResponse.status);
+    
+    if (!testResponse.ok) {
+      const errorText = await testResponse.text();
+      console.error('Test API error:', errorText);
+      return res.json({
+        success: false,
+        error: 'Gadget API connectivity test failed',
+        status: testResponse.status,
+        details: errorText
+      });
+    }
+    
+    const testResult = await testResponse.json();
+    console.log('Test API response:', testResult);
+    
+    if (testResult.errors) {
+      return res.json({
+        success: false,
+        error: 'Gadget API returned errors',
+        details: testResult.errors
+      });
+    }
+    
+    // Test the actual dashboard data generation
+    console.log('Testing dashboard data generation...');
+    const dashboardData = await gadgetAnalytics.generateDashboardData(null, null, null);
+    
+    res.json({
+      success: true,
+      message: 'Gadget API connectivity test successful',
+      testData: {
+        apiAccessible: true,
+        shopsFound: dashboardData.success ? 'Yes' : 'No',
+        dashboardError: !dashboardData.success ? (dashboardData as any).error : null
+      },
+      dashboardData: dashboardData
+    });
+    
+  } catch (error) {
+    console.error('Error in testGadgetApi:', error);
+    res.json({
+      success: false,
+      error: 'Gadget API test failed',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 };

@@ -15,7 +15,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
-
+.md
 # IDE
 .vscode/
 .idea/
@@ -57,3 +57,4 @@ prisma/dev.db-journal
 # Misc
 *.tgz
 *.tar.gz
+server/routes/business.ts

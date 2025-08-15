@@ -2,7 +2,8 @@
 // Replace the API_KEY with your actual Gadget API key
 
 const GADGET_API_URL = 'https://checkoutdata--development.gadget.app/api/graphql';
-const API_KEY = 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL'; // Your working API key
+// API key should be provided when instantiating the class
+// const API_KEY = 'your-api-key-here'; // Remove this line and provide API key via constructor
 
 class BusinessAnalytics {
   constructor(apiKey) {

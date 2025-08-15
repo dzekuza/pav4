@@ -723,7 +723,12 @@ export const businessService = {
       const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
         ? 'https://checkoutdata--development.gadget.app/api/graphql'
         : 'https://checkoutdata.gadget.app/api/graphql';
-      const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
+      const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+      
+      if (!API_KEY) {
+        console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+        throw new Error('API key not configured');
+      }
 
       // Get shops for this business domain
       const shopsResponse = await fetch(GADGET_API_URL, {
@@ -1005,7 +1010,12 @@ export const businessService = {
       const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
         ? 'https://checkoutdata--development.gadget.app/api/graphql'
         : 'https://checkoutdata.gadget.app/api/graphql';
-      const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
+      const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+      
+      if (!API_KEY) {
+        console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+        throw new Error('API key not configured');
+      }
 
       // Get shops for this business domain
       const shopsResponse = await fetch(GADGET_API_URL, {
@@ -1446,7 +1456,12 @@ export const businessService = {
       const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
         ? 'https://checkoutdata--development.gadget.app/api/graphql'
         : 'https://checkoutdata.gadget.app/api/graphql';
-      const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
+      const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+      
+      if (!API_KEY) {
+        console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+        throw new Error('API key not configured');
+      }
 
       const checkoutsResponse = await fetch(GADGET_API_URL, {
         method: 'POST',

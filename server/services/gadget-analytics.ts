@@ -5,7 +5,11 @@ const prisma = new PrismaClient();
 // Use production environment by default (development is paused)
 const GADGET_API_URL = 'https://checkoutdata.gadget.app/api/graphql';
 
-const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
+const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+
+if (!API_KEY) {
+  console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+}
 
 export class GadgetAnalytics {
   private apiKey: string;
@@ -24,6 +28,10 @@ export class GadgetAnalytics {
   // Get dashboard data for all businesses or specific domain
   async getDashboardData(businessDomain: string | null = null, startDate: string | null = null, endDate: string | null = null) {
     try {
+      if (!this.apiKey) {
+        throw new Error('API key not configured. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+      }
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -49,7 +57,9 @@ export class GadgetAnalytics {
             startDate,
             endDate
           }
-        })
+        }),
+        // Add timeout for Netlify serverless functions
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
       const result = await response.json();
@@ -89,7 +99,9 @@ export class GadgetAnalytics {
             startDate,
             endDate
           }
-        })
+        }),
+        // Add timeout for Netlify serverless functions
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
       const result = await response.json();
@@ -108,6 +120,12 @@ export class GadgetAnalytics {
   // Get all shops data
   async getShops(businessDomain: string | null = null) {
     try {
+      if (!this.apiKey) {
+        throw new Error('API key not configured. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+      }
+
+      console.log('getShops called with businessDomain:', businessDomain);
+      
       let query = `
         query getShops {
           shopifyShops(first: 100) {
@@ -153,6 +171,9 @@ export class GadgetAnalytics {
         `;
       }
 
+      console.log('Making GraphQL request to:', this.baseUrl);
+      console.log('Query:', query);
+      
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -162,18 +183,37 @@ export class GadgetAnalytics {
         body: JSON.stringify({
           query,
           variables: businessDomain ? { businessDomain } : {}
-        })
+        }),
+        // Add timeout for Netlify serverless functions
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HTTP error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const result = await response.json();
+      console.log('GraphQL response received');
       
       if (result.errors) {
+        console.error('GraphQL errors:', result.errors);
         throw new Error(result.errors[0].message);
       }
 
-      return result.data.shopifyShops.edges.map((edge: any) => edge.node);
+      const shops = result.data.shopifyShops.edges.map((edge: any) => edge.node);
+      console.log('Shops found:', shops.length);
+      return shops;
     } catch (error) {
       console.error('Error fetching shops:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }
@@ -413,12 +453,18 @@ export class GadgetAnalytics {
     console.log('businessDomain:', businessDomain);
     console.log('startDate:', startDate);
     console.log('endDate:', endDate);
+    console.log('API Key available:', !!this.apiKey);
+    console.log('Base URL:', this.baseUrl);
+    
     try {
       // Get shops
+      console.log('Getting shops...');
       const shops = await this.getShops(businessDomain);
+      console.log('Shops found:', shops.length);
       const shopIds = shops.map(shop => shop.id);
 
       if (shopIds.length === 0) {
+        console.log('No shops found for domain:', businessDomain);
         return {
           success: false,
           error: "No shops found for the specified domain"
@@ -581,12 +627,18 @@ export class GadgetAnalytics {
         }
       };
 
+      console.log('Dashboard data generated successfully');
       return response;
     } catch (error) {
       console.error("Error generating dashboard data:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return {
         success: false,
-        error: "Failed to generate dashboard data"
+        error: "Failed to generate dashboard data",
+        details: error instanceof Error ? error.message : String(error)
       };
     }
   }
