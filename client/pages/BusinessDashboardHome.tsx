@@ -68,22 +68,23 @@ export default function BusinessDashboardHome() {
       }
 
       const data = await response.json();
+      console.log("Dashboard API Response in Home:", data);
+      
       if (data.success) {
         // Extract and calculate stats from the consolidated data
-        const { summary, recentCheckouts, recentOrders } = data;
+        const { summary, recentCheckouts, recentOrders } = data.data; // Fix: access data.data
         
-        // Calculate stats from scratch using the actual data
-        const totalCheckouts = recentCheckouts?.length || 0;
-        const totalOrders = recentOrders?.length || 0;
+        console.log("Extracted data in Home:", {
+          summary,
+          checkoutsCount: recentCheckouts?.length,
+          ordersCount: recentOrders?.length
+        });
         
-        // Calculate total revenue from orders
-        const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
-          const price = parseFloat(order.totalPrice || '0');
-          return sum + (isNaN(price) ? 0 : price);
-        }, 0) || 0;
-        
-        // Calculate conversion rate: orders / checkouts
-        const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+        // Use summary data directly from the API response
+        const totalCheckouts = summary?.totalCheckouts || 0;
+        const totalOrders = summary?.totalOrders || 0;
+        const totalRevenue = summary?.totalRevenue || 0;
+        const conversionRate = summary?.conversionRate || 0;
         
         // Calculate average order value
         const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -91,8 +92,20 @@ export default function BusinessDashboardHome() {
         // Calculate projected fee (5% commission)
         const projectedFee = totalRevenue * 0.05;
         
+        console.log("Processed stats in Home:", {
+          totalCheckouts,
+          totalOrders,
+          totalRevenue,
+          conversionRate,
+          averageOrderValue,
+          projectedFee
+        });
+        
         // Create consolidated stats object
-        const consolidatedStats = {
+        const consolidatedStats: BusinessStats = {
+          id: 0, // Will be set by the parent component
+          name: '', // Will be set by the parent component
+          domain: '', // Will be set by the parent component
           totalVisits: totalCheckouts, // Use checkouts as visits
           totalPurchases: totalOrders,
           totalRevenue: totalRevenue,
@@ -135,22 +148,36 @@ export default function BusinessDashboardHome() {
     );
   }
 
+  if (!stats) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Failed to load dashboard data. Please try refreshing the page.</p>
+        <button
+          onClick={handleRefresh}
+          className="mt-4 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   // Add default values to prevent undefined errors
   const safeStats = {
-    totalVisits: stats.totalVisits || 0,
-    totalPurchases: stats.totalPurchases || 0,
-    totalRevenue: stats.totalRevenue || 0,
-    adminCommissionRate: stats.adminCommissionRate || 0,
-    projectedFee: stats.projectedFee || 0,
-    averageOrderValue: stats.averageOrderValue || 0,
-    conversionRate: stats.conversionRate || 0,
-    totalClicks: stats.totalClicks || 0,
-    totalConversions: stats.totalConversions || 0,
-    totalAddToCart: stats.totalAddToCart || 0,
-    totalPageViews: stats.totalPageViews || 0,
-    totalProductViews: stats.totalProductViews || 0,
-    totalSessions: stats.totalSessions || 0,
-    cartToPurchaseRate: stats.cartToPurchaseRate || 0,
+    totalVisits: stats?.totalVisits || 0,
+    totalPurchases: stats?.totalPurchases || 0,
+    totalRevenue: stats?.totalRevenue || 0,
+    adminCommissionRate: stats?.adminCommissionRate || 0,
+    projectedFee: stats?.projectedFee || 0,
+    averageOrderValue: stats?.averageOrderValue || 0,
+    conversionRate: stats?.conversionRate || 0,
+    totalClicks: stats?.totalClicks || 0,
+    totalConversions: stats?.totalConversions || 0,
+    totalAddToCart: stats?.totalAddToCart || 0,
+    totalPageViews: stats?.totalPageViews || 0,
+    totalProductViews: stats?.totalProductViews || 0,
+    totalSessions: stats?.totalSessions || 0,
+    cartToPurchaseRate: stats?.cartToPurchaseRate || 0,
   };
 
   return (

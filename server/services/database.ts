@@ -1369,6 +1369,203 @@ export const businessService = {
     });
   },
 
+  // My Page statistics with pending checkout handling
+  async getMyPageStats(businessId: number, domain: string) {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        adminCommissionRate: true,
+        affiliateId: true,
+        totalVisits: true,
+        totalPurchases: true,
+        totalRevenue: true,
+      },
+    });
+
+    if (!business) {
+      return null;
+    }
+
+    // Get tracking events for this business
+    const [clicks, conversions, trackingEvents] = await Promise.all([
+      prisma.businessClick.findMany({
+        where: { businessId },
+        select: {
+          id: true,
+          productUrl: true,
+          productTitle: true,
+          productPrice: true,
+          sessionId: true,
+          timestamp: true,
+        },
+      }),
+      prisma.businessConversion.findMany({
+        where: { businessId },
+        select: {
+          id: true,
+          productUrl: true,
+          productTitle: true,
+          productPrice: true,
+          sessionId: true,
+          timestamp: true,
+        },
+      }),
+      prisma.trackingEvent.findMany({
+        where: { businessId },
+        select: {
+          id: true,
+          eventType: true,
+          url: true,
+          sessionId: true,
+          timestamp: true,
+          eventData: true,
+        },
+      }),
+    ]);
+
+    // Calculate tracking metrics
+    const totalPageViews = trackingEvents.filter(event => event.eventType === 'page_view').length;
+    const totalProductViews = trackingEvents.filter(event => event.eventType === 'product_view').length;
+    const totalAddToCart = trackingEvents.filter(event => event.eventType === 'add_to_cart').length;
+    const totalSessions = new Set(trackingEvents.map(event => event.sessionId).filter(Boolean)).size;
+
+    // Try to get checkout data from Gadget API
+    let checkoutData: any[] = [];
+    let pendingCheckouts = 0;
+    let pendingRevenue = 0;
+    let completedCheckouts = 0;
+    let completedRevenue = 0;
+    let appRedirectRevenue = 0;
+    let totalCheckouts = 0;
+
+    try {
+      // Fetch checkout data from Gadget API
+      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
+        ? 'https://checkoutdata--development.gadget.app/api/graphql'
+        : 'https://checkoutdata.gadget.app/api/graphql';
+      const API_KEY = process.env.PAVLP_DASHBOARD_ACCESS || 'gsk-BDE2GN4ftPEmRdMHVaRqX7FrWE7DVDEL';
+
+      const checkoutsResponse = await fetch(GADGET_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({
+          query: `
+            query getCheckouts($limit: Int) {
+              shopifyCheckouts(first: $limit) {
+                edges {
+                  node {
+                    id
+                    email
+                    totalPrice
+                    currency
+                    checkoutStatus
+                    sourceName
+                    sourceUrl
+                    shopifyCreatedAt
+                    completedAt
+                    shop {
+                      id
+                      domain
+                    }
+                  }
+                }
+              }
+            }
+          `,
+          variables: { limit: 100 }
+        })
+      });
+
+      if (checkoutsResponse.ok) {
+        const checkoutsData = await checkoutsResponse.json();
+        checkoutData = checkoutsData.data?.shopifyCheckouts?.edges?.map((edge: any) => edge.node) || [];
+
+        // Filter checkouts for this business domain
+        const businessCheckouts = checkoutData.filter((checkout: any) => {
+          // Check if checkout belongs to this business domain
+          return checkout.shop && checkout.shop.domain === domain;
+        });
+
+        totalCheckouts = businessCheckouts.length;
+
+        // Separate pending and completed checkouts
+        businessCheckouts.forEach((checkout: any) => {
+          const price = parseFloat(checkout.totalPrice || '0');
+          const isPending = checkout.checkoutStatus === 'In Progress' || !checkout.completedAt;
+          
+          if (isPending) {
+            pendingCheckouts++;
+            pendingRevenue += price;
+          } else {
+            completedCheckouts++;
+            completedRevenue += price;
+          }
+
+          // Check if this is from app redirect
+          const isAppRedirect = checkout.sourceName === 'app' || 
+                               checkout.sourceUrl?.includes('ipick') ||
+                               checkout.sourceUrl?.includes('redirect') ||
+                               checkout.sourceUrl?.includes('utm_source=ipick');
+
+          if (isAppRedirect) {
+            appRedirectRevenue += price;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching checkout data from Gadget:', error);
+      // Continue with local data only
+    }
+
+    // Calculate derived metrics
+    const totalRevenue = completedRevenue + pendingRevenue;
+    const averageOrderValue = totalCheckouts > 0 ? totalRevenue / totalCheckouts : 0;
+    const conversionRate = totalSessions > 0 ? (completedCheckouts / totalSessions) * 100 : 0;
+
+    // Get recent checkouts for display
+    const recentCheckouts = checkoutData
+      .filter((checkout: any) => checkout.shop && checkout.shop.domain === domain)
+      .slice(0, 10)
+      .map((checkout: any) => ({
+        id: checkout.id,
+        email: checkout.email,
+        totalPrice: checkout.totalPrice,
+        currency: checkout.currency,
+        checkoutStatus: checkout.checkoutStatus,
+        sourceName: checkout.sourceName,
+        createdAt: checkout.shopifyCreatedAt,
+        completedAt: checkout.completedAt,
+      }));
+
+    return {
+      totalVisits: totalSessions, // Use actual tracked sessions instead of business.totalVisits
+      totalPurchases: business.totalPurchases,
+      totalRevenue,
+      totalCheckouts,
+      pendingCheckouts,
+      pendingRevenue,
+      completedCheckouts,
+      completedRevenue,
+      appRedirectRevenue,
+      conversionRate,
+      averageOrderValue,
+      recentCheckouts,
+      // Add tracking metrics
+      totalPageViews,
+      totalProductViews,
+      totalAddToCart,
+      totalSessions,
+      // Add cart-to-purchase rate
+      cartToPurchaseRate: totalAddToCart > 0 ? (completedCheckouts / totalAddToCart) * 100 : 0,
+    };
+  },
+
 
 };
 

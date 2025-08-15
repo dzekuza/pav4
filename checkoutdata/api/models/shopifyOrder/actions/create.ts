@@ -8,7 +8,7 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
 };
 
 export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, connections }) => {
-  // Mark referral conversions when orders are completed
+  // Enhanced referral conversion tracking for orders
   try {
     // Ensure shopId exists before proceeding
     if (!record.shopId) {
@@ -16,41 +16,100 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
       return;
     }
 
-    // Find pending business referrals for this shop
-    const pendingReferrals = await api.businessReferral.findMany({
-      filter: {
-        shopId: { equals: record.shopId },
-        conversionStatus: { equals: "pending" }
-      },
-      first: 250
-    });
+    logger.info({
+      orderId: record.id,
+      shopId: record.shopId,
+      email: record.email,
+      totalPrice: record.totalPrice,
+      createdAt: record.createdAt
+    }, "Processing order for affiliate conversion tracking");
 
-    if (pendingReferrals.length === 0) {
-      return;
-    }
-
+    // Method 1: Try to match by checkout token if available
     let matchedReferral = null;
-
-    // Try to match by checkout token first
     if (record.checkoutToken) {
-      // Look for referrals that might be linked to this checkout token
-      // Since we don't have a direct checkout token field on referral, 
-      // we'll use timing-based matching as the primary method
+      logger.info({ orderId: record.id, checkoutToken: record.checkoutToken }, "Attempting to match by checkout token");
+      
+      // Look for referrals that might be linked to this checkout
+      const tokenReferrals = await api.businessReferral.findMany({
+        filter: {
+          shopId: { equals: record.shopId },
+          conversionStatus: { equals: "pending" }
+        },
+        first: 100
+      });
+
+      // Check if any referral has a matching token in the targetUrl or sourceUrl
+      for (const referral of tokenReferrals) {
+        if (referral.targetUrl && referral.targetUrl.includes(record.checkoutToken)) {
+          matchedReferral = referral;
+          logger.info({
+            orderId: record.id,
+            referralId: referral.id,
+            method: "checkout_token_match"
+          }, "Found referral match by checkout token");
+          break;
+        }
+      }
     }
 
-    // Match based on timing - find referrals clicked shortly before this order was created
-    const orderCreatedAt = record.createdAt || new Date();
-    const timeWindowHours = 24; // Look for referrals clicked within 24 hours before order creation
-    const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
+    // Method 2: Try to match by email if available
+    if (!matchedReferral && record.email) {
+      logger.info({ orderId: record.id, email: record.email }, "Attempting to match by email");
+      
+      // Look for recent referrals for this shop
+      const emailReferrals = await api.businessReferral.findMany({
+        filter: {
+          shopId: { equals: record.shopId },
+          conversionStatus: { equals: "pending" }
+        },
+        first: 100,
+        sort: { clickedAt: "Descending" }
+      });
 
-    for (const referral of pendingReferrals) {
-      if (referral.clickedAt) {
-        const timeDiff = orderCreatedAt.getTime() - new Date(referral.clickedAt).getTime();
-        
-        // If the referral was clicked before the order and within our time window
-        if (timeDiff >= 0 && timeDiff <= timeWindowMs) {
-          matchedReferral = referral;
-          break; // Use the first match (could be refined to use most recent)
+      // For email matching, we'd need to store email in referrals or use a different approach
+      // This is a placeholder for future enhancement
+    }
+
+    // Method 3: Enhanced timing-based matching with better logic
+    if (!matchedReferral) {
+      logger.info({ orderId: record.id }, "Attempting timing-based referral matching");
+      
+      const orderCreatedAt = record.createdAt || new Date();
+      const timeWindowHours = 48; // Extended to 48 hours for better matching
+      const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
+
+      // Get all pending referrals for this shop
+      const pendingReferrals = await api.businessReferral.findMany({
+        filter: {
+          shopId: { equals: record.shopId },
+          conversionStatus: { equals: "pending" }
+        },
+        first: 250,
+        sort: { clickedAt: "Descending" }
+      });
+
+      logger.info({
+        orderId: record.id,
+        pendingReferralsCount: pendingReferrals.length,
+        timeWindowHours
+      }, "Found pending referrals for timing-based matching");
+
+      // Find the most recent referral within the time window
+      for (const referral of pendingReferrals) {
+        if (referral.clickedAt) {
+          const timeDiff = orderCreatedAt.getTime() - new Date(referral.clickedAt).getTime();
+          
+          // If the referral was clicked before the order and within our time window
+          if (timeDiff >= 0 && timeDiff <= timeWindowMs) {
+            matchedReferral = referral;
+            logger.info({
+              orderId: record.id,
+              referralId: referral.id,
+              timeDiffHours: Math.round(timeDiff / (1000 * 60 * 60)),
+              method: "timing_based_match"
+            }, "Found referral match by timing");
+            break;
+          }
         }
       }
     }
@@ -67,11 +126,25 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
       logger.info({
         orderId: record.id,
         referralId: matchedReferral.id,
-        conversionValue: conversionValue
-      }, "Marked referral as converted for order");
+        conversionValue: conversionValue,
+        referralSource: matchedReferral.utmSource,
+        referralMedium: matchedReferral.utmMedium,
+        referralCampaign: matchedReferral.utmCampaign
+      }, "Successfully marked referral as converted for order");
+    } else {
+      logger.warn({
+        orderId: record.id,
+        shopId: record.shopId,
+        email: record.email,
+        totalPrice: record.totalPrice
+      }, "No matching referral found for order - this may be a direct customer");
     }
+
   } catch (error: unknown) {
-    logger.error({ error: error instanceof Error ? error.message : String(error), orderId: record.id }, "Error processing referral conversion");
+    logger.error({ 
+      error: error instanceof Error ? error.message : String(error), 
+      orderId: record.id 
+    }, "Error processing referral conversion for order");
   }
 };
 

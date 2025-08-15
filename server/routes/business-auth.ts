@@ -117,7 +117,7 @@ export const registerBusiness: RequestHandler = async (req, res) => {
     });
 
     // Get available features based on domain verification status
-    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+    const availableFeatures = getAvailableFeatures(false); // New businesses start with no domain verification
 
     res.json({
       success: true,
@@ -128,7 +128,7 @@ export const registerBusiness: RequestHandler = async (req, res) => {
         domain: business.domain,
         email: business.email,
         affiliateId: business.affiliateId,
-        domainVerified: business.domainVerified,
+        domainVerified: false, // New businesses start with no domain verification
         trackingVerified: business.trackingVerified,
         availableFeatures,
         domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
@@ -191,8 +191,21 @@ export const loginBusiness: RequestHandler = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
+    // Check domain verification status for login
+    const domainVerification = await prisma.domainVerification.findFirst({
+      where: {
+        businessId: business.id,
+        status: "verified",
+      },
+      orderBy: {
+        verifiedAt: "desc",
+      },
+    });
+
+    const domainVerified = !!domainVerification;
+
     // Get available features based on domain verification status
-    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+    const availableFeatures = getAvailableFeatures(domainVerified);
 
     res.json({
       success: true,
@@ -203,7 +216,7 @@ export const loginBusiness: RequestHandler = async (req, res) => {
         domain: business.domain,
         email: business.email,
         affiliateId: business.affiliateId,
-        domainVerified: business.domainVerified,
+        domainVerified: domainVerified,
         trackingVerified: business.trackingVerified,
         availableFeatures,
         domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
@@ -252,8 +265,21 @@ export const getCurrentBusiness: RequestHandler = async (req, res) => {
       });
     }
 
+    // Check domain verification status
+    const domainVerification = await prisma.domainVerification.findFirst({
+      where: {
+        businessId: business.id,
+        status: "verified",
+      },
+      orderBy: {
+        verifiedAt: "desc",
+      },
+    });
+
+    const domainVerified = !!domainVerification;
+
     // Get available features based on domain verification status
-    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+    const availableFeatures = getAvailableFeatures(domainVerified);
 
     res.json({
       business: {
@@ -263,7 +289,7 @@ export const getCurrentBusiness: RequestHandler = async (req, res) => {
         email: business.email,
         affiliateId: business.affiliateId,
         trackingVerified: business.trackingVerified,
-        domainVerified: business.domainVerified,
+        domainVerified: domainVerified,
         availableFeatures,
         domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
@@ -320,8 +346,21 @@ export const getBusinessStats: RequestHandler = async (req, res) => {
       });
     }
 
+    // Check domain verification status
+    const domainVerification = await prisma.domainVerification.findFirst({
+      where: {
+        businessId: decoded.businessId,
+        status: "verified",
+      },
+      orderBy: {
+        verifiedAt: "desc",
+      },
+    });
+
+    const domainVerified = !!domainVerification;
+
     // Check if analytics are allowed based on domain verification status
-    if (!isAnalyticsAllowed(business.domainVerified || false)) {
+    if (!isAnalyticsAllowed(domainVerified)) {
       return res.status(403).json({
         success: false,
         error: "Domain verification required for analytics access",
@@ -340,7 +379,7 @@ export const getBusinessStats: RequestHandler = async (req, res) => {
     }
 
     // Get available features
-    const availableFeatures = getAvailableFeatures(business.domainVerified || false);
+    const availableFeatures = getAvailableFeatures(domainVerified);
 
     res.json({ 
       success: true, 
@@ -497,13 +536,13 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
       });
     }
 
-    // Check for business ID in the script
+    // Check for business ID in the script - support both data attributes and meta tags
     const businessIdPattern = new RegExp(
-      `data-business-id=["']${business.id}["']`,
+      `(data-business-id=["']${business.id}["']|name=["']ipick-business-id["']\\s+content=["']${business.id}["'])`,
       "i",
     );
     const affiliateIdPattern = new RegExp(
-      `data-affiliate-id=["']${business.affiliateId}["']`,
+      `(data-affiliate-id=["']${business.affiliateId}["']|name=["']ipick-affiliate-id["']\\s+content=["']${business.affiliateId}["'])`,
       "i",
     );
 
@@ -861,5 +900,71 @@ export const deleteBusinessAccount: RequestHandler = async (req, res) => {
       error: "Failed to delete business account",
       details: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+};
+
+// Get My Page statistics with pending checkout handling
+export const getMyPageStats: RequestHandler = async (req, res) => {
+  try {
+    // Check for business authentication
+    let token = req.cookies.business_token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+    }
+
+    const decoded = verifyBusinessToken(token);
+    if (!decoded || decoded.type !== "business") {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid token",
+      });
+    }
+
+    const business = await businessService.findBusinessById(decoded.businessId);
+    if (!business) {
+      return res.status(404).json({
+        success: false,
+        error: "Business not found",
+      });
+    }
+
+    // Get domain from query params
+    const { domain } = req.query;
+    if (!domain || typeof domain !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: "Domain parameter is required",
+      });
+    }
+
+    // Get My Page specific stats
+    const stats = await businessService.getMyPageStats(decoded.businessId, domain);
+    if (!stats) {
+      return res.status(404).json({
+        success: false,
+        error: "Stats not found",
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      stats,
+    });
+  } catch (error) {
+    console.error("Error getting My Page stats:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to get My Page statistics" });
   }
 };

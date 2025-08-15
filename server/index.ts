@@ -55,10 +55,6 @@ import {
   getBusinessRealTimeStats,
   getCheckoutAnalytics,
   getBusinessDashboardData,
-  debugShops,
-  debugLocalDatabase,
-  testDashboardData,
-  testCheckoutAnalytics,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -71,7 +67,7 @@ import {
   updateBusinessProfile,
   forgotPassword as businessForgotPassword,
   resetPassword as businessResetPassword,
-
+  getMyPageStats,
 } from "./routes/business-auth";
 import {
   authRateLimit,
@@ -92,6 +88,7 @@ import redirectRouter from "./routes/redirect";
 
 import trackProductVisitRouter from "./routes/track-product-visit";
 import { trackEvent, getTrackingEvents } from "./routes/track-event";
+import { trackSessionEvent, getSessionAnalytics, getBusinessSessionSummary } from "./routes/track-session";
 import {
   generateVerificationToken,
   verifyDomain,
@@ -306,6 +303,7 @@ export async function createServer() {
   app.get("/api/business/auth/me", getCurrentBusiness);
   app.post("/api/business/auth/logout", logoutBusiness);
   app.get("/api/business/auth/stats", requireBusinessAuth, getBusinessAuthStats);
+  app.get("/api/business/mypage/stats", requireBusinessAuth, getMyPageStats);
   app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
   app.put("/api/business/profile", requireBusinessAuth, updateBusinessProfile);
@@ -318,10 +316,6 @@ export async function createServer() {
   // Checkout analytics routes
   app.get("/api/business/analytics/checkouts", requireBusinessAuth, getCheckoutAnalytics);
   app.get("/api/business/dashboard", requireBusinessAuth, getBusinessDashboardData);
-  app.get("/api/business/debug/shops", debugShops);
-  app.get("/api/business/debug/local", debugLocalDatabase);
-  app.get("/api/business/test/dashboard", testDashboardData);
-  app.get("/api/business/test/checkout-analytics", testCheckoutAnalytics);
 
 
   // Open CORS for tracking endpoint so third-party business sites can send events
@@ -340,6 +334,16 @@ export async function createServer() {
     trackEvent(req, res, next);
   });
   app.get("/api/tracking-events", getTrackingEvents);
+
+  // Session tracking routes
+  app.post("/api/track-session", (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+    trackSessionEvent(req, res, next);
+  });
+  app.get("/api/session-analytics", getSessionAnalytics);
+  app.get("/api/business-session-summary", getBusinessSessionSummary);
 
   // Shopify webhook routes
   app.post("/api/shopify-webhooks", handleShopifyWebhook);

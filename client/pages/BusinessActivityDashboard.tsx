@@ -121,14 +121,20 @@ export default function BusinessActivityDashboard() {
       }
 
       const dashboardData = await dashboardResponse.json();
+      console.log("Dashboard API Response in Activity:", dashboardData);
       
       if (!dashboardData.success) {
         throw new Error(dashboardData.error || "Failed to fetch dashboard data");
       }
 
       // Extract data from the consolidated dashboard response
-      const { recentCheckouts, recentOrders } = dashboardData;
+      const { recentCheckouts, recentOrders } = dashboardData.data; // Fix: access data.data
       
+      console.log("Extracted data in Activity:", {
+        checkoutsCount: recentCheckouts?.length,
+        ordersCount: recentOrders?.length
+      });
+
       // Use consolidated data for all activity
       const clicks = recentCheckouts || [];
       const conversions = recentOrders || [];
@@ -158,6 +164,7 @@ export default function BusinessActivityDashboard() {
         totalProductViews: 0,
         totalSessions: 1,
         cartToPurchaseRate: 0,
+        totalCheckouts: totalCheckouts, // Add this property
       };
 
       // Combine and format the data using consolidated structure

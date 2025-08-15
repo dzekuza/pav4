@@ -16,6 +16,11 @@ export class GadgetAnalytics {
   constructor() {
     this.apiKey = API_KEY;
     this.baseUrl = GADGET_API_URL;
+    console.log('GadgetAnalytics initialized with:', {
+      baseUrl: this.baseUrl,
+      hasApiKey: !!this.apiKey,
+      environment: process.env.PAVLP_DASHBOARD_ACCESS ? 'development' : 'production'
+    });
   }
 
   // Get dashboard data for all businesses or specific domain

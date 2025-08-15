@@ -129,5 +129,5 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 // Handle POST requests
 export const action = async ({ request }: LoaderFunctionArgs) => {
-  return loader({ request, context: {} as any });
+  return loader({ request, context: {} as any, params: {} });
 };

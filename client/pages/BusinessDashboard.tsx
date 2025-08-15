@@ -12,6 +12,7 @@ import { Badge } from "../components/ui/badge";
 import { useToast } from "../hooks/use-toast";
 import { SearchHeader } from "../components/SearchHeader";
 import BusinessAnalyticsDashboard from "../components/BusinessAnalyticsDashboard";
+import BusinessMyPageDashboard from "../components/BusinessMyPageDashboard";
 import {
   TrendingUp,
   Users,
@@ -50,7 +51,7 @@ interface BusinessStats {
 export default function BusinessDashboard() {
   const [stats, setStats] = useState<BusinessStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'basic' | 'analytics'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'analytics' | 'mypage'>('basic');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -173,9 +174,9 @@ export default function BusinessDashboard() {
     );
   }
 
-  const isDomainVerified = stats.domainVerified || false;
-  const isTrackingVerified = stats.trackingVerified || false;
-  const domainVerificationRequired = stats.domainVerificationRequired || false;
+  const isDomainVerified = stats?.domainVerified || false;
+  const isTrackingVerified = stats?.trackingVerified || false;
+  const domainVerificationRequired = stats?.domainVerificationRequired || false;
 
   return (
     <div className="min-h-screen relative overflow-hidden text-white">
@@ -240,8 +241,8 @@ export default function BusinessDashboard() {
 
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white">{stats.name}</h1>
-            <p className="text-white/70">{stats.domain}</p>
+            <h1 className="text-3xl font-bold text-white">{stats?.name || 'Business Dashboard'}</h1>
+            <p className="text-white/70">{stats?.domain || ''}</p>
             <div className="flex items-center gap-2 mt-2">
               <Badge 
                 variant={isDomainVerified ? "default" : "secondary"}
@@ -279,6 +280,13 @@ export default function BusinessDashboard() {
               Products
             </Button>
             <Button
+              onClick={() => setActiveTab('mypage')}
+              className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              My Page
+            </Button>
+            <Button
               onClick={() => navigate("/business/dashboard/settings")}
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
@@ -296,7 +304,8 @@ export default function BusinessDashboard() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white">
@@ -306,7 +315,7 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.totalVisits.toLocaleString()}
+                {(stats?.totalVisits || 0).toLocaleString()}
               </div>
               <p className="text-xs text-white/80">
                 Users who visited your products
@@ -323,7 +332,7 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.totalPurchases.toLocaleString()}
+                {(stats?.totalPurchases || 0).toLocaleString()}
               </div>
               <p className="text-xs text-white/80">Successful purchases made</p>
             </CardContent>
@@ -338,7 +347,7 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.totalRevenue.toLocaleString()}
+                ${(stats?.totalRevenue || 0).toLocaleString()}
               </div>
               <p className="text-xs text-white/80">Total sales revenue</p>
             </CardContent>
@@ -353,7 +362,7 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.conversionRate.toFixed(1)}%
+                {(stats?.conversionRate || 0).toFixed(1)}%
               </div>
               <p className="text-xs text-white/80">Visit to purchase ratio</p>
             </CardContent>
@@ -368,12 +377,13 @@ export default function BusinessDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {(stats.totalCheckouts || 0).toLocaleString()}
+                {(stats?.totalCheckouts || 0).toLocaleString()}
               </div>
               <p className="text-xs text-white/80">Completed checkouts</p>
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Limited Access Notice */}
         {!isDomainVerified && domainVerificationRequired && (
@@ -395,19 +405,19 @@ export default function BusinessDashboard() {
         )}
 
         {/* Tab Navigation */}
-        {(isDomainVerified || !domainVerificationRequired) && (
-          <div className="mb-6">
-            <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
-              <button
-                onClick={() => setActiveTab('basic')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'basic'
-                    ? 'bg-white text-black'
-                    : 'text-white hover:text-white/80'
-                }`}
-              >
-                Basic Stats
-              </button>
+        <div className="mb-6">
+          <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab('basic')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'basic'
+                  ? 'bg-white text-black'
+                  : 'text-white hover:text-white/80'
+              }`}
+            >
+              Basic Stats
+            </button>
+            {(isDomainVerified || !domainVerificationRequired) && (
               <button
                 onClick={() => setActiveTab('analytics')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -418,13 +428,28 @@ export default function BusinessDashboard() {
               >
                 Enhanced Analytics
               </button>
-            </div>
+            )}
+            <button
+              onClick={() => setActiveTab('mypage')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'mypage'
+                  ? 'bg-white text-black'
+                  : 'text-white hover:text-white/80'
+              }`}
+            >
+              My Page
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Enhanced Analytics Dashboard */}
         {activeTab === 'analytics' && (isDomainVerified || !domainVerificationRequired) && (
           <BusinessAnalyticsDashboard businessDomain={stats?.domain || ''} />
+        )}
+
+        {/* My Page Dashboard */}
+        {activeTab === 'mypage' && (
+          <BusinessMyPageDashboard businessDomain={stats?.domain || ''} />
         )}
 
         {/* Basic Statistics - Only show if domain is verified or verification not required */}
@@ -443,7 +468,7 @@ export default function BusinessDashboard() {
                     Average Order Value
                   </span>
                   <span className="text-sm font-bold text-white">
-                    ${stats.averageOrderValue.toFixed(2)}
+                    ${(stats?.averageOrderValue || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -451,7 +476,7 @@ export default function BusinessDashboard() {
                     Commission Rate
                   </span>
                   <Badge variant="outline" className="text-white border-white/30">
-                    {stats.adminCommissionRate}%
+                    {stats?.adminCommissionRate || 0}%
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
@@ -459,7 +484,7 @@ export default function BusinessDashboard() {
                     Projected Fee
                   </span>
                   <span className="text-sm font-bold text-white">
-                    ${stats.projectedFee.toFixed(2)}
+                    ${(stats?.projectedFee || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -495,14 +520,14 @@ export default function BusinessDashboard() {
                       Total Visits
                     </span>
                     <span className="text-sm text-white">
-                      {stats.totalVisits.toLocaleString()}
+                      {(stats?.totalVisits || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-blue-600 h-2 rounded-full"
                       style={{
-                        width: `${Math.min((stats.totalVisits / 1000) * 100, 100)}%`,
+                        width: `${Math.min(((stats?.totalVisits || 0) / 1000) * 100, 100)}%`,
                       }}
                     ></div>
                   </div>
@@ -514,14 +539,14 @@ export default function BusinessDashboard() {
                       Total Purchases
                     </span>
                     <span className="text-sm text-white">
-                      {stats.totalPurchases.toLocaleString()}
+                      {(stats?.totalPurchases || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-green-600 h-2 rounded-full"
                       style={{
-                        width: `${Math.min((stats.totalPurchases / 100) * 100, 100)}%`,
+                        width: `${Math.min(((stats?.totalPurchases || 0) / 100) * 100, 100)}%`,
                       }}
                     ></div>
                   </div>
@@ -533,13 +558,13 @@ export default function BusinessDashboard() {
                       Conversion Rate
                     </span>
                     <span className="text-sm text-white">
-                      {stats.conversionRate.toFixed(1)}%
+                      {(stats?.conversionRate || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-purple-600 h-2 rounded-full"
-                      style={{ width: `${Math.min(stats.conversionRate, 100)}%` }}
+                      style={{ width: `${Math.min(stats?.conversionRate || 0, 100)}%` }}
                     ></div>
                   </div>
                 </div>

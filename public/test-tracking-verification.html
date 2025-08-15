@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tracking Verification</title>
+    
+    <!-- iPick Tracker Integration -->
+    <script src="https://ipick.io/tracker.js" defer></script>
+    <meta name="ipick-business-id" content="2">
+    <meta name="ipick-affiliate-id" content="aff_godislovel_1755091745057_n7ccoo">
+    <!-- End iPick Tracker Integration -->
+</head>
+<body>
+    <h1>Test Tracking Verification</h1>
+    <p>This page should pass the tracking verification test.</p>
+    
+    <div id="tracker-status">
+        <h2>Tracker Status:</h2>
+        <p id="status">Checking...</p>
+    </div>
+
+    <script>
+        // Check if tracker is loaded
+        setTimeout(() => {
+            const statusElement = document.getElementById('status');
+            if (window.iPickTracker) {
+                statusElement.textContent = '✅ Tracker loaded successfully';
+                statusElement.style.color = 'green';
+                
+                // Log tracker info
+                console.log('iPick Tracker loaded:', {
+                    businessId: window.iPickTracker.getSessionId ? 'Available' : 'Not available',
+                    sessionId: window.iPickTracker.getSessionId ? window.iPickTracker.getSessionId() : 'N/A'
+                });
+            } else {
+                statusElement.textContent = '❌ Tracker not loaded';
+                statusElement.style.color = 'red';
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

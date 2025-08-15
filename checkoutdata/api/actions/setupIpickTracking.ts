@@ -39,7 +39,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     clickedAt,
     sourceUrl: ipickUrl || null,
     shop: {
-      _link: shopId
+      _link: shopId.toString()
     },
     conversionStatus: 'pending'
   });
