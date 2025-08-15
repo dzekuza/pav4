@@ -500,13 +500,13 @@ export default function BusinessActivityDashboard() {
     // Handle amounts that might be in cents (common in e-commerce)
     if (numericAmount && numericAmount < 1000 && numericAmount > 0) {
       // If amount is less than 1000, it might be in cents
-      // Check if it looks like cents (e.g., 1999 for $19.99)
+      // Check if it looks like cents (e.g., 1999 for €19.99)
       if (numericAmount > 100) {
         numericAmount = numericAmount / 100;
       }
     }
     
-    return numericAmount && !isNaN(numericAmount) ? `$${numericAmount.toFixed(2)}` : "-";
+    return numericAmount && !isNaN(numericAmount) ? `€${numericAmount.toFixed(2)}` : "-";
   };
 
   const getTypeDisplayName = (type: string) => {
@@ -712,7 +712,7 @@ export default function BusinessActivityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${stats.totalRevenue.toLocaleString()}
+              {stats.totalRevenue.toLocaleString()}
             </div>
             <p className="text-xs text-white/80">Revenue from purchases</p>
           </CardContent>
@@ -727,7 +727,7 @@ export default function BusinessActivityDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${stats.averageOrderValue.toFixed(2)}
+              {stats.averageOrderValue.toFixed(2)}
             </div>
             <p className="text-xs text-white/80">Average per order</p>
           </CardContent>
@@ -865,11 +865,11 @@ export default function BusinessActivityDashboard() {
 
             <div className="text-center p-4 bg-white/5 rounded-lg">
               <div className="text-2xl font-bold text-blue-400">
-                ${stats.averageOrderValue.toFixed(2)}
+                €{stats.averageOrderValue.toFixed(2)}
               </div>
               <div className="text-sm text-white/80">Average Order Value</div>
               <div className="text-xs text-white/60 mt-1">
-                Total: ${stats.totalRevenue.toFixed(2)} / {stats.totalPurchases}{" "}
+                Total: €{stats.totalRevenue.toFixed(2)} / {stats.totalPurchases}{" "}
                 orders
               </div>
             </div>

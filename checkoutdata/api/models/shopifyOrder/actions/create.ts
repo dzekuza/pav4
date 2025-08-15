@@ -10,107 +10,116 @@ export const run: ActionRun = async ({ params, record, logger, api, connections 
 export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, connections }) => {
   // Enhanced referral conversion tracking for orders
   try {
-    // Ensure shopId exists before proceeding
-    if (!record.shopId) {
-      logger.warn({ orderId: record.id }, "No shopId found on order, skipping referral conversion processing");
-      return;
-    }
-
-    logger.info({
+    console.log("Processing order for affiliate tracking:", {
       orderId: record.id,
-      shopId: record.shopId,
+      sourceUrl: record.sourceUrl,
+      sourceName: record.sourceName,
       email: record.email,
-      totalPrice: record.totalPrice,
-      createdAt: record.createdAt
-    }, "Processing order for affiliate conversion tracking");
+      totalPrice: record.totalPrice
+    });
 
-    // Method 1: Try to match by checkout token if available
+    // Method 1: Check for unique referral URLs in sourceUrl
+    let isAffiliateOrder = false;
     let matchedReferral = null;
-    if (record.checkoutToken) {
-      logger.info({ orderId: record.id, checkoutToken: record.checkoutToken }, "Attempting to match by checkout token");
-      
-      // Look for referrals that might be linked to this checkout
-      const tokenReferrals = await api.businessReferral.findMany({
-        filter: {
-          shopId: { equals: record.shopId },
-          conversionStatus: { equals: "pending" }
-        },
-        first: 100
-      });
+    let referralSource = null;
+    let referralMedium = null;
+    let referralCampaign = null;
 
-      // Check if any referral has a matching token in the targetUrl or sourceUrl
-      for (const referral of tokenReferrals) {
-        if (referral.targetUrl && referral.targetUrl.includes(record.checkoutToken)) {
-          matchedReferral = referral;
-          logger.info({
-            orderId: record.id,
-            referralId: referral.id,
-            method: "checkout_token_match"
-          }, "Found referral match by checkout token");
-          break;
+    if (record.sourceUrl) {
+      // Check for unique referral URLs containing affiliate IDs
+      const referralUrlMatch = record.sourceUrl.match(/\/ref\/(aff_[a-zA-Z0-9_]+)/);
+      const trackingUrlMatch = record.sourceUrl.match(/\/track\/(aff_[a-zA-Z0-9_]+)\/([^\/]+)/);
+      
+      if (referralUrlMatch || trackingUrlMatch) {
+        const affiliateId = referralUrlMatch ? referralUrlMatch[1] : trackingUrlMatch![1];
+        const targetDomain = trackingUrlMatch ? trackingUrlMatch[2] : null;
+        
+        console.log("Found affiliate URL match:", { affiliateId, targetDomain });
+        
+        // Find the business referral record
+        const referralQuery = targetDomain 
+          ? { affiliateId: { equals: affiliateId }, businessDomain: { equals: targetDomain } }
+          : { affiliateId: { equals: affiliateId } };
+        
+        matchedReferral = await api.businessReferral.findFirst({
+          filter: referralQuery
+        });
+        
+        if (matchedReferral) {
+          isAffiliateOrder = true;
+          referralSource = matchedReferral.utmSource;
+          referralMedium = matchedReferral.utmMedium;
+          referralCampaign = matchedReferral.utmCampaign;
+          
+          console.log("Matched referral record:", {
+            referralId: matchedReferral.referralId,
+            businessDomain: matchedReferral.businessDomain,
+            conversionStatus: matchedReferral.conversionStatus
+          });
         }
       }
     }
 
-    // Method 2: Try to match by email if available
-    if (!matchedReferral && record.email) {
-      logger.info({ orderId: record.id, email: record.email }, "Attempting to match by email");
+    // Method 2: Check UTM parameters in sourceUrl (existing logic)
+    if (!isAffiliateOrder && record.sourceUrl) {
+      const url = new URL(record.sourceUrl);
+      const utmSource = url.searchParams.get('utm_source');
+      const utmMedium = url.searchParams.get('utm_medium');
+      const utmCampaign = url.searchParams.get('utm_campaign');
       
-      // Look for recent referrals for this shop
-      const emailReferrals = await api.businessReferral.findMany({
-        filter: {
-          shopId: { equals: record.shopId },
-          conversionStatus: { equals: "pending" }
-        },
-        first: 100,
-        sort: { clickedAt: "Descending" }
-      });
-
-      // For email matching, we'd need to store email in referrals or use a different approach
-      // This is a placeholder for future enhancement
+      if (utmSource === 'ipick' && utmMedium === 'suggestion' && utmCampaign === 'business_tracking') {
+        isAffiliateOrder = true;
+        referralSource = utmSource;
+        referralMedium = utmMedium;
+        referralCampaign = utmCampaign;
+        
+        console.log("Matched UTM parameters for affiliate order");
+      }
     }
 
-    // Method 3: Enhanced timing-based matching with better logic
-    if (!matchedReferral) {
-      logger.info({ orderId: record.id }, "Attempting timing-based referral matching");
+    // Method 3: Enhanced timing-based matching with converted referrals (48-hour window)
+    if (!isAffiliateOrder) {
+      const orderTime = new Date(record.createdAt);
+      const cutoffTime = new Date(orderTime.getTime() - (48 * 60 * 60 * 1000)); // 48 hours ago
       
-      const orderCreatedAt = record.createdAt || new Date();
-      const timeWindowHours = 48; // Extended to 48 hours for better matching
-      const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
-
-      // Get all pending referrals for this shop
+      // Find pending referrals within the time window
       const pendingReferrals = await api.businessReferral.findMany({
         filter: {
-          shopId: { equals: record.shopId },
-          conversionStatus: { equals: "pending" }
+          conversionStatus: { equals: "pending" },
+          clickedAt: { greaterThan: cutoffTime.toISOString() }
         },
-        first: 250,
-        sort: { clickedAt: "Descending" }
+        first: 10
       });
-
-      logger.info({
-        orderId: record.id,
-        pendingReferralsCount: pendingReferrals.length,
-        timeWindowHours
-      }, "Found pending referrals for timing-based matching");
-
-      // Find the most recent referral within the time window
+      
+      console.log(`Found ${pendingReferrals.length} pending referrals within 48 hours`);
+      
       for (const referral of pendingReferrals) {
-        if (referral.clickedAt) {
-          const timeDiff = orderCreatedAt.getTime() - new Date(referral.clickedAt).getTime();
-          
-          // If the referral was clicked before the order and within our time window
-          if (timeDiff >= 0 && timeDiff <= timeWindowMs) {
-            matchedReferral = referral;
-            logger.info({
-              orderId: record.id,
-              referralId: referral.id,
-              timeDiffHours: Math.round(timeDiff / (1000 * 60 * 60)),
-              method: "timing_based_match"
-            }, "Found referral match by timing");
-            break;
-          }
-        }
+        // Check if this referral matches the order (by timing)
+        // Note: We don't have email field in businessReferral, so we'll use timing only
+        matchedReferral = referral;
+        isAffiliateOrder = true;
+        referralSource = referral.utmSource;
+        referralMedium = referral.utmMedium;
+        referralCampaign = referral.utmCampaign;
+        
+        console.log("Matched referral by timing:", {
+          referralId: referral.referralId,
+          businessDomain: referral.businessDomain
+        });
+        break;
+      }
+    }
+
+    // Method 4: Check sourceName for affiliate indicators
+    if (!isAffiliateOrder && record.sourceName) {
+      const sourceNameLower = record.sourceName.toLowerCase();
+      if (sourceNameLower.includes('ipick') || sourceNameLower.includes('pavlo') || sourceNameLower.includes('price comparison')) {
+        isAffiliateOrder = true;
+        referralSource = 'ipick';
+        referralMedium = 'suggestion';
+        referralCampaign = 'business_tracking';
+        
+        console.log("Matched affiliate order by sourceName:", record.sourceName);
       }
     }
 

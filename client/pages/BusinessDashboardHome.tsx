@@ -31,11 +31,50 @@ interface BusinessStats {
   logo?: string | null;
 }
 
+interface ReferralUrls {
+  businessId: number;
+  businessName: string;
+  domain: string;
+  affiliateId: string;
+  referralUrl: string;
+  trackingUrl: string;
+  instructions: {
+    referralUrl: string;
+    trackingUrl: string;
+  };
+}
+
 export default function BusinessDashboardHome() {
   const [stats, setStats] = useState<BusinessStats | null>(null);
+  const [referralUrls, setReferralUrls] = useState<ReferralUrls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
+
+  const fetchReferralUrls = async () => {
+    try {
+      const response = await fetch("/api/business/referral-url", {
+        credentials: "include",
+      });
+
+      if (response.status === 401) {
+        navigate("/business/login");
+        return;
+      }
+
+      if (!response.ok) {
+        console.error("Failed to fetch referral URLs");
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setReferralUrls(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching referral URLs:", error);
+    }
+  };
 
   const fetchStats = async (isRefresh = false) => {
     try {
@@ -134,6 +173,7 @@ export default function BusinessDashboardHome() {
 
   useEffect(() => {
     fetchStats();
+    fetchReferralUrls();
   }, [navigate]);
 
   const handleRefresh = () => {
@@ -338,7 +378,7 @@ export default function BusinessDashboardHome() {
                 Average Order Value
               </span>
               <span className="text-sm font-bold text-white">
-                ${safeStats.averageOrderValue.toFixed(2)}
+                €{safeStats.averageOrderValue.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -354,7 +394,7 @@ export default function BusinessDashboardHome() {
                 Projected Fee
               </span>
               <span className="text-sm font-bold text-white">
-                ${safeStats.projectedFee.toFixed(2)}
+                €{safeStats.projectedFee.toFixed(2)}
               </span>
             </div>
           </CardContent>
@@ -427,6 +467,77 @@ export default function BusinessDashboardHome() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Referral URLs Section */}
+      {referralUrls && (
+        <Card className="border-white/10 bg-white/5 text-white">
+          <CardHeader>
+            <CardTitle className="text-white">Your Unique Referral URLs</CardTitle>
+            <CardDescription className="text-white/80">
+              Use these URLs to track customers coming from your affiliate links
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">
+                  General Referral URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={referralUrls.referralUrl}
+                    readOnly
+                    className="flex-1 bg-white/10 border border-white/20 rounded px-3 py-2 text-white text-sm"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(referralUrls.referralUrl)}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-white/60 mt-1">
+                  {referralUrls.instructions.referralUrl}
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">
+                  Domain-Specific Tracking URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={referralUrls.trackingUrl}
+                    readOnly
+                    className="flex-1 bg-white/10 border border-white/20 rounded px-3 py-2 text-white text-sm"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(referralUrls.trackingUrl)}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-white/60 mt-1">
+                  {referralUrls.instructions.trackingUrl}
+                </p>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+                <h4 className="text-sm font-medium text-blue-300 mb-2">How to Use:</h4>
+                <ul className="text-xs text-white/80 space-y-1">
+                  <li>• <strong>General URL:</strong> Use this for general affiliate marketing</li>
+                  <li>• <strong>Domain URL:</strong> Use this to track traffic to your specific domain</li>
+                  <li>• Both URLs contain your unique affiliate ID: <code className="bg-white/10 px-1 rounded">{referralUrls.affiliateId}</code></li>
+                  <li>• When customers click these links, we'll track them as coming from your affiliate</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

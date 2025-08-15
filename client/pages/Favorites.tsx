@@ -22,6 +22,7 @@ import {
 import { useAuth } from "../hooks/use-auth";
 import { useAuthModal } from "../hooks/use-auth-modal";
 import { AuthModal } from "../components/AuthModal";
+import { getRedirectUrl } from "../lib/utils";
 
 const Favorites = () => {
   const { favorites, loading, error, removeFavorite } = useFavorites();
@@ -271,7 +272,7 @@ const Favorites = () => {
                           className="flex-shrink-0 rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                         >
                           <a
-                            href={favorite.url}
+                            href={getRedirectUrl(favorite.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="View product details"

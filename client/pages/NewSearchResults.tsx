@@ -37,6 +37,7 @@ import { useAuthModal } from "../hooks/use-auth-modal";
 import { AuthModal } from "../components/AuthModal";
 import { useAuth } from "../hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { getRedirectUrl } from "../lib/utils";
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -823,7 +824,7 @@ const NewSearchResults = () => {
                         className="w-full sm:w-auto rounded-full bg-white text-black hover:bg-white/90"
                       >
                         <a
-                          href={`/api/redirect?to=${encodeURIComponent(mainProduct.url)}`}
+                          href={getRedirectUrl(mainProduct.url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label="View original product details"
@@ -987,7 +988,7 @@ const NewSearchResults = () => {
                               className="flex-shrink-0 rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                             >
                               <a
-                                href={`/api/redirect?to=${encodeURIComponent(suggestion.link)}`}
+                                href={getRedirectUrl(suggestion.link)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="View product details"

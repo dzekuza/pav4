@@ -55,6 +55,7 @@ import {
   getBusinessRealTimeStats,
   getCheckoutAnalytics,
   getBusinessDashboardData,
+  generateReferralUrl,
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -390,6 +391,7 @@ export async function createServer() {
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
+  app.get("/api/business/referral-url", requireBusinessAuth, generateReferralUrl);
   
   // Public product routes
   app.get("/api/products/categories", getCategories);
@@ -645,6 +647,150 @@ export async function createServer() {
 
   // Business: Get real-time statistics
   app.get("/api/business/stats/realtime", requireBusinessAuth, getBusinessRealTimeStats);
+
+  // Referral tracking routes - must be before catch-all
+  app.get("/ref/:affiliateId", async (req, res) => {
+    try {
+      const { affiliateId } = req.params;
+      const { target_url } = req.query;
+      const { prisma } = await import("./services/database");
+      
+      // Find business by affiliate ID
+      const business = await prisma.business.findFirst({
+        where: { affiliateId },
+        select: { id: true, domain: true, name: true }
+      });
+
+      if (!business) {
+        return res.status(404).send("Referral link not found");
+      }
+
+      // Log the referral click
+      await prisma.businessClick.create({
+        data: {
+          businessId: business.id,
+          productUrl: target_url as string || req.get("Referer") || "direct",
+          userAgent: req.get("User-Agent") || undefined,
+          referrer: req.get("Referer") || undefined,
+          ipAddress: req.ip,
+          utmSource: "pavlo4",
+          utmMedium: "referral",
+          utmCampaign: "business_referral",
+        },
+      });
+
+      // Increment total visits counter
+      await prisma.business.update({
+        where: { id: business.id },
+        data: { totalVisits: { increment: 1 } },
+      });
+
+      // Build redirect URL
+      let redirectUrl: string;
+      
+      if (target_url && typeof target_url === 'string') {
+        // If target_url is provided, redirect to the specific product URL
+        try {
+          const targetUrl = new URL(target_url);
+          // Add UTM parameters to the target URL
+          const utmParams = new URLSearchParams({
+            utm_source: "pavlo4",
+            utm_medium: "referral",
+            utm_campaign: "business_referral",
+            aff_id: affiliateId,
+            ref_token: Math.random().toString(36).slice(2, 12),
+          });
+          
+          targetUrl.search = targetUrl.search 
+            ? `${targetUrl.search}&${utmParams.toString()}`
+            : `?${utmParams.toString()}`;
+            
+          redirectUrl = targetUrl.toString();
+        } catch (error) {
+          console.error("Invalid target_url:", target_url);
+          // Fallback to business domain
+          const utmParams = new URLSearchParams({
+            utm_source: "pavlo4",
+            utm_medium: "referral",
+            utm_campaign: "business_referral",
+            aff_id: affiliateId,
+            ref_token: Math.random().toString(36).slice(2, 12),
+          });
+          redirectUrl = `https://${business.domain}?${utmParams.toString()}`;
+        }
+      } else {
+        // Default redirect to business domain
+        const utmParams = new URLSearchParams({
+          utm_source: "pavlo4",
+          utm_medium: "referral",
+          utm_campaign: "business_referral",
+          aff_id: affiliateId,
+          ref_token: Math.random().toString(36).slice(2, 12),
+        });
+        redirectUrl = `https://${business.domain}?${utmParams.toString()}`;
+      }
+
+      res.redirect(302, redirectUrl);
+    } catch (error) {
+      console.error("Error handling referral redirect:", error);
+      res.status(500).send("Error processing referral");
+    }
+  });
+
+  app.get("/track/:affiliateId/:domain", async (req, res) => {
+    try {
+      const { affiliateId, domain } = req.params;
+      const { prisma } = await import("./services/database");
+      
+      // Find business by affiliate ID and domain
+      const business = await prisma.business.findFirst({
+        where: { 
+          affiliateId,
+          domain: domain.replace(/^www\./, "") // Remove www prefix if present
+        },
+        select: { id: true, domain: true, name: true }
+      });
+
+      if (!business) {
+        return res.status(404).send("Tracking link not found");
+      }
+
+      // Log the tracking click
+      await prisma.businessClick.create({
+        data: {
+          businessId: business.id,
+          productUrl: req.get("Referer") || "direct",
+          userAgent: req.get("User-Agent") || undefined,
+          referrer: req.get("Referer") || undefined,
+          ipAddress: req.ip,
+          utmSource: "pavlo4",
+          utmMedium: "tracking",
+          utmCampaign: "domain_tracking",
+        },
+      });
+
+      // Increment total visits counter
+      await prisma.business.update({
+        where: { id: business.id },
+        data: { totalVisits: { increment: 1 } },
+      });
+
+      // Redirect to the business domain with UTM parameters
+      const utmParams = new URLSearchParams({
+        utm_source: "pavlo4",
+        utm_medium: "tracking",
+        utm_campaign: "domain_tracking",
+        aff_id: affiliateId,
+        track_token: Math.random().toString(36).slice(2, 12),
+      });
+
+      const redirectUrl = `https://${business.domain}?${utmParams.toString()}`;
+      res.redirect(302, redirectUrl);
+    } catch (error) {
+      console.error("Error handling tracking redirect:", error);
+      res.status(500).send("Error processing tracking link");
+    }
+  });
 
   // Graceful shutdown handler
   process.on("SIGTERM", async () => {

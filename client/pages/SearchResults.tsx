@@ -36,6 +36,7 @@ import {
   getStoredUtmParameters,
 } from "@/lib/tracking";
 import { ComparisonGrid } from "@/components/ComparisonGrid";
+import { getRedirectUrl } from "@/lib/utils";
 
 // Helper functions
 function extractPrice(priceString: string): number {
@@ -499,7 +500,7 @@ const SearchResults = () => {
               {originalProduct.url && (
                 <Button asChild>
                   <a
-                    href={originalProduct.url}
+                    href={getRedirectUrl(originalProduct.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="View original product details"
@@ -664,7 +665,7 @@ const SearchResults = () => {
                               className="flex-shrink-0"
                             >
                               <a
-                                href={comparison.url}
+                                href={getRedirectUrl(comparison.url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="View product details"

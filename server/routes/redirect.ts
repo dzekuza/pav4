@@ -25,10 +25,6 @@ router.get("/redirect", async (req, res) => {
     return res.status(400).json({ error: "Invalid destination URL" });
   }
 
-  if (user_id) url.searchParams.set("track_user", String(user_id));
-  if (reseller_id) url.searchParams.set("aff_id", String(reseller_id));
-  url.searchParams.set("utm_source", "pavlo4");
-
   // Attempt to log a BusinessClick for the matched business domain
   try {
     // Extract bare domain without www.
@@ -37,7 +33,7 @@ router.get("/redirect", async (req, res) => {
 
     const business = await prisma.business.findFirst({
       where: { domain: hostname },
-      select: { id: true },
+      select: { id: true, affiliateId: true, domain: true },
     });
 
     if (business) {
@@ -61,6 +57,23 @@ router.get("/redirect", async (req, res) => {
         data: { totalVisits: { increment: 1 } },
       });
       console.log("Business click logged and visits incremented");
+
+      // For business domains, use referral tracking URL instead of direct redirect
+      const baseUrl = process.env.FRONTEND_URL || 'https://ipick.io';
+      const referralUrl = `${baseUrl}/ref/${business.affiliateId}`;
+      
+      // Add UTM parameters to the referral URL
+      const utmParams = new URLSearchParams({
+        utm_source: "pavlo4",
+        utm_medium: "redirect",
+        utm_campaign: "product_suggestion",
+        target_url: encodeURIComponent(to),
+        ref_token: Math.random().toString(36).slice(2, 12),
+      });
+
+      const finalReferralUrl = `${referralUrl}?${utmParams.toString()}`;
+      console.log("Redirecting to business via referral URL:", finalReferralUrl);
+      return res.redirect(302, finalReferralUrl);
     } else {
       console.log("No business found for domain:", hostname);
     }
@@ -68,6 +81,11 @@ router.get("/redirect", async (req, res) => {
     // Do not block redirect on logging failure
     console.error("Failed to log redirect click:", e);
   }
+
+  // For non-business domains, use the original redirect logic
+  if (user_id) url.searchParams.set("track_user", String(user_id));
+  if (reseller_id) url.searchParams.set("aff_id", String(reseller_id));
+  url.searchParams.set("utm_source", "pavlo4");
 
   console.log("Redirecting to:", url.toString());
   res.redirect(302, url.toString());

@@ -683,3 +683,38 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
     handleError(res, error, "fetch business dashboard data");
   }
 };
+
+// Generate unique referral URL for business
+export const generateReferralUrl: RequestHandler = async (req, res) => {
+  try {
+    const auth = await authenticateBusiness(req, res);
+    if (!auth) return;
+
+    const { businessId, business } = auth;
+    
+    // Generate unique referral URL with business affiliate ID
+    const baseUrl = process.env.FRONTEND_URL || 'https://ipick.io';
+    const referralUrl = `${baseUrl}/ref/${business.affiliateId}`;
+    
+    // Also generate a tracking URL for the business domain
+    const trackingUrl = `${baseUrl}/track/${business.affiliateId}/${business.domain}`;
+    
+    res.json({
+      success: true,
+      data: {
+        businessId: business.id,
+        businessName: business.name,
+        domain: business.domain,
+        affiliateId: business.affiliateId,
+        referralUrl: referralUrl,
+        trackingUrl: trackingUrl,
+        instructions: {
+          referralUrl: "Use this URL to track customers coming from your affiliate links",
+          trackingUrl: "Use this URL to track customers coming to your specific domain"
+        }
+      }
+    });
+  } catch (error) {
+    handleError(res, error, "generating referral URL");
+  }
+};

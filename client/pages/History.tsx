@@ -10,6 +10,7 @@ import { UserSearchHistoryResponse, UserSearchHistory } from "@shared/api";
 import { Clock, ExternalLink, User } from "lucide-react";
 import { useAuthModal } from "../hooks/use-auth-modal";
 import { AuthModal } from "../components/AuthModal";
+import { getRedirectUrl } from "../lib/utils";
 
 export default function History() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -213,7 +214,7 @@ export default function History() {
                           className="w-full md:w-auto rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                         >
                           <a
-                            href={item.url}
+                            href={getRedirectUrl(item.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
