@@ -44,6 +44,8 @@ interface ActivityItem {
   eventData?: any;
   platform?: string;
   sessionId?: string;
+  sourceUrl?: string;
+  sourceName?: string;
 }
 
 export default function BusinessActivityDashboard() {
@@ -181,6 +183,8 @@ export default function BusinessActivityDashboard() {
           userAgent: checkout.userAgent,
           referrer: checkout.sourceUrl,
           ip: checkout.ipAddress,
+          sourceUrl: checkout.sourceUrl,
+          sourceName: checkout.sourceName,
         })),
         // Orders (from consolidated data)
         ...conversions.map((order: any) => ({
@@ -194,6 +198,8 @@ export default function BusinessActivityDashboard() {
           userAgent: order.userAgent,
           referrer: order.referrer,
           ip: order.ipAddress,
+          sourceUrl: order.sourceUrl,
+          sourceName: order.sourceName,
         })),
       ];
 
@@ -522,6 +528,86 @@ export default function BusinessActivityDashboard() {
         return "Viewed Product";
       default:
         return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+    }
+  };
+
+  const getReferrerName = (activity: ActivityItem) => {
+    // Check sourceUrl first (from Shopify data)
+    if (activity.sourceUrl) {
+      if (activity.sourceUrl.includes('ipick.io') || activity.sourceUrl.includes('iPick.io')) {
+        return "iPick.io";
+      }
+      if (activity.sourceUrl.includes('google.com') || activity.sourceUrl.includes('bing.com')) {
+        return "Search Engine";
+      }
+      if (activity.sourceUrl.includes('facebook.com') || activity.sourceUrl.includes('instagram.com')) {
+        return "Social Media";
+      }
+      return "Other";
+    }
+    
+    // Check sourceName (from Shopify data)
+    if (activity.sourceName) {
+      if (activity.sourceName.toLowerCase().includes('ipick') || activity.sourceName.toLowerCase().includes('pavlo')) {
+        return "iPick.io";
+      }
+      if (activity.sourceName.toLowerCase() === 'web') {
+        return "Direct";
+      }
+      return activity.sourceName;
+    }
+    
+    // Check referrer field
+    if (activity.referrer) {
+      if (activity.referrer.includes('ipick.io') || activity.referrer.includes('iPick.io')) {
+        return "iPick.io";
+      }
+      if (activity.referrer.includes('google.com') || activity.referrer.includes('bing.com')) {
+        return "Search Engine";
+      }
+      if (activity.referrer.includes('facebook.com') || activity.referrer.includes('instagram.com')) {
+        return "Social Media";
+      }
+      return "Other";
+    }
+    
+    return "Direct";
+  };
+
+  const getReferrerBadge = (activity: ActivityItem) => {
+    const referrer = getReferrerName(activity);
+    
+    switch (referrer) {
+      case "iPick.io":
+        return (
+          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+            iPick.io
+          </Badge>
+        );
+      case "Search Engine":
+        return (
+          <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+            Search Engine
+          </Badge>
+        );
+      case "Social Media":
+        return (
+          <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+            Social Media
+          </Badge>
+        );
+      case "Direct":
+        return (
+          <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/30">
+            Direct
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">
+            {referrer}
+          </Badge>
+        );
     }
   };
 
@@ -884,6 +970,9 @@ export default function BusinessActivityDashboard() {
                     <TableHead className="text-white border-b border-white/20 pb-3">
                       Date
                     </TableHead>
+                    <TableHead className="text-white border-b border-white/20 pb-3">
+                      Referred by
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -928,6 +1017,9 @@ export default function BusinessActivityDashboard() {
                             {formatDate(activity.timestamp)}
                           </span>
                         </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {getReferrerBadge(activity)}
                       </TableCell>
                     </TableRow>
                   ))}
