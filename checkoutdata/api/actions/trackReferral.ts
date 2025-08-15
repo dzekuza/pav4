@@ -32,11 +32,11 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     utmCampaign: utmCampaign,
     conversionStatus: 'pending',
     shop: {
-      _link: shop.id
+      _link: (shop as any).id
     }
   });
 
-  logger.info(`Created referral tracking record for referralId: ${params.referralId}, businessDomain: ${params.businessDomain}`);
+  console.log(`Created referral tracking record for referralId: ${params.referralId}, businessDomain: ${params.businessDomain}`);
 
   return {
     success: true,

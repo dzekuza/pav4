@@ -1,7 +1,7 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { api } from "../api";
 
-export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   try {
     // Check authorization
     const authHeader = request.headers.get('authorization');
@@ -128,6 +128,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 // Handle POST requests
-export const action = async ({ request }: LoaderFunctionArgs) => {
-  return loader({ request, context: {} as any, params: {} });
+export const action = async ({ request, context, params }: LoaderFunctionArgs) => {
+  return loader({ request, context, params });
 };

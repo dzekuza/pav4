@@ -18,7 +18,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     });
 
     if (!businessReferral) {
-      logger.warn(`Business referral not found for referralId: ${referralId}`);
+      console.warn(`Business referral not found for referralId: ${referralId}`);
       return {
         success: false,
         error: "Referral not found"
@@ -54,21 +54,22 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       discountValue
     });
 
-    logger.info(`Conversion recorded for referralId: ${referralId}, type: ${conversionType}, value: ${conversionValue}`);
+    console.log(`Conversion recorded for referralId: ${referralId}, type: ${conversionType}, value: ${conversionValue}`);
 
     return {
       success: true,
-      referralId,
-      conversionType,
-      conversionValue,
-      newStatus
+      referralId: referralId || "",
+      conversionType: conversionType || "",
+      conversionValue: conversionValue || 0,
+      newStatus: newStatus || "pending"
     };
 
-  } catch (error) {
-    logger.error(`Error recording conversion: ${error.message}`, { referralId, sessionId, conversionType });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error recording conversion: ${errorMessage}`);
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     };
   }
 };

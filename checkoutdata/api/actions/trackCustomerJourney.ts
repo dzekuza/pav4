@@ -39,7 +39,7 @@ export const run: ActionRun = async ({ params, logger, api, request }) => {
     });
 
     if (!shop) {
-      logger.error(`Shop not found for business domain: ${businessDomain}`);
+      console.error(`Shop not found for business domain: ${businessDomain}`);
       throw new Error(`Shop not found for business domain: ${businessDomain}`);
     }
 
@@ -60,7 +60,7 @@ export const run: ActionRun = async ({ params, logger, api, request }) => {
         });
       } catch (error) {
         // BusinessReferral not found, which is fine - continue without linking
-        logger.info(`No matching business referral found for UTM parameters`);
+        console.log(`No matching business referral found for UTM parameters`);
       }
     }
 
@@ -102,30 +102,20 @@ export const run: ActionRun = async ({ params, logger, api, request }) => {
 
     const customerJourney = await api.customerJourney.create(journeyData);
 
-    logger.info(`Customer journey tracked successfully`, {
-      journeyId: customerJourney.id,
-      sessionId,
-      eventType,
-      shopId: shop.id,
-      businessReferralId: businessReferral?.id
-    });
+    console.log(`Customer journey tracked successfully`);
 
     return {
       success: true,
-      journeyId: customerJourney.id,
+      journeyId: (customerJourney as any).id,
       sessionId,
       eventType,
       shopId: shop.id,
       businessReferralId: businessReferral?.id
     };
 
-  } catch (error) {
-    logger.error(`Failed to track customer journey`, {
-      error: error.message,
-      sessionId,
-      eventType,
-      businessDomain
-    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to track customer journey: ${errorMessage}`);
     throw error;
   }
 };

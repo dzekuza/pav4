@@ -1,3 +1,5 @@
+import { ActionOptions } from "gadget-server";
+
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
   const {
     businessDomain,
@@ -119,9 +121,9 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         acc[event.sessionId] = [];
       }
       acc[event.sessionId].push({
-        pageUrl: event.pageUrl,
-        pageTitle: event.pageTitle,
-        timestamp: event.timestamp
+        pageUrl: event.pageUrl || "",
+        pageTitle: event.pageTitle || "",
+        timestamp: typeof event.timestamp === 'string' ? event.timestamp : new Date().toISOString()
       });
     }
     return acc;
@@ -130,9 +132,9 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
   const entryPages: Record<string, number> = {};
   const exitPages: Record<string, number> = {};
 
-  Object.values(sessionPages).forEach(pages => {
+  Object.values(sessionPages).forEach((pages: any[]) => {
     if (pages.length > 0) {
-      pages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      pages.sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       const entryPage = pages[0].pageUrl || "Unknown";
       const exitPage = pages[pages.length - 1].pageUrl || "Unknown";
       
@@ -155,8 +157,9 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       utmCampaigns[event.utmCampaign] = (utmCampaigns[event.utmCampaign] || 0) + 1;
     }
     if (event.businessReferral?.businessDomain) {
-      referrals[event.businessReferral.businessDomain] = (referrals[event.businessReferral.businessDomain] || 0) + 1;
-      if (event.businessReferral.businessDomain.includes('ipick.io')) {
+      const domain = event.businessReferral.businessDomain;
+      referrals[domain] = (referrals[domain] || 0) + 1;
+      if (domain.includes('ipick.io')) {
         ipickReferrals++;
       }
     }
@@ -212,7 +215,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         hasPurchase,
         totalValue,
         startTime: pages[0]?.timestamp,
-        endTime: pages[pages.length - 1]?.timestamp,
+        endTime: pages[pages.length - 1]?.timestamp || "",
         country: sessionEvents[0]?.country,
         utmSource: sessionEvents[0]?.utmSource
       };

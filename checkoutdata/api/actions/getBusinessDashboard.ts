@@ -4,22 +4,22 @@ import { ActionOptions } from "gadget-server";
 const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
   try {
     // Group journeys by session
-    const sessionMap = new Map();
-    journeys.forEach(journey => {
+    const sessionMap = new Map<string, any[]>();
+    journeys.forEach((journey: any) => {
       if (!sessionMap.has(journey.sessionId)) {
         sessionMap.set(journey.sessionId, []);
       }
-      sessionMap.get(journey.sessionId).push(journey);
+      sessionMap.get(journey.sessionId)!.push(journey);
     });
 
     // Calculate basic metrics
     const totalSessions = sessionMap.size;
-    const totalPageViews = journeys.filter(j => j.eventType === 'page_view').length;
-    const totalVisits = journeys.filter(j => j.eventType === 'visit').length;
-    const totalPurchases = journeys.filter(j => j.eventType === 'purchase').length;
+    const totalPageViews = journeys.filter((j: any) => j.eventType === 'page_view').length;
+    const totalVisits = journeys.filter((j: any) => j.eventType === 'visit').length;
+    const totalPurchases = journeys.filter((j: any) => j.eventType === 'purchase').length;
 
     // Calculate bounce rate (sessions with only 1 event)
-    const bouncedSessions = Array.from(sessionMap.values()).filter(session => session.length === 1).length;
+    const bouncedSessions = Array.from(sessionMap.values()).filter((session: any[]) => session.length === 1).length;
     const bounceRate = totalSessions > 0 ? (bouncedSessions / totalSessions) * 100 : 0;
 
     // Calculate conversion rate (visits to purchases)
@@ -29,9 +29,9 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
     let totalSessionDuration = 0;
     let sessionsWithDuration = 0;
 
-    sessionMap.forEach(sessionEvents => {
+    sessionMap.forEach((sessionEvents: any[]) => {
       if (sessionEvents.length > 1) {
-        const sortedEvents = sessionEvents.sort((a, b) => 
+        const sortedEvents = sessionEvents.sort((a: any, b: any) => 
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
         const firstEvent = sortedEvents[0];
@@ -46,11 +46,11 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
       Math.round(totalSessionDuration / sessionsWithDuration / 1000) : 0; // in seconds
 
     // Get top entry pages
-    const entryPages = new Map();
-    sessionMap.forEach(sessionEvents => {
+    const entryPages = new Map<string, number>();
+    sessionMap.forEach((sessionEvents: any[]) => {
       const sortedEvents = sessionEvents
-        .filter(e => e.eventType === 'page_view' && e.pageUrl)
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        .filter((e: any) => e.eventType === 'page_view' && e.pageUrl)
+        .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
       if (sortedEvents.length > 0) {
         const entryPage = sortedEvents[0].pageUrl;
@@ -59,54 +59,54 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
     });
 
     const topEntryPages = Array.from(entryPages.entries())
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
       .slice(0, 10)
       .map(([url, count]) => ({ url, sessions: count }));
 
     // iPick referral journey performance
-    const ipickJourneys = journeys.filter(j => 
+    const ipickJourneys = journeys.filter((j: any) => 
       j.utmSource?.toLowerCase().includes('ipick') || 
       j.businessReferral?.utmSource?.toLowerCase().includes('ipick')
     );
 
-    const ipickSessions = new Set(ipickJourneys.map(j => j.sessionId)).size;
-    const ipickPurchases = ipickJourneys.filter(j => j.eventType === 'purchase').length;
+    const ipickSessions = new Set(ipickJourneys.map((j: any) => j.sessionId)).size;
+    const ipickPurchases = ipickJourneys.filter((j: any) => j.eventType === 'purchase').length;
     const ipickConversionRate = ipickSessions > 0 ? (ipickPurchases / ipickSessions) * 100 : 0;
 
     // Calculate revenue from journeys
     const journeyRevenue = journeys
-      .filter(j => j.eventType === 'purchase' && j.cartValue)
-      .reduce((sum, j) => sum + (j.cartValue || 0), 0);
+      .filter((j: any) => j.eventType === 'purchase' && j.cartValue)
+      .reduce((sum: number, j: any) => sum + (j.cartValue || 0), 0);
 
     const ipickRevenue = ipickJourneys
-      .filter(j => j.eventType === 'purchase' && j.cartValue)
-      .reduce((sum, j) => sum + (j.cartValue || 0), 0);
+      .filter((j: any) => j.eventType === 'purchase' && j.cartValue)
+      .reduce((sum: number, j: any) => sum + (j.cartValue || 0), 0);
 
     // Event type breakdown
-    const eventBreakdown = journeys.reduce((acc: any, j) => {
+    const eventBreakdown = journeys.reduce((acc: any, j: any) => {
       acc[j.eventType] = (acc[j.eventType] || 0) + 1;
       return acc;
     }, {});
 
     // Device and browser analytics
     const deviceBreakdown = journeys
-      .filter(j => j.deviceType)
-      .reduce((acc: any, j) => {
+      .filter((j: any) => j.deviceType)
+      .reduce((acc: any, j: any) => {
         acc[j.deviceType] = (acc[j.deviceType] || 0) + 1;
         return acc;
       }, {});
 
     const browserBreakdown = journeys
-      .filter(j => j.browserName)
-      .reduce((acc: any, j) => {
+      .filter((j: any) => j.browserName)
+      .reduce((acc: any, j: any) => {
         acc[j.browserName] = (acc[j.browserName] || 0) + 1;
         return acc;
       }, {});
 
     // Geographic breakdown
     const countryBreakdown = journeys
-      .filter(j => j.country)
-      .reduce((acc: any, j) => {
+      .filter((j: any) => j.country)
+      .reduce((acc: any, j: any) => {
         acc[j.country] = (acc[j.country] || 0) + 1;
         return acc;
       }, {});
@@ -115,9 +115,9 @@ const calculateJourneyAnalytics = (journeys: any[], logger: any) => {
     const funnelData = {
       visits: totalVisits,
       pageViews: totalPageViews,
-      addToCart: journeys.filter(j => j.eventType === 'add_to_cart').length,
-      checkoutStart: journeys.filter(j => j.eventType === 'checkout_start').length,
-      checkoutComplete: journeys.filter(j => j.eventType === 'checkout_complete').length,
+      addToCart: journeys.filter((j: any) => j.eventType === 'add_to_cart').length,
+      checkoutStart: journeys.filter((j: any) => j.eventType === 'checkout_start').length,
+      checkoutComplete: journeys.filter((j: any) => j.eventType === 'checkout_complete').length,
       purchases: totalPurchases
     };
 
@@ -170,33 +170,33 @@ const calculateSessionsOverTime = (journeys: any[]) => {
   const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   
-  const recent7Days = journeys.filter(j => new Date(j.timestamp) >= last7Days);
-  const recent30Days = journeys.filter(j => new Date(j.timestamp) >= last30Days);
+  const recent7Days = journeys.filter((j: any) => new Date(j.timestamp) >= last7Days);
+  const recent30Days = journeys.filter((j: any) => new Date(j.timestamp) >= last30Days);
 
-  const sessions7Days = new Set(recent7Days.map(j => j.sessionId)).size;
-  const sessions30Days = new Set(recent30Days.map(j => j.sessionId)).size;
+  const sessions7Days = new Set(recent7Days.map((j: any) => j.sessionId)).size;
+  const sessions30Days = new Set(recent30Days.map((j: any) => j.sessionId)).size;
 
   return {
     last7Days: {
       sessions: sessions7Days,
-      pageViews: recent7Days.filter(j => j.eventType === 'page_view').length,
-      purchases: recent7Days.filter(j => j.eventType === 'purchase').length
+      pageViews: recent7Days.filter((j: any) => j.eventType === 'page_view').length,
+      purchases: recent7Days.filter((j: any) => j.eventType === 'purchase').length
     },
     last30Days: {
       sessions: sessions30Days,
-      pageViews: recent30Days.filter(j => j.eventType === 'page_view').length,
-      purchases: recent30Days.filter(j => j.eventType === 'purchase').length
+      pageViews: recent30Days.filter((j: any) => j.eventType === 'page_view').length,
+      purchases: recent30Days.filter((j: any) => j.eventType === 'purchase').length
     }
   };
 };
 
 // Helper function to calculate referral journey statistics
 const calculateReferralJourneyStats = (journeys: any[]) => {
-  const referralJourneys = journeys.filter(j => j.businessReferral);
-  const referralSources = referralJourneys.reduce((acc: any, j) => {
+  const referralJourneys = journeys.filter((j: any) => j.businessReferral);
+  const referralSources = referralJourneys.reduce((acc: any, j: any) => {
     const source = j.utmSource || 'unknown';
     if (!acc[source]) {
-      acc[source] = { sessions: new Set(), purchases: 0, revenue: 0 };
+      acc[source] = { sessions: new Set<string>(), purchases: 0, revenue: 0 };
     }
     acc[source].sessions.add(j.sessionId);
     if (j.eventType === 'purchase') {
@@ -216,8 +216,8 @@ const calculateReferralJourneyStats = (journeys: any[]) => {
   }));
 
   return {
-    totalReferralSessions: new Set(referralJourneys.map(j => j.sessionId)).size,
-    sourceBreakdown: formattedSources.sort((a, b) => b.sessions - a.sessions)
+    totalReferralSessions: new Set(referralJourneys.map((j: any) => j.sessionId)).size,
+    sourceBreakdown: formattedSources.sort((a: any, b: any) => b.sessions - a.sessions)
   };
 };
 
@@ -414,7 +414,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           
           if (utmSource === 'ipick' && utmMedium === 'suggestion' && utmCampaign === 'business_tracking') {
             isAffiliateOrder = true;
-            logger.info({ orderId: order.id }, "Order identified as affiliate through UTM parameters");
+            console.log(`Order identified as affiliate through UTM parameters: ${order.id}`);
           }
         } catch (error) {
           // Invalid URL, continue with other methods
@@ -435,11 +435,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
             if (timeDiff >= 0 && timeDiff <= timeWindowMs) {
               isAffiliateOrder = true;
               matchedReferral = referral;
-              logger.info({ 
-                orderId: order.id, 
-                referralId: referral.id,
-                timeDiffHours: Math.round(timeDiff / (1000 * 60 * 60))
-              }, "Order matched to affiliate referral by timing");
+              console.log(`Order matched to affiliate referral by timing: ${order.id}, referral: ${referral.id}, timeDiff: ${Math.round(timeDiff / (1000 * 60 * 60))}h`);
               break;
             }
           }
@@ -451,7 +447,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         const sourceName = order.sourceName.toLowerCase();
         if (sourceName.includes('ipick') || sourceName.includes('pavlo') || sourceName.includes('price comparison')) {
           isAffiliateOrder = true;
-          logger.info({ orderId: order.id, sourceName: order.sourceName }, "Order identified as affiliate through source name");
+          console.log(`Order identified as affiliate through source name: ${order.id}, source: ${order.sourceName}`);
         }
       }
 
@@ -673,5 +669,6 @@ export const params = {
 };
 
 export const options: ActionOptions = {
-  returnType: true
+  returnType: true,
+  triggers: { shopify: { webhooks: [] } },
 };

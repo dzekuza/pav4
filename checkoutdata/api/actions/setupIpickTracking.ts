@@ -2,7 +2,13 @@ import { ActionOptions } from "gadget-server";
 import { randomUUID } from "crypto";
 
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
-  const { businessDomain, ipickUrl, targetUrl, productName, utmCampaign } = params;
+  const { businessDomain, ipickUrl, targetUrl, productName, utmCampaign } = params as {
+    businessDomain: string;
+    ipickUrl?: string;
+    targetUrl: string;
+    productName?: string;
+    utmCampaign: string;
+  };
   
   // Validate required parameters
   if (!businessDomain) {
@@ -53,18 +59,18 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
   
   const trackableUrl = urlObj.toString();
   
-  logger.info(`Created iPick tracking record with referral ID: ${referralId}`);
+  console.log(`Created iPick tracking record with referral ID: ${referralId}`);
   
   return {
     success: true,
     referralId,
     trackableUrl,
     businessReferral: {
-      id: businessReferral.id,
-      referralId: businessReferral.referralId,
-      businessDomain: businessReferral.businessDomain,
-      targetUrl: businessReferral.targetUrl,
-      clickedAt: businessReferral.clickedAt
+      id: (businessReferral as any).id,
+      referralId: (businessReferral as any).referralId,
+      businessDomain: (businessReferral as any).businessDomain,
+      targetUrl: (businessReferral as any).targetUrl,
+      clickedAt: (businessReferral as any).clickedAt
     }
   };
 };

@@ -119,7 +119,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
           if (utmSource === 'ipick' && utmMedium === 'suggestion' && utmCampaign === 'business_tracking') {
             isAffiliateOrder = true;
             detectionMethod = 'utm_parameters';
-            logger.info({ orderId: order.id }, "Order identified as affiliate through UTM parameters");
+            console.log(`Order identified as affiliate through UTM parameters: ${order.id}`);
           }
         } catch (error) {
           // Invalid URL, continue with other methods
@@ -140,11 +140,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
               matchedReferral = referral;
               detectionMethod = 'timing_match';
               conversionMap.set(referral.id, order.id);
-              logger.info({ 
-                orderId: order.id, 
-                referralId: referral.id,
-                timeDiffHours: Math.round(timeDiff / (1000 * 60 * 60))
-              }, "Order matched to affiliate referral by timing");
+              console.log(`Order matched to affiliate referral by timing: ${order.id}, referral: ${referral.id}, timeDiff: ${Math.round(timeDiff / (1000 * 60 * 60))}h`);
               break;
             }
           }
@@ -157,7 +153,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         if (sourceName.includes('ipick') || sourceName.includes('pavlo') || sourceName.includes('price comparison')) {
           isAffiliateOrder = true;
           detectionMethod = 'source_name';
-          logger.info({ orderId: order.id, sourceName: order.sourceName }, "Order identified as affiliate through source name");
+          console.log(`Order identified as affiliate through source name: ${order.id}, source: ${order.sourceName}`);
         }
       }
 
