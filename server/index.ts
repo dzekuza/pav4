@@ -201,17 +201,20 @@ export async function createServer() {
 
   // CORS configuration
   const allowedOrigins = [
-    "http://localhost:3000",
-    "http://localhost:8080",
-    "http://localhost:8081",
-    "http://localhost:8082",
-    "http://localhost:8083",
-    "http://localhost:8084",
+    // Development origins
+    ...(process.env.NODE_ENV === 'development' ? [
+      "http://localhost:3000",
+      "http://localhost:8080",
+      "http://localhost:8081",
+      "http://localhost:8082",
+      "http://localhost:8083",
+      "http://localhost:8084",
+      "http://127.0.0.1:8083",
+    ] : []),
+    // Production origins
     "https://ipick.io",
-    "https://ipick.io",
-    "https://app.pavlo.com", // Assuming this is your custom domain
-    "http://127.0.0.1:8083",
-    "http://[::1]:8083",
+    "https://app.pavlo.com",
+    "https://checkoutdata.gadget.app", // Gadget app domain
   ];
 
   const corsOptions = {
@@ -228,7 +231,16 @@ export async function createServer() {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type", 
+      "Authorization", 
+      "X-Requested-With",
+      "X-Shopify-Access-Token",
+      "X-Shopify-Shop-Domain",
+      "X-Shopify-Hmac-Sha256",
+      "X-Shopify-Topic",
+      "X-Shopify-API-Version"
+    ],
     exposedHeaders: ["Set-Cookie"],
   };
 

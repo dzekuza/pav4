@@ -67,6 +67,21 @@ FRONTEND_URL=https://ipick.io
 - **Used by**: URL generation, redirects
 - **Default**: `https://ipick.io`
 
+### 7. CORS Configuration
+
+The following domains are automatically allowed in CORS configuration:
+
+**Production:**
+- `https://ipick.io` - Main application
+- `https://app.pavlo.com` - Custom domain
+- `https://checkoutdata.gadget.app` - Gadget app (Shopify Admin access)
+
+**Development:**
+- All localhost ports (3000, 8080-8084)
+- `http://127.0.0.1:8083`
+
+**Note**: Tracking endpoints (`/api/track-event`, `/api/track-session`) allow all origins (`*`) to enable third-party website integration.
+
 ## Setting Environment Variables
 
 ### Netlify Deployment
