@@ -27,28 +27,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       }
     }
 
-    // Create a business referral record for tracking
-    // Note: shop field is required, so we need to handle this properly
+    // Create a business referral record for tracking if shop exists
     if (shop) {
-      await api.businessReferral.create({
-        referralId: `ref_${affiliateId}_${Date.now()}`,
-        businessDomain: businessDomain,
-        targetUrl: targetUrl || request.headers.get("Referer") || "direct",
-        sourceUrl: request.headers.get("Referer") || "direct",
-        userId: affiliateId,
-        clickedAt: new Date(),
-        utmSource: "ipick.io",
-        utmMedium: "referral",
-        utmCampaign: "business_referral",
-        conversionStatus: "pending",
-        shop: {
-          _link: shop.id
-        }
-      });
+      try {
+        await api.businessReferral.create({
+          referralId: `ref_${affiliateId}_${Date.now()}`,
+          businessDomain: businessDomain,
+          targetUrl: targetUrl || request.headers.get("Referer") || "direct",
+          sourceUrl: request.headers.get("Referer") || "direct",
+          userId: affiliateId,
+          clickedAt: new Date(),
+          utmSource: "ipick.io",
+          utmMedium: "referral",
+          utmCampaign: "business_referral",
+          conversionStatus: "pending",
+          shop: {
+            _link: shop.id
+          }
+        });
+      } catch (error) {
+        console.error("Failed to create business referral:", error);
+      }
     } else {
-      // If no shop found, we can't create a businessReferral due to required shop field
-      // Log this for debugging
-      console.log('No shop found for domain:', businessDomain);
+      // If no shop found, this might be a non-Shopify business
+      // We'll still proceed with the redirect but won't create a businessReferral record
+      console.log('No Shopify shop found for domain:', businessDomain, '- proceeding with redirect');
     }
 
     // Build redirect URL
@@ -57,7 +60,24 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     if (targetUrl) {
       // If target_url is provided, redirect to the specific product URL
       try {
-        const targetUrlObj = new URL(targetUrl);
+        // Decode the target_url parameter (it might be double-encoded)
+        let decodedTargetUrl = targetUrl;
+        try {
+          // Try to decode once
+          decodedTargetUrl = decodeURIComponent(targetUrl);
+          // If it still contains encoded characters, decode again
+          if (decodedTargetUrl.includes('%')) {
+            decodedTargetUrl = decodeURIComponent(decodedTargetUrl);
+          }
+        } catch (decodeError) {
+          console.warn("Failed to decode target_url, using as-is:", decodeError);
+          decodedTargetUrl = targetUrl;
+        }
+        
+        console.log("Original target_url:", targetUrl);
+        console.log("Decoded target_url:", decodedTargetUrl);
+        
+        const targetUrlObj = new URL(decodedTargetUrl);
         // Add UTM parameters to the target URL
         const utmParams = new URLSearchParams();
         utmParams.set("utm_source", "ipick.io");
@@ -71,8 +91,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
           : `?${utmParams.toString()}`;
           
         redirectUrl = targetUrlObj.toString();
+        console.log("Final redirect URL:", redirectUrl);
       } catch (error) {
-        console.error("Invalid target_url:", targetUrl);
+        console.error("Invalid target_url:", targetUrl, error);
         // Fallback to business domain
         const utmParams = new URLSearchParams();
         utmParams.set("utm_source", "ipick.io");
