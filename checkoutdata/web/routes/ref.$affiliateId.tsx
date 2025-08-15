@@ -7,33 +7,49 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const targetUrl = url.searchParams.get('target_url');
 
   try {
-    // For now, we'll use a simple approach since the business model doesn't exist in Gadget
-    // We'll create a business referral record instead
-    
     // Extract domain from target URL if available
     let businessDomain = "unknown";
+    let shop = null;
+    
     if (targetUrl) {
       try {
         const targetUrlObj = new URL(targetUrl);
         businessDomain = targetUrlObj.hostname.replace(/^www\./, "");
+        
+        // Try to find the shop by domain
+        shop = await api.shopifyShop.findFirst({
+          filter: {
+            domain: { equals: businessDomain }
+          }
+        });
       } catch (error) {
         console.error("Invalid target_url:", targetUrl);
       }
     }
 
     // Create a business referral record for tracking
-    await api.businessReferral.create({
-      businessDomain: businessDomain,
-      referralId: `ref_${affiliateId}_${Date.now()}`,
-      targetUrl: targetUrl || request.headers.get("Referer") || "direct",
-      sourceUrl: request.headers.get("Referer") || "direct",
-      userId: affiliateId,
-      clickedAt: new Date(),
-      utmSource: "pavlo4",
-      utmMedium: "referral",
-      utmCampaign: "business_referral",
-      conversionStatus: "pending"
-    });
+    // Note: shop field is required, so we need to handle this properly
+    if (shop) {
+      await api.businessReferral.create({
+        referralId: `ref_${affiliateId}_${Date.now()}`,
+        businessDomain: businessDomain,
+        targetUrl: targetUrl || request.headers.get("Referer") || "direct",
+        sourceUrl: request.headers.get("Referer") || "direct",
+        userId: affiliateId,
+        clickedAt: new Date(),
+        utmSource: "pavlo4",
+        utmMedium: "referral",
+        utmCampaign: "business_referral",
+        conversionStatus: "pending",
+        shop: {
+          _link: shop.id
+        }
+      });
+    } else {
+      // If no shop found, we can't create a businessReferral due to required shop field
+      // Log this for debugging
+      console.log('No shop found for domain:', businessDomain);
+    }
 
     // Build redirect URL
     let redirectUrl: string;

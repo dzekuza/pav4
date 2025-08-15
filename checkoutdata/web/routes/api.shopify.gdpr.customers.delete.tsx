@@ -21,19 +21,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     // Delete customer-related records from your database
     try {
-      // Delete business referrals for this customer
-      await api.businessReferral.deleteMany({
+      // Find and delete business referrals for this customer
+      const businessReferrals = await api.businessReferral.findMany({
         filter: {
           userId: { equals: customer?.id?.toString() || '' }
         }
       });
 
-      // Delete customer journey records
-      await api.customerJourney.deleteMany({
+      // Delete each business referral individually
+      for (const referral of businessReferrals) {
+        await api.businessReferral.delete(referral.id);
+      }
+
+      // Find and delete customer journey records
+      const customerJourneys = await api.customerJourney.findMany({
         filter: {
           userId: { equals: customer?.id?.toString() || '' }
         }
       });
+
+      // Delete each customer journey individually
+      for (const journey of customerJourneys) {
+        await api.customerJourney.delete(journey.id);
+      }
 
       console.log('Customer data erased successfully');
     } catch (deleteError) {

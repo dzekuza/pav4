@@ -27,17 +27,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (shop) {
-        // Delete shop-related records
-        await api.businessReferral.deleteMany({
+        // Find and delete shop-related business referrals
+        const businessReferrals = await api.businessReferral.findMany({
           filter: {
             shop: { equals: shop.id }
           }
         });
 
+        // Delete each business referral individually
+        for (const referral of businessReferrals) {
+          await api.businessReferral.delete(referral.id);
+        }
+
         // Delete shop data (you may want to anonymize instead of delete)
-        await api.shopifyShop.delete({
-          id: shop.id
-        });
+        await api.shopifyShop.delete(shop.id);
 
         console.log('Shop data erased successfully');
       } else {

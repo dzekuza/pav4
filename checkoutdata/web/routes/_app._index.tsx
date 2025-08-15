@@ -36,7 +36,6 @@ export default function Index() {
           <Card padding="0">
             {/* use Autocomponents to build UI quickly: https://docs.gadget.dev/guides/frontend/autocomponents  */}
             <AutoTable
-              //@ts-ignore
               model={api.shopifyShop}
               columns={["name", "countryName", "currency", "customerEmail"]}
             />

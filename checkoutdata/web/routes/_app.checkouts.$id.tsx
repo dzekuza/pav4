@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from "@remix-run/react";
 import { useFindOne } from "@gadgetinc/react";
+import { useGadget } from "@gadgetinc/react-shopify-app-bridge";
 import {
   Card,
   BlockStack,
@@ -10,14 +11,28 @@ import {
   Box,
   Divider,
   Spinner,
+  Banner,
 } from "@shopify/polaris";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
 import { api } from "../api";
+import { useEffect } from "react";
 
 export default function CheckoutDetail() {
   const params = useParams();
   const checkoutId = params.id!;
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading, error: authError } = useGadget();
+
+  // Debug logging for authentication and data fetching
+  useEffect(() => {
+    console.log('🔍 Checkout Detail Debug:', {
+      checkoutId,
+      isAuthenticated,
+      authLoading,
+      authError: authError?.message,
+      timestamp: new Date().toISOString()
+    });
+  }, [checkoutId, isAuthenticated, authLoading, authError]);
 
   const [{ data: checkout, fetching, error }] = useFindOne(api.shopifyCheckout, checkoutId, {
     select: {
@@ -33,10 +48,63 @@ export default function CheckoutDetail() {
       name: true,
       buyerAcceptsMarketing: true,
       token: true,
+      sourceUrl: true,
+      sourceName: true,
+      sourceIdentifier: true,
     },
   });
 
+  // Authentication error handling
+  if (authError) {
+    console.error('❌ Authentication error in checkout detail:', authError);
+    return (
+      <Box padding="400">
+        <Card>
+          <Banner tone="critical" title="Authentication Error">
+            <p>Failed to authenticate with Shopify: {authError.message}</p>
+            <p>This may be due to the Shopify App Bridge context being lost during navigation.</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry Authentication
+            </Button>
+          </Banner>
+        </Card>
+      </Box>
+    );
+  }
+
+  // Authentication loading
+  if (authLoading) {
+    console.log('⏳ Loading authentication state in checkout detail...');
+    return (
+      <Box padding="400">
+        <InlineStack gap="200" align="center">
+          <Spinner size="small" />
+          <Text as="span" variant="bodyMd">
+            Loading authentication...
+          </Text>
+        </InlineStack>
+      </Box>
+    );
+  }
+
+  // Not authenticated
+  if (!isAuthenticated) {
+    console.log('❌ Not authenticated in checkout detail, redirecting...');
+    return (
+      <Box padding="400">
+        <Card>
+          <Banner tone="warning" title="Authentication Required">
+            <p>You need to be authenticated to view checkout details.</p>
+            <p>Redirecting to main app...</p>
+          </Banner>
+        </Card>
+      </Box>
+    );
+  }
+
+  // Data fetching loading
   if (fetching) {
+    console.log('⏳ Loading checkout data...');
     return (
       <Box padding="400">
         <InlineStack gap="200" align="center">
@@ -49,7 +117,9 @@ export default function CheckoutDetail() {
     );
   }
 
+  // Data fetching error
   if (error) {
+    console.error('❌ Error fetching checkout data:', error);
     return (
       <Box padding="400">
         <Card>
@@ -57,9 +127,16 @@ export default function CheckoutDetail() {
             <Text as="h1" variant="headingLg">
               Error Loading Checkout
             </Text>
-            <Text as="p" variant="bodyMd" tone="critical">
-              {error.toString()}
-            </Text>
+            <Banner tone="critical" title="Data Fetching Error">
+              <p>Failed to load checkout data: {error.toString()}</p>
+              <p>This could be due to:</p>
+              <ul>
+                <li>Authentication issues</li>
+                <li>Network connectivity problems</li>
+                <li>Checkout ID not found</li>
+                <li>API permissions</li>
+              </ul>
+            </Banner>
             <Button
               onClick={() => navigate('/checkouts')}
               icon={ArrowLeftIcon}
@@ -73,7 +150,9 @@ export default function CheckoutDetail() {
     );
   }
 
+  // Checkout not found
   if (!checkout) {
+    console.log('❌ Checkout not found:', checkoutId);
     return (
       <Box padding="400">
         <Card>
@@ -81,9 +160,15 @@ export default function CheckoutDetail() {
             <Text as="h1" variant="headingLg">
               Checkout Not Found
             </Text>
-            <Text as="p" variant="bodyMd">
-              The checkout with ID {checkoutId} could not be found.
-            </Text>
+            <Banner tone="warning" title="Checkout Not Found">
+              <p>The checkout with ID {checkoutId} could not be found.</p>
+              <p>This could be due to:</p>
+              <ul>
+                <li>Invalid checkout ID</li>
+                <li>Checkout was deleted</li>
+                <li>Access permissions</li>
+              </ul>
+            </Banner>
             <Button
               onClick={() => navigate('/checkouts')}
               icon={ArrowLeftIcon}
@@ -97,219 +182,214 @@ export default function CheckoutDetail() {
     );
   }
 
+  console.log('✅ Checkout data loaded successfully:', checkout.id);
+
   const formatCurrency = (amount: string | null | undefined, currency: string | null | undefined) => {
-    if (!amount || amount === "") return "N/A";
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount)) return "N/A";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(parsedAmount);
+    if (!amount || !currency) return 'N/A';
+    
+    try {
+      const numericAmount = parseFloat(amount);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+      }).format(numericAmount);
+    } catch {
+      return `${amount} ${currency}`;
+    }
   };
 
-  const formatDate = (dateValue: string | Date | null | undefined) => {
-    if (!dateValue || dateValue === "") return "N/A";
-    
-    // Handle both Date objects and strings
-    let date: Date;
-    if (dateValue instanceof Date) {
-      date = dateValue;
-    } else {
-      date = new Date(dateValue);
+  const getCheckoutStatus = () => {
+    if (checkout.completedAt) {
+      return { status: 'Completed', tone: 'success' as const };
     }
-    
-    // Type guard for date validation
-    if (isNaN(date.getTime())) return "N/A";
-    
-    return date.toLocaleString();
+    if (checkout.processingStatus === 'complete') {
+      return { status: 'Completed', tone: 'success' as const };
+    }
+    if (checkout.processingStatus === 'processing') {
+      return { status: 'In Progress', tone: 'info' as const };
+    }
+    // If created more than 24 hours ago and not completed, consider abandoned
+    const createdAt = checkout.createdAt ? new Date(checkout.createdAt as unknown as string) : new Date();
+    const hoursOld = (new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+    if (hoursOld > 24) {
+      return { status: 'Abandoned', tone: 'critical' as const };
+    }
+    return { status: 'In Progress', tone: 'info' as const };
   };
 
-  const getProcessingStatusBadge = (status: string | null | undefined) => {
-    const statusMap: Record<string, "success" | "attention" | "info"> = {
-      complete: "success",
-      processing: "attention",
-      pending: "info",
-    };
-    
-    if (!status || status === "") {
-      return (
-        <Badge tone="info">
-          Unknown
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge tone={statusMap[status] || "info"}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
+  const { status, tone } = getCheckoutStatus();
 
   return (
     <Box padding="400">
-      <BlockStack gap="400">
-        {/* Header with back button */}
-        <InlineStack gap="200" align="start">
-          <Button
-            onClick={() => navigate('/checkouts')}
-            icon={ArrowLeftIcon}
-            variant="tertiary"
-          >
-            Back to Checkouts
-          </Button>
-        </InlineStack>
-
-        {/* Main checkout information */}
+      <BlockStack gap="500">
+        {/* Header */}
         <Card>
           <BlockStack gap="400">
-            <InlineStack gap="400" align="space-between" blockAlign="start">
-              <BlockStack gap="200">
-                <Text as="h1" variant="headingLg">
-                  Checkout Details
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  ID: {checkout.id}
-                </Text>
-              </BlockStack>
-              {checkout.processingStatus && (
-                <div>{getProcessingStatusBadge(checkout.processingStatus)}</div>
-              )}
+            <InlineStack gap="200" align="center">
+              <Button
+                onClick={() => navigate('/checkouts')}
+                icon={ArrowLeftIcon}
+                variant="plain"
+              />
+              <Text as="h1" variant="headingLg">
+                Checkout Details
+              </Text>
             </InlineStack>
-
-            <Divider />
-
-            {/* Customer Information */}
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
-                Customer Information
+            
+            <InlineStack gap="200" align="center">
+              <Badge tone={tone}>{status}</Badge>
+              <Text as="span" variant="bodyMd">
+                ID: {checkout.id}
               </Text>
+            </InlineStack>
+          </BlockStack>
+        </Card>
+
+        {/* Customer Information */}
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Customer Information
+            </Text>
+            <Divider />
+            <InlineStack gap="400" wrap={false}>
               <BlockStack gap="200">
-                {checkout.email && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Email:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.email}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.phone && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Phone:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.phone}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.name && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Name:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.name}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.customerLocale && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Locale:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.customerLocale}
-                    </Text>
-                  </InlineStack>
-                )}
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Name
+                </Text>
+                <Text as="span" variant="bodyMd">
+                  {checkout.name || 'N/A'}
+                </Text>
               </BlockStack>
-            </BlockStack>
-
-            <Divider />
-
-            {/* Order Summary */}
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
-                Order Summary
-              </Text>
               <BlockStack gap="200">
-                {checkout.totalPrice && (
-                  <InlineStack gap="200" align="space-between">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Total:
-                    </Text>
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      {formatCurrency(checkout.totalPrice, checkout.currency)}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.currency && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Currency:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.currency}
-                    </Text>
-                  </InlineStack>
-                )}
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Email
+                </Text>
+                <Text as="span" variant="bodyMd">
+                  {checkout.email || 'N/A'}
+                </Text>
               </BlockStack>
-            </BlockStack>
-
-            <Divider />
-
-            {/* Additional Details */}
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
-                Additional Details
-              </Text>
               <BlockStack gap="200">
-                <InlineStack gap="200">
-                  <Text as="span" variant="bodyMd" fontWeight="semibold">
-                    Created:
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Phone
+                </Text>
+                <Text as="span" variant="bodyMd">
+                  {checkout.phone || 'N/A'}
+                </Text>
+              </BlockStack>
+              <BlockStack gap="200">
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Locale
+                </Text>
+                <Text as="span" variant="bodyMd">
+                  {checkout.customerLocale || 'N/A'}
+                </Text>
+              </BlockStack>
+            </InlineStack>
+          </BlockStack>
+        </Card>
+
+        {/* Financial Information */}
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Financial Information
+            </Text>
+            <Divider />
+            <InlineStack gap="400" wrap={false}>
+              <BlockStack gap="200">
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Total Price
+                </Text>
+                <Text as="span" variant="bodyMd">
+                  {formatCurrency(checkout.totalPrice, checkout.currency)}
+                </Text>
+              </BlockStack>
+              <BlockStack gap="200">
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Marketing Consent
+                </Text>
+                <Badge tone={checkout.buyerAcceptsMarketing ? 'success' : 'info'}>
+                  {checkout.buyerAcceptsMarketing ? 'Accepts Marketing' : 'No Marketing'}
+                </Badge>
+              </BlockStack>
+            </InlineStack>
+          </BlockStack>
+        </Card>
+
+        {/* Timeline */}
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Timeline
+            </Text>
+            <Divider />
+            <BlockStack gap="200">
+              <InlineStack gap="200" align="center">
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  Created:
+                </Text>
+                <Text as="span" variant="bodyMd">
+                  {checkout.createdAt ? new Date(checkout.createdAt as unknown as string).toLocaleString() : 'N/A'}
+                </Text>
+              </InlineStack>
+              {checkout.completedAt && (
+                <InlineStack gap="200" align="center">
+                  <Text as="span" variant="bodyMd" fontWeight="medium">
+                    Completed:
                   </Text>
                   <Text as="span" variant="bodyMd">
-                    {formatDate(checkout.createdAt)}
+                    {new Date(checkout.completedAt as unknown as string).toLocaleString()}
                   </Text>
                 </InlineStack>
-                {checkout.completedAt && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Completed:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {formatDate(checkout.completedAt)}
-                    </Text>
-                  </InlineStack>
-                )}
-
-                {checkout.token && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Token:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.token}
-                    </Text>
-                  </InlineStack>
-                )}
-                {checkout.buyerAcceptsMarketing !== null && (
-                  <InlineStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      Accepts Marketing:
-                    </Text>
-                    <Text as="span" variant="bodyMd">
-                      {checkout.buyerAcceptsMarketing ? "Yes" : "No"}
-                    </Text>
-                  </InlineStack>
-                )}
-              </BlockStack>
+              )}
             </BlockStack>
           </BlockStack>
         </Card>
+
+        {/* Referral Information */}
+        {(checkout.sourceUrl || checkout.sourceName || checkout.sourceIdentifier) && (
+          <Card>
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">
+                Referral Information
+              </Text>
+              <Divider />
+              <BlockStack gap="200">
+                {checkout.sourceUrl && (
+                  <InlineStack gap="200" align="center">
+                    <Text as="span" variant="bodyMd" fontWeight="medium">
+                      Source URL:
+                    </Text>
+                    <Text as="span" variant="bodyMd">
+                      {checkout.sourceUrl}
+                    </Text>
+                  </InlineStack>
+                )}
+                {checkout.sourceName && (
+                  <InlineStack gap="200" align="center">
+                    <Text as="span" variant="bodyMd" fontWeight="medium">
+                      Source Name:
+                    </Text>
+                    <Text as="span" variant="bodyMd">
+                      {checkout.sourceName}
+                    </Text>
+                  </InlineStack>
+                )}
+                {checkout.sourceIdentifier && (
+                  <InlineStack gap="200" align="center">
+                    <Text as="span" variant="bodyMd" fontWeight="medium">
+                      Source ID:
+                    </Text>
+                    <Text as="span" variant="bodyMd">
+                      {checkout.sourceIdentifier}
+                    </Text>
+                  </InlineStack>
+                )}
+              </BlockStack>
+            </BlockStack>
+          </Card>
+        )}
       </BlockStack>
     </Box>
   );

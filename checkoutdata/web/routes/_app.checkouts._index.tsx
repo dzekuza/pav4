@@ -1,9 +1,11 @@
 import { AutoTable } from "@gadgetinc/react/auto/polaris";
 import { Page, Card, BlockStack, Text, Badge, InlineStack, Tooltip } from "@shopify/polaris";
-import { Link } from "@remix-run/react";
+import { Link, useNavigate } from "@remix-run/react";
 import { api } from "../api";
 
 export default function CheckoutsIndex() {
+  const navigate = useNavigate();
+
   const formatDuration = (startDate: string, endDate?: string | null) => {
     const start = new Date(startDate);
     const end = endDate ? new Date(endDate) : new Date();
@@ -101,37 +103,27 @@ export default function CheckoutsIndex() {
       };
     }
 
-    // No source information available
     return {
-      text: 'Direct',
+      text: 'Unknown',
       tone: 'info' as const,
       isPavlo: false,
       rawUrl: 'N/A',
-      debugInfo: 'No source information available (direct traffic)'
+      debugInfo: 'No source information available'
     };
   };
 
   return (
-    <Page fullWidth>
+    <Page title="Checkouts">
       <BlockStack gap="500">
-        <Text as="h1" variant="headingXl">
-          Checkouts
-        </Text>
-        
         <Card>
           <AutoTable
             model={api.shopifyCheckout}
             columns={[
               "id",
-              "email",
-              "totalPrice",
-              "currency",
-              "phone",
-              "name",
-              "token",
               "createdAt",
               "completedAt",
-              "sourceUrl",
+              "totalPriceSet",
+              "sourceUrl", 
               "sourceName", 
               "sourceIdentifier",
               {
@@ -223,8 +215,10 @@ export default function CheckoutsIndex() {
               "processingStatus"
             ]}
             onClick={(record) => {
-              // Navigate to individual checkout detail page
-              window.location.href = `/checkouts/${record.id}`;
+              // Use React Router navigation instead of window.location.href
+              // This maintains the Shopify App Bridge context
+              console.log('Navigating to checkout:', record.id);
+              navigate(`/checkouts/${record.id}`);
             }}
           />
         </Card>

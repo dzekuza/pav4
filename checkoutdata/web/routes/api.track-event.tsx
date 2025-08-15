@@ -1,7 +1,7 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json, type ActionFunctionArgs } from "@remix-run/node";
 import { api } from "../api";
 
-export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
+export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     // Check authorization
     const authHeader = request.headers.get('authorization');
@@ -71,8 +71,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       console.error('Error finding shop:', error);
     }
 
-    // If no shop found, create a business referral record
-    if (!shop) {
+    // If shop found, create a business referral record
+    if (shop) {
       try {
         // Create a business referral record for tracking
         await api.businessReferral.create({
@@ -86,11 +86,16 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
           utmSource: 'ipick',
           utmMedium: 'tracker',
           utmCampaign: event_type,
-          conversionStatus: 'pending'
+          conversionStatus: 'pending',
+          shop: {
+            _link: shop.id
+          }
         });
       } catch (error) {
         console.error('Error creating business referral:', error);
       }
+    } else {
+      console.log('No shop found for business_id:', business_id);
     }
 
     // Log the tracking event
@@ -100,34 +105,24 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       affiliate_id,
       platform,
       session_id,
-      url,
-      page_title,
-      timestamp,
-      shop_found: !!shop
+      timestamp
     });
 
-    // Return success response
-    return json({
-      success: true,
+    return json({ 
+      success: true, 
       message: 'Event tracked successfully',
-      event_type,
-      business_id,
-      affiliate_id,
-      session_id,
-      timestamp: new Date().toISOString(),
       shop_found: !!shop
     });
 
   } catch (error) {
-    console.error("Error in track-event API:", error);
-    return json({
-      success: false,
-      error: "Failed to process tracking event"
+    console.error('Error processing tracking event:', error);
+    return json({ 
+      success: false, 
+      error: 'Internal server error' 
     }, { status: 500 });
   }
 };
 
-// Handle POST requests
-export const action = async ({ request, context, params }: ActionFunctionArgs) => {
-  return loader({ request, context, params });
-};
+export default function TrackEvent() {
+  return null;
+}

@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "ba93cb813200396568e0cff132da0256"
-name = "checkoutdata"
+name = "ipickio"
 application_url = "https://checkoutdata.gadget.app/api/shopify/install-or-render"
 embedded = true
 

@@ -5,19 +5,33 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { affiliateId, domain } = params;
 
   try {
-    // Create a business referral record for tracking
-    await api.businessReferral.create({
-      businessDomain: domain?.replace(/^www\./, "") || "unknown",
-      referralId: `track_${affiliateId}_${domain}_${Date.now()}`,
-      targetUrl: request.headers.get("Referer") || "direct",
-      sourceUrl: request.headers.get("Referer") || "direct",
-      userId: affiliateId,
-      clickedAt: new Date(),
-      utmSource: "pavlo4",
-      utmMedium: "tracking",
-      utmCampaign: "domain_tracking",
-      conversionStatus: "pending"
+    // Find the shop by domain
+    const shop = await api.shopifyShop.findFirst({
+      filter: {
+        domain: { equals: domain?.replace(/^www\./, "") || "" }
+      }
     });
+
+    // Create a business referral record for tracking
+    if (shop) {
+      await api.businessReferral.create({
+        referralId: `track_${affiliateId}_${domain}_${Date.now()}`,
+        businessDomain: domain?.replace(/^www\./, "") || "unknown",
+        targetUrl: request.headers.get("Referer") || "direct",
+        sourceUrl: request.headers.get("Referer") || "direct",
+        userId: affiliateId,
+        clickedAt: new Date(),
+        utmSource: "pavlo4",
+        utmMedium: "tracking",
+        utmCampaign: "domain_tracking",
+        conversionStatus: "pending",
+        shop: {
+          _link: shop.id
+        }
+      });
+    } else {
+      console.log('No shop found for domain:', domain);
+    }
 
     // Redirect to the business domain with UTM parameters
     const utmParams = new URLSearchParams();

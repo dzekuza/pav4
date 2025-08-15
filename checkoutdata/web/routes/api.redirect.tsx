@@ -26,37 +26,51 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const hostname = targetUrl.hostname.toLowerCase().replace(/^www\./, "");
     console.log("Looking for business with domain:", hostname);
 
-    // Create a business referral record for tracking
-    await api.businessReferral.create({
-      businessDomain: hostname,
-      referralId: `redirect_${resellerId || 'unknown'}_${Date.now()}`,
-      targetUrl: to,
-      sourceUrl: request.headers.get("Referer") || "direct",
-      userId: userId || resellerId || "unknown",
-      clickedAt: new Date(),
-      utmSource: "pavlo4",
-      utmMedium: "redirect",
-      utmCampaign: "product_suggestion",
-      conversionStatus: "pending"
+    // Find the shop by domain
+    const shop = await api.shopifyShop.findFirst({
+      filter: {
+        domain: { equals: hostname }
+      }
     });
 
-    console.log("Business referral logged");
+    // Create a business referral record for tracking
+    if (shop) {
+      await api.businessReferral.create({
+        referralId: `redirect_${resellerId || 'unknown'}_${Date.now()}`,
+        businessDomain: hostname,
+        targetUrl: to,
+        sourceUrl: request.headers.get("Referer") || "direct",
+        userId: userId || resellerId || "unknown",
+        clickedAt: new Date(),
+        utmSource: "pavlo4",
+        utmMedium: "redirect",
+        utmCampaign: "product_suggestion",
+        conversionStatus: "pending",
+        shop: {
+          _link: shop.id
+        }
+      });
 
-    // For business domains, use referral tracking URL instead of direct redirect
-    const baseUrl = process.env.FRONTEND_URL || 'https://checkoutdata.gadget.app';
-    const referralUrl = `${baseUrl}/ref/${resellerId || 'unknown'}`;
-    
-    // Add UTM parameters to the referral URL
-    const utmParams = new URLSearchParams();
-    utmParams.set("utm_source", "pavlo4");
-    utmParams.set("utm_medium", "redirect");
-    utmParams.set("utm_campaign", "product_suggestion");
-    utmParams.set("target_url", encodeURIComponent(to));
-    utmParams.set("ref_token", Math.random().toString(36).slice(2, 12));
+      console.log("Business referral logged");
 
-    const finalReferralUrl = `${referralUrl}?${utmParams.toString()}`;
-    console.log("Redirecting to business via referral URL:", finalReferralUrl);
-    return redirect(finalReferralUrl);
+      // For business domains, use referral tracking URL instead of direct redirect
+      const baseUrl = process.env.FRONTEND_URL || 'https://checkoutdata.gadget.app';
+      const referralUrl = `${baseUrl}/ref/${resellerId || 'unknown'}`;
+      
+      // Add UTM parameters to the referral URL
+      const utmParams = new URLSearchParams();
+      utmParams.set("utm_source", "pavlo4");
+      utmParams.set("utm_medium", "redirect");
+      utmParams.set("utm_campaign", "product_suggestion");
+      utmParams.set("target_url", encodeURIComponent(to));
+      utmParams.set("ref_token", Math.random().toString(36).slice(2, 12));
+
+      const finalReferralUrl = `${referralUrl}?${utmParams.toString()}`;
+      console.log("Redirecting to business via referral URL:", finalReferralUrl);
+      return redirect(finalReferralUrl);
+    } else {
+      console.log("No shop found for domain:", hostname);
+    }
   } catch (e) {
     // Do not block redirect on logging failure
     console.error("Failed to log redirect click:", e);

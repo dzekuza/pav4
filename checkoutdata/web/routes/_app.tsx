@@ -1,9 +1,10 @@
 import { useGadget } from "@gadgetinc/react-shopify-app-bridge";
 import { useLoaderData, Outlet } from "@remix-run/react";
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { Page, Card, Text, Box } from "@shopify/polaris";
+import { Page, Card, Text, Box, Banner, Button } from "@shopify/polaris";
 import { NavMenu } from "../components/NavMenu";
 import { FullPageSpinner } from "../components/FullPageSpinner";
+import { useEffect, useState } from "react";
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
   return json({
@@ -12,23 +13,78 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
 };
 
 export default function() {
-  const { isAuthenticated, loading } = useGadget();
+  const { isAuthenticated, loading, error } = useGadget();
+  const [authDebug, setAuthDebug] = useState({
+    attempts: 0,
+    lastCheck: null as Date | null,
+    errors: [] as string[]
+  });
+
+  // Debug logging for authentication issues
+  useEffect(() => {
+    console.log('🔐 Authentication Debug:', {
+      isAuthenticated,
+      loading,
+      error: error?.message,
+      timestamp: new Date().toISOString()
+    });
+
+    setAuthDebug(prev => ({
+      attempts: prev.attempts + 1,
+      lastCheck: new Date(),
+      errors: error ? [...prev.errors, error.message] : prev.errors
+    }));
+  }, [isAuthenticated, loading, error]);
+
+  // Retry mechanism for authentication
+  useEffect(() => {
+    if (!isAuthenticated && !loading && authDebug.attempts < 3) {
+      const timer = setTimeout(() => {
+        console.log('🔄 Retrying authentication...');
+        // Force a re-render to retry authentication
+        window.location.reload();
+      }, 2000 * (authDebug.attempts + 1)); // Exponential backoff
+
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, loading, authDebug.attempts]);
 
   if (loading) {
+    console.log('⏳ Loading authentication state...');
     return <FullPageSpinner />;
   }
 
-  return isAuthenticated ? (
-    <>
-      <NavMenu />
-      <Outlet />
-    </>
-  ) : (
-    <Unauthenticated />
-  );
+  if (error) {
+    console.error('❌ Authentication error:', error);
+    return (
+      <Page>
+        <Card padding="500">
+          <Banner status="critical" title="Authentication Error">
+            <p>Failed to authenticate with Shopify: {error.message}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry Authentication
+            </Button>
+          </Banner>
+        </Card>
+      </Page>
+    );
+  }
+
+  if (isAuthenticated) {
+    console.log('✅ Authentication successful');
+    return (
+      <>
+        <NavMenu />
+        <Outlet />
+      </>
+    );
+  }
+
+  console.log('❌ Not authenticated, showing unauthenticated state');
+  return <Unauthenticated authDebug={authDebug} />;
 }
 
-const Unauthenticated = () => {
+const Unauthenticated = ({ authDebug }: { authDebug: any }) => {
   const { gadgetConfig } = useLoaderData<typeof loader>();
 
   return (
@@ -47,6 +103,24 @@ const Unauthenticated = () => {
                 web/routes/_app.tsx
               </a>
             </Text>
+          </Box>
+          
+          {/* Debug information */}
+          <Box paddingBlockStart="400">
+            <Banner status="info" title="Debug Information">
+              <p>Authentication attempts: {authDebug.attempts}</p>
+              <p>Last check: {authDebug.lastCheck?.toISOString()}</p>
+              {authDebug.errors.length > 0 && (
+                <div>
+                  <p>Recent errors:</p>
+                  <ul>
+                    {authDebug.errors.slice(-3).map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </Banner>
           </Box>
         </Card>
       </div>
