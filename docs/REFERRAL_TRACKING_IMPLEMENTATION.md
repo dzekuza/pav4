@@ -103,7 +103,7 @@ Businesses can see:
 ### Referral URLs
 
 ```
-https://checkoutdata.gadget.app/ref/{affiliateId}?target_url={productUrl}&utm_source=ipick.io&utm_medium=referral&utm_campaign=business_referral&aff_id={affiliateId}&ref_token={uniqueToken}
+https://ipick.io/ref/{affiliateId}?target_url={productUrl}&utm_source=ipick.io&utm_medium=referral&utm_campaign=business_referral&aff_id={affiliateId}&ref_token={uniqueToken}
 ```
 
 ### Tracking URLs

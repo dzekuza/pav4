@@ -387,7 +387,7 @@ function buildFallbackRedirectUrl(businessDomain: string, utmParams: URLSearchPa
      if (businessDomain === "unknown" || businessDomain === "invalid_url" || businessDomain === "decode_failed") {
      // Last resort fallback
      console.warn("Using last resort fallback URL");
-     return `https://checkoutdata.gadget.app/referral-error?${utmParams.toString()}`;
+     return `https://ipick.io/referral-error?${utmParams.toString()}`;
    }
   
   // Ensure domain has protocol

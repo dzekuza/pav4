@@ -59,7 +59,7 @@ router.get("/redirect", async (req, res) => {
       console.log("Business click logged and visits incremented");
 
       // For business domains, use referral tracking URL instead of direct redirect
-      const baseUrl = process.env.FRONTEND_URL || 'https://checkoutdata.gadget.app';
+      const baseUrl = process.env.FRONTEND_URL || 'https://ipick.io';
       const referralUrl = `${baseUrl}/ref/${business.affiliateId}`;
       
       // Add UTM parameters to the referral URL

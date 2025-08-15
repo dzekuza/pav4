@@ -1,2 +1,4 @@
 /api/* /.netlify/functions/server 200
+/ref/*  /.netlify/functions/server 200
+/track/* /.netlify/functions/server 200
 /*      /index.html                         200
