@@ -40,7 +40,7 @@ export const onSuccess: ActionOnSuccess = async ({ params, record, logger, api, 
         logger.info(detectionDetails, "Found affiliate URL match in order");
         
         // Find the business referral record with flexible matching
-        const referralFilters: (BusinessReferralFilter | null)[] = [];
+        const referralFilters = [];
         if (targetDomain) {
           referralFilters.push({
             AND: [

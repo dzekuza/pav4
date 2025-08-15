@@ -26,8 +26,17 @@ import { api } from "../api";
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
   try {
-    // Check if we have a current session
-    const session = await context.api.currentSession.get();
+    // Check if we have a current session with shop selection
+    const session = await context.api.currentSession.get({
+      select: {
+        id: true,
+        shopId: true,
+        shop: {
+          id: true,
+          domain: true
+        }
+      }
+    });
     
     if (!session) {
       return json({
@@ -72,7 +81,16 @@ export default function CheckoutsIndex() {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Check for valid session
-  const session = useSession(api);
+  const session = useSession(api, {
+    select: {
+      id: true,
+      shopId: true,
+      shop: {
+        id: true,
+        domain: true
+      }
+    }
+  });
 
   // Fetch checkout data for statistics
   const [{ data: checkouts, fetching, error }] = useFindMany(api.shopifyCheckout, {
@@ -119,7 +137,7 @@ export default function CheckoutsIndex() {
     }
     // If created more than 24 hours ago and not completed, consider abandoned
     if (record.createdAt) {
-      const createdAt = new Date(record.createdAt as string);
+      const createdAt = new Date(String(record.createdAt));
       const hoursOld = (new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60);
       if (hoursOld > 24) {
         return { status: 'Abandoned', tone: 'critical' as const };
@@ -129,9 +147,9 @@ export default function CheckoutsIndex() {
   };
 
   const getReferralSourceInfo = (record: any) => {
-    const sourceUrl = record.sourceUrl as string | null | undefined;
-    const sourceName = record.sourceName as string | null | undefined;
-    const sourceIdentifier = record.sourceIdentifier as string | null | undefined;
+    const sourceUrl = record.sourceUrl ? String(record.sourceUrl) : null;
+    const sourceName = record.sourceName ? String(record.sourceName) : null;
+    const sourceIdentifier = record.sourceIdentifier ? String(record.sourceIdentifier) : null;
 
     // Enhanced iPick referral detection - check for multiple variations
     const isIpickReferral = (url: string) => {
@@ -227,12 +245,12 @@ export default function CheckoutsIndex() {
     
     const totalRevenue = checkouts
       .filter(c => c.completedAt || c.processingStatus === 'complete')
-      .reduce((sum, c) => sum + (parseFloat(c.totalPrice as string) || 0), 0);
+      .reduce((sum, c) => sum + (parseFloat(String(c.totalPrice || '0')) || 0), 0);
     
     const averageOrderValue = completedCheckouts > 0 ? totalRevenue / completedCheckouts : 0;
     
     const ipickReferrals = checkouts.filter(c => {
-      const sourceUrl = c.sourceUrl as string | null | undefined;
+      const sourceUrl = String(c.sourceUrl || '');
       return sourceUrl && sourceUrl.toLowerCase().includes('ipick.io');
     }).length;
 
@@ -427,7 +445,7 @@ export default function CheckoutsIndex() {
                         <Text as="span" variant="bodySm" tone="subdued">Completed</Text>
                         <Text as="h3" variant="headingLg">{stats.completedCheckouts}</Text>
                         <ProgressBar 
-                          progress={stats.totalCheckouts > 0 ? (stats.completedCheckouts / stats.totalCheckouts) * 100 : 0} 
+                          progress={Math.min(100, Math.max(0, stats.totalCheckouts > 0 ? (stats.completedCheckouts / stats.totalCheckouts) * 100 : 0))} 
                           size="small" 
                         />
                       </BlockStack>
@@ -440,7 +458,7 @@ export default function CheckoutsIndex() {
                       <BlockStack gap="300">
                         <Text as="span" variant="bodySm" tone="subdued">Conversion Rate</Text>
                         <Text as="h3" variant="headingLg">{stats.conversionRate.toFixed(1)}%</Text>
-                        <ProgressBar progress={stats.conversionRate} size="small" />
+                        <ProgressBar progress={Math.min(100, Math.max(0, stats.conversionRate))} size="small" />
                       </BlockStack>
                     </Box>
                   </Card>
@@ -477,7 +495,7 @@ export default function CheckoutsIndex() {
                           <Badge tone="attention" size="small">⭐</Badge>
                         </InlineStack>
                         <ProgressBar 
-                          progress={stats.totalCheckouts > 0 ? (stats.ipickReferrals / stats.totalCheckouts) * 100 : 0} 
+                          progress={Math.min(100, Math.max(0, stats.totalCheckouts > 0 ? (stats.ipickReferrals / stats.totalCheckouts) * 100 : 0))} 
                           size="small" 
                         />
                       </BlockStack>
@@ -575,7 +593,7 @@ export default function CheckoutsIndex() {
                       Last 24 hours: <Text as="span" variant="bodySm" fontWeight="semibold">
                         {checkouts?.filter(c => {
                           if (!c.createdAt) return false;
-                          const createdAt = new Date(c.createdAt as string);
+                          const createdAt = new Date(String(c.createdAt));
                           const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
                           return createdAt > yesterday;
                         }).length || 0} new checkouts
@@ -612,7 +630,7 @@ export default function CheckoutsIndex() {
                     header: "Checkout ID",
                     render: ({ record }: { record: any }) => (
                       <Text as="span" variant="bodySm" fontWeight="medium">
-                        #{record.id ? (record.id as string).slice(-8) : 'Unknown'}
+                        #{record.id ? String(record.id).slice(-8) : 'Unknown'}
                       </Text>
                     )
                   },
@@ -622,7 +640,7 @@ export default function CheckoutsIndex() {
                       if (!record.createdAt) {
                         return <Text as="span" variant="bodySm">Unknown</Text>;
                       }
-                      const date = new Date(record.createdAt as string);
+                      const date = new Date(String(record.createdAt));
                       return (
                         <BlockStack gap="100">
                           <Text as="span" variant="bodySm">
@@ -645,7 +663,7 @@ export default function CheckoutsIndex() {
                   {
                     header: "Value",
                     render: ({ record }: { record: any }) => {
-                      const price = record.totalPrice ? parseFloat(record.totalPrice as string) : 0;
+                      const price = record.totalPrice ? parseFloat(String(record.totalPrice)) : 0;
                       return (
                         <Text as="span" variant="bodyMd" fontWeight="medium">
                           {formatCurrency(price)}
@@ -657,8 +675,8 @@ export default function CheckoutsIndex() {
                     header: "Duration",
                     render: ({ record }: { record: any }) => {
                       const duration = formatDuration(
-                        record.createdAt as string | null | undefined, 
-                        record.completedAt as string | null | undefined
+                        record.createdAt ? String(record.createdAt) : null, 
+                        record.completedAt ? String(record.completedAt) : null
                       );
                       return <Text as="span" variant="bodySm">{duration}</Text>;
                     }
@@ -666,8 +684,8 @@ export default function CheckoutsIndex() {
                   {
                     header: "Customer",
                     render: ({ record }: { record: any }) => {
-                      const name = (record.name as string | null | undefined) || 'N/A';
-                      const email = (record.email as string | null | undefined) || '';
+                      const name = record.name ? String(record.name) : 'N/A';
+                      const email = record.email ? String(record.email) : '';
                       return (
                         <BlockStack gap="100">
                           <Text as="span" variant="bodySm" fontWeight="medium">
@@ -704,9 +722,9 @@ export default function CheckoutsIndex() {
                     }
                   }
                 ]}
-                onClick={({ record }: { record: any }) => {
+                onClick={(record: any) => {
                   if (record?.id) {
-                    navigate(`/checkouts/${record.id}`);
+                    navigate(`/checkouts/${String(record.id)}`);
                   }
                 }}
               />
