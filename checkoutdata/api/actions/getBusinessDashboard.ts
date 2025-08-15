@@ -1,4 +1,5 @@
 import { ActionOptions } from "gadget-server";
+import { preventCrossShopDataAccess } from "gadget-server/shopify";
 
 // Interface for journey objects matching Gadget API response
 interface JourneyEvent {
@@ -266,7 +267,7 @@ const calculateReferralJourneyStats = (journeys: JourneyEvent[]) => {
   };
 };
 
-export const run: ActionRun = async ({ params, logger, api, connections }) => {
+export const run: ActionRun = async ({ params, logger, api, connections, session }) => {
   try {
     // Parse parameters with proper type checking
     const businessDomain = typeof params.businessDomain === 'string' ? params.businessDomain : undefined;
@@ -282,35 +283,64 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     }
 
     // Get shop data - use proper Gadget API patterns
-    let shopFilter: any = {};
-    if (businessDomain) {
-      shopFilter = {
-        OR: [
-          { domain: { equals: businessDomain } },
-          { myshopifyDomain: { equals: businessDomain } }
-        ]
-      };
-    }
-
-    const shops = await api.shopifyShop.findMany({
-      filter: shopFilter,
-      select: {
-        id: true,
-        domain: true,
-        myshopifyDomain: true,
-        name: true,
-        email: true,
-        currency: true,
-        planName: true,
-        createdAt: true
+    let shops;
+    
+    // For authenticated Shopify merchants, use their shop from session
+    if (session && (session as any).shopId) {
+      const shop = await api.shopifyShop.findFirst({
+        filter: { id: { equals: (session as any).shopId } },
+        select: {
+          id: true,
+          domain: true,
+          myshopifyDomain: true,
+          name: true,
+          email: true,
+          currency: true,
+          planName: true,
+          createdAt: true
+        }
+      });
+      
+      if (!shop) {
+        return {
+          success: false,
+          error: "Shop not found for authenticated session"
+        };
       }
-    });
+      
+      shops = [shop];
+    } else {
+      // For unauthenticated requests, find shops by domain
+      let shopFilter: any = {};
+      if (businessDomain) {
+        shopFilter = {
+          OR: [
+            { domain: { equals: businessDomain } },
+            { myshopifyDomain: { equals: businessDomain } }
+          ]
+        };
+      }
 
-    if (businessDomain && shops.length === 0) {
-      return {
-        success: false,
-        error: "Business domain not found"
-      };
+      shops = await api.shopifyShop.findMany({
+        filter: shopFilter,
+        select: {
+          id: true,
+          domain: true,
+          myshopifyDomain: true,
+          name: true,
+          email: true,
+          currency: true,
+          planName: true,
+          createdAt: true
+        }
+      });
+
+      if (businessDomain && shops.length === 0) {
+        return {
+          success: false,
+          error: "Business domain not found"
+        };
+      }
     }
 
     const shopIds = shops.map(shop => shop.id);
@@ -580,7 +610,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
       id: journey.id,
       sessionId: journey.sessionId,
       eventType: journey.eventType,
-      timestamp: journey.timestamp,
+      timestamp: journey.timestamp || new Date(),
       pageUrl: journey.pageUrl,
       utmSource: journey.utmSource,
       businessReferral: journey.businessReferral,

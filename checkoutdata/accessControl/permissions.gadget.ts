@@ -12,6 +12,17 @@ export const permissions: GadgetPermissions = {
     "shopify-app-users": {
       storageKey: "Role-Shopify-App",
       models: {
+        businessReferral: {
+          read: {
+            filter:
+              "accessControl/filters/shopify/businessReferral.gelly",
+          },
+          actions: {
+            create: true,
+            delete: true,
+            update: true,
+          },
+        },
         customerJourney: {
           read: {
             filter:

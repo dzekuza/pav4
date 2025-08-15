@@ -1,5 +1,5 @@
 import { AutoTable } from "@gadgetinc/react/auto/polaris";
-import { useFindMany } from "@gadgetinc/react";
+import { useFindMany, useSession } from "@gadgetinc/react";
 import { 
   Page, 
   Card, 
@@ -20,8 +20,49 @@ import {
 } from "@shopify/polaris";
 
 import { useNavigate } from "@remix-run/react";
+import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { useState, useMemo } from "react";
 import { api } from "../api";
+
+export const loader = async ({ context }: LoaderFunctionArgs) => {
+  try {
+    // Check if we have a current session
+    const session = await context.api.currentSession.get();
+    
+    if (!session) {
+      return json({
+        sessionId: null,
+        shopId: null,
+        shopDomain: null,
+        error: "no_session"
+      });
+    }
+
+    // Check if the session has an associated shop
+    if (!session.shopId) {
+      return json({
+        sessionId: session.id,
+        shopId: null,
+        shopDomain: null,
+        error: "no_shop"
+      });
+    }
+
+    return json({
+      sessionId: session.id,
+      shopId: session.shopId,
+      shopDomain: session.shop?.domain || null,
+      error: null
+    });
+  } catch (error) {
+    return json({
+      sessionId: null,
+      shopId: null,
+      shopDomain: null,
+      error: "fetch_error"
+    });
+  }
+};
 
 export default function CheckoutsIndex() {
   const navigate = useNavigate();
@@ -29,6 +70,9 @@ export default function CheckoutsIndex() {
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('30');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Check for valid session
+  const session = useSession(api);
 
   // Fetch checkout data for statistics
   const [{ data: checkouts, fetching, error }] = useFindMany(api.shopifyCheckout, {
@@ -231,6 +275,69 @@ export default function CheckoutsIndex() {
     }).format(amount);
   };
 
+  // Check for session authorization first
+  if (!session) {
+    return (
+      <Page title="Checkout Analytics Dashboard">
+        <Card>
+          <Box padding="800">
+            <Banner tone="critical" title="Authentication Required">
+              <BlockStack gap="400">
+                <Text as="p">You must be logged in to view checkout data.</Text>
+                <InlineStack gap="300">
+                  <Button 
+                    variant="primary"
+                    onClick={() => window.location.href = '/'}
+                  >
+                    Go to Login
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => window.location.reload()}
+                  >
+                    Retry Authentication
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Banner>
+          </Box>
+        </Card>
+      </Page>
+    );
+  }
+
+  if (!session.shopId) {
+    return (
+      <Page title="Checkout Analytics Dashboard">
+        <Card>
+          <Box padding="800">
+            <Banner tone="critical" title="Shop Authorization Required">
+              <BlockStack gap="400">
+                <Text as="p">
+                  No shop is associated with your session. This app must be accessed from within the Shopify Admin.
+                </Text>
+                <InlineStack gap="300">
+                  <Button 
+                    variant="primary"
+                    onClick={() => window.location.href = '/'}
+                  >
+                    Return to App Home
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => window.location.reload()}
+                  >
+                    Refresh Page
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Banner>
+          </Box>
+        </Card>
+      </Page>
+    );
+  }
+
   if (fetching) {
     return (
       <Page title="Checkout Analytics Dashboard">
@@ -251,6 +358,39 @@ export default function CheckoutsIndex() {
         <Banner tone="critical" title="Error loading data">
           <p>{error.message}</p>
         </Banner>
+      </Page>
+    );
+  }
+
+  // Don't render data components if not properly authorized
+  if (!session?.shopId) {
+    return (
+      <Page title="Checkout Analytics Dashboard">
+        <Card>
+          <Box padding="800">
+            <Banner tone="critical" title="Authorization Required">
+              <BlockStack gap="400">
+                <Text as="p">
+                  You must be properly authenticated with a valid Shopify shop to view checkout data.
+                </Text>
+                <InlineStack gap="300">
+                  <Button 
+                    variant="primary"
+                    onClick={() => window.location.href = '/'}
+                  >
+                    Return to App Home
+                  </Button>
+                  <Button 
+                    variant="secondary"
+                    onClick={() => window.location.reload()}
+                  >
+                    Refresh Page
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Banner>
+          </Box>
+        </Card>
       </Page>
     );
   }
@@ -453,20 +593,21 @@ export default function CheckoutsIndex() {
           </InlineStack>
         )}
 
-        {/* Enhanced Checkout Table */}
-        <Card>
-          <Box padding="400">
-            <BlockStack gap="400">
-              <InlineStack gap="200" align="space-between">
-                <Text as="h2" variant="headingMd">All Checkouts</Text>
-                <Text as="span" variant="bodySm" tone="subdued">
-                  {checkouts?.length || 0} checkouts found
-                </Text>
-              </InlineStack>
+        {/* Enhanced Checkout Table - Only render when properly authorized */}
+        {session?.shopId && (
+          <Card>
+            <Box padding="400">
+              <BlockStack gap="400">
+                <InlineStack gap="200" align="space-between">
+                  <Text as="h2" variant="headingMd">All Checkouts</Text>
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    {checkouts?.length || 0} checkouts found
+                  </Text>
+                </InlineStack>
 
-              <AutoTable
-                model={api.shopifyCheckout}
-                columns={[
+                <AutoTable
+                  model={api.shopifyCheckout}
+                  columns={[
                   {
                     header: "Checkout ID",
                     render: ({ record }: { record: any }) => (
@@ -563,11 +704,17 @@ export default function CheckoutsIndex() {
                     }
                   }
                 ]}
-                onClick={({ record }: { record: any }) => navigate(`/checkouts/${record.id}`)}
+                onClick={({ record }: { record: any }) => {
+                  if (record?.id) {
+                    navigate(`/checkouts/${record.id}`);
+                  }
+                }}
               />
             </BlockStack>
           </Box>
         </Card>
+        )}
+
       </BlockStack>
     </Page>
   );

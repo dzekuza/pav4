@@ -26,18 +26,24 @@ export class GadgetAnalytics {
   }
 
   // Get dashboard data for all businesses or specific domain
-  async getDashboardData(businessDomain: string | null = null, startDate: string | null = null, endDate: string | null = null) {
+  async getDashboardData(businessDomain: string | null = null, startDate: string | null = null, endDate: string | null = null, sessionToken?: string) {
     try {
-      if (!this.apiKey) {
-        throw new Error('API key not configured. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Use session token if provided (for authenticated requests), otherwise use API key
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      } else if (this.apiKey) {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      } else {
+        throw new Error('No authentication provided. Please provide session token or set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
       }
 
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           query: `
             query getBusinessDashboard($businessDomain: String, $startDate: String, $endDate: String) {
@@ -76,14 +82,24 @@ export class GadgetAnalytics {
   }
 
   // Get specific business analytics
-  async getBusinessAnalytics(businessDomain: string, startDate: string | null = null, endDate: string | null = null) {
+  async getBusinessAnalytics(businessDomain: string, startDate: string | null = null, endDate: string | null = null, sessionToken?: string) {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Use session token if provided (for authenticated requests), otherwise use API key
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      } else if (this.apiKey) {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      } else {
+        throw new Error('No authentication provided. Please provide session token or set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+      }
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           query: `
             query getBusinessAnalytics($businessDomain: String!, $startDate: String, $endDate: String) {
@@ -118,10 +134,19 @@ export class GadgetAnalytics {
   }
 
   // Get all shops data
-  async getShops(businessDomain: string | null = null) {
+  async getShops(businessDomain: string | null = null, sessionToken?: string) {
     try {
-      if (!this.apiKey) {
-        throw new Error('API key not configured. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Use session token if provided (for authenticated requests), otherwise use API key
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      } else if (this.apiKey) {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      } else {
+        throw new Error('No authentication provided. Please provide session token or set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
       }
 
       console.log('getShops called with businessDomain:', businessDomain);
@@ -176,10 +201,7 @@ export class GadgetAnalytics {
       
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           query,
           variables: businessDomain ? { businessDomain } : {}
@@ -448,7 +470,7 @@ export class GadgetAnalytics {
   }
 
   // Generate comprehensive dashboard data
-  async generateDashboardData(businessDomain: string | null = null, startDate: string | null = null, endDate: string | null = null) {
+  async generateDashboardData(businessDomain: string | null = null, startDate: string | null = null, endDate: string | null = null, sessionToken?: string) {
     console.log('=== generateDashboardData called ===');
     console.log('businessDomain:', businessDomain);
     console.log('startDate:', startDate);
@@ -459,7 +481,7 @@ export class GadgetAnalytics {
     try {
       // Get shops
       console.log('Getting shops...');
-      const shops = await this.getShops(businessDomain);
+      const shops = await this.getShops(businessDomain, sessionToken);
       console.log('Shops found:', shops.length);
       const shopIds = shops.map(shop => shop.id);
 

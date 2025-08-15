@@ -19,9 +19,8 @@ import {
   Banner,
 } from "@shopify/polaris";
 import {
-  SecurityIcon,
+  ViewIcon,
   LockIcon,
-  AnalyticsBarHorizontalIcon,
   CheckIcon,
 } from "@shopify/polaris-icons";
 import { useGlobalAction, useSession } from "@gadgetinc/react";
@@ -170,7 +169,7 @@ export default function OnboardingPage() {
           </Text>
           <BlockStack gap="300">
             <InlineStack gap="300" align="start">
-              <Icon source={AnalyticsBarHorizontalIcon} />
+              <Icon source={ViewIcon} />
               <BlockStack gap="100">
                 <Text as="p" variant="bodyMd" fontWeight="semibold">
                   Advanced Analytics
@@ -182,7 +181,7 @@ export default function OnboardingPage() {
             </InlineStack>
             
             <InlineStack gap="300" align="start">
-              <Icon source={SecurityIcon} />
+              <Icon source={LockIcon} />
               <BlockStack gap="100">
                 <Text as="p" variant="bodyMd" fontWeight="semibold">
                   Privacy Compliant

@@ -1235,10 +1235,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
               </div>
 
-              {/* Your Script Section */}
+              {/* Shopify Integration Section */}
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-white">📜 Your Script</h4>
+                  <h4 className="font-medium text-white">🛍️ Shopify Integration</h4>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -1254,127 +1254,77 @@ document.addEventListener('DOMContentLoaded', function() {
                       ) : (
                         <>
                           <Play className="h-4 w-4 mr-2" />
-                          Test Script
+                          Test Connection
                         </>
                       )}
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => {
-                        if (scriptPlatform) {
-                          navigator.clipboard.writeText(scriptPlatform.scriptTemplate);
-                          toast({
-                            title: "Script Copied!",
-                            description: "Your tracking script has been copied to clipboard",
-                          });
-                        }
-                      }}
-                      disabled={!scriptPlatform}
+                      onClick={() => window.open("https://apps.shopify.com", "_blank")}
                       className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                     >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy Script
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      App Store
                     </Button>
                   </div>
                 </div>
 
-                {/* Platform Selection for Script */}
-                <div className="mb-4">
-                  <Label className="text-white text-sm mb-2 block">Select Platform:</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {[
-                      { id: "shopify-simple", name: "Shopify Simple", icon: "🛍️" },
-                      { id: "shopify", name: "Shopify Web Pixel", icon: "🛍️" },
-                      { id: "woocommerce", name: "WooCommerce", icon: "🛒" },
-                      { id: "magento", name: "Magento", icon: "🏢" },
-                      { id: "custom", name: "Custom", icon: "🌐" }
-                    ].map((platform) => (
-                      <button
-                        key={platform.id}
-                        onClick={() => setScriptPlatform(platforms.find(p => p.id === platform.id) || null)}
-                        className={`p-2 rounded-lg border text-sm transition-all ${
-                          scriptPlatform?.id === platform.id
-                            ? "border-white bg-white/10 text-white"
-                            : "border-white/10 hover:border-white/20 bg-white/5 text-white/70 hover:text-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{platform.icon}</span>
-                          <span>{platform.name}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {scriptPlatform && (
-                  <>
-                    <div className="bg-black/40 border border-white/10 rounded-lg p-4 mb-4">
-                      <pre className="text-xs overflow-x-auto text-white">
-                        <code>{scriptPlatform.scriptTemplate}</code>
-                      </pre>
-                    </div>
-
-                    <div className="text-sm text-white/70 space-y-2">
-                      <p><strong>Need to re-add your script?</strong></p>
-                      <ul className="list-disc list-inside space-y-1 ml-4">
-                        <li>Copy the script above</li>
-                        <li>Add it to your website's &lt;head&gt; section</li>
-                        {scriptPlatform.id === "shopify" && (
-                          <li>For Shopify: Add to theme.liquid file in your theme</li>
-                        )}
-                        {scriptPlatform.id === "woocommerce" && (
-                          <li>For WooCommerce: Add to header.php or use a plugin</li>
-                        )}
-                        {scriptPlatform.id === "magento" && (
-                          <li>For Magento: Add to default_head_blocks.xml</li>
-                        )}
-                        {scriptPlatform.id === "custom" && (
-                          <li>For Custom: Add to your main HTML template</li>
-                        )}
-                      </ul>
+                <div className="space-y-4">
+                  <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
+                    <h5 className="font-medium text-white mb-3">Shopify App Integration</h5>
+                    <div className="text-sm text-white/80 space-y-2">
+                      <p><strong>For the best tracking experience, install our Shopify app:</strong></p>
+                      <ol className="list-decimal list-inside space-y-1 ml-4">
+                        <li>On your Shopify admin panel, navigate to the <strong>Apps</strong> page</li>
+                        <li>Click <strong>"Visit Shopify app store"</strong></li>
+                        <li>Search for <strong>"iPick Price Tracking"</strong></li>
+                        <li>Click <strong>"Add app"</strong></li>
+                        <li>Click <strong>"Install app"</strong> when prompted</li>
+                        <li>Press the <strong>"Connect"</strong> button to connect your iPick account</li>
+                        <li>When asked, authorize your account</li>
+                      </ol>
                       <p className="mt-3 text-xs">
-                        <strong>Tip:</strong> The script automatically loads enhanced tracking features and debugging tools.
+                        <strong>Benefits:</strong> Automatic script installation, enhanced checkout tracking, real-time analytics, and no manual code editing required.
                       </p>
                     </div>
+                  </div>
 
-                    {/* Test Results Display */}
-                    {testResults.length > 0 && (
-                      <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
-                        <h6 className="font-medium text-white mb-3">Script Test Results:</h6>
-                        <div className="space-y-2">
-                          {testResults.map((result, index) => (
+                  {/* Test Results Display */}
+                  {testResults.length > 0 && (
+                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                      <h6 className="font-medium text-white mb-3">Connection Test Results:</h6>
+                      <div className="space-y-2">
+                        {testResults.map((result, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                          >
                             <div
-                              key={index}
-                              className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
-                            >
-                              <div
-                                className={`w-2 h-2 rounded-full ${
-                                  result.status === "success"
-                                    ? "bg-green-400"
-                                    : result.status === "error"
-                                      ? "bg-red-400"
-                                      : "bg-yellow-400"
-                                }`}
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm text-white">
-                                  {result.event}
-                                </div>
-                                <div className="text-xs text-white/70">
-                                  {result.details}
-                                </div>
+                              className={`w-2 h-2 rounded-full ${
+                                result.status === "success"
+                                  ? "bg-green-400"
+                                  : result.status === "error"
+                                    ? "bg-red-400"
+                                    : "bg-yellow-400"
+                              }`}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm text-white">
+                                {result.event}
                               </div>
-                              <div className="text-xs text-white/60">
-                                {new Date(result.timestamp).toLocaleTimeString()}
+                              <div className="text-xs text-white/70">
+                                {result.details}
                               </div>
                             </div>
-                          ))}
-                        </div>
+                            <div className="text-xs text-white/60">
+                              {new Date(result.timestamp).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Quick Actions */}
@@ -1460,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     : step === 2
                       ? "Choose Platform"
                       : step === 3
-                        ? "Add Script"
+                        ? "Integration"
                         : "Test Tracking"}
                 </span>
                 {step < 4 && (
@@ -1667,7 +1617,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </CardTitle>
             <CardDescription className="text-white/80">
               Select the platform your website is built on to get the
-              appropriate tracking script
+              appropriate integration instructions
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1713,16 +1663,16 @@ document.addEventListener('DOMContentLoaded', function() {
         </Card>
       )}
 
-      {/* Step 3: Script Generation */}
+      {/* Step 3: Integration Instructions */}
       {currentStep === 3 && (
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Code className="h-5 w-5" />
-              Add Tracking Script
+              Integration Instructions
             </CardTitle>
             <CardDescription className="text-white/80">
-              Copy the tracking script and add it to your website
+              Follow the instructions to integrate tracking with your platform
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1753,84 +1703,70 @@ document.addEventListener('DOMContentLoaded', function() {
 
             {selectedPlatform && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-white">
-                    Tracking Script for {selectedPlatform.name}
-                  </h4>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      copyToClipboard(selectedPlatform.scriptTemplate)
-                    }
-                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    {copiedScript ? "Copied!" : "Copy Script"}
-                  </Button>
-                </div>
+                {selectedPlatform.id === "shopify-simple" || selectedPlatform.id === "shopify" ? (
+                  // Shopify Integration Instructions
+                  <div className="space-y-4">
+                    <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
+                      <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                        🛍️ Shopify Integration Setup
+                      </h4>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="font-medium text-white mb-2">Step 1: Install the App</h5>
+                          <ol className="text-sm text-white/80 space-y-2 ml-4">
+                            <li>1. On your Shopify admin panel, navigate to the <strong>Apps</strong> page</li>
+                            <li>2. Click <strong>"Visit Shopify app store"</strong></li>
+                            <li>3. Search for <strong>"iPick Price Tracking"</strong></li>
+                            <li>4. Click <strong>"Add app"</strong></li>
+                            <li>5. Click <strong>"Install app"</strong> when prompted</li>
+                          </ol>
+                        </div>
 
-                <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-white">
-                  <pre className="text-xs overflow-x-auto">
-                    <code>{selectedPlatform.scriptTemplate}</code>
-                  </pre>
-                </div>
+                        <div>
+                          <h5 className="font-medium text-white mb-2">Step 2: Authorize Your Account</h5>
+                          <ol className="text-sm text-white/80 space-y-2 ml-4">
+                            <li>1. Press the <strong>"Connect"</strong> button to connect your iPick account</li>
+                            <li>2. When asked, authorize your account</li>
+                            <li>3. Your iPick account has now been officially connected to your Shopify store</li>
+                          </ol>
+                        </div>
 
-                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <h5 className="font-medium text-white mb-2">
-                    ✅ Installation Instructions:
-                  </h5>
-                  <ol className="text-sm text-white/80 space-y-1">
-                    <li>1. Copy the simplified script above</li>
-                    <li>2. Add it to your website's &lt;head&gt; section</li>
-                    <li>
-                      3. For Shopify: Add to theme.liquid file in your theme
-                    </li>
-                    <li>
-                      4. For WooCommerce: Add to header.php or use a plugin
-                    </li>
-                    <li>5. For Magento: Add to default_head_blocks.xml</li>
-                    <li>6. For Custom: Add to your main HTML template</li>
-                    <li>
-                      7. The loader will automatically fetch the full tracking
-                      script
-                    </li>
-                    <li>
-                      8. <strong>For Shopify:</strong> Consider using Web Pixels API for enhanced checkout tracking
-                    </li>
-                  </ol>
-                </div>
+                        <div>
+                          <h5 className="font-medium text-white mb-2">Step 3: Automatic Integration</h5>
+                          <ul className="text-sm text-white/80 space-y-1 ml-4">
+                            <li>• The app will automatically install tracking scripts</li>
+                            <li>• No manual code editing required</li>
+                            <li>• Enhanced checkout tracking enabled</li>
+                            <li>• Real-time analytics available</li>
+                          </ul>
+                        </div>
+                      </div>
 
-                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <h5 className="font-medium text-white mb-2">
-                    ⚠️ Important Notes:
-                  </h5>
-                  <ul className="text-sm text-white/80 space-y-1">
-                    <li>• Simple one-line script - no complex code needed</li>
-                    <li>• Automatically loads enhanced tracking features</li>
-                    <li>
-                      • Tracks product views, cart additions, and purchases
-                    </li>
-                    <li>• Enhanced debugging available in browser console</li>
-                    <li>• Use PriceHuntDebug functions for testing</li>
-                    <li>• Make sure to test the script after installation</li>
-                    <li>
-                      • Contact support if you need help with installation
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Test Script Button */}
-                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h5 className="font-medium text-white mb-1">
-                        🧪 Test Your Script
-                      </h5>
-                      <p className="text-sm text-white/70">
-                        Verify that the tracking script is properly installed and working on your website
-                      </p>
+                      <div className="mt-4 p-3 border border-yellow-500/20 bg-yellow-500/10 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
+                          <div className="text-sm text-white/80">
+                            <p className="font-medium text-white mb-1">Important Notes:</p>
+                            <ul className="space-y-1">
+                              <li>• Make sure you're logged into the correct Shopify store</li>
+                              <li>• The app requires access to your store data for tracking</li>
+                              <li>• You can uninstall the app at any time from your Shopify admin</li>
+                              <li>• Contact support if you encounter any issues during installation</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="flex gap-2">
+                      <Button
+                        onClick={() => window.open("https://apps.shopify.com", "_blank")}
+                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Go to Shopify App Store
+                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -1841,77 +1777,158 @@ document.addEventListener('DOMContentLoaded', function() {
                         className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Website
+                        Open Your Store
                       </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // Other platforms - show script instructions
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-white">
+                        Tracking Script for {selectedPlatform.name}
+                      </h4>
                       <Button
-                        onClick={testScriptPresence}
-                        disabled={isTesting}
+                        size="sm"
+                        onClick={() =>
+                          copyToClipboard(selectedPlatform.scriptTemplate)
+                        }
                         className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                       >
-                        {isTesting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Testing...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Test Script
-                          </>
-                        )}
+                        <Copy className="h-4 w-4 mr-2" />
+                        {copiedScript ? "Copied!" : "Copy Script"}
                       </Button>
                     </div>
-                  </div>
-                  
-                  <div className="text-sm text-white/70 space-y-2">
-                    <p><strong>What this test does:</strong></p>
-                    <ul className="list-disc list-inside space-y-1 ml-4">
-                      <li>Checks if the tracking script is loaded on your website</li>
-                      <li>Verifies script functionality and configuration</li>
-                      <li>Confirms business ID and affiliate ID are correct</li>
-                      <li>Provides detailed feedback on script status</li>
-                    </ul>
-                    <p className="mt-3 text-xs">
-                      <strong>Tip:</strong> Make sure you've added the script to your website before testing.
-                    </p>
-                  </div>
 
-                  {/* Test Results Display */}
-                  {testResults.length > 0 && (
-                    <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
-                      <h6 className="font-medium text-white mb-3">Test Results:</h6>
-                      <div className="space-y-2">
-                        {testResults.map((result, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
-                          >
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                result.status === "success"
-                                  ? "bg-green-400"
-                                  : result.status === "error"
-                                    ? "bg-red-400"
-                                    : "bg-yellow-400"
-                              }`}
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm text-white">
-                                {result.event}
-                              </div>
-                              <div className="text-xs text-white/70">
-                                {result.details}
-                              </div>
-                            </div>
-                            <div className="text-xs text-white/60">
-                              {new Date(result.timestamp).toLocaleTimeString()}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-white">
+                      <pre className="text-xs overflow-x-auto">
+                        <code>{selectedPlatform.scriptTemplate}</code>
+                      </pre>
                     </div>
-                  )}
-                </div>
+
+                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                      <h5 className="font-medium text-white mb-2">
+                        ✅ Installation Instructions:
+                      </h5>
+                      <ol className="text-sm text-white/80 space-y-1">
+                        <li>1. Copy the script above</li>
+                        <li>2. Add it to your website's &lt;head&gt; section</li>
+                        <li>3. For WooCommerce: Add to header.php or use a plugin</li>
+                        <li>4. For Magento: Add to default_head_blocks.xml</li>
+                        <li>5. For Custom: Add to your main HTML template</li>
+                        <li>6. The script will automatically load enhanced tracking features</li>
+                      </ol>
+                    </div>
+
+                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                      <h5 className="font-medium text-white mb-2">
+                        ⚠️ Important Notes:
+                      </h5>
+                      <ul className="text-sm text-white/80 space-y-1">
+                        <li>• Simple script - no complex code needed</li>
+                        <li>• Automatically loads enhanced tracking features</li>
+                        <li>• Tracks product views, cart additions, and purchases</li>
+                        <li>• Enhanced debugging available in browser console</li>
+                        <li>• Make sure to test the script after installation</li>
+                        <li>• Contact support if you need help with installation</li>
+                      </ul>
+                    </div>
+
+                    {/* Test Script Button for non-Shopify platforms */}
+                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h5 className="font-medium text-white mb-1">
+                            🧪 Test Your Script
+                          </h5>
+                          <p className="text-sm text-white/70">
+                            Verify that the tracking script is properly installed and working on your website
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              const websiteUrl = domain.startsWith("http") ? domain : `https://${domain}`;
+                              window.open(websiteUrl, "_blank");
+                            }}
+                            disabled={!domain}
+                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open Website
+                          </Button>
+                          <Button
+                            onClick={testScriptPresence}
+                            disabled={isTesting}
+                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                          >
+                            {isTesting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Testing...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4 mr-2" />
+                                Test Script
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm text-white/70 space-y-2">
+                        <p><strong>What this test does:</strong></p>
+                        <ul className="list-disc list-inside space-y-1 ml-4">
+                          <li>Checks if the tracking script is loaded on your website</li>
+                          <li>Verifies script functionality and configuration</li>
+                          <li>Confirms business ID and affiliate ID are correct</li>
+                          <li>Provides detailed feedback on script status</li>
+                        </ul>
+                        <p className="mt-3 text-xs">
+                          <strong>Tip:</strong> Make sure you've added the script to your website before testing.
+                        </p>
+                      </div>
+
+                      {/* Test Results Display */}
+                      {testResults.length > 0 && (
+                        <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
+                          <h6 className="font-medium text-white mb-3">Test Results:</h6>
+                          <div className="space-y-2">
+                            {testResults.map((result, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                              >
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    result.status === "success"
+                                      ? "bg-green-400"
+                                      : result.status === "error"
+                                        ? "bg-red-400"
+                                        : "bg-yellow-400"
+                                  }`}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm text-white">
+                                    {result.event}
+                                  </div>
+                                  <div className="text-xs text-white/70">
+                                    {result.details}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-white/60">
+                                  {new Date(result.timestamp).toLocaleTimeString()}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

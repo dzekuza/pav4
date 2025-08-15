@@ -1,26 +1,46 @@
 import { ActionOptions } from "gadget-server";
+import { preventCrossShopDataAccess } from "gadget-server/shopify";
 
-export const run: ActionRun = async ({ params, logger, api, connections }) => {
+export const run: ActionRun = async ({ params, logger, api, connections, session }) => {
   const { businessDomain, startDate, endDate } = params;
 
-  // Find the shopifyShop record by matching businessDomain to domain or myshopifyDomain
-  const shop = await api.shopifyShop.findFirst({
-    filter: {
-      OR: [
-        { domain: { equals: businessDomain } },
-        { myshopifyDomain: { equals: businessDomain } }
-      ]
-    },
-    select: {
-      id: true,
-      domain: true,
-      myshopifyDomain: true,
-      name: true
+  let shop;
+  
+  // For authenticated Shopify merchants, use their shop from session
+  if (session && (session as any).shopId) {
+    shop = await api.shopifyShop.findFirst({
+      filter: { id: { equals: (session as any).shopId } },
+      select: {
+        id: true,
+        domain: true,
+        myshopifyDomain: true,
+        name: true
+      }
+    });
+    
+    if (!shop) {
+      throw new Error(`Shop not found for authenticated session: ${(session as any).shopId}`);
     }
-  });
+  } else {
+    // For unauthenticated requests, find shop by domain
+    shop = await api.shopifyShop.findFirst({
+      filter: {
+        OR: [
+          { domain: { equals: businessDomain } },
+          { myshopifyDomain: { equals: businessDomain } }
+        ]
+      },
+      select: {
+        id: true,
+        domain: true,
+        myshopifyDomain: true,
+        name: true
+      }
+    });
 
-  if (!shop) {
-    throw new Error(`Shop not found for business domain: ${businessDomain}`);
+    if (!shop) {
+      throw new Error(`Shop not found for business domain: ${businessDomain}`);
+    }
   }
 
   // Build date filter if dates are provided
