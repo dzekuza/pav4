@@ -1,12 +1,12 @@
 import { RequestHandler } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../services/database";
 import { verifyBusinessToken } from "../middleware/business-auth";
-
-const prisma = new PrismaClient();
 
 // Get business products
 export const getBusinessProducts: RequestHandler = async (req, res) => {
   try {
+    console.log('=== getBusinessProducts called ===');
+    
     // Check for business authentication
     let token = req.cookies.business_token;
 
@@ -32,6 +32,8 @@ export const getBusinessProducts: RequestHandler = async (req, res) => {
       });
     }
 
+    console.log('Fetching products for business ID:', decoded.businessId);
+
     const products = await prisma.product.findMany({
       where: {
         businessId: decoded.businessId,
@@ -41,15 +43,22 @@ export const getBusinessProducts: RequestHandler = async (req, res) => {
       },
     });
 
+    console.log('Found products:', products.length);
+
     res.json({
       success: true,
       products,
     });
   } catch (error) {
     console.error("Error fetching business products:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: "Failed to fetch products",
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 };
@@ -158,7 +167,9 @@ export const updateBusinessProducts: RequestHandler = async (req, res) => {
 // Get public products by category
 export const getPublicProducts: RequestHandler = async (req, res) => {
   try {
+    console.log('=== getPublicProducts called ===');
     const { category } = req.params;
+    console.log('Category:', category);
 
     if (!category) {
       return res.status(400).json({
@@ -166,6 +177,8 @@ export const getPublicProducts: RequestHandler = async (req, res) => {
         error: "Category is required",
       });
     }
+
+    console.log('Fetching products for category:', category);
 
     const products = await prisma.product.findMany({
       where: {
@@ -194,15 +207,32 @@ export const getPublicProducts: RequestHandler = async (req, res) => {
       },
     });
 
+    console.log('Found products:', products.length);
+
+    // If no products found, return empty array instead of error
+    if (products.length === 0) {
+      console.log('No products found for category:', category);
+      return res.json({
+        success: true,
+        products: [],
+        message: `No products found in category: ${category}`
+      });
+    }
+
     res.json({
       success: true,
       products,
     });
   } catch (error) {
     console.error("Error fetching public products:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: "Failed to fetch products",
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 };
@@ -210,6 +240,8 @@ export const getPublicProducts: RequestHandler = async (req, res) => {
 // Get all available categories
 export const getCategories: RequestHandler = async (req, res) => {
   try {
+    console.log('=== getCategories called ===');
+
     // Get categories from registered businesses
     const businessCategories = await prisma.business.findMany({
       where: {
@@ -223,6 +255,8 @@ export const getCategories: RequestHandler = async (req, res) => {
       },
       distinct: ["category"],
     });
+
+    console.log('Business categories found:', businessCategories.length);
 
     const businessCategoryList = businessCategories
       .map((c) => c.category)
@@ -256,15 +290,86 @@ export const getCategories: RequestHandler = async (req, res) => {
     // Combine business categories with all available categories and remove duplicates
     const uniqueCategories = [...new Set([...businessCategoryList, ...allCategories])].sort();
 
+    console.log('Total unique categories:', uniqueCategories.length);
+
     res.json({
       success: true,
       categories: uniqueCategories,
     });
   } catch (error) {
     console.error("Error fetching categories:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: "Failed to fetch categories",
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
+// Test endpoint to debug products API
+export const testProductsApi: RequestHandler = async (req, res) => {
+  try {
+    console.log('=== testProductsApi called ===');
+    
+    // Test database connection
+    console.log('Testing database connection...');
+    const dbTest = await prisma.$queryRaw`SELECT 1 as test`;
+    console.log('Database connection test result:', dbTest);
+
+    // Test business table
+    console.log('Testing business table...');
+    const businessCount = await prisma.business.count();
+    console.log('Total businesses:', businessCount);
+
+    // Test product table
+    console.log('Testing product table...');
+    const productCount = await prisma.product.count();
+    console.log('Total products:', productCount);
+
+    // Get sample categories
+    console.log('Testing categories...');
+    const sampleCategories = await prisma.business.findMany({
+      where: {
+        isActive: true,
+        category: {
+          not: null,
+        },
+      },
+      select: {
+        category: true,
+      },
+      distinct: ["category"],
+      take: 5,
+    });
+
+    res.json({
+      success: true,
+      message: 'Products API test successful',
+      data: {
+        databaseConnected: true,
+        totalBusinesses: businessCount,
+        totalProducts: productCount,
+        sampleCategories: sampleCategories.map(c => c.category),
+        environment: process.env.NODE_ENV,
+        hasDatabaseUrl: !!process.env.NETLIFY_DATABASE_URL
+      }
+    });
+  } catch (error) {
+    console.error('Error in testProductsApi:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    res.json({
+      success: false,
+      error: 'Products API test failed',
+      details: error instanceof Error ? error.message : String(error),
+      environment: process.env.NODE_ENV,
+      hasDatabaseUrl: !!process.env.NETLIFY_DATABASE_URL
     });
   }
 };

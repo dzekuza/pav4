@@ -17,7 +17,15 @@
   to = "/.netlify/functions/track-event"
   status = 200
 
+[[redirects]]
+  from = "/ref/*"
+  to = "/.netlify/functions/server"
+  status = 200
 
+[[redirects]]
+  from = "/track/*"
+  to = "/.netlify/functions/server"
+  status = 200
 
 [[redirects]]
   from = "/api/*"

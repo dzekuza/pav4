@@ -102,6 +102,7 @@ import {
   updateBusinessProducts,
   getPublicProducts,
   getCategories,
+  testProductsApi,
 } from "./routes/products";
 import { handleShopifyWebhook, getWebhookStats } from "./routes/shopify-webhooks";
 
@@ -410,6 +411,7 @@ export async function createServer() {
   // Public product routes
   app.get("/api/products/categories", getCategories);
   app.get("/api/products/category/:category", getPublicProducts);
+  app.get("/api/products/test", testProductsApi);
 
   // Domain verification routes
   app.post(

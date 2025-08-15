@@ -1,0 +1,90 @@
+import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
+import { api } from "../api";
+
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  const { affiliateId } = params;
+  const url = new URL(request.url);
+  const targetUrl = url.searchParams.get('target_url');
+
+  try {
+    // For now, we'll use a simple approach since the business model doesn't exist in Gadget
+    // We'll create a business referral record instead
+    
+    // Extract domain from target URL if available
+    let businessDomain = "unknown";
+    if (targetUrl) {
+      try {
+        const targetUrlObj = new URL(targetUrl);
+        businessDomain = targetUrlObj.hostname.replace(/^www\./, "");
+      } catch (error) {
+        console.error("Invalid target_url:", targetUrl);
+      }
+    }
+
+    // Create a business referral record for tracking
+    await api.businessReferral.create({
+      businessDomain: businessDomain,
+      referralId: `ref_${affiliateId}_${Date.now()}`,
+      targetUrl: targetUrl || request.headers.get("Referer") || "direct",
+      sourceUrl: request.headers.get("Referer") || "direct",
+      userId: affiliateId,
+      clickedAt: new Date(),
+      utmSource: "pavlo4",
+      utmMedium: "referral",
+      utmCampaign: "business_referral",
+      conversionStatus: "pending"
+    });
+
+    // Build redirect URL
+    let redirectUrl: string;
+    
+    if (targetUrl) {
+      // If target_url is provided, redirect to the specific product URL
+      try {
+        const targetUrlObj = new URL(targetUrl);
+        // Add UTM parameters to the target URL
+        const utmParams = new URLSearchParams();
+        utmParams.set("utm_source", "pavlo4");
+        utmParams.set("utm_medium", "referral");
+        utmParams.set("utm_campaign", "business_referral");
+        utmParams.set("aff_id", affiliateId || "");
+        utmParams.set("ref_token", Math.random().toString(36).slice(2, 12));
+        
+        targetUrlObj.search = targetUrlObj.search 
+          ? `${targetUrlObj.search}&${utmParams.toString()}`
+          : `?${utmParams.toString()}`;
+          
+        redirectUrl = targetUrlObj.toString();
+      } catch (error) {
+        console.error("Invalid target_url:", targetUrl);
+        // Fallback to business domain
+        const utmParams = new URLSearchParams();
+        utmParams.set("utm_source", "pavlo4");
+        utmParams.set("utm_medium", "referral");
+        utmParams.set("utm_campaign", "business_referral");
+        utmParams.set("aff_id", affiliateId || "");
+        utmParams.set("ref_token", Math.random().toString(36).slice(2, 12));
+        redirectUrl = `https://${businessDomain}?${utmParams.toString()}`;
+      }
+    } else {
+      // Default redirect to business domain
+      const utmParams = new URLSearchParams();
+      utmParams.set("utm_source", "pavlo4");
+      utmParams.set("utm_medium", "referral");
+      utmParams.set("utm_campaign", "business_referral");
+      utmParams.set("aff_id", affiliateId || "");
+      utmParams.set("ref_token", Math.random().toString(36).slice(2, 12));
+      redirectUrl = `https://${businessDomain}?${utmParams.toString()}`;
+    }
+
+    // Redirect to the target URL
+    return redirect(redirectUrl);
+  } catch (error) {
+    console.error("Error handling referral redirect:", error);
+    return new Response("Error processing referral", { status: 500 });
+  }
+};
+
+export default function ReferralHandler() {
+  return null; // This component doesn't render anything
+}
