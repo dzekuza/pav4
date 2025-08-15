@@ -67,7 +67,7 @@ router.get("/redirect", async (req, res) => {
         utm_source: "ipick.io",
         utm_medium: "redirect",
         utm_campaign: "product_suggestion",
-        target_url: encodeURIComponent(to),
+        target_url: to, // Don't double-encode, just pass the URL as-is
         ref_token: Math.random().toString(36).slice(2, 12),
       });
 

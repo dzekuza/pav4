@@ -3,12 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
 
-// https://vitejs.dev/config/
+// Development-specific Vite config with Express server
 export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
-    // Disable React DevTools in production
-    __REACT_DEVTOOLS_GLOBAL_HOOK__: mode === 'development' ? undefined : JSON.stringify({ isDisabled: true }),
   },
   server: {
     host: "::",
@@ -36,10 +34,8 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Disable source maps in production to avoid React DevTools warnings
-    sourcemap: false,
   },
-  plugins: [react(), copyRedirectsPlugin()],
+  plugins: [react(), expressPlugin(), copyRedirectsPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),

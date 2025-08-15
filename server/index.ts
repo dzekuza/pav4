@@ -707,7 +707,24 @@ export async function createServer() {
       if (target_url && typeof target_url === 'string') {
         // If target_url is provided, redirect to the specific product URL
         try {
-          const targetUrl = new URL(target_url);
+          // Decode the target_url parameter (it might be double-encoded)
+          let decodedTargetUrl = target_url;
+          try {
+            // Try to decode once
+            decodedTargetUrl = decodeURIComponent(target_url);
+            // If it still contains encoded characters, decode again
+            if (decodedTargetUrl.includes('%')) {
+              decodedTargetUrl = decodeURIComponent(decodedTargetUrl);
+            }
+          } catch (decodeError) {
+            console.warn("Failed to decode target_url, using as-is:", decodeError);
+            decodedTargetUrl = target_url;
+          }
+          
+          console.log("Original target_url:", target_url);
+          console.log("Decoded target_url:", decodedTargetUrl);
+          
+          const targetUrl = new URL(decodedTargetUrl);
           // Add UTM parameters to the target URL
           const utmParams = new URLSearchParams({
             utm_source: "ipick.io",
@@ -722,8 +739,9 @@ export async function createServer() {
             : `?${utmParams.toString()}`;
             
           redirectUrl = targetUrl.toString();
+          console.log("Final redirect URL:", redirectUrl);
         } catch (error) {
-          console.error("Invalid target_url:", target_url);
+          console.error("Invalid target_url:", target_url, error);
           // Fallback to business domain
           const utmParams = new URLSearchParams({
             utm_source: "ipick.io",
