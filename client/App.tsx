@@ -128,6 +128,7 @@ const BusinessActivity = lazy(() => import("./pages/BusinessActivity"));
 const BusinessConnect = lazy(() => import("./pages/BusinessConnect"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const TrackingTest = lazy(() => import("./pages/TrackingTest"));
+const RealTrackingTest = lazy(() => import("./pages/RealTrackingTest"));
 
 const queryClient = new QueryClient();
 
@@ -299,6 +300,14 @@ const router = createBrowserRouter(
       element: (
         <Suspense fallback={null}>
           <TrackingTest />
+        </Suspense>
+      ),
+    },
+    {
+      path: "/real-tracking-test",
+      element: (
+        <Suspense fallback={null}>
+          <RealTrackingTest />
         </Suspense>
       ),
     },

@@ -1,4 +1,0 @@
-filter ($session: Session) on BusinessReferral [
-  where shopId == $session.shopId
-]
-# structured filters: [{"type":"tenancy_read_filter","field":"shop"}]

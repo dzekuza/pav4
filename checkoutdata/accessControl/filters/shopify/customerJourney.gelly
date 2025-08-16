@@ -1,4 +1,0 @@
-filter ($session: Session) on CustomerJourney [
-  where shopId == $session.shopId
-]
-# structured filters: [{"type":"tenancy_read_filter","field":"shop"}]

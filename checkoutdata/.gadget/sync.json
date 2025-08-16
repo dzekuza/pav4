@@ -1,0 +1,9 @@
+{
+  "application": "checkoutdata",
+  "environment": "development",
+  "environments": {
+    "development": {
+      "filesVersion": "521"
+    }
+  }
+}
