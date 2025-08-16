@@ -10,7 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Lock, Eye, EyeOff, ArrowLeft, CheckCircle } from "lucide-react";
+import {
+  Loader2,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  CheckCircle,
+} from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,11 +26,14 @@ interface ResetPasswordFormProps {
   onBack?: () => void;
 }
 
-export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswordFormProps) {
+export function ResetPasswordForm({
+  userType = "business",
+  onBack,
+}: ResetPasswordFormProps) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +48,9 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
     } else {
-      setError("Invalid or missing reset token. Please request a new password reset.");
+      setError(
+        "Invalid or missing reset token. Please request a new password reset.",
+      );
     }
   }, [searchParams]);
 
@@ -50,7 +62,8 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
     const errors = [];
-    if (password.length < minLength) errors.push(`At least ${minLength} characters`);
+    if (password.length < minLength)
+      errors.push(`At least ${minLength} characters`);
     if (!hasUpperCase) errors.push("One uppercase letter");
     if (!hasLowerCase) errors.push("One lowercase letter");
     if (!hasNumbers) errors.push("One number");
@@ -82,9 +95,10 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
     setError("");
 
     try {
-      const endpoint = userType === "business" 
-        ? "/api/business/auth/reset-password"
-        : "/api/auth/reset-password";
+      const endpoint =
+        userType === "business"
+          ? "/api/business/auth/reset-password"
+          : "/api/auth/reset-password";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -92,9 +106,9 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           token,
-          newPassword: password 
+          newPassword: password,
         }),
       });
 
@@ -104,7 +118,8 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
         setSuccess(true);
         toast({
           title: "Password Reset Successful",
-          description: "Your password has been reset successfully. You can now log in with your new password.",
+          description:
+            "Your password has been reset successfully. You can now log in with your new password.",
         });
       } else {
         setError(data.error || "Failed to reset password. Please try again.");
@@ -139,10 +154,11 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
         <CardContent className="space-y-4">
           <Alert className="border-green-500/20 bg-green-500/10 text-green-300">
             <AlertDescription>
-              You can now log in with your new password. For security reasons, please log out of all other devices.
+              You can now log in with your new password. For security reasons,
+              please log out of all other devices.
             </AlertDescription>
           </Alert>
-          
+
           <Button
             onClick={handleBackToLogin}
             className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
@@ -171,7 +187,7 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
               Please request a new password reset link from the login page.
             </AlertDescription>
           </Alert>
-          
+
           <Button
             onClick={handleBackToLogin}
             className="w-full rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
@@ -233,7 +249,8 @@ export function ResetPasswordForm({ userType = "business", onBack }: ResetPasswo
               </Button>
             </div>
             <div className="text-xs text-white/60">
-              Password must be at least 8 characters with uppercase, lowercase, number, and special character.
+              Password must be at least 8 characters with uppercase, lowercase,
+              number, and special character.
             </div>
           </div>
 

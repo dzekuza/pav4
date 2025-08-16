@@ -666,8 +666,73 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
       });
     }
 
-    const { startDate, endDate } = req.query;
-    console.log('Query params:', { startDate, endDate });
+    const { startDate, endDate, testMode } = req.query;
+    console.log('Query params:', { startDate, endDate, testMode });
+    
+    // If test mode is enabled, return zero data
+    if (testMode === 'true') {
+      console.log('Test mode enabled - returning zero data');
+      const testData = {
+        success: true,
+        data: {
+          summary: {
+            totalBusinesses: 1,
+            businessDomain: authResult.business.domain,
+            totalCheckouts: 0,
+            completedCheckouts: 0,
+            totalOrders: 0,
+            conversionRate: 0,
+            totalRevenue: 0,
+            currency: 'EUR'
+          },
+          businesses: [{
+            id: 'test-mode',
+            domain: authResult.business.domain,
+            myshopifyDomain: authResult.business.domain,
+            name: authResult.business.name || 'Business',
+            email: authResult.business.email || '',
+            currency: 'EUR',
+            plan: 'Basic',
+            createdAt: new Date().toISOString()
+          }],
+          recentCheckouts: [],
+          recentOrders: [],
+          referralStatistics: {
+            totalReferrals: 0,
+            ipickReferrals: 0,
+            ipickConversionRate: 0,
+            totalConversions: 0,
+            referralRevenue: 0,
+            topSources: {}
+          },
+          trends: {
+            last30Days: {
+              checkouts: 0,
+              orders: 0,
+              revenue: 0
+            },
+            last7Days: {
+              checkouts: 0,
+              orders: 0,
+              revenue: 0
+            }
+          },
+          orderStatuses: {},
+          recentReferrals: []
+        },
+        metadata: {
+          generatedAt: new Date().toISOString(),
+          filters: {
+            businessDomain: authResult.business.domain,
+            startDate: startDate,
+            endDate: endDate
+          },
+          note: 'Test mode - zero data for testing'
+        }
+      };
+      
+      return res.json(testData);
+    }
     
     try {
       const { gadgetAnalytics } = await import('../services/gadget-analytics');

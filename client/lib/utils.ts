@@ -10,7 +10,7 @@ export function getRedirectUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase().replace(/^www\./, "");
-    
+
     // Use the redirect API which will handle business domains automatically
     return `/api/redirect?to=${encodeURIComponent(url)}`;
   } catch {

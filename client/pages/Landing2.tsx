@@ -1,4 +1,11 @@
-import React, { lazy, Suspense, useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/SearchInput";
@@ -77,7 +84,11 @@ const Landing2: React.FC = () => {
   // Animate images after component mounts
   useEffect(() => {
     if (isClient && scope.current) {
-      animate("img", { opacity: [0, 1] }, { duration: 0.5, delay: stagger(0.15) });
+      animate(
+        "img",
+        { opacity: [0, 1] },
+        { duration: 0.5, delay: stagger(0.15) },
+      );
     }
   }, [isClient, animate, scope]);
 
@@ -97,9 +108,9 @@ const Landing2: React.FC = () => {
     });
   };
 
-  const handleProductClick = (product: typeof productImages[0] | string) => {
+  const handleProductClick = (product: (typeof productImages)[0] | string) => {
     // Handle both product object and direct link string
-    if (typeof product === 'string') {
+    if (typeof product === "string") {
       // If it's a string (link), use it directly for search
       handleSearch(product);
     } else {
@@ -135,8 +146,6 @@ const Landing2: React.FC = () => {
       cancelAnimationFrame(rafId);
     };
   }, []);
-
-
 
   return (
     <div ref={scope} className="relative h-screen overflow-hidden bg-black">

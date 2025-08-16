@@ -72,11 +72,13 @@ FRONTEND_URL=https://ipick.io
 The following domains are automatically allowed in CORS configuration:
 
 **Production:**
+
 - `https://ipick.io` - Main application
 - `https://app.pavlo.com` - Custom domain
-- `https://checkoutdata.gadget.app` - Gadget app (Shopify Admin access)
+- `https://ipick.io` - Main app (Shopify Admin access)
 
 **Development:**
+
 - All localhost ports (3000, 8080-8084)
 - `http://127.0.0.1:8083`
 
@@ -134,13 +136,13 @@ Visit `/api/business/test-gadget-api` to test:
 
 ```json
 {
-    "success": true,
-    "message": "Gadget API connectivity test successful",
-    "testData": {
-        "apiAccessible": true,
-        "shopsFound": "Yes",
-        "dashboardError": null
-    }
+  "success": true,
+  "message": "Gadget API connectivity test successful",
+  "testData": {
+    "apiAccessible": true,
+    "shopsFound": "Yes",
+    "dashboardError": null
+  }
 }
 ```
 
@@ -149,14 +151,17 @@ Visit `/api/business/test-gadget-api` to test:
 ### Common Issues
 
 1. **"API key not configured"**
+
    - Check if `PAVL_APP` is set in Netlify
    - Verify the environment variable name is correct
 
 2. **"Failed to fetch dashboard data"**
+
    - Test the `/api/business/test-gadget-api` endpoint
    - Check Netlify function logs for detailed errors
 
 3. **Shopify webhook failures**
+
    - Verify `SHOPIFY_WEBHOOK_API_KEY` is set
    - Check webhook authentication in Shopify admin
 

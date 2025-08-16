@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -24,7 +30,10 @@ interface NotificationSettingsProps {
   businessName: string;
 }
 
-export function NotificationSettings({ businessEmail, businessName }: NotificationSettingsProps) {
+export function NotificationSettings({
+  businessEmail,
+  businessName,
+}: NotificationSettingsProps) {
   const { toast } = useToast();
   const [settings, setSettings] = useState<NotificationSettings>({
     emailNotifications: {
@@ -38,10 +47,11 @@ export function NotificationSettings({ businessEmail, businessName }: Notificati
   });
   const [isSaving, setIsSaving] = useState(false);
 
-
-
-  const updateNotificationSetting = (category: keyof NotificationSettings['emailNotifications'], value: boolean) => {
-    setSettings(prev => ({
+  const updateNotificationSetting = (
+    category: keyof NotificationSettings["emailNotifications"],
+    value: boolean,
+  ) => {
+    setSettings((prev) => ({
       ...prev,
       emailNotifications: {
         ...prev.emailNotifications,
@@ -50,17 +60,16 @@ export function NotificationSettings({ businessEmail, businessName }: Notificati
     }));
   };
 
-
-
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
       // Simulate API call to save notification settings
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       toast({
         title: "Settings Saved",
-        description: "Your notification preferences have been updated successfully.",
+        description:
+          "Your notification preferences have been updated successfully.",
       });
     } catch (error) {
       toast({
@@ -73,14 +82,14 @@ export function NotificationSettings({ businessEmail, businessName }: Notificati
     }
   };
 
-
-
   return (
     <div className="space-y-6 text-white">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Notification Settings</h2>
+          <h2 className="text-2xl font-bold text-white">
+            Notification Settings
+          </h2>
           <p className="text-white/70">
             Manage your email notifications and preferences
           </p>
@@ -102,14 +111,18 @@ export function NotificationSettings({ businessEmail, businessName }: Notificati
           {/* Master Toggle */}
           <div className="flex items-center justify-between p-4 border border-white/10 rounded-lg">
             <div className="space-y-1">
-              <Label className="text-white font-medium">Enable Email Notifications</Label>
+              <Label className="text-white font-medium">
+                Enable Email Notifications
+              </Label>
               <p className="text-sm text-white/70">
                 Master switch for all email notifications
               </p>
             </div>
             <Switch
               checked={settings.emailNotifications.enabled}
-              onCheckedChange={(checked) => updateNotificationSetting("enabled", checked)}
+              onCheckedChange={(checked) =>
+                updateNotificationSetting("enabled", checked)
+              }
             />
           </div>
 
@@ -119,14 +132,18 @@ export function NotificationSettings({ businessEmail, businessName }: Notificati
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-white font-medium">Sales Notifications</Label>
+                <Label className="text-white font-medium">
+                  Sales Notifications
+                </Label>
                 <p className="text-sm text-white/70">
                   Get notified immediately when you make a sale
                 </p>
               </div>
               <Switch
                 checked={settings.emailNotifications.salesNotifications}
-                onCheckedChange={(checked) => updateNotificationSetting("salesNotifications", checked)}
+                onCheckedChange={(checked) =>
+                  updateNotificationSetting("salesNotifications", checked)
+                }
                 disabled={!settings.emailNotifications.enabled}
               />
             </div>
@@ -140,57 +157,69 @@ export function NotificationSettings({ businessEmail, businessName }: Notificati
               </div>
               <Switch
                 checked={settings.emailNotifications.weeklyReports}
-                onCheckedChange={(checked) => updateNotificationSetting("weeklyReports", checked)}
+                onCheckedChange={(checked) =>
+                  updateNotificationSetting("weeklyReports", checked)
+                }
                 disabled={!settings.emailNotifications.enabled}
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-white font-medium">Monthly Reports</Label>
+                <Label className="text-white font-medium">
+                  Monthly Reports
+                </Label>
                 <p className="text-sm text-white/70">
                   Receive comprehensive monthly analytics reports
                 </p>
               </div>
               <Switch
                 checked={settings.emailNotifications.monthlyReports}
-                onCheckedChange={(checked) => updateNotificationSetting("monthlyReports", checked)}
+                onCheckedChange={(checked) =>
+                  updateNotificationSetting("monthlyReports", checked)
+                }
                 disabled={!settings.emailNotifications.enabled}
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-white font-medium">Domain Verification</Label>
+                <Label className="text-white font-medium">
+                  Domain Verification
+                </Label>
                 <p className="text-sm text-white/70">
                   Notifications about domain verification status
                 </p>
               </div>
               <Switch
                 checked={settings.emailNotifications.domainVerification}
-                onCheckedChange={(checked) => updateNotificationSetting("domainVerification", checked)}
+                onCheckedChange={(checked) =>
+                  updateNotificationSetting("domainVerification", checked)
+                }
                 disabled={!settings.emailNotifications.enabled}
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-white font-medium">Security Alerts</Label>
+                <Label className="text-white font-medium">
+                  Security Alerts
+                </Label>
                 <p className="text-sm text-white/70">
                   Important security notifications and alerts
                 </p>
               </div>
               <Switch
                 checked={settings.emailNotifications.securityAlerts}
-                onCheckedChange={(checked) => updateNotificationSetting("securityAlerts", checked)}
+                onCheckedChange={(checked) =>
+                  updateNotificationSetting("securityAlerts", checked)
+                }
                 disabled={!settings.emailNotifications.enabled}
               />
             </div>
           </div>
         </CardContent>
       </Card>
-
-
 
       {/* Save Button */}
       <div className="flex justify-end">

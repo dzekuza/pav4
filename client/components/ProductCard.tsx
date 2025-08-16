@@ -1,9 +1,22 @@
 import { useState } from "react";
-import { ExternalLink, Heart, Star, Package, Truck, Shield } from "lucide-react";
+import {
+  ExternalLink,
+  Heart,
+  Star,
+  Package,
+  Truck,
+  Shield,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { generateAffiliateLink, trackAffiliateClick, getStoredUtmParameters, trackSale, trackProductClick, trackCustomEvent } from "@/lib/tracking";
+import {
+  generateAffiliateLink,
+  trackAffiliateClick,
+  getStoredUtmParameters,
+  trackProductClick,
+  trackCustomEvent,
+} from "@/lib/tracking";
 
 interface ProductCardProps {
   title: string;
@@ -61,69 +74,55 @@ export function ProductCard({
 
     try {
       // Track the product click event
-      await trackCustomEvent('product_click', {
-        productId: productId,
-        productName: title,
-        productPrice: `${price} ${currency}`,
-        retailer: store,
-        url: url,
-        isBestPrice: isBestPrice,
-        savings: savings
-      }, businessDomain);
+      await trackCustomEvent(
+        "product_click",
+        {
+          productId: productId,
+          productName: title,
+          productPrice: `${price} ${currency}`,
+          retailer: store,
+          url: url,
+          isBestPrice: isBestPrice,
+          savings: savings,
+        },
+        businessDomain,
+      );
 
       // Use the enhanced product click tracking
       const result = await trackProductClick(
-        { 
-          url, 
-          title, 
-          name: title, 
+        {
+          url,
+          title,
+          name: title,
           id: productId,
           price: `${price} ${currency}`,
-          retailer: store 
+          retailer: store,
         },
-        businessDomain
+        businessDomain,
       );
-      
+
       if (result.success) {
         // Open the tracked URL in a new tab
-        window.open(result.targetUrl, '_blank');
+        window.open(result.targetUrl, "_blank");
       } else {
         // Fallback to regular affiliate link if tracking fails
-        const affiliateUrl = generateAffiliateLink(url, store || "unknown", businessDomain, title);
-        window.open(affiliateUrl, '_blank');
+        const affiliateUrl = generateAffiliateLink(
+          url,
+          store || "unknown",
+          businessDomain,
+          title,
+        );
+        window.open(affiliateUrl, "_blank");
       }
 
-        // If we have a business ID, track the sale
-        if (businessId) {
-          const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-          // Use the new trackSale function
-          const saleTracked = await trackSale({
-            orderId: orderId,
-            businessId: businessId,
-            productUrl: url,
-            productTitle: title,
-            productPrice: `${price} ${currency}`,
-            retailer: store,
-            sessionId: sessionId,
-            referrer: document.referrer,
-            utmSource: utmParams.utm_source,
-            utmMedium: utmParams.utm_medium,
-            utmCampaign: utmParams.utm_campaign,
-          });
-
-          if (saleTracked) {
-            console.log("Sale tracked successfully for business:", businessId);
-          }
-        }
-
-        // Open the affiliate link
-        window.open(affiliateUrl, '_blank');
+      // Track the click for business analytics
+      if (businessId) {
+        console.log("Product click tracked for business:", businessId);
       }
     } catch (error) {
       console.error("Error handling purchase:", error);
       // Fallback: open the original URL
-      window.open(url, '_blank');
+      window.open(url, "_blank");
     } finally {
       setIsProcessing(false);
     }
@@ -136,23 +135,23 @@ export function ProductCard({
   };
 
   const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-              currency: currency || 'EUR',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "EUR",
     }).format(price);
   };
 
   const getStoreIcon = (storeName: string) => {
     const store = storeName.toLowerCase();
-    if (store.includes('amazon')) return '🛒';
-    if (store.includes('ebay')) return '🛍️';
-    if (store.includes('walmart')) return '🏪';
-    if (store.includes('target')) return '🎯';
-    if (store.includes('best buy')) return '⚡';
-    if (store.includes('apple')) return '🍎';
-    if (store.includes('costco')) return '📦';
-    if (store.includes('newegg')) return '💻';
-    return '🛒';
+    if (store.includes("amazon")) return "🛒";
+    if (store.includes("ebay")) return "🛍️";
+    if (store.includes("walmart")) return "🏪";
+    if (store.includes("target")) return "🎯";
+    if (store.includes("best buy")) return "⚡";
+    if (store.includes("apple")) return "🍎";
+    if (store.includes("costco")) return "📦";
+    if (store.includes("newegg")) return "💻";
+    return "🛒";
   };
 
   return (
@@ -182,7 +181,7 @@ export function ProductCard({
                 <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-1">
                   {title}
                 </h3>
-                
+
                 {/* Store and Rating */}
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">{getStoreIcon(store)}</span>

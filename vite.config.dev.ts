@@ -6,7 +6,7 @@ import fs from "fs";
 // Development-specific Vite config with Express server
 export default defineConfig(({ mode }) => ({
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "1.0.0"),
   },
   server: {
     host: "::",
@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => ({
       "Content-Security-Policy": "frame-ancestors 'self'",
     },
     proxy: {
-      '/api': {
-        target: 'http://localhost:8084',
+      "/api": {
+        target: "http://localhost:8084",
         changeOrigin: true,
         secure: false,
       },

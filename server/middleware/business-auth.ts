@@ -45,25 +45,27 @@ export const requireBusinessAuth = async (
       });
     }
 
-    console.log("Business auth: Token decoded successfully", { 
-      businessId: decoded.businessId, 
+    console.log("Business auth: Token decoded successfully", {
+      businessId: decoded.businessId,
       email: decoded.email,
-      type: decoded.type 
+      type: decoded.type,
     });
 
     const business = await businessService.findBusinessById(decoded.businessId);
     if (!business) {
-      console.error("Business auth: Business not found", { businessId: decoded.businessId });
+      console.error("Business auth: Business not found", {
+        businessId: decoded.businessId,
+      });
       return res.status(401).json({
         success: false,
         error: "Business not found",
       });
     }
 
-    console.log("Business auth: Business found", { 
-      businessId: business.id, 
+    console.log("Business auth: Business found", {
+      businessId: business.id,
       name: business.name,
-      domain: business.domain 
+      domain: business.domain,
     });
 
     if (!business.isActive) {

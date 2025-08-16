@@ -367,9 +367,10 @@ export const forgotPassword: RequestHandler = async (req, res) => {
     const user = await userService.findUserByEmail(email);
     if (!user) {
       // Don't reveal if user exists or not for security
-      return res.json({ 
-        success: true, 
-        message: "If an account with this email exists, a reset link has been sent." 
+      return res.json({
+        success: true,
+        message:
+          "If an account with this email exists, a reset link has been sent.",
       });
     }
 
@@ -377,7 +378,7 @@ export const forgotPassword: RequestHandler = async (req, res) => {
     const resetToken = jwt.sign(
       { userId: user.id, type: "password_reset" },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     // In a real application, you would:
@@ -389,9 +390,10 @@ export const forgotPassword: RequestHandler = async (req, res) => {
     // TODO: Implement actual email sending
     console.log(`Password reset token for ${email}: ${resetToken}`);
 
-    res.json({ 
-      success: true, 
-      message: "If an account with this email exists, a reset link has been sent." 
+    res.json({
+      success: true,
+      message:
+        "If an account with this email exists, a reset link has been sent.",
     });
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -405,11 +407,15 @@ export const resetPassword: RequestHandler = async (req, res) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-      return res.status(400).json({ error: "Token and new password are required" });
+      return res
+        .status(400)
+        .json({ error: "Token and new password are required" });
     }
 
     if (newPassword.length < 8) {
-      return res.status(400).json({ error: "Password must be at least 8 characters long" });
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 8 characters long" });
     }
 
     // Check for uppercase, lowercase, and number
@@ -419,14 +425,17 @@ export const resetPassword: RequestHandler = async (req, res) => {
 
     if (!hasUpperCase || !hasLowerCase || !hasNumber) {
       return res.status(400).json({
-        error: "Password must contain uppercase, lowercase, and number"
+        error: "Password must contain uppercase, lowercase, and number",
       });
     }
 
     // Verify reset token
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as { userId: number; type: string };
+      decoded = jwt.verify(token, JWT_SECRET) as {
+        userId: number;
+        type: string;
+      };
     } catch {
       return res.status(400).json({ error: "Invalid or expired reset token" });
     }
@@ -447,7 +456,10 @@ export const resetPassword: RequestHandler = async (req, res) => {
     // Update user password
     await userService.updateUser(user.id, { password: hashedPassword });
 
-    res.json({ success: true, message: "Password has been reset successfully" });
+    res.json({
+      success: true,
+      message: "Password has been reset successfully",
+    });
   } catch (error) {
     console.error("Reset password error:", error);
     res.status(500).json({ error: "Failed to reset password" });

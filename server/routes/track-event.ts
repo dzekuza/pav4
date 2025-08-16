@@ -48,14 +48,14 @@ export const trackEvent: RequestHandler = async (req, res) => {
     // Allow post-redirect events and checkout events
     const allowedEvents = [
       "page_view",
-      "product_view", 
+      "product_view",
       "add_to_cart",
       "checkout",
       "browse",
       "search",
       "category_view",
       "wishlist_add",
-      "wishlist_remove"
+      "wishlist_remove",
     ];
 
     if (!allowedEvents.includes(event_type)) {
@@ -79,7 +79,7 @@ export const trackEvent: RequestHandler = async (req, res) => {
           businessId: parseInt(business_id),
         },
         orderBy: {
-          timestamp: 'desc',
+          timestamp: "desc",
         },
       });
 

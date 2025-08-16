@@ -1,4 +1,11 @@
-import React, { lazy, Suspense, useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 const AnimatedGradientBackground = lazy(
   () => import("@/components/ui/animated-gradient-background"),
 );
@@ -69,32 +76,37 @@ const DemoLanding: React.FC = () => {
   }, []);
 
   // Memoize background components to prevent re-rendering when search input changes
-  const backgroundComponents = useMemo(() => ({
-    animatedBackground: (
-      <Suspense
-        fallback={
-          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
-        }
-      >
-        <AnimatedGradientBackground />
-      </Suspense>
-    ),
-    globe: isClient ? (
-      <div className="pointer-events-none fixed bottom-0 left-1/2 z-[1] -translate-x-1/2 aspect-square h-[400px] md:h-[600px] translate-y-32 md:translate-y-64">
+  const backgroundComponents = useMemo(
+    () => ({
+      animatedBackground: (
         <Suspense
           fallback={
-            <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
           }
         >
-          <Globe className="top-0" />
+          <AnimatedGradientBackground />
         </Suspense>
-      </div>
-    ) : null,
-  }), [isClient]);
+      ),
+      globe: isClient ? (
+        <div className="pointer-events-none fixed bottom-0 left-1/2 z-[1] -translate-x-1/2 aspect-square h-[400px] md:h-[600px] translate-y-32 md:translate-y-64">
+          <Suspense
+            fallback={
+              <div className="w-full h-full bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-full animate-pulse" />
+            }
+          >
+            <Globe className="top-0" />
+          </Suspense>
+        </div>
+      ) : null,
+    }),
+    [isClient],
+  );
 
   return (
     <div className="relative h-screen overflow-hidden">
-      {isClient ? backgroundComponents.animatedBackground : (
+      {isClient ? (
+        backgroundComponents.animatedBackground
+      ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
       )}
 

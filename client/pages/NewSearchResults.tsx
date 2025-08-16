@@ -36,7 +36,12 @@ import { useFavorites } from "../hooks/use-favorites";
 import { useAuthModal } from "../hooks/use-auth-modal";
 import { AuthModal } from "../components/AuthModal";
 import { useAuth } from "../hooks/use-auth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
 import { getRedirectUrl } from "../lib/utils";
 import { trackProductClick, trackCustomEvent } from "@/lib/tracking";
 
@@ -45,14 +50,14 @@ function extractPrice(priceString: string): number {
   if (!priceString) return 0;
   const match = priceString.match(/[€$£]?\s?(\d+(?:[.,]\d{2})?)/);
   if (!match) return 0;
-  
+
   const price = parseFloat(match[1].replace(",", "."));
-  
+
   // Convert USD prices to EUR (approximate conversion)
-  if (priceString.includes('$')) {
+  if (priceString.includes("$")) {
     return price * 0.85; // Approximate USD to EUR conversion
   }
-  
+
   return price;
 }
 
@@ -96,12 +101,12 @@ const categories = [
 ];
 
 function getCategoryIcon(categoryName: string) {
-  const category = categories.find(c => c.name === categoryName);
+  const category = categories.find((c) => c.name === categoryName);
   return category?.icon || "📦";
 }
 
 function getCategoryLabel(categoryName: string) {
-  const category = categories.find(c => c.name === categoryName);
+  const category = categories.find((c) => c.name === categoryName);
   return category?.label || "All Results";
 }
 
@@ -326,7 +331,9 @@ const NewSearchResults = () => {
       // Try to get the URL from sessionStorage if originalUrl is not set
       let urlToUse = originalUrl;
       if (!urlToUse) {
-        const storedData = sessionStorage.getItem(`product_request_${requestId}`);
+        const storedData = sessionStorage.getItem(
+          `product_request_${requestId}`,
+        );
         if (storedData) {
           try {
             const parsedData = JSON.parse(storedData);
@@ -430,21 +437,25 @@ const NewSearchResults = () => {
       let businessDomain: string | undefined;
       try {
         const urlObj = new URL(suggestion.link);
-        if (urlObj.hostname.includes('myshopify.com')) {
+        if (urlObj.hostname.includes("myshopify.com")) {
           businessDomain = urlObj.hostname;
         }
       } catch (error) {
-        console.log('Could not parse URL for business domain extraction');
+        console.log("Could not parse URL for business domain extraction");
       }
 
       // Track the product click
-      await trackCustomEvent('product_click', {
-        productId: suggestion.title,
-        productName: suggestion.title,
-        productPrice: suggestion.standardPrice || suggestion.discountPrice,
-        retailer: suggestion.merchant || suggestion.site,
-        url: suggestion.link
-      }, businessDomain);
+      await trackCustomEvent(
+        "product_click",
+        {
+          productId: suggestion.title,
+          productName: suggestion.title,
+          productPrice: suggestion.standardPrice || suggestion.discountPrice,
+          retailer: suggestion.merchant || suggestion.site,
+          url: suggestion.link,
+        },
+        businessDomain,
+      );
 
       // Use enhanced product click tracking if business domain is available
       if (businessDomain) {
@@ -455,24 +466,24 @@ const NewSearchResults = () => {
             name: suggestion.title,
             id: suggestion.title,
             price: suggestion.standardPrice || suggestion.discountPrice,
-            retailer: suggestion.merchant || suggestion.site
+            retailer: suggestion.merchant || suggestion.site,
           },
-          businessDomain
+          businessDomain,
         );
 
         if (result.success) {
           // Open the tracked URL
-          window.open(result.targetUrl, '_blank');
+          window.open(result.targetUrl, "_blank");
           return;
         }
       }
 
       // Fallback to regular redirect
-      window.open(getRedirectUrl(suggestion.link), '_blank');
+      window.open(getRedirectUrl(suggestion.link), "_blank");
     } catch (error) {
-      console.error('Error handling product click:', error);
+      console.error("Error handling product click:", error);
       // Fallback to regular redirect
-      window.open(getRedirectUrl(suggestion.link), '_blank');
+      window.open(getRedirectUrl(suggestion.link), "_blank");
     }
   };
 
@@ -558,79 +569,195 @@ const NewSearchResults = () => {
   const mainProduct = !isArrayResponse ? searchData?.mainProduct : null;
 
   // Filter suggestions by category
-  const filteredSuggestions = selectedCategory === "all" 
-    ? suggestions 
-    : suggestions.filter((suggestion: any) => {
-        // Simple category detection based on product title and store
-        const title = suggestion.title?.toLowerCase() || "";
-        const store = suggestion.site?.toLowerCase() || "";
-        
-        switch (selectedCategory) {
-          case "electronics":
-            return title.includes("phone") || title.includes("laptop") || title.includes("computer") || 
-                   title.includes("tablet") || title.includes("camera") || title.includes("tv") ||
-                   store.includes("amazon") || store.includes("bestbuy");
-          case "fashion":
-            return title.includes("shirt") || title.includes("dress") || title.includes("shoes") || 
-                   title.includes("jacket") || title.includes("pants") || title.includes("accessories");
-          case "home":
-            return title.includes("furniture") || title.includes("kitchen") || title.includes("garden") || 
-                   title.includes("decor") || title.includes("bedroom") || title.includes("bathroom");
-          case "sports":
-            return title.includes("fitness") || title.includes("gym") || title.includes("running") || 
-                   title.includes("basketball") || title.includes("football") || title.includes("tennis");
-          case "beauty":
-            return title.includes("makeup") || title.includes("skincare") || title.includes("perfume") || 
-                   title.includes("cosmetics") || title.includes("beauty");
-          case "books":
-            return title.includes("book") || title.includes("novel") || title.includes("textbook") || 
-                   store.includes("amazon") || store.includes("barnes");
-          case "toys":
-            return title.includes("toy") || title.includes("game") || title.includes("puzzle") || 
-                   title.includes("doll") || title.includes("lego");
-          case "automotive":
-            return title.includes("car") || title.includes("auto") || title.includes("tire") || 
-                   title.includes("battery") || title.includes("oil");
-          case "health":
-            return title.includes("vitamin") || title.includes("supplement") || title.includes("medicine") || 
-                   title.includes("health") || title.includes("wellness");
-          case "food":
-            return title.includes("food") || title.includes("snack") || title.includes("beverage") || 
-                   title.includes("coffee") || title.includes("tea");
-          case "baby":
-            return title.includes("baby") || title.includes("infant") || title.includes("toddler") || 
-                   title.includes("diaper") || title.includes("formula") || title.includes("stroller");
-          case "pets":
-            return title.includes("pet") || title.includes("dog") || title.includes("cat") || 
-                   title.includes("pet food") || title.includes("toy") || title.includes("collar");
-          case "office":
-            return title.includes("office") || title.includes("business") || title.includes("desk") || 
-                   title.includes("chair") || title.includes("printer") || title.includes("paper");
-          case "jewelry":
-            return title.includes("jewelry") || title.includes("ring") || title.includes("necklace") || 
-                   title.includes("watch") || title.includes("bracelet") || title.includes("earring");
-          case "tools":
-            return title.includes("tool") || title.includes("hardware") || title.includes("drill") || 
-                   title.includes("screwdriver") || title.includes("hammer") || title.includes("wrench");
-          case "music":
-            return title.includes("music") || title.includes("instrument") || title.includes("guitar") || 
-                   title.includes("piano") || title.includes("drum") || title.includes("microphone");
-          case "art":
-            return title.includes("art") || title.includes("craft") || title.includes("paint") || 
-                   title.includes("canvas") || title.includes("brush") || title.includes("sculpture");
-          case "garden":
-            return title.includes("garden") || title.includes("outdoor") || title.includes("plant") || 
-                   title.includes("flower") || title.includes("lawn") || title.includes("patio");
-          case "kitchen":
-            return title.includes("kitchen") || title.includes("cookware") || title.includes("appliance") || 
-                   title.includes("utensil") || title.includes("dining") || title.includes("tableware");
-          case "bath":
-            return title.includes("bath") || title.includes("personal care") || title.includes("soap") || 
-                   title.includes("shampoo") || title.includes("towel") || title.includes("toiletries");
-          default:
-            return true;
-        }
-      });
+  const filteredSuggestions =
+    selectedCategory === "all"
+      ? suggestions
+      : suggestions.filter((suggestion: any) => {
+          // Simple category detection based on product title and store
+          const title = suggestion.title?.toLowerCase() || "";
+          const store = suggestion.site?.toLowerCase() || "";
+
+          switch (selectedCategory) {
+            case "electronics":
+              return (
+                title.includes("phone") ||
+                title.includes("laptop") ||
+                title.includes("computer") ||
+                title.includes("tablet") ||
+                title.includes("camera") ||
+                title.includes("tv") ||
+                store.includes("amazon") ||
+                store.includes("bestbuy")
+              );
+            case "fashion":
+              return (
+                title.includes("shirt") ||
+                title.includes("dress") ||
+                title.includes("shoes") ||
+                title.includes("jacket") ||
+                title.includes("pants") ||
+                title.includes("accessories")
+              );
+            case "home":
+              return (
+                title.includes("furniture") ||
+                title.includes("kitchen") ||
+                title.includes("garden") ||
+                title.includes("decor") ||
+                title.includes("bedroom") ||
+                title.includes("bathroom")
+              );
+            case "sports":
+              return (
+                title.includes("fitness") ||
+                title.includes("gym") ||
+                title.includes("running") ||
+                title.includes("basketball") ||
+                title.includes("football") ||
+                title.includes("tennis")
+              );
+            case "beauty":
+              return (
+                title.includes("makeup") ||
+                title.includes("skincare") ||
+                title.includes("perfume") ||
+                title.includes("cosmetics") ||
+                title.includes("beauty")
+              );
+            case "books":
+              return (
+                title.includes("book") ||
+                title.includes("novel") ||
+                title.includes("textbook") ||
+                store.includes("amazon") ||
+                store.includes("barnes")
+              );
+            case "toys":
+              return (
+                title.includes("toy") ||
+                title.includes("game") ||
+                title.includes("puzzle") ||
+                title.includes("doll") ||
+                title.includes("lego")
+              );
+            case "automotive":
+              return (
+                title.includes("car") ||
+                title.includes("auto") ||
+                title.includes("tire") ||
+                title.includes("battery") ||
+                title.includes("oil")
+              );
+            case "health":
+              return (
+                title.includes("vitamin") ||
+                title.includes("supplement") ||
+                title.includes("medicine") ||
+                title.includes("health") ||
+                title.includes("wellness")
+              );
+            case "food":
+              return (
+                title.includes("food") ||
+                title.includes("snack") ||
+                title.includes("beverage") ||
+                title.includes("coffee") ||
+                title.includes("tea")
+              );
+            case "baby":
+              return (
+                title.includes("baby") ||
+                title.includes("infant") ||
+                title.includes("toddler") ||
+                title.includes("diaper") ||
+                title.includes("formula") ||
+                title.includes("stroller")
+              );
+            case "pets":
+              return (
+                title.includes("pet") ||
+                title.includes("dog") ||
+                title.includes("cat") ||
+                title.includes("pet food") ||
+                title.includes("toy") ||
+                title.includes("collar")
+              );
+            case "office":
+              return (
+                title.includes("office") ||
+                title.includes("business") ||
+                title.includes("desk") ||
+                title.includes("chair") ||
+                title.includes("printer") ||
+                title.includes("paper")
+              );
+            case "jewelry":
+              return (
+                title.includes("jewelry") ||
+                title.includes("ring") ||
+                title.includes("necklace") ||
+                title.includes("watch") ||
+                title.includes("bracelet") ||
+                title.includes("earring")
+              );
+            case "tools":
+              return (
+                title.includes("tool") ||
+                title.includes("hardware") ||
+                title.includes("drill") ||
+                title.includes("screwdriver") ||
+                title.includes("hammer") ||
+                title.includes("wrench")
+              );
+            case "music":
+              return (
+                title.includes("music") ||
+                title.includes("instrument") ||
+                title.includes("guitar") ||
+                title.includes("piano") ||
+                title.includes("drum") ||
+                title.includes("microphone")
+              );
+            case "art":
+              return (
+                title.includes("art") ||
+                title.includes("craft") ||
+                title.includes("paint") ||
+                title.includes("canvas") ||
+                title.includes("brush") ||
+                title.includes("sculpture")
+              );
+            case "garden":
+              return (
+                title.includes("garden") ||
+                title.includes("outdoor") ||
+                title.includes("plant") ||
+                title.includes("flower") ||
+                title.includes("lawn") ||
+                title.includes("patio")
+              );
+            case "kitchen":
+              return (
+                title.includes("kitchen") ||
+                title.includes("cookware") ||
+                title.includes("appliance") ||
+                title.includes("utensil") ||
+                title.includes("dining") ||
+                title.includes("tableware")
+              );
+            case "bath":
+              return (
+                title.includes("bath") ||
+                title.includes("personal care") ||
+                title.includes("soap") ||
+                title.includes("shampoo") ||
+                title.includes("towel") ||
+                title.includes("toiletries")
+              );
+            default:
+              return true;
+          }
+        });
 
   // Prevent repeated fetches: Only fetch if searchData is null and not already loading
   useEffect(() => {
@@ -881,20 +1008,26 @@ const NewSearchResults = () => {
                             let businessDomain: string | undefined;
                             try {
                               const urlObj = new URL(mainProduct.url);
-                              if (urlObj.hostname.includes('myshopify.com')) {
+                              if (urlObj.hostname.includes("myshopify.com")) {
                                 businessDomain = urlObj.hostname;
                               }
                             } catch (error) {
-                              console.log('Could not parse URL for business domain extraction');
+                              console.log(
+                                "Could not parse URL for business domain extraction",
+                              );
                             }
 
                             // Track the original product click
-                            await trackCustomEvent('original_product_click', {
-                              productId: mainProduct.title,
-                              productName: mainProduct.title,
-                              productPrice: `${mainProduct.currency}${mainProduct.price}`,
-                              url: mainProduct.url
-                            }, businessDomain);
+                            await trackCustomEvent(
+                              "original_product_click",
+                              {
+                                productId: mainProduct.title,
+                                productName: mainProduct.title,
+                                productPrice: `${mainProduct.currency}${mainProduct.price}`,
+                                url: mainProduct.url,
+                              },
+                              businessDomain,
+                            );
 
                             // Use enhanced tracking if business domain is available
                             if (businessDomain) {
@@ -905,22 +1038,31 @@ const NewSearchResults = () => {
                                   name: mainProduct.title,
                                   id: mainProduct.title,
                                   price: `${mainProduct.currency}${mainProduct.price}`,
-                                  retailer: 'Original Store'
+                                  retailer: "Original Store",
                                 },
-                                businessDomain
+                                businessDomain,
                               );
 
                               if (result.success) {
-                                window.open(result.targetUrl, '_blank');
+                                window.open(result.targetUrl, "_blank");
                                 return;
                               }
                             }
 
                             // Fallback to regular redirect
-                            window.open(getRedirectUrl(mainProduct.url), '_blank');
+                            window.open(
+                              getRedirectUrl(mainProduct.url),
+                              "_blank",
+                            );
                           } catch (error) {
-                            console.error('Error handling original product click:', error);
-                            window.open(getRedirectUrl(mainProduct.url), '_blank');
+                            console.error(
+                              "Error handling original product click:",
+                              error,
+                            );
+                            window.open(
+                              getRedirectUrl(mainProduct.url),
+                              "_blank",
+                            );
                           }
                         }}
                         aria-label="View original product details"
@@ -954,7 +1096,11 @@ const NewSearchResults = () => {
 
             {/* Categories Filter */}
             <div className="mb-6">
-              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+              <Tabs
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+                className="w-full"
+              >
                 <div className="overflow-x-auto">
                   <TabsList className="flex w-full min-w-max space-x-1 bg-white/5 border border-white/10">
                     {categories.map((category) => (
@@ -964,7 +1110,9 @@ const NewSearchResults = () => {
                         className="flex-shrink-0 px-3 md:px-4 text-white"
                       >
                         <span className="mr-2">{category.icon}</span>
-                        <span className="hidden sm:inline">{category.label}</span>
+                        <span className="hidden sm:inline">
+                          {category.label}
+                        </span>
                         <span className="sm:hidden">{category.icon}</span>
                       </TabsTrigger>
                     ))}
@@ -1125,8 +1273,12 @@ const NewSearchResults = () => {
         {filteredSuggestions.length === 0 && suggestions.length > 0 && (
           <Card className="border-white/10 bg-white/5 backdrop-blur-xl text-white">
             <CardContent className="p-8 text-center">
-              <p className="text-white/70 mb-4">No results found in this category</p>
-              <p className="text-sm text-white/60 mb-4">Try selecting a different category or search again</p>
+              <p className="text-white/70 mb-4">
+                No results found in this category
+              </p>
+              <p className="text-sm text-white/60 mb-4">
+                Try selecting a different category or search again
+              </p>
               <Button
                 onClick={() => setSelectedCategory("all")}
                 className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90 mr-2"

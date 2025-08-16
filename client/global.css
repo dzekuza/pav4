@@ -177,7 +177,8 @@
       ease-in-out;
   }
 
-  html, body {
+  html,
+  body {
     overflow-x: hidden;
   }
 
@@ -208,24 +209,31 @@
     /* Improve contrast for better readability */
     --card: 220 20% 8%;
     --card-foreground: 220 15% 98%;
-    
+
     /* Better muted colors for secondary text */
     --muted: 220 15% 12%;
     --muted-foreground: 220 10% 70%;
-    
+
     /* Enhanced border contrast */
     --border: 220 15% 25%;
-    
+
     /* Better input styling */
     --input: 220 15% 12%;
   }
 
   /* Ensure proper contrast for all text elements */
-  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
     color: hsl(var(--foreground));
   }
 
-  .dark p, .dark span, .dark div {
+  .dark p,
+  .dark span,
+  .dark div {
     color: hsl(var(--foreground));
   }
 

@@ -8,14 +8,20 @@ declare global {
 // Create a single Prisma Client instance
 const createPrismaClient = () => {
   // Ensure we're using the Netlify database URL
-  const databaseUrl = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL;
-  
+  const databaseUrl =
+    process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL;
+
   if (!databaseUrl) {
-    console.error("No database URL found. Please set NETLIFY_DATABASE_URL or DATABASE_URL");
+    console.error(
+      "No database URL found. Please set NETLIFY_DATABASE_URL or DATABASE_URL",
+    );
     process.exit(1);
   }
 
-  console.log("Using database URL:", databaseUrl.replace(/\/\/.*@/, "//***:***@")); // Hide credentials in logs
+  console.log(
+    "Using database URL:",
+    databaseUrl.replace(/\/\/.*@/, "//***:***@"),
+  ); // Hide credentials in logs
 
   return new PrismaClient({
     datasources: {
@@ -716,26 +722,29 @@ export const businessService = {
       totalOrders: 0,
       totalRevenue: 0,
       recentCheckouts: [],
-      recentOrders: []
+      recentOrders: [],
     };
 
     try {
-      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
-        ? 'https://checkoutdata--development.gadget.app/api/graphql'
-        : 'https://checkoutdata.gadget.app/api/graphql';
-      const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
-      
+      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS
+        ? "https://ipick.io/api/graphql"
+        : "https://ipick.io/api/graphql";
+      const API_KEY =
+        process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+
       if (!API_KEY) {
-        console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
-        throw new Error('API key not configured');
+        console.error(
+          "No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable",
+        );
+        throw new Error("API key not configured");
       }
 
       // Get shops for this business domain
       const shopsResponse = await fetch(GADGET_API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
           query: `
@@ -761,22 +770,23 @@ export const businessService = {
               }
             }
           `,
-          variables: { businessDomain: business.domain }
-        })
+          variables: { businessDomain: business.domain },
+        }),
       });
 
       const shopsData = await shopsResponse.json();
-      const shops = shopsData.data?.shopifyShops?.edges?.map((edge) => edge.node) || [];
-      const shopIds = shops.map(shop => shop.id);
+      const shops =
+        shopsData.data?.shopifyShops?.edges?.map((edge) => edge.node) || [];
+      const shopIds = shops.map((shop) => shop.id);
 
       if (shopIds.length > 0) {
         // Get checkouts and orders for these shops
         const [checkoutsResponse, ordersResponse] = await Promise.all([
           fetch(GADGET_API_URL, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
             },
             body: JSON.stringify({
               query: `
@@ -808,14 +818,14 @@ export const businessService = {
                   }
                 }
               `,
-              variables: { limit: 100 }
-            })
+              variables: { limit: 100 },
+            }),
           }),
           fetch(GADGET_API_URL, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
             },
             body: JSON.stringify({
               query: `
@@ -844,23 +854,27 @@ export const businessService = {
                   }
                 }
               `,
-              variables: { limit: 100 }
-            })
-          })
+              variables: { limit: 100 },
+            }),
+          }),
         ]);
 
         const checkoutsData = await checkoutsResponse.json();
         const ordersData = await ordersResponse.json();
 
-        const allCheckouts = checkoutsData.data?.shopifyCheckouts?.edges?.map((edge) => edge.node) || [];
-        const allOrders = ordersData.data?.shopifyOrders?.edges?.map((edge) => edge.node) || [];
+        const allCheckouts =
+          checkoutsData.data?.shopifyCheckouts?.edges?.map(
+            (edge) => edge.node,
+          ) || [];
+        const allOrders =
+          ordersData.data?.shopifyOrders?.edges?.map((edge) => edge.node) || [];
 
         // Filter by shop IDs
-        const filteredCheckouts = allCheckouts.filter((checkout) => 
-          checkout.shop && shopIds.includes(checkout.shop.id)
+        const filteredCheckouts = allCheckouts.filter(
+          (checkout) => checkout.shop && shopIds.includes(checkout.shop.id),
         );
-        const filteredOrders = allOrders.filter((order) => 
-          order.shop && shopIds.includes(order.shop.id)
+        const filteredOrders = allOrders.filter(
+          (order) => order.shop && shopIds.includes(order.shop.id),
         );
 
         // Calculate Gadget metrics
@@ -868,15 +882,15 @@ export const businessService = {
           totalCheckouts: filteredCheckouts.length,
           totalOrders: filteredOrders.length,
           totalRevenue: filteredOrders.reduce((sum, order) => {
-            const price = parseFloat(order.totalPrice || '0');
+            const price = parseFloat(order.totalPrice || "0");
             return sum + (isNaN(price) ? 0 : price);
           }, 0),
           recentCheckouts: filteredCheckouts.slice(0, 10),
-          recentOrders: filteredOrders.slice(0, 10)
+          recentOrders: filteredOrders.slice(0, 10),
         };
       }
     } catch (error) {
-      console.error('Error fetching Gadget stats:', error);
+      console.error("Error fetching Gadget stats:", error);
       // Continue with local stats only if Gadget API fails
     }
 
@@ -887,24 +901,38 @@ export const businessService = {
       // Use Gadget data for checkout/order metrics
       totalCheckouts: gadgetStats.totalCheckouts,
       totalOrders: gadgetStats.totalOrders,
-      totalRevenue: gadgetStats.totalRevenue > 0 ? gadgetStats.totalRevenue : business.totalRevenue,
+      totalRevenue:
+        gadgetStats.totalRevenue > 0
+          ? gadgetStats.totalRevenue
+          : business.totalRevenue,
       // Keep local data for visit tracking
       totalVisits: business.totalVisits,
       totalPurchases: business.totalPurchases,
       // Calculate derived fields using consolidated data
-      averageOrderValue: gadgetStats.totalOrders > 0 
-        ? gadgetStats.totalRevenue / gadgetStats.totalOrders 
-        : (business.totalPurchases > 0 ? business.totalRevenue / business.totalPurchases : 0),
-      conversionRate: business.totalVisits > 0 
-        ? (gadgetStats.totalOrders / business.totalVisits) * 100 
-        : 0,
-      projectedFee: gadgetStats.totalRevenue > 0 
-        ? gadgetStats.totalRevenue * (business.adminCommissionRate / 100)
-        : business.totalRevenue * (business.adminCommissionRate / 100),
+      averageOrderValue:
+        gadgetStats.totalOrders > 0
+          ? gadgetStats.totalRevenue / gadgetStats.totalOrders
+          : business.totalPurchases > 0
+            ? business.totalRevenue / business.totalPurchases
+            : 0,
+      conversionRate:
+        business.totalVisits > 0
+          ? (gadgetStats.totalOrders / business.totalVisits) * 100
+          : 0,
+      projectedFee:
+        gadgetStats.totalRevenue > 0
+          ? gadgetStats.totalRevenue * (business.adminCommissionRate / 100)
+          : business.totalRevenue * (business.adminCommissionRate / 100),
       // Local tracking events
-      totalAddToCart: trackingEvents.filter(event => event.eventType === 'add_to_cart').length,
-      totalPageViews: trackingEvents.filter(event => event.eventType === 'page_view').length,
-      totalProductViews: trackingEvents.filter(event => event.eventType === 'product_view').length,
+      totalAddToCart: trackingEvents.filter(
+        (event) => event.eventType === "add_to_cart",
+      ).length,
+      totalPageViews: trackingEvents.filter(
+        (event) => event.eventType === "page_view",
+      ).length,
+      totalProductViews: trackingEvents.filter(
+        (event) => event.eventType === "product_view",
+      ).length,
       recentClicks: clicks,
       recentConversions: conversions,
       recentEvents: trackingEvents,
@@ -975,11 +1003,17 @@ export const businessService = {
     // Calculate local tracking statistics
     const totalClicks = clicks.length;
     const totalConversions = conversions.length;
-    
+
     // Calculate post-redirect event metrics from tracking events
-    const addToCartEvents = trackingEvents.filter(event => event.eventType === 'add_to_cart');
-    const pageViewEvents = trackingEvents.filter(event => event.eventType === 'page_view');
-    const productViewEvents = trackingEvents.filter(event => event.eventType === 'product_view');
+    const addToCartEvents = trackingEvents.filter(
+      (event) => event.eventType === "add_to_cart",
+    );
+    const pageViewEvents = trackingEvents.filter(
+      (event) => event.eventType === "page_view",
+    );
+    const productViewEvents = trackingEvents.filter(
+      (event) => event.eventType === "product_view",
+    );
 
     // Calculate revenue from conversions only
     const localRevenue = conversions.reduce((sum, conv) => {
@@ -991,9 +1025,9 @@ export const businessService = {
 
     // Calculate unique sessions
     const allSessionIds = new Set([
-      ...clicks.map(c => c.sessionId).filter(Boolean),
-      ...conversions.map(c => c.sessionId).filter(Boolean),
-      ...trackingEvents.map(e => e.sessionId).filter(Boolean),
+      ...clicks.map((c) => c.sessionId).filter(Boolean),
+      ...conversions.map((c) => c.sessionId).filter(Boolean),
+      ...trackingEvents.map((e) => e.sessionId).filter(Boolean),
     ]);
     const totalSessions = allSessionIds.size;
 
@@ -1003,26 +1037,29 @@ export const businessService = {
       totalOrders: 0,
       totalRevenue: 0,
       recentCheckouts: [],
-      recentOrders: []
+      recentOrders: [],
     };
 
     try {
-      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
-        ? 'https://checkoutdata--development.gadget.app/api/graphql'
-        : 'https://checkoutdata.gadget.app/api/graphql';
-      const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
-      
+      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS
+        ? "https://ipick.io/api/graphql"
+        : "https://ipick.io/api/graphql";
+      const API_KEY =
+        process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+
       if (!API_KEY) {
-        console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
-        throw new Error('API key not configured');
+        console.error(
+          "No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable",
+        );
+        throw new Error("API key not configured");
       }
 
       // Get shops for this business domain
       const shopsResponse = await fetch(GADGET_API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
           query: `
@@ -1048,22 +1085,23 @@ export const businessService = {
               }
             }
           `,
-          variables: { businessDomain: business.domain }
-        })
+          variables: { businessDomain: business.domain },
+        }),
       });
 
       const shopsData = await shopsResponse.json();
-      const shops = shopsData.data?.shopifyShops?.edges?.map((edge) => edge.node) || [];
-      const shopIds = shops.map(shop => shop.id);
+      const shops =
+        shopsData.data?.shopifyShops?.edges?.map((edge) => edge.node) || [];
+      const shopIds = shops.map((shop) => shop.id);
 
       if (shopIds.length > 0) {
         // Get checkouts and orders for these shops
         const [checkoutsResponse, ordersResponse] = await Promise.all([
           fetch(GADGET_API_URL, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
             },
             body: JSON.stringify({
               query: `
@@ -1095,14 +1133,14 @@ export const businessService = {
                   }
                 }
               `,
-              variables: { limit: 100 }
-            })
+              variables: { limit: 100 },
+            }),
           }),
           fetch(GADGET_API_URL, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
             },
             body: JSON.stringify({
               query: `
@@ -1131,23 +1169,27 @@ export const businessService = {
                   }
                 }
               `,
-              variables: { limit: 100 }
-            })
-          })
+              variables: { limit: 100 },
+            }),
+          }),
         ]);
 
         const checkoutsData = await checkoutsResponse.json();
         const ordersData = await ordersResponse.json();
 
-        const allCheckouts = checkoutsData.data?.shopifyCheckouts?.edges?.map((edge) => edge.node) || [];
-        const allOrders = ordersData.data?.shopifyOrders?.edges?.map((edge) => edge.node) || [];
+        const allCheckouts =
+          checkoutsData.data?.shopifyCheckouts?.edges?.map(
+            (edge) => edge.node,
+          ) || [];
+        const allOrders =
+          ordersData.data?.shopifyOrders?.edges?.map((edge) => edge.node) || [];
 
         // Filter by shop IDs
-        const filteredCheckouts = allCheckouts.filter((checkout) => 
-          checkout.shop && shopIds.includes(checkout.shop.id)
+        const filteredCheckouts = allCheckouts.filter(
+          (checkout) => checkout.shop && shopIds.includes(checkout.shop.id),
         );
-        const filteredOrders = allOrders.filter((order) => 
-          order.shop && shopIds.includes(order.shop.id)
+        const filteredOrders = allOrders.filter(
+          (order) => order.shop && shopIds.includes(order.shop.id),
         );
 
         // Calculate Gadget metrics
@@ -1155,27 +1197,34 @@ export const businessService = {
           totalCheckouts: filteredCheckouts.length,
           totalOrders: filteredOrders.length,
           totalRevenue: filteredOrders.reduce((sum, order) => {
-            const price = parseFloat(order.totalPrice || '0');
+            const price = parseFloat(order.totalPrice || "0");
             return sum + (isNaN(price) ? 0 : price);
           }, 0),
           recentCheckouts: filteredCheckouts.slice(0, 10),
-          recentOrders: filteredOrders.slice(0, 10)
+          recentOrders: filteredOrders.slice(0, 10),
         };
       }
     } catch (error) {
-      console.error('Error fetching Gadget stats:', error);
+      console.error("Error fetching Gadget stats:", error);
       // Continue with local stats only if Gadget API fails
     }
 
     // Use consolidated data - Gadget data takes priority for orders/revenue
-    const totalPurchases = gadgetStats.totalOrders > 0 ? gadgetStats.totalOrders : localPurchases;
-    const totalRevenue = gadgetStats.totalRevenue > 0 ? gadgetStats.totalRevenue : localRevenue;
+    const totalPurchases =
+      gadgetStats.totalOrders > 0 ? gadgetStats.totalOrders : localPurchases;
+    const totalRevenue =
+      gadgetStats.totalRevenue > 0 ? gadgetStats.totalRevenue : localRevenue;
     const totalVisits = totalClicks; // Keep local visits count
 
     // Calculate conversion rates using consolidated data
-    const conversionRate = totalVisits > 0 ? (totalPurchases / totalVisits) * 100 : 0;
-    const cartToPurchaseRate = addToCartEvents.length > 0 ? (totalPurchases / addToCartEvents.length) * 100 : 0;
-    const averageOrderValue = totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
+    const conversionRate =
+      totalVisits > 0 ? (totalPurchases / totalVisits) * 100 : 0;
+    const cartToPurchaseRate =
+      addToCartEvents.length > 0
+        ? (totalPurchases / addToCartEvents.length) * 100
+        : 0;
+    const averageOrderValue =
+      totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
 
     // Calculate projected commission
     const projectedFee = totalRevenue * (business.adminCommissionRate / 100);
@@ -1187,7 +1236,7 @@ export const businessService = {
       adminCommissionRate: business.adminCommissionRate,
       affiliateId: business.affiliateId,
       category: business.category,
-      
+
       // Consolidated stats - Gadget data takes priority
       totalVisits,
       totalPurchases,
@@ -1195,7 +1244,7 @@ export const businessService = {
       averageOrderValue,
       conversionRate,
       projectedFee,
-      
+
       // Additional metrics
       totalClicks,
       totalConversions,
@@ -1204,7 +1253,7 @@ export const businessService = {
       totalProductViews: productViewEvents.length,
       totalSessions,
       cartToPurchaseRate,
-      
+
       // Recent activity
       recentClicks: clicks.slice(0, 10),
       recentConversions: conversions.slice(0, 10),
@@ -1268,7 +1317,10 @@ export const businessService = {
         },
       });
 
-      return { success: true, message: "All activity data cleared successfully" };
+      return {
+        success: true,
+        message: "All activity data cleared successfully",
+      };
     } catch (error) {
       console.error("Error clearing business activity:", error);
       throw error;
@@ -1361,7 +1413,7 @@ export const businessService = {
       category?: string | null;
       description?: string | null;
       logo?: string | null;
-    }
+    },
   ) {
     return prisma.business.update({
       where: { id: businessId },
@@ -1437,10 +1489,18 @@ export const businessService = {
     ]);
 
     // Calculate tracking metrics
-    const totalPageViews = trackingEvents.filter(event => event.eventType === 'page_view').length;
-    const totalProductViews = trackingEvents.filter(event => event.eventType === 'product_view').length;
-    const totalAddToCart = trackingEvents.filter(event => event.eventType === 'add_to_cart').length;
-    const totalSessions = new Set(trackingEvents.map(event => event.sessionId).filter(Boolean)).size;
+    const totalPageViews = trackingEvents.filter(
+      (event) => event.eventType === "page_view",
+    ).length;
+    const totalProductViews = trackingEvents.filter(
+      (event) => event.eventType === "product_view",
+    ).length;
+    const totalAddToCart = trackingEvents.filter(
+      (event) => event.eventType === "add_to_cart",
+    ).length;
+    const totalSessions = new Set(
+      trackingEvents.map((event) => event.sessionId).filter(Boolean),
+    ).size;
 
     // Try to get checkout data from Gadget API
     let checkoutData: any[] = [];
@@ -1453,21 +1513,24 @@ export const businessService = {
 
     try {
       // Fetch checkout data from Gadget API
-      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS 
-        ? 'https://checkoutdata--development.gadget.app/api/graphql'
-        : 'https://checkoutdata.gadget.app/api/graphql';
-      const API_KEY = process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
-      
+      const GADGET_API_URL = process.env.PAVLP_DASHBOARD_ACCESS
+        ? "https://ipick.io/api/graphql"
+        : "https://ipick.io/api/graphql";
+      const API_KEY =
+        process.env.PAVL_APP || process.env.PAVLP_DASHBOARD_ACCESS;
+
       if (!API_KEY) {
-        console.error('No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable');
-        throw new Error('API key not configured');
+        console.error(
+          "No API key found. Please set PAVL_APP or PAVLP_DASHBOARD_ACCESS environment variable",
+        );
+        throw new Error("API key not configured");
       }
 
       const checkoutsResponse = await fetch(GADGET_API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
           query: `
@@ -1493,13 +1556,16 @@ export const businessService = {
               }
             }
           `,
-          variables: { limit: 100 }
-        })
+          variables: { limit: 100 },
+        }),
       });
 
       if (checkoutsResponse.ok) {
         const checkoutsData = await checkoutsResponse.json();
-        checkoutData = checkoutsData.data?.shopifyCheckouts?.edges?.map((edge: any) => edge.node) || [];
+        checkoutData =
+          checkoutsData.data?.shopifyCheckouts?.edges?.map(
+            (edge: any) => edge.node,
+          ) || [];
 
         // Filter checkouts for this business domain
         const businessCheckouts = checkoutData.filter((checkout: any) => {
@@ -1511,9 +1577,10 @@ export const businessService = {
 
         // Separate pending and completed checkouts
         businessCheckouts.forEach((checkout: any) => {
-          const price = parseFloat(checkout.totalPrice || '0');
-          const isPending = checkout.checkoutStatus === 'In Progress' || !checkout.completedAt;
-          
+          const price = parseFloat(checkout.totalPrice || "0");
+          const isPending =
+            checkout.checkoutStatus === "In Progress" || !checkout.completedAt;
+
           if (isPending) {
             pendingCheckouts++;
             pendingRevenue += price;
@@ -1523,10 +1590,11 @@ export const businessService = {
           }
 
           // Check if this is from app redirect
-          const isAppRedirect = checkout.sourceName === 'app' || 
-                               checkout.sourceUrl?.includes('ipick') ||
-                               checkout.sourceUrl?.includes('redirect') ||
-                               checkout.sourceUrl?.includes('utm_source=ipick');
+          const isAppRedirect =
+            checkout.sourceName === "app" ||
+            checkout.sourceUrl?.includes("ipick") ||
+            checkout.sourceUrl?.includes("redirect") ||
+            checkout.sourceUrl?.includes("utm_source=ipick");
 
           if (isAppRedirect) {
             appRedirectRevenue += price;
@@ -1534,18 +1602,22 @@ export const businessService = {
         });
       }
     } catch (error) {
-      console.error('Error fetching checkout data from Gadget:', error);
+      console.error("Error fetching checkout data from Gadget:", error);
       // Continue with local data only
     }
 
     // Calculate derived metrics
     const totalRevenue = completedRevenue + pendingRevenue;
-    const averageOrderValue = totalCheckouts > 0 ? totalRevenue / totalCheckouts : 0;
-    const conversionRate = totalSessions > 0 ? (completedCheckouts / totalSessions) * 100 : 0;
+    const averageOrderValue =
+      totalCheckouts > 0 ? totalRevenue / totalCheckouts : 0;
+    const conversionRate =
+      totalSessions > 0 ? (completedCheckouts / totalSessions) * 100 : 0;
 
     // Get recent checkouts for display
     const recentCheckouts = checkoutData
-      .filter((checkout: any) => checkout.shop && checkout.shop.domain === domain)
+      .filter(
+        (checkout: any) => checkout.shop && checkout.shop.domain === domain,
+      )
       .slice(0, 10)
       .map((checkout: any) => ({
         id: checkout.id,
@@ -1577,11 +1649,10 @@ export const businessService = {
       totalAddToCart,
       totalSessions,
       // Add cart-to-purchase rate
-      cartToPurchaseRate: totalAddToCart > 0 ? (completedCheckouts / totalAddToCart) * 100 : 0,
+      cartToPurchaseRate:
+        totalAddToCart > 0 ? (completedCheckouts / totalAddToCart) * 100 : 0,
     };
   },
-
-
 };
 
 // Graceful shutdown

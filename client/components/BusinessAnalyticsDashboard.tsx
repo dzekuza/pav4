@@ -72,8 +72,8 @@ interface BusinessDashboardData {
   }>;
   referralStatistics: {
     totalReferrals: number;
-    ipick.ioReferrals: number;
-    ipick.ioConversionRate: number;
+    ipickIoReferrals: number;
+    ipickIoConversionRate: number;
     totalConversions: number;
     referralRevenue: number;
     topSources: Record<string, number>;
@@ -108,10 +108,15 @@ interface BusinessDashboardData {
 
 interface BusinessAnalyticsDashboardProps {
   businessDomain: string;
+  testMode?: boolean;
 }
 
-export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessAnalyticsDashboardProps) {
-  const [dashboardData, setDashboardData] = useState<BusinessDashboardData | null>(null);
+export default function BusinessAnalyticsDashboard({
+  businessDomain,
+  testMode = false,
+}: BusinessAnalyticsDashboardProps) {
+  const [dashboardData, setDashboardData] =
+    useState<BusinessDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState("30d"); // 7d, 30d, 90d
   const { toast } = useToast();
@@ -123,11 +128,11 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Calculate date range
       const endDate = new Date();
       const startDate = new Date();
-      
+
       switch (dateRange) {
         case "7d":
           startDate.setDate(endDate.getDate() - 7);
@@ -143,10 +148,10 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
       }
 
       const response = await fetch(
-        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100${testMode ? '&testMode=true' : ''}`,
         {
           credentials: "include",
-        }
+        },
       );
 
       if (response.ok) {
@@ -240,13 +245,16 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
     );
   }
 
-  const { summary, trends, referralStatistics, recentCheckouts, recentOrders } = dashboardData;
+  const { summary, trends, referralStatistics, recentCheckouts, recentOrders } =
+    dashboardData;
 
   return (
     <div className="space-y-6">
       {/* Date Range Selector */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Business Analytics Dashboard</h2>
+        <h2 className="text-2xl font-bold text-white">
+          Business Analytics Dashboard
+        </h2>
         <div className="flex gap-2">
           {["7d", "30d", "90d"].map((range) => (
             <Button
@@ -309,9 +317,7 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
             <div className="text-2xl font-bold">
               {summary.conversionRate.toFixed(1)}%
             </div>
-            <p className="text-xs text-white/80">
-              Checkout to order ratio
-            </p>
+            <p className="text-xs text-white/80">Checkout to order ratio</p>
           </CardContent>
         </Card>
 
@@ -324,10 +330,10 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {referralStatistics.ipick.ioReferrals}
+              {referralStatistics.ipickIoReferrals}
             </div>
             <p className="text-xs text-white/80">
-              {referralStatistics.ipick.ioConversionRate.toFixed(1)}% conversion
+              {referralStatistics.ipickIoConversionRate.toFixed(1)}% conversion
             </p>
           </CardContent>
         </Card>
@@ -346,14 +352,18 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-white">Checkouts</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white">{trends.last7Days.checkouts}</span>
+                <span className="text-sm text-white">
+                  {trends.last7Days.checkouts}
+                </span>
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </div>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-white">Orders</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white">{trends.last7Days.orders}</span>
+                <span className="text-sm text-white">
+                  {trends.last7Days.orders}
+                </span>
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </div>
             </div>
@@ -378,21 +388,38 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-white">Total Referrals</span>
-              <span className="text-sm text-white">{referralStatistics.totalReferrals}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-white">Pavlo4 Referrals</span>
-              <span className="text-sm text-white">{referralStatistics.ipick.ioReferrals}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-white">Total Conversions</span>
-              <span className="text-sm text-white">{referralStatistics.totalConversions}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-white">Referral Revenue</span>
+              <span className="text-sm font-medium text-white">
+                Total Referrals
+              </span>
               <span className="text-sm text-white">
-                {formatCurrency(referralStatistics.referralRevenue, summary.currency)}
+                {referralStatistics.totalReferrals}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-white">
+                Pavlo4 Referrals
+              </span>
+              <span className="text-sm text-white">
+                {referralStatistics.ipickIoReferrals}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-white">
+                Total Conversions
+              </span>
+              <span className="text-sm text-white">
+                {referralStatistics.totalConversions}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-white">
+                Referral Revenue
+              </span>
+              <span className="text-sm text-white">
+                {formatCurrency(
+                  referralStatistics.referralRevenue,
+                  summary.currency,
+                )}
               </span>
             </div>
           </CardContent>
@@ -411,14 +438,20 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
           <CardContent>
             <div className="space-y-3">
               {recentCheckouts.slice(0, 5).map((checkout) => (
-                <div key={checkout.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                <div
+                  key={checkout.id}
+                  className="flex justify-between items-center p-3 bg-white/5 rounded-lg"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-white">
                         {checkout.email || "Anonymous"}
                       </span>
-                      {checkout.isPavlo4Referral && (
-                        <Badge variant="outline" className="text-green-500 border-green-500">
+                      {checkout.isIpickReferral && (
+                        <Badge
+                          variant="outline"
+                          className="text-green-500 border-green-500"
+                        >
                           Pavlo4
                         </Badge>
                       )}
@@ -429,7 +462,10 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium text-white">
-                      {formatCurrency(parseFloat(checkout.totalPrice || "0"), checkout.currency)}
+                      {formatCurrency(
+                        parseFloat(checkout.totalPrice || "0"),
+                        checkout.currency,
+                      )}
                     </div>
                     <div className="text-xs text-white/60">
                       {checkout.completedAt ? "Completed" : "Pending"}
@@ -451,13 +487,18 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
           <CardContent>
             <div className="space-y-3">
               {recentOrders.slice(0, 5).map((order) => (
-                <div key={order.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                <div
+                  key={order.id}
+                  className="flex justify-between items-center p-3 bg-white/5 rounded-lg"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-white">
                         {order.name || order.email || "Anonymous"}
                       </span>
-                      <div className={`w-2 h-2 rounded-full ${getStatusColor(order.financialStatus)}`}></div>
+                      <div
+                        className={`w-2 h-2 rounded-full ${getStatusColor(order.financialStatus)}`}
+                      ></div>
                     </div>
                     <div className="text-xs text-white/60">
                       {formatDate(order.createdAt)}
@@ -465,7 +506,10 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium text-white">
-                      {formatCurrency(parseFloat(order.totalPrice || "0"), order.currency)}
+                      {formatCurrency(
+                        parseFloat(order.totalPrice || "0"),
+                        order.currency,
+                      )}
                     </div>
                     <div className="text-xs text-white/60 capitalize">
                       {order.financialStatus}
@@ -489,19 +533,28 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
         <CardContent>
           <div className="space-y-3">
             {dashboardData.recentReferrals.slice(0, 10).map((referral) => (
-              <div key={referral.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+              <div
+                key={referral.id}
+                className="flex justify-between items-center p-3 bg-white/5 rounded-lg"
+              >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-white">
                       {referral.source || "Direct"}
                     </span>
                     {referral.isPavlo4 && (
-                      <Badge variant="outline" className="text-green-500 border-green-500">
+                      <Badge
+                        variant="outline"
+                        className="text-green-500 border-green-500"
+                      >
                         Pavlo4
                       </Badge>
                     )}
                     {referral.conversionStatus === "converted" && (
-                      <Badge variant="outline" className="text-blue-500 border-blue-500">
+                      <Badge
+                        variant="outline"
+                        className="text-blue-500 border-blue-500"
+                      >
                         Converted
                       </Badge>
                     )}
@@ -517,7 +570,10 @@ export default function BusinessAnalyticsDashboard({ businessDomain }: BusinessA
                   </div>
                   {referral.conversionValue && (
                     <div className="text-xs text-white/60">
-                      {formatCurrency(referral.conversionValue, summary.currency)}
+                      {formatCurrency(
+                        referral.conversionValue,
+                        summary.currency,
+                      )}
                     </div>
                   )}
                 </div>

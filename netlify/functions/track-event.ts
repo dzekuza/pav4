@@ -6,7 +6,7 @@ let prisma: PrismaClient;
 
 try {
   prisma = new PrismaClient({
-    log: ['error', 'warn'],
+    log: ["error", "warn"],
   });
   console.log("Prisma client initialized successfully");
 } catch (error) {
@@ -22,30 +22,31 @@ export const handler: Handler = async (event, context) => {
   });
 
   // Handle CORS preflight requests
-  if (event.httpMethod === 'OPTIONS') {
+  if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Accept, X-Requested-With',
-        'Access-Control-Max-Age': '86400',
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+        "Access-Control-Allow-Headers":
+          "Content-Type, Accept, X-Requested-With",
+        "Access-Control-Max-Age": "86400",
       },
-      body: '',
+      body: "",
     };
   }
 
   // Only allow POST and GET requests
-  if (event.httpMethod !== 'POST' && event.httpMethod !== 'GET') {
+  if (event.httpMethod !== "POST" && event.httpMethod !== "GET") {
     return {
       statusCode: 405,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         success: false,
-        error: 'Method not allowed',
+        error: "Method not allowed",
       }),
     };
   }
@@ -53,31 +54,31 @@ export const handler: Handler = async (event, context) => {
   try {
     let body: any = {};
 
-    if (event.httpMethod === 'POST') {
+    if (event.httpMethod === "POST") {
       // Parse the request body for POST requests
       body = event.body ? JSON.parse(event.body) : {};
-    } else if (event.httpMethod === 'GET') {
+    } else if (event.httpMethod === "GET") {
       // Parse query parameters for GET requests (image beacon fallback)
       const params = event.queryStringParameters || {};
       body = {
         event_type: params.event_type,
         business_id: params.business_id,
         affiliate_id: params.affiliate_id,
-        platform: params.platform || 'shopify',
+        platform: params.platform || "shopify",
         session_id: params.session_id,
-        user_agent: event.headers['user-agent'] || 'unknown',
-        referrer: event.headers.referer || '',
+        user_agent: event.headers["user-agent"] || "unknown",
+        referrer: event.headers.referer || "",
         timestamp: parseInt(params.timestamp || Date.now().toString()),
-        url: params.url || '',
+        url: params.url || "",
         data: params.data ? JSON.parse(params.data) : {},
-        page_title: params.page_title || ''
+        page_title: params.page_title || "",
       };
     }
 
     console.log("Track event request received:", {
       method: event.httpMethod,
       body: body,
-      headers: event.headers
+      headers: event.headers,
     });
 
     const {
@@ -104,12 +105,13 @@ export const handler: Handler = async (event, context) => {
       return {
         statusCode: 400,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           success: false,
-          error: "Missing required fields: event_type, business_id, affiliate_id",
+          error:
+            "Missing required fields: event_type, business_id, affiliate_id",
         }),
       };
     }
@@ -125,8 +127,8 @@ export const handler: Handler = async (event, context) => {
       return {
         statusCode: 400,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           success: false,
@@ -139,12 +141,12 @@ export const handler: Handler = async (event, context) => {
 
     // Create tracking event in database
     console.log("Creating tracking event...");
-    
+
     // Handle timestamp conversion
     let eventTimestamp: Date;
-    if (typeof timestamp === 'number') {
+    if (typeof timestamp === "number") {
       eventTimestamp = new Date(timestamp);
-    } else if (typeof timestamp === 'string') {
+    } else if (typeof timestamp === "string") {
       const parsed = parseInt(timestamp);
       if (!isNaN(parsed)) {
         eventTimestamp = new Date(parsed);
@@ -154,12 +156,12 @@ export const handler: Handler = async (event, context) => {
     } else {
       eventTimestamp = new Date();
     }
-    
+
     // Validate the timestamp
     if (isNaN(eventTimestamp.getTime())) {
       eventTimestamp = new Date();
     }
-    
+
     const trackingEvent = await prisma.trackingEvent.create({
       data: {
         eventType: event_type,
@@ -172,7 +174,10 @@ export const handler: Handler = async (event, context) => {
         timestamp: eventTimestamp,
         url: url,
         eventData: data || {},
-        ipAddress: event.headers['client-ip'] || event.headers['x-forwarded-for'] || "unknown",
+        ipAddress:
+          event.headers["client-ip"] ||
+          event.headers["x-forwarded-for"] ||
+          "unknown",
       },
     });
 
@@ -203,7 +208,12 @@ export const handler: Handler = async (event, context) => {
       });
     }
 
-    if (event_type === "conversion" || event_type === "purchase" || event_type === "purchase_complete" || event_type === "checkout_complete") {
+    if (
+      event_type === "conversion" ||
+      event_type === "purchase" ||
+      event_type === "purchase_complete" ||
+      event_type === "checkout_complete"
+    ) {
       console.log("Updating business purchases...");
       const totalAmount = parseFloat(data?.total_amount || data?.amount || "0");
       await prisma.business.update({
@@ -222,27 +232,30 @@ export const handler: Handler = async (event, context) => {
     console.log("Track event completed successfully");
 
     // For GET requests (image beacon), return a 1x1 transparent pixel
-    if (event.httpMethod === 'GET') {
-      const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    if (event.httpMethod === "GET") {
+      const pixel = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+        "base64",
+      );
       return {
         statusCode: 200,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'image/png',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "image/png",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
-        body: pixel.toString('base64'),
-        isBase64Encoded: true
+        body: pixel.toString("base64"),
+        isBase64Encoded: true,
       } as HandlerResponse;
     }
 
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         success: true,
@@ -251,32 +264,35 @@ export const handler: Handler = async (event, context) => {
       }),
     };
   } catch (error) {
-    console.error('Error in track-event function:', error);
-    
+    console.error("Error in track-event function:", error);
+
     // For GET requests, still return a pixel even on error
-    if (event.httpMethod === 'GET') {
-      const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    if (event.httpMethod === "GET") {
+      const pixel = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+        "base64",
+      );
       return {
         statusCode: 200,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'image/png',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "image/png",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
         },
-        body: pixel.toString('base64'),
-        isBase64Encoded: true
+        body: pixel.toString("base64"),
+        isBase64Encoded: true,
       } as HandlerResponse;
     }
-    
+
     return {
       statusCode: 500,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         success: false,
-        error: 'Internal server error',
+        error: "Internal server error",
         details: error instanceof Error ? error.message : String(error),
       }),
     };

@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { 
-  trackProductClick, 
-  trackCustomEvent, 
+import {
+  trackProductClick,
+  trackCustomEvent,
   createShopifyTrackingUrl,
-  generateAffiliateLink 
+  generateAffiliateLink,
 } from "@/lib/tracking";
 
 const TrackingTest = () => {
@@ -14,29 +19,37 @@ const TrackingTest = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const addResult = (message: string) => {
-    setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setTestResults((prev) => [
+      ...prev,
+      `${new Date().toLocaleTimeString()}: ${message}`,
+    ]);
   };
 
   const testProductClick = async () => {
     setIsLoading(true);
     try {
       const product = {
-        id: 'test_123',
-        title: 'Test Wireless Headphones',
-        name: 'Test Wireless Headphones',
-        price: '29.99 EUR',
-        url: 'https://test-shopify-store.myshopify.com/product/test-product',
-        retailer: 'Test Store'
+        id: "test_123",
+        title: "Test Wireless Headphones",
+        name: "Test Wireless Headphones",
+        price: "29.99 EUR",
+        url: "https://test-shopify-store.myshopify.com/product/test-product",
+        retailer: "Test Store",
       };
 
-      addResult('Testing product click tracking...');
-      
-      const result = await trackProductClick(product, 'test-shopify-store.myshopify.com');
-      
+      addResult("Testing product click tracking...");
+
+      const result = await trackProductClick(
+        product,
+        "test-shopify-store.myshopify.com",
+      );
+
       if (result.success) {
-        addResult(`✅ Product click tracked successfully! Target URL: ${result.targetUrl}`);
+        addResult(
+          `✅ Product click tracked successfully! Target URL: ${result.targetUrl}`,
+        );
       } else {
-        addResult('❌ Product click tracking failed');
+        addResult("❌ Product click tracking failed");
       }
     } catch (error) {
       addResult(`❌ Error: ${error}`);
@@ -48,17 +61,21 @@ const TrackingTest = () => {
   const testCustomEvent = async () => {
     setIsLoading(true);
     try {
-      addResult('Testing custom event tracking...');
-      
-      const success = await trackCustomEvent('test_event', {
-        testData: 'This is a test event',
-        timestamp: new Date().toISOString()
-      }, 'test-shopify-store.myshopify.com');
-      
+      addResult("Testing custom event tracking...");
+
+      const success = await trackCustomEvent(
+        "test_event",
+        {
+          testData: "This is a test event",
+          timestamp: new Date().toISOString(),
+        },
+        "test-shopify-store.myshopify.com",
+      );
+
       if (success) {
-        addResult('✅ Custom event tracked successfully!');
+        addResult("✅ Custom event tracked successfully!");
       } else {
-        addResult('❌ Custom event tracking failed');
+        addResult("❌ Custom event tracking failed");
       }
     } catch (error) {
       addResult(`❌ Error: ${error}`);
@@ -69,16 +86,21 @@ const TrackingTest = () => {
 
   const testShopifyTrackingUrl = () => {
     try {
-      addResult('Testing Shopify tracking URL generation...');
-      
-      const originalUrl = 'https://test-shopify-store.myshopify.com/product/test-product';
-      const trackingUrl = createShopifyTrackingUrl(originalUrl, 'test-shopify-store.myshopify.com', {
-        id: 'test_123',
-        name: 'Test Product',
-        price: '29.99',
-        category: 'Electronics'
-      });
-      
+      addResult("Testing Shopify tracking URL generation...");
+
+      const originalUrl =
+        "https://test-shopify-store.myshopify.com/product/test-product";
+      const trackingUrl = createShopifyTrackingUrl(
+        originalUrl,
+        "test-shopify-store.myshopify.com",
+        {
+          id: "test_123",
+          name: "Test Product",
+          price: "29.99",
+          category: "Electronics",
+        },
+      );
+
       addResult(`✅ Tracking URL generated: ${trackingUrl}`);
     } catch (error) {
       addResult(`❌ Error: ${error}`);
@@ -87,16 +109,16 @@ const TrackingTest = () => {
 
   const testAffiliateLink = () => {
     try {
-      addResult('Testing affiliate link generation...');
-      
-      const originalUrl = 'https://amazon.com/product/test';
+      addResult("Testing affiliate link generation...");
+
+      const originalUrl = "https://amazon.com/product/test";
       const affiliateUrl = generateAffiliateLink(
-        originalUrl, 
-        'amazon', 
-        'test-shopify-store.myshopify.com',
-        'Test Product'
+        originalUrl,
+        "amazon",
+        "test-shopify-store.myshopify.com",
+        "Test Product",
       );
-      
+
       addResult(`✅ Affiliate URL generated: ${affiliateUrl}`);
     } catch (error) {
       addResult(`❌ Error: ${error}`);
@@ -113,7 +135,8 @@ const TrackingTest = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Tracking System Test</h1>
           <p className="text-gray-600">
-            Test the enhanced tracking functionality for ipick.io Shopify integration
+            Test the enhanced tracking functionality for ipick.io Shopify
+            integration
           </p>
         </div>
 
@@ -124,14 +147,15 @@ const TrackingTest = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                Test the enhanced product click tracking with Shopify integration
+                Test the enhanced product click tracking with Shopify
+                integration
               </p>
-              <Button 
-                onClick={testProductClick} 
+              <Button
+                onClick={testProductClick}
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? 'Testing...' : 'Test Product Click'}
+                {isLoading ? "Testing..." : "Test Product Click"}
               </Button>
             </CardContent>
           </Card>
@@ -144,12 +168,12 @@ const TrackingTest = () => {
               <p className="text-sm text-gray-600 mb-4">
                 Test custom event tracking to the Shopify system
               </p>
-              <Button 
-                onClick={testCustomEvent} 
+              <Button
+                onClick={testCustomEvent}
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? 'Testing...' : 'Test Custom Event'}
+                {isLoading ? "Testing..." : "Test Custom Event"}
               </Button>
             </CardContent>
           </Card>
@@ -162,8 +186,8 @@ const TrackingTest = () => {
               <p className="text-sm text-gray-600 mb-4">
                 Test Shopify-specific tracking URL generation
               </p>
-              <Button 
-                onClick={testShopifyTrackingUrl} 
+              <Button
+                onClick={testShopifyTrackingUrl}
                 disabled={isLoading}
                 className="w-full"
               >
@@ -180,8 +204,8 @@ const TrackingTest = () => {
               <p className="text-sm text-gray-600 mb-4">
                 Test enhanced affiliate link generation
               </p>
-              <Button 
-                onClick={testAffiliateLink} 
+              <Button
+                onClick={testAffiliateLink}
                 disabled={isLoading}
                 className="w-full"
               >
@@ -203,7 +227,9 @@ const TrackingTest = () => {
           <CardContent>
             <div className="bg-gray-100 rounded-lg p-4 max-h-96 overflow-y-auto">
               {testResults.length === 0 ? (
-                <p className="text-gray-500 text-center">No test results yet. Run a test to see results here.</p>
+                <p className="text-gray-500 text-center">
+                  No test results yet. Run a test to see results here.
+                </p>
               ) : (
                 <div className="space-y-2">
                   {testResults.map((result, index) => (

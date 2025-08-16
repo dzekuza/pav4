@@ -8,7 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, ShoppingCart, DollarSign, RefreshCw } from "lucide-react";
+import {
+  TrendingUp,
+  Users,
+  ShoppingCart,
+  DollarSign,
+  RefreshCw,
+} from "lucide-react";
 
 interface BusinessStats {
   id: number;
@@ -94,7 +100,7 @@ export default function BusinessDashboardHome() {
         `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
         {
           credentials: "include",
-        }
+        },
       );
 
       if (response.status === 401) {
@@ -108,43 +114,44 @@ export default function BusinessDashboardHome() {
 
       const data = await response.json();
       console.log("Dashboard API Response in Home:", data);
-      
+
       if (data.success) {
         // Extract and calculate stats from the consolidated data
         const { summary, recentCheckouts, recentOrders } = data.data; // Fix: access data.data
-        
+
         console.log("Extracted data in Home:", {
           summary,
           checkoutsCount: recentCheckouts?.length,
-          ordersCount: recentOrders?.length
+          ordersCount: recentOrders?.length,
         });
-        
+
         // Use summary data directly from the API response
         const totalCheckouts = summary?.totalCheckouts || 0;
         const totalOrders = summary?.totalOrders || 0;
         const totalRevenue = summary?.totalRevenue || 0;
         const conversionRate = summary?.conversionRate || 0;
-        
+
         // Calculate average order value
-        const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-        
+        const averageOrderValue =
+          totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
         // Calculate projected fee (5% commission)
         const projectedFee = totalRevenue * 0.05;
-        
+
         console.log("Processed stats in Home:", {
           totalCheckouts,
           totalOrders,
           totalRevenue,
           conversionRate,
           averageOrderValue,
-          projectedFee
+          projectedFee,
         });
-        
+
         // Create consolidated stats object
         const consolidatedStats: BusinessStats = {
           id: 0, // Will be set by the parent component
-          name: '', // Will be set by the parent component
-          domain: '', // Will be set by the parent component
+          name: "", // Will be set by the parent component
+          domain: "", // Will be set by the parent component
           totalVisits: totalCheckouts, // Use checkouts as visits
           totalPurchases: totalOrders,
           totalRevenue: totalRevenue,
@@ -160,7 +167,7 @@ export default function BusinessDashboardHome() {
           totalSessions: 1, // Default value
           cartToPurchaseRate: 0, // Not applicable with current data
         };
-        
+
         setStats(consolidatedStats);
       }
     } catch (error) {
@@ -191,7 +198,9 @@ export default function BusinessDashboardHome() {
   if (!stats) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Failed to load dashboard data. Please try refreshing the page.</p>
+        <p className="text-gray-500">
+          Failed to load dashboard data. Please try refreshing the page.
+        </p>
         <button
           onClick={handleRefresh}
           className="mt-4 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
@@ -230,7 +239,9 @@ export default function BusinessDashboardHome() {
           disabled={isRefreshing}
           className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+          />
           {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
@@ -472,7 +483,9 @@ export default function BusinessDashboardHome() {
       {referralUrls && (
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader>
-            <CardTitle className="text-white">Your Unique Referral URLs</CardTitle>
+            <CardTitle className="text-white">
+              Your Unique Referral URLs
+            </CardTitle>
             <CardDescription className="text-white/80">
               Use these URLs to track customers coming from your affiliate links
             </CardDescription>
@@ -491,7 +504,9 @@ export default function BusinessDashboardHome() {
                     className="flex-1 bg-white/10 border border-white/20 rounded px-3 py-2 text-white text-sm"
                   />
                   <button
-                    onClick={() => navigator.clipboard.writeText(referralUrls.referralUrl)}
+                    onClick={() =>
+                      navigator.clipboard.writeText(referralUrls.referralUrl)
+                    }
                     className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                   >
                     Copy
@@ -514,7 +529,9 @@ export default function BusinessDashboardHome() {
                     className="flex-1 bg-white/10 border border-white/20 rounded px-3 py-2 text-white text-sm"
                   />
                   <button
-                    onClick={() => navigator.clipboard.writeText(referralUrls.trackingUrl)}
+                    onClick={() =>
+                      navigator.clipboard.writeText(referralUrls.trackingUrl)
+                    }
                     className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
                   >
                     Copy
@@ -526,12 +543,28 @@ export default function BusinessDashboardHome() {
               </div>
 
               <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded">
-                <h4 className="text-sm font-medium text-blue-300 mb-2">How to Use:</h4>
+                <h4 className="text-sm font-medium text-blue-300 mb-2">
+                  How to Use:
+                </h4>
                 <ul className="text-xs text-white/80 space-y-1">
-                  <li>• <strong>General URL:</strong> Use this for general affiliate marketing</li>
-                  <li>• <strong>Domain URL:</strong> Use this to track traffic to your specific domain</li>
-                  <li>• Both URLs contain your unique affiliate ID: <code className="bg-white/10 px-1 rounded">{referralUrls.affiliateId}</code></li>
-                  <li>• When customers click these links, we'll track them as coming from your affiliate</li>
+                  <li>
+                    • <strong>General URL:</strong> Use this for general
+                    affiliate marketing
+                  </li>
+                  <li>
+                    • <strong>Domain URL:</strong> Use this to track traffic to
+                    your specific domain
+                  </li>
+                  <li>
+                    • Both URLs contain your unique affiliate ID:{" "}
+                    <code className="bg-white/10 px-1 rounded">
+                      {referralUrls.affiliateId}
+                    </code>
+                  </li>
+                  <li>
+                    • When customers click these links, we'll track them as
+                    coming from your affiliate
+                  </li>
                 </ul>
               </div>
             </div>

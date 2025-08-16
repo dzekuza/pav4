@@ -49,7 +49,9 @@ interface DashboardData {
 }
 
 export default function BusinessAnalyticsDashboard() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("30d");
   const navigate = useNavigate();
@@ -61,11 +63,11 @@ export default function BusinessAnalyticsDashboard() {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Calculate date range
       const endDate = new Date();
       const startDate = new Date();
-      
+
       switch (timeRange) {
         case "7d":
           startDate.setDate(endDate.getDate() - 7);
@@ -84,7 +86,7 @@ export default function BusinessAnalyticsDashboard() {
         `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
         {
           credentials: "include",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -97,14 +99,13 @@ export default function BusinessAnalyticsDashboard() {
 
       const data: DashboardData = await response.json();
       console.log("Raw API Response:", data);
-      
+
       if (!data.success) {
         throw new Error("API returned error");
       }
 
       setDashboardData(data);
       console.log("Dashboard data set:", data.data.summary);
-      
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -113,8 +114,8 @@ export default function BusinessAnalyticsDashboard() {
   };
 
   const formatCurrency = (amount: number, currency: string = "EUR") => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency: currency,
     }).format(amount);
   };
@@ -169,7 +170,9 @@ export default function BusinessAnalyticsDashboard() {
               {summary.totalCheckouts.toLocaleString()}
             </div>
             <p className="text-xs text-white/80">
-              Last {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"} days
+              Last{" "}
+              {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"}{" "}
+              days
             </p>
           </CardContent>
         </Card>
@@ -270,18 +273,24 @@ export default function BusinessAnalyticsDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {recentCheckouts.slice(0, 5).map((checkout) => (
-                      <div key={checkout.id} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                      <div
+                        key={checkout.id}
+                        className="flex items-center justify-between p-2 bg-white/5 rounded"
+                      >
                         <div>
                           <div className="font-medium text-sm">
                             {checkout.name || `Checkout #${checkout.id}`}
                           </div>
                           <div className="text-xs text-white/70">
-                            {checkout.email || 'No email'}
+                            {checkout.email || "No email"}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-sm">
-                            {formatCurrency(parseFloat(checkout.totalPrice), checkout.currency)}
+                            {formatCurrency(
+                              parseFloat(checkout.totalPrice),
+                              checkout.currency,
+                            )}
                           </div>
                           <div className="text-xs text-white/70">
                             {formatDate(checkout.createdAt)}
@@ -309,18 +318,25 @@ export default function BusinessAnalyticsDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {recentOrders.slice(0, 5).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between p-2 bg-white/5 rounded"
+                      >
                         <div>
                           <div className="font-medium text-sm">
                             {order.name}
                           </div>
                           <div className="text-xs text-white/70">
-                            {order.email || 'No email'} • {order.financialStatus}
+                            {order.email || "No email"} •{" "}
+                            {order.financialStatus}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-sm">
-                            {formatCurrency(parseFloat(order.totalPrice), order.currency)}
+                            {formatCurrency(
+                              parseFloat(order.totalPrice),
+                              order.currency,
+                            )}
                           </div>
                           <div className="text-xs text-white/70">
                             {formatDate(order.createdAt)}
@@ -360,9 +376,7 @@ export default function BusinessAnalyticsDashboard() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {summary.totalOrders}
-                </div>
+                <div className="text-2xl font-bold">{summary.totalOrders}</div>
                 <p className="text-xs text-white/80">Successful orders</p>
               </CardContent>
             </Card>
@@ -413,18 +427,24 @@ export default function BusinessAnalyticsDashboard() {
               ) : (
                 <div className="space-y-3">
                   {recentCheckouts.map((checkout) => (
-                    <div key={checkout.id} className="flex items-center justify-between p-3 bg-white/5 rounded">
+                    <div
+                      key={checkout.id}
+                      className="flex items-center justify-between p-3 bg-white/5 rounded"
+                    >
                       <div>
                         <div className="font-medium text-sm">
                           {checkout.name || `Checkout #${checkout.id}`}
                         </div>
                         <div className="text-xs text-white/70">
-                          {checkout.email || 'No email'}
+                          {checkout.email || "No email"}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-sm">
-                          {formatCurrency(parseFloat(checkout.totalPrice), checkout.currency)}
+                          {formatCurrency(
+                            parseFloat(checkout.totalPrice),
+                            checkout.currency,
+                          )}
                         </div>
                         <div className="text-xs text-white/70">
                           {formatDate(checkout.createdAt)}
@@ -448,9 +468,7 @@ export default function BusinessAnalyticsDashboard() {
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {summary.totalOrders}
-                </div>
+                <div className="text-2xl font-bold">{summary.totalOrders}</div>
                 <p className="text-xs text-white/80">All orders</p>
               </CardContent>
             </Card>
@@ -479,10 +497,12 @@ export default function BusinessAnalyticsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {summary.totalOrders > 0 
-                    ? formatCurrency(summary.totalRevenue / summary.totalOrders, currency)
-                    : formatCurrency(0, currency)
-                  }
+                  {summary.totalOrders > 0
+                    ? formatCurrency(
+                        summary.totalRevenue / summary.totalOrders,
+                        currency,
+                      )
+                    : formatCurrency(0, currency)}
                 </div>
                 <p className="text-xs text-white/80">Per order</p>
               </CardContent>
@@ -519,18 +539,22 @@ export default function BusinessAnalyticsDashboard() {
               ) : (
                 <div className="space-y-3">
                   {recentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-3 bg-white/5 rounded">
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-3 bg-white/5 rounded"
+                    >
                       <div>
-                        <div className="font-medium text-sm">
-                          {order.name}
-                        </div>
+                        <div className="font-medium text-sm">{order.name}</div>
                         <div className="text-xs text-white/70">
-                          {order.email || 'No email'} • {order.financialStatus}
+                          {order.email || "No email"} • {order.financialStatus}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-sm">
-                          {formatCurrency(parseFloat(order.totalPrice), order.currency)}
+                          {formatCurrency(
+                            parseFloat(order.totalPrice),
+                            order.currency,
+                          )}
                         </div>
                         <div className="text-xs text-white/70">
                           {formatDate(order.createdAt)}

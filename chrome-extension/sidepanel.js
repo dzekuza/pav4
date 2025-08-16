@@ -281,21 +281,18 @@ class PriceHuntSidePanel {
       console.log("Selected country:", this.selectedCountry);
 
       // Make API request
-      const response = await fetch(
-        "https://ipick.io/api/n8n-scrape",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: this.currentUrl,
-            fromExtension: true,
-            findSimilar: findSimilar,
-            gl: this.selectedCountry,
-          }),
+      const response = await fetch("https://ipick.io/api/n8n-scrape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          url: this.currentUrl,
+          fromExtension: true,
+          findSimilar: findSimilar,
+          gl: this.selectedCountry,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

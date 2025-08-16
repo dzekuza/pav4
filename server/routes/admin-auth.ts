@@ -209,12 +209,10 @@ export const promoteUserToAdmin = async (req: Request, res: Response) => {
     }
     const result = await (adminService as any).promoteUserToAdmin?.(email);
     if (!result) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          error: "User not found or service not implemented",
-        });
+      return res.status(404).json({
+        success: false,
+        error: "User not found or service not implemented",
+      });
     }
     return res.json({ success: true });
   } catch (error) {

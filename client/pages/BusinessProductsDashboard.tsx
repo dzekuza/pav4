@@ -70,7 +70,8 @@ export default function BusinessProductsDashboard() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        e.returnValue =
+          "You have unsaved changes. Are you sure you want to leave?";
         return "You have unsaved changes. Are you sure you want to leave?";
       }
     };
@@ -78,7 +79,7 @@ export default function BusinessProductsDashboard() {
     const handleNavigation = (e: PopStateEvent) => {
       if (hasUnsavedChanges) {
         const confirmed = window.confirm(
-          "You have unsaved changes. If you leave this page, your changes will be lost. Are you sure you want to continue?"
+          "You have unsaved changes. If you leave this page, your changes will be lost. Are you sure you want to continue?",
         );
         if (!confirmed) {
           e.preventDefault();
@@ -141,14 +142,14 @@ export default function BusinessProductsDashboard() {
 
   const handleProductImageUpload = (index: number, imageData: string) => {
     const updatedProducts = products.map((product, i) =>
-      i === index ? { ...product, imageUrl: imageData } : product
+      i === index ? { ...product, imageUrl: imageData } : product,
     );
     setProducts(updatedProducts);
   };
 
   const handleProductImageRemove = (index: number) => {
     const updatedProducts = products.map((product, i) =>
-      i === index ? { ...product, imageUrl: "" } : product
+      i === index ? { ...product, imageUrl: "" } : product,
     );
     setProducts(updatedProducts);
     setHasUnsavedChanges(true);
@@ -164,9 +165,9 @@ export default function BusinessProductsDashboard() {
     for (let i = 0; i < products.length; i++) {
       const current = products[i];
       const original = originalProducts[i];
-      
+
       if (!original) return true; // New product added
-      
+
       if (
         current.url !== original.url ||
         current.title !== original.title ||
@@ -198,7 +199,7 @@ export default function BusinessProductsDashboard() {
 
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        "You have unsaved changes. Adding a new product will include it in your changes. Do you want to continue?"
+        "You have unsaved changes. Adding a new product will include it in your changes. Do you want to continue?",
       );
       if (!confirmed) {
         return;
@@ -262,7 +263,7 @@ export default function BusinessProductsDashboard() {
 
   const toggleProductStatus = (index: number) => {
     const updatedProducts = products.map((product, i) =>
-      i === index ? { ...product, isActive: !product.isActive } : product
+      i === index ? { ...product, isActive: !product.isActive } : product,
     );
     setProducts(updatedProducts);
     setHasUnsavedChanges(true);
@@ -286,7 +287,8 @@ export default function BusinessProductsDashboard() {
         setHasUnsavedChanges(false);
         toast({
           title: "Products Saved",
-          description: data.message || "Your products have been saved successfully",
+          description:
+            data.message || "Your products have been saved successfully",
         });
       } else {
         let errorMessage = "Failed to save products";
@@ -315,7 +317,7 @@ export default function BusinessProductsDashboard() {
 
   const updateProduct = (index: number, field: keyof Product, value: any) => {
     const updatedProducts = products.map((product, i) =>
-      i === index ? { ...product, [field]: value } : product
+      i === index ? { ...product, [field]: value } : product,
     );
     setProducts(updatedProducts);
     setHasUnsavedChanges(true);
@@ -341,7 +343,9 @@ export default function BusinessProductsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-white">Product Management</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-white">
+            Product Management
+          </h2>
           <p className="text-sm md:text-base text-white/70">
             Add and manage your product links (up to 10 products)
           </p>
@@ -358,13 +362,17 @@ export default function BusinessProductsDashboard() {
           onClick={saveProducts}
           disabled={isSaving}
           className={`${
-            hasUnsavedChanges 
-              ? "bg-yellow-500 text-black hover:bg-yellow-400" 
+            hasUnsavedChanges
+              ? "bg-yellow-500 text-black hover:bg-yellow-400"
               : "bg-white text-black hover:bg-white/90"
           }`}
         >
           <Save className="mr-2 h-4 w-4" />
-          {isSaving ? "Saving..." : hasUnsavedChanges ? "Save Changes" : "Save Products"}
+          {isSaving
+            ? "Saving..."
+            : hasUnsavedChanges
+              ? "Save Changes"
+              : "Save Products"}
         </Button>
       </div>
 
@@ -416,7 +424,7 @@ export default function BusinessProductsDashboard() {
               }
             />
           </div>
-          
+
           {/* Product Image Upload */}
           <ImageUpload
             currentImage={newProduct.imageUrl}
@@ -427,10 +435,12 @@ export default function BusinessProductsDashboard() {
             maxSize={2}
             className="mt-4"
           />
-          
+
           <Button
             onClick={addProduct}
-            disabled={products.length >= 10 || !newProduct.url || !newProduct.title}
+            disabled={
+              products.length >= 10 || !newProduct.url || !newProduct.title
+            }
             className="w-full md:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -470,7 +480,9 @@ export default function BusinessProductsDashboard() {
                     <div className="flex items-center gap-2">
                       <Badge
                         variant={product.isActive ? "default" : "secondary"}
-                        className={product.isActive ? "bg-green-500" : "bg-gray-500"}
+                        className={
+                          product.isActive ? "bg-green-500" : "bg-gray-500"
+                        }
                       >
                         {product.isActive ? (
                           <>
@@ -484,7 +496,9 @@ export default function BusinessProductsDashboard() {
                           </>
                         )}
                       </Badge>
-                      <span className="text-sm text-white/60">#{index + 1}</span>
+                      <span className="text-sm text-white/60">
+                        #{index + 1}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -505,42 +519,56 @@ export default function BusinessProductsDashboard() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm text-white/70">Product URL</Label>
+                      <Label className="text-sm text-white/70">
+                        Product URL
+                      </Label>
                       <Input
                         value={product.url}
-                        onChange={(e) => updateProduct(index, "url", e.target.value)}
+                        onChange={(e) =>
+                          updateProduct(index, "url", e.target.value)
+                        }
                         className="bg-white/5 border-white/10 text-white"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm text-white/70">Product Title</Label>
+                      <Label className="text-sm text-white/70">
+                        Product Title
+                      </Label>
                       <Input
                         value={product.title}
-                        onChange={(e) => updateProduct(index, "title", e.target.value)}
+                        onChange={(e) =>
+                          updateProduct(index, "title", e.target.value)
+                        }
                         className="bg-white/5 border-white/10 text-white"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label className="text-sm text-white/70">Description</Label>
                     <Input
                       value={product.description}
-                      onChange={(e) => updateProduct(index, "description", e.target.value)}
+                      onChange={(e) =>
+                        updateProduct(index, "description", e.target.value)
+                      }
                       placeholder="Optional description"
                       className="bg-white/5 border-white/10 text-white"
                     />
                   </div>
-                  
+
                   {/* Product Image Upload */}
                   <div className="space-y-2">
-                    <Label className="text-sm text-white/70">Product Image</Label>
+                    <Label className="text-sm text-white/70">
+                      Product Image
+                    </Label>
                     <ImageUpload
                       currentImage={product.imageUrl}
-                      onImageUpload={(imageData) => handleProductImageUpload(index, imageData)}
+                      onImageUpload={(imageData) =>
+                        handleProductImageUpload(index, imageData)
+                      }
                       onImageRemove={() => handleProductImageRemove(index)}
                       title=""
                       description=""
@@ -548,7 +576,7 @@ export default function BusinessProductsDashboard() {
                       className="border-white/10 bg-white/5"
                     />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <ExternalLink className="h-4 w-4 text-white/60" />
                     <a
@@ -578,13 +606,16 @@ export default function BusinessProductsDashboard() {
         <CardContent className="space-y-3">
           <div className="space-y-2">
             <p className="text-sm text-white/80">
-              Your products will be displayed on the public browse page based on your business category.
+              Your products will be displayed on the public browse page based on
+              your business category.
             </p>
             <p className="text-sm text-white/80">
-              When users click on your products, they'll be redirected to your website and tracked for analytics.
+              When users click on your products, they'll be redirected to your
+              website and tracked for analytics.
             </p>
             <p className="text-sm text-white/80">
-              Only active products will be shown to the public. You can toggle product visibility anytime.
+              Only active products will be shown to the public. You can toggle
+              product visibility anytime.
             </p>
           </div>
         </CardContent>

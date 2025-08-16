@@ -90,7 +90,11 @@ import redirectRouter from "./routes/redirect";
 
 import trackProductVisitRouter from "./routes/track-product-visit";
 import { trackEvent, getTrackingEvents } from "./routes/track-event";
-import { trackSessionEvent, getSessionAnalytics, getBusinessSessionSummary } from "./routes/track-session";
+import {
+  trackSessionEvent,
+  getSessionAnalytics,
+  getBusinessSessionSummary,
+} from "./routes/track-session";
 import {
   generateVerificationToken,
   verifyDomain,
@@ -104,7 +108,10 @@ import {
   getCategories,
   testProductsApi,
 } from "./routes/products";
-import { handleShopifyWebhook, getWebhookStats } from "./routes/shopify-webhooks";
+import {
+  handleShopifyWebhook,
+  getWebhookStats,
+} from "./routes/shopify-webhooks";
 
 // Load environment variables
 dotenv.config();
@@ -203,19 +210,21 @@ export async function createServer() {
   // CORS configuration
   const allowedOrigins = [
     // Development origins
-    ...(process.env.NODE_ENV === 'development' ? [
-      "http://localhost:3000",
-      "http://localhost:8080",
-      "http://localhost:8081",
-      "http://localhost:8082",
-      "http://localhost:8083",
-      "http://localhost:8084",
-      "http://127.0.0.1:8083",
-    ] : []),
+    ...(process.env.NODE_ENV === "development"
+      ? [
+          "http://localhost:3000",
+          "http://localhost:8080",
+          "http://localhost:8081",
+          "http://localhost:8082",
+          "http://localhost:8083",
+          "http://localhost:8084",
+          "http://127.0.0.1:8083",
+        ]
+      : []),
     // Production origins
     "https://ipick.io",
     "https://app.pavlo.com",
-    "https://checkoutdata.gadget.app", // Gadget app domain
+    "https://ipick.io", // Main app domain
   ];
 
   const corsOptions = {
@@ -233,14 +242,14 @@ export async function createServer() {
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
-      "Content-Type", 
-      "Authorization", 
+      "Content-Type",
+      "Authorization",
       "X-Requested-With",
       "X-Shopify-Access-Token",
       "X-Shopify-Shop-Domain",
       "X-Shopify-Hmac-Sha256",
       "X-Shopify-Topic",
-      "X-Shopify-API-Version"
+      "X-Shopify-API-Version",
     ],
     exposedHeaders: ["Set-Cookie"],
   };
@@ -301,7 +310,6 @@ export async function createServer() {
   // Affiliate routes
   app.use("/api/affiliate", affiliateRouter);
 
-
   // Business authentication routes without rate limiting
   app.post(
     "/api/business/auth/register",
@@ -317,7 +325,11 @@ export async function createServer() {
   );
   app.get("/api/business/auth/me", getCurrentBusiness);
   app.post("/api/business/auth/logout", logoutBusiness);
-  app.get("/api/business/auth/stats", requireBusinessAuth, getBusinessAuthStats);
+  app.get(
+    "/api/business/auth/stats",
+    requireBusinessAuth,
+    getBusinessAuthStats,
+  );
   app.get("/api/business/mypage/stats", requireBusinessAuth, getMyPageStats);
   app.get("/api/business/auth/check", getCurrentBusiness); // Alias for /me endpoint
   app.post("/api/business/verify-tracking", verifyBusinessTracking);
@@ -327,35 +339,51 @@ export async function createServer() {
   app.post("/api/business/auth/delete-account", deleteBusinessAccount);
   app.post("/api/business/auth/forgot-password", businessForgotPassword);
   app.post("/api/business/auth/reset-password", businessResetPassword);
-  
-  // Checkout analytics routes
-  app.get("/api/business/analytics/checkouts", requireBusinessAuth, getCheckoutAnalytics);
-  app.get("/api/business/dashboard", requireBusinessAuth, getBusinessDashboardData);
-  app.get("/api/business/test-gadget-api", testGadgetApi);
 
+  // Checkout analytics routes
+  app.get(
+    "/api/business/analytics/checkouts",
+    requireBusinessAuth,
+    getCheckoutAnalytics,
+  );
+  app.get(
+    "/api/business/dashboard",
+    requireBusinessAuth,
+    getBusinessDashboardData,
+  );
+  app.get("/api/business/test-gadget-api", testGadgetApi);
 
   // Open CORS for tracking endpoint so third-party business sites can send events
   app.options("/api/track-event", (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
-    res.header('Access-Control-Max-Age', '86400');
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, X-Requested-With",
+    );
+    res.header("Access-Control-Max-Age", "86400");
     res.status(200).send();
   });
-  
+
   app.post("/api/track-event", (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, X-Requested-With",
+    );
     trackEvent(req, res, next);
   });
   app.get("/api/tracking-events", getTrackingEvents);
 
   // Session tracking routes
   app.post("/api/track-session", (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, X-Requested-With",
+    );
     trackSessionEvent(req, res, next);
   });
   app.get("/api/session-analytics", getSessionAnalytics);
@@ -406,8 +434,12 @@ export async function createServer() {
   app.post("/api/business/register", registerBusiness);
   app.get("/api/business/active", cache(300), getActiveBusinesses); // Cache for 5 minutes
   app.get("/api/business/domain/:domain", cache(600), getBusinessByDomain); // Cache for 10 minutes
-  app.get("/api/business/referral-url", requireBusinessAuth, generateReferralUrl);
-  
+  app.get(
+    "/api/business/referral-url",
+    requireBusinessAuth,
+    generateReferralUrl,
+  );
+
   // Public product routes
   app.get("/api/products/categories", getCategories);
   app.get("/api/products/category/:category", getPublicProducts);
@@ -662,7 +694,11 @@ export async function createServer() {
   );
 
   // Business: Get real-time statistics
-  app.get("/api/business/stats/realtime", requireBusinessAuth, getBusinessRealTimeStats);
+  app.get(
+    "/api/business/stats/realtime",
+    requireBusinessAuth,
+    getBusinessRealTimeStats,
+  );
 
   // Referral tracking routes - must be before catch-all
   app.get("/ref/:affiliateId", async (req, res) => {
@@ -670,11 +706,11 @@ export async function createServer() {
       const { affiliateId } = req.params;
       const { target_url } = req.query;
       const { prisma } = await import("./services/database");
-      
+
       // Find business by affiliate ID
       const business = await prisma.business.findFirst({
         where: { affiliateId },
-        select: { id: true, domain: true, name: true }
+        select: { id: true, domain: true, name: true },
       });
 
       if (!business) {
@@ -685,7 +721,7 @@ export async function createServer() {
       await prisma.businessClick.create({
         data: {
           businessId: business.id,
-          productUrl: target_url as string || req.get("Referer") || "direct",
+          productUrl: (target_url as string) || req.get("Referer") || "direct",
           userAgent: req.get("User-Agent") || undefined,
           referrer: req.get("Referer") || undefined,
           ipAddress: req.ip,
@@ -703,8 +739,8 @@ export async function createServer() {
 
       // Build redirect URL
       let redirectUrl: string;
-      
-      if (target_url && typeof target_url === 'string') {
+
+      if (target_url && typeof target_url === "string") {
         // If target_url is provided, redirect to the specific product URL
         try {
           // Decode the target_url parameter (it might be double-encoded)
@@ -713,17 +749,20 @@ export async function createServer() {
             // Try to decode once
             decodedTargetUrl = decodeURIComponent(target_url);
             // If it still contains encoded characters, decode again
-            if (decodedTargetUrl.includes('%')) {
+            if (decodedTargetUrl.includes("%")) {
               decodedTargetUrl = decodeURIComponent(decodedTargetUrl);
             }
           } catch (decodeError) {
-            console.warn("Failed to decode target_url, using as-is:", decodeError);
+            console.warn(
+              "Failed to decode target_url, using as-is:",
+              decodeError,
+            );
             decodedTargetUrl = target_url;
           }
-          
+
           console.log("Original target_url:", target_url);
           console.log("Decoded target_url:", decodedTargetUrl);
-          
+
           const targetUrl = new URL(decodedTargetUrl);
           // Add UTM parameters to the target URL
           const utmParams = new URLSearchParams({
@@ -733,11 +772,11 @@ export async function createServer() {
             aff_id: affiliateId,
             ref_token: Math.random().toString(36).slice(2, 12),
           });
-          
-          targetUrl.search = targetUrl.search 
+
+          targetUrl.search = targetUrl.search
             ? `${targetUrl.search}&${utmParams.toString()}`
             : `?${utmParams.toString()}`;
-            
+
           redirectUrl = targetUrl.toString();
           console.log("Final redirect URL:", redirectUrl);
         } catch (error) {
@@ -775,14 +814,14 @@ export async function createServer() {
     try {
       const { affiliateId, domain } = req.params;
       const { prisma } = await import("./services/database");
-      
+
       // Find business by affiliate ID and domain
       const business = await prisma.business.findFirst({
-        where: { 
+        where: {
           affiliateId,
-          domain: domain.replace(/^www\./, "") // Remove www prefix if present
+          domain: domain.replace(/^www\./, ""), // Remove www prefix if present
         },
-        select: { id: true, domain: true, name: true }
+        select: { id: true, domain: true, name: true },
       });
 
       if (!business) {

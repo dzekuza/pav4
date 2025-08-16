@@ -54,10 +54,14 @@ interface BusinessMyPageDashboardProps {
   businessDomain: string;
 }
 
-export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPageDashboardProps) {
+export default function BusinessMyPageDashboard({
+  businessDomain,
+}: BusinessMyPageDashboardProps) {
   const [stats, setStats] = useState<MyPageStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeRevenueTab, setActiveRevenueTab] = useState<'all' | 'app-redirect'>('all');
+  const [activeRevenueTab, setActiveRevenueTab] = useState<
+    "all" | "app-redirect"
+  >("all");
 
   useEffect(() => {
     fetchMyPageStats();
@@ -65,9 +69,12 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
 
   const fetchMyPageStats = async () => {
     try {
-      const response = await fetch(`/api/business/mypage/stats?domain=${encodeURIComponent(businessDomain)}`, {
-        credentials: "include",
-      });
+      const response = await fetch(
+        `/api/business/mypage/stats?domain=${encodeURIComponent(businessDomain)}`,
+        {
+          credentials: "include",
+        },
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -107,15 +114,15 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
     );
   }
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatCurrency = (amount: number, currency: string = "USD") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency: currency,
     }).format(amount);
   };
 
   const getRevenueDisplay = () => {
-    if (activeRevenueTab === 'all') {
+    if (activeRevenueTab === "all") {
       return formatCurrency(stats.totalRevenue);
     } else {
       return formatCurrency(stats.appRedirectRevenue);
@@ -123,7 +130,7 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
   };
 
   const getRevenueDescription = () => {
-    if (activeRevenueTab === 'all') {
+    if (activeRevenueTab === "all") {
       return "Total revenue from all sources";
     } else {
       return "Revenue from app redirects only";
@@ -141,12 +148,23 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeRevenueTab} onValueChange={(value) => setActiveRevenueTab(value as 'all' | 'app-redirect')}>
+          <Tabs
+            value={activeRevenueTab}
+            onValueChange={(value) =>
+              setActiveRevenueTab(value as "all" | "app-redirect")
+            }
+          >
             <TabsList className="grid w-full grid-cols-2 bg-white/10">
-              <TabsTrigger value="all" className="text-white data-[state=active]:bg-white data-[state=active]:text-black">
+              <TabsTrigger
+                value="all"
+                className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+              >
                 All Revenue
               </TabsTrigger>
-              <TabsTrigger value="app-redirect" className="text-white data-[state=active]:bg-white data-[state=active]:text-black">
+              <TabsTrigger
+                value="app-redirect"
+                className="text-white data-[state=active]:bg-white data-[state=active]:text-black"
+              >
                 App Redirect Revenue
               </TabsTrigger>
             </TabsList>
@@ -155,7 +173,9 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
                 <div className="text-3xl font-bold text-white mb-2">
                   {formatCurrency(stats.totalRevenue)}
                 </div>
-                <p className="text-sm text-white/80">Total revenue from all sources</p>
+                <p className="text-sm text-white/80">
+                  Total revenue from all sources
+                </p>
               </div>
             </TabsContent>
             <TabsContent value="app-redirect" className="mt-4">
@@ -163,7 +183,9 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
                 <div className="text-3xl font-bold text-white mb-2">
                   {formatCurrency(stats.appRedirectRevenue)}
                 </div>
-                <p className="text-sm text-white/80">Revenue from app redirects only</p>
+                <p className="text-sm text-white/80">
+                  Revenue from app redirects only
+                </p>
               </div>
             </TabsContent>
           </Tabs>
@@ -364,7 +386,7 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
                 <div
                   className="bg-green-600 h-2 rounded-full"
                   style={{
-                    width: `${stats.totalCheckouts > 0 ? (stats.completedCheckouts / stats.totalCheckouts * 100) : 0}%`,
+                    width: `${stats.totalCheckouts > 0 ? (stats.completedCheckouts / stats.totalCheckouts) * 100 : 0}%`,
                   }}
                 ></div>
               </div>
@@ -372,9 +394,7 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-white">
-                  Pending
-                </span>
+                <span className="text-sm font-medium text-white">Pending</span>
                 <span className="text-sm text-white">
                   {stats.pendingCheckouts.toLocaleString()}
                 </span>
@@ -383,7 +403,7 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
                 <div
                   className="bg-yellow-600 h-2 rounded-full"
                   style={{
-                    width: `${stats.totalCheckouts > 0 ? (stats.pendingCheckouts / stats.totalCheckouts * 100) : 0}%`,
+                    width: `${stats.totalCheckouts > 0 ? (stats.pendingCheckouts / stats.totalCheckouts) * 100 : 0}%`,
                   }}
                 ></div>
               </div>
@@ -421,10 +441,13 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
           <CardContent>
             <div className="space-y-3">
               {stats.recentCheckouts.slice(0, 5).map((checkout) => (
-                <div key={checkout.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div
+                  key={checkout.id}
+                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="flex-shrink-0">
-                      {checkout.checkoutStatus === 'In Progress' ? (
+                      {checkout.checkoutStatus === "In Progress" ? (
                         <Clock className="h-5 w-5 text-yellow-500" />
                       ) : (
                         <CheckCircle className="h-5 w-5 text-green-500" />
@@ -438,17 +461,28 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
                         {new Date(checkout.createdAt).toLocaleDateString()}
                       </div>
                       <div className="text-xs text-blue-400">
-                        Source: {checkout.sourceName || 'Direct'}
+                        Source: {checkout.sourceName || "Direct"}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold text-white">
-                      {formatCurrency(parseFloat(checkout.totalPrice), checkout.currency)}
+                      {formatCurrency(
+                        parseFloat(checkout.totalPrice),
+                        checkout.currency,
+                      )}
                     </div>
-                    <Badge 
-                      variant={checkout.checkoutStatus === 'In Progress' ? 'secondary' : 'default'}
-                      className={checkout.checkoutStatus === 'In Progress' ? 'bg-yellow-500 text-black' : 'bg-green-500'}
+                    <Badge
+                      variant={
+                        checkout.checkoutStatus === "In Progress"
+                          ? "secondary"
+                          : "default"
+                      }
+                      className={
+                        checkout.checkoutStatus === "In Progress"
+                          ? "bg-yellow-500 text-black"
+                          : "bg-green-500"
+                      }
                     >
                       {checkout.checkoutStatus}
                     </Badge>
@@ -489,12 +523,20 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
               <div className="text-sm text-white/80">Add to Cart</div>
             </div>
           </div>
-          
+
           <div className="mt-6 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-white/80">Page View to Product View</span>
+              <span className="text-sm text-white/80">
+                Page View to Product View
+              </span>
               <span className="text-sm font-bold text-white">
-                {stats.totalPageViews > 0 ? ((stats.totalProductViews / stats.totalPageViews) * 100).toFixed(1) : 0}%
+                {stats.totalPageViews > 0
+                  ? (
+                      (stats.totalProductViews / stats.totalPageViews) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                %
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -507,9 +549,17 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-sm text-white/80">Product View to Add to Cart</span>
+              <span className="text-sm text-white/80">
+                Product View to Add to Cart
+              </span>
               <span className="text-sm font-bold text-white">
-                {stats.totalProductViews > 0 ? ((stats.totalAddToCart / stats.totalProductViews) * 100).toFixed(1) : 0}%
+                {stats.totalProductViews > 0
+                  ? (
+                      (stats.totalAddToCart / stats.totalProductViews) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                %
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -522,7 +572,9 @@ export default function BusinessMyPageDashboard({ businessDomain }: BusinessMyPa
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-sm text-white/80">Add to Cart to Purchase</span>
+              <span className="text-sm text-white/80">
+                Add to Cart to Purchase
+              </span>
               <span className="text-sm font-bold text-white">
                 {stats.cartToPurchaseRate.toFixed(1)}%
               </span>

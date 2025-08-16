@@ -2,7 +2,13 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +154,7 @@ export function ImageUpload({
             dragActive
               ? "border-blue-400 bg-blue-400/10"
               : "border-white/20 hover:border-white/40",
-            preview ? "hidden" : "block"
+            preview ? "hidden" : "block",
           )}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -163,7 +169,7 @@ export function ImageUpload({
             className="hidden"
             disabled={isLoading}
           />
-          
+
           <div className="space-y-2">
             <Upload className="mx-auto h-8 w-8 text-white/60" />
             <div>
@@ -196,9 +202,7 @@ export function ImageUpload({
 
         {/* Upload Progress */}
         {isLoading && (
-          <div className="text-sm text-white/60">
-            Uploading image...
-          </div>
+          <div className="text-sm text-white/60">Uploading image...</div>
         )}
       </CardContent>
     </Card>

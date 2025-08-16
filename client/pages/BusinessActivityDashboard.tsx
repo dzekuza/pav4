@@ -35,7 +35,14 @@ interface ActivityItem {
     | "conversion";
   productName: string;
   productUrl: string;
-  status: "browsed" | "purchased" | "abandoned" | "added_to_cart" | "checkout_started" | "checkout_completed" | "viewed";
+  status:
+    | "browsed"
+    | "purchased"
+    | "abandoned"
+    | "added_to_cart"
+    | "checkout_started"
+    | "checkout_completed"
+    | "viewed";
   amount?: number | string;
   timestamp: string;
   userAgent?: string;
@@ -108,10 +115,10 @@ export default function BusinessActivityDashboard() {
 
       // Fetch consolidated data from the dashboard API (same as other pages)
       const dashboardResponse = await fetch(
-        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100&testMode=true`,
         {
           credentials: "include",
-        }
+        },
       );
 
       if (!dashboardResponse.ok) {
@@ -124,34 +131,39 @@ export default function BusinessActivityDashboard() {
 
       const dashboardData = await dashboardResponse.json();
       console.log("Dashboard API Response in Activity:", dashboardData);
-      
+
       if (!dashboardData.success) {
-        throw new Error(dashboardData.error || "Failed to fetch dashboard data");
+        throw new Error(
+          dashboardData.error || "Failed to fetch dashboard data",
+        );
       }
 
       // Extract data from the consolidated dashboard response
       const { recentCheckouts, recentOrders } = dashboardData.data; // Fix: access data.data
-      
+
       console.log("Extracted data in Activity:", {
         checkoutsCount: recentCheckouts?.length,
-        ordersCount: recentOrders?.length
+        ordersCount: recentOrders?.length,
       });
 
       // Use consolidated data for all activity
       const clicks = recentCheckouts || [];
       const conversions = recentOrders || [];
       const events = recentCheckouts || []; // Use checkouts as events
-      
+
       // Create consolidated stats from the data
       const totalCheckouts = recentCheckouts?.length || 0;
       const totalOrders = recentOrders?.length || 0;
-      const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
-        const price = parseFloat(order.totalPrice || '0');
-        return sum + (isNaN(price) ? 0 : price);
-      }, 0) || 0;
-      const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
-      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-      
+      const totalRevenue =
+        recentOrders?.reduce((sum: number, order: any) => {
+          const price = parseFloat(order.totalPrice || "0");
+          return sum + (isNaN(price) ? 0 : price);
+        }, 0) || 0;
+      const conversionRate =
+        totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+      const averageOrderValue =
+        totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
       const realTimeStats = {
         totalVisits: totalCheckouts,
         totalPurchases: totalOrders,
@@ -175,8 +187,8 @@ export default function BusinessActivityDashboard() {
         ...clicks.map((checkout: any) => ({
           id: `checkout-${checkout.id}`,
           type: "checkout_start" as const,
-          productName: checkout.name || checkout.email || 'Checkout',
-          productUrl: checkout.sourceUrl || 'Shopify Checkout',
+          productName: checkout.name || checkout.email || "Checkout",
+          productUrl: checkout.sourceUrl || "Shopify Checkout",
           status: "checkout_started" as const,
           amount: parseFloat(checkout.totalPrice) || 0,
           timestamp: checkout.createdAt,
@@ -191,7 +203,7 @@ export default function BusinessActivityDashboard() {
           id: `order-${order.id}`,
           type: "purchase" as const,
           productName: order.name || `Order ${order.id}`,
-          productUrl: order.shop?.domain || 'Shopify Order',
+          productUrl: order.shop?.domain || "Shopify Order",
           status: "purchased" as const,
           amount: parseFloat(order.totalPrice) || 0,
           timestamp: order.createdAt,
@@ -242,7 +254,9 @@ export default function BusinessActivityDashboard() {
           (e: any) => e.eventType === "product_view",
         ).length;
         const totalCheckouts = events.filter(
-          (e: any) => e.eventType === "checkout_start" || e.eventType === "checkout_complete",
+          (e: any) =>
+            e.eventType === "checkout_start" ||
+            e.eventType === "checkout_complete",
         ).length;
 
         const totalRevenue =
@@ -257,7 +271,13 @@ export default function BusinessActivityDashboard() {
                 typeof e.eventData === "string"
                   ? JSON.parse(e.eventData)
                   : e.eventData;
-              return sum + (eventData.total || eventData.total_amount || eventData.amount || 0);
+              return (
+                sum +
+                (eventData.total ||
+                  eventData.total_amount ||
+                  eventData.amount ||
+                  0)
+              );
             }, 0) +
           events
             .filter((e: any) => e.eventType === "checkout_complete")
@@ -266,7 +286,13 @@ export default function BusinessActivityDashboard() {
                 typeof e.eventData === "string"
                   ? JSON.parse(e.eventData)
                   : e.eventData;
-              return sum + (eventData.total || eventData.total_amount || eventData.amount || 0);
+              return (
+                sum +
+                (eventData.total ||
+                  eventData.total_amount ||
+                  eventData.amount ||
+                  0)
+              );
             }, 0);
 
         const conversionRate =
@@ -312,13 +338,17 @@ export default function BusinessActivityDashboard() {
   };
 
   const clearActivity = async () => {
-    if (!confirm("Are you sure you want to clear all activity data? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to clear all activity data? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       setIsClearing(true);
-      
+
       const response = await fetch("/api/business/activity/clear", {
         method: "DELETE",
         credentials: "include",
@@ -340,12 +370,14 @@ export default function BusinessActivityDashboard() {
           averageOrderValue: 0,
           totalSessions: 0,
         });
-        
+
         // Show success message
         alert("Activity data cleared successfully!");
       } else {
         const errorData = await response.json();
-        alert(`Failed to clear activity: ${errorData.error || "Unknown error"}`);
+        alert(
+          `Failed to clear activity: ${errorData.error || "Unknown error"}`,
+        );
       }
     } catch (error) {
       console.error("Error clearing activity:", error);
@@ -359,10 +391,10 @@ export default function BusinessActivityDashboard() {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split("/").filter(Boolean);
-      
+
       // Try to get the last meaningful part of the URL
       const lastPart = pathParts[pathParts.length - 1];
-      
+
       if (lastPart) {
         // Clean up the product name
         let productName = lastPart
@@ -370,7 +402,7 @@ export default function BusinessActivityDashboard() {
           .replace(/\.[^/.]+$/, "") // Remove file extensions
           .replace(/\b\w/g, (l) => l.toUpperCase()) // Capitalize first letter of each word
           .trim();
-        
+
         // If it's too short or generic, try the second to last part
         if (productName.length < 3 || productName.toLowerCase() === "product") {
           const secondLastPart = pathParts[pathParts.length - 2];
@@ -382,16 +414,16 @@ export default function BusinessActivityDashboard() {
               .trim();
           }
         }
-        
+
         return productName || "Product";
       }
-      
+
       // If no path parts, try to extract from domain or return generic
       const hostname = urlObj.hostname;
       if (hostname && hostname !== "localhost") {
         return hostname.replace(/^www\./, "").replace(/\.[^/.]+$/, "");
       }
-      
+
       return "Product";
     } catch {
       return "Product";
@@ -485,18 +517,18 @@ export default function BusinessActivityDashboard() {
 
   const formatAmount = (amount: number | string | undefined): string => {
     if (!amount) return "-";
-    
+
     let numericAmount: number;
-    
+
     // Handle string amounts
-    if (typeof amount === 'string') {
+    if (typeof amount === "string") {
       // Remove currency symbols and commas
-      const cleanAmount = amount.replace(/[$,€£]/g, '').trim();
+      const cleanAmount = amount.replace(/[$,€£]/g, "").trim();
       numericAmount = parseFloat(cleanAmount);
     } else {
       numericAmount = amount;
     }
-    
+
     // Handle amounts that might be in cents (common in e-commerce)
     if (numericAmount && numericAmount < 1000 && numericAmount > 0) {
       // If amount is less than 1000, it might be in cents
@@ -505,8 +537,10 @@ export default function BusinessActivityDashboard() {
         numericAmount = numericAmount / 100;
       }
     }
-    
-    return numericAmount && !isNaN(numericAmount) ? `€${numericAmount.toFixed(2)}` : "-";
+
+    return numericAmount && !isNaN(numericAmount)
+      ? `€${numericAmount.toFixed(2)}`
+      : "-";
   };
 
   const getTypeDisplayName = (type: string) => {
@@ -527,56 +561,77 @@ export default function BusinessActivityDashboard() {
       case "product_view":
         return "Viewed Product";
       default:
-        return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+        return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " ");
     }
   };
 
   const getReferrerName = (activity: ActivityItem) => {
     // Check sourceUrl first (from Shopify data)
     if (activity.sourceUrl) {
-      if (activity.sourceUrl.includes('ipick.io') || activity.sourceUrl.includes('iPick.io')) {
+      if (
+        activity.sourceUrl.includes("ipick.io") ||
+        activity.sourceUrl.includes("iPick.io")
+      ) {
         return "iPick.io";
       }
-      if (activity.sourceUrl.includes('google.com') || activity.sourceUrl.includes('bing.com')) {
+      if (
+        activity.sourceUrl.includes("google.com") ||
+        activity.sourceUrl.includes("bing.com")
+      ) {
         return "Search Engine";
       }
-      if (activity.sourceUrl.includes('facebook.com') || activity.sourceUrl.includes('instagram.com')) {
+      if (
+        activity.sourceUrl.includes("facebook.com") ||
+        activity.sourceUrl.includes("instagram.com")
+      ) {
         return "Social Media";
       }
       return "Other";
     }
-    
+
     // Check sourceName (from Shopify data)
     if (activity.sourceName) {
-      if (activity.sourceName.toLowerCase().includes('ipick') || activity.sourceName.toLowerCase().includes('pavlo')) {
+      if (
+        activity.sourceName.toLowerCase().includes("ipick") ||
+        activity.sourceName.toLowerCase().includes("pavlo")
+      ) {
         return "iPick.io";
       }
-      if (activity.sourceName.toLowerCase() === 'web') {
+      if (activity.sourceName.toLowerCase() === "web") {
         return "Direct";
       }
       return activity.sourceName;
     }
-    
+
     // Check referrer field
     if (activity.referrer) {
-      if (activity.referrer.includes('ipick.io') || activity.referrer.includes('iPick.io')) {
+      if (
+        activity.referrer.includes("ipick.io") ||
+        activity.referrer.includes("iPick.io")
+      ) {
         return "iPick.io";
       }
-      if (activity.referrer.includes('google.com') || activity.referrer.includes('bing.com')) {
+      if (
+        activity.referrer.includes("google.com") ||
+        activity.referrer.includes("bing.com")
+      ) {
         return "Search Engine";
       }
-      if (activity.referrer.includes('facebook.com') || activity.referrer.includes('instagram.com')) {
+      if (
+        activity.referrer.includes("facebook.com") ||
+        activity.referrer.includes("instagram.com")
+      ) {
         return "Social Media";
       }
       return "Other";
     }
-    
+
     return "Direct";
   };
 
   const getReferrerBadge = (activity: ActivityItem) => {
     const referrer = getReferrerName(activity);
-    
+
     switch (referrer) {
       case "iPick.io":
         return (
@@ -615,7 +670,11 @@ export default function BusinessActivityDashboard() {
     if (filter === "clicks") return activity.type === "click";
     if (filter === "purchases") return activity.type === "purchase";
     if (filter === "add_to_cart") return activity.type === "add_to_cart";
-    if (filter === "checkout") return activity.type === "checkout_start" || activity.type === "checkout_complete";
+    if (filter === "checkout")
+      return (
+        activity.type === "checkout_start" ||
+        activity.type === "checkout_complete"
+      );
     if (filter === "page_views") return activity.type === "page_view";
     return true;
   });

@@ -45,14 +45,14 @@ function extractPrice(priceString: string): number {
   if (!priceString) return 0;
   const match = priceString.match(/[€$£]?\s?(\d+(?:[.,]\d{2})?)/);
   if (!match) return 0;
-  
+
   const price = parseFloat(match[1].replace(",", "."));
-  
+
   // Convert USD prices to EUR (approximate conversion)
-  if (priceString.includes('$')) {
+  if (priceString.includes("$")) {
     return price * 0.85; // Approximate USD to EUR conversion
   }
-  
+
   return price;
 }
 
@@ -271,22 +271,27 @@ const SearchResults = () => {
       let businessDomain: string | undefined;
       try {
         const urlObj = new URL(comparison.url);
-        if (urlObj.hostname.includes('myshopify.com')) {
+        if (urlObj.hostname.includes("myshopify.com")) {
           businessDomain = urlObj.hostname;
         }
       } catch (error) {
-        console.log('Could not parse URL for business domain extraction');
+        console.log("Could not parse URL for business domain extraction");
       }
 
       // Track the product click
-      await trackCustomEvent('product_click', {
-        productId: comparison.title, // Use title as ID since there's no id field
-        productName: comparison.title,
-        productPrice: `${comparison.currency}${comparison.price}`,
-        retailer: comparison.merchant || comparison.store,
-        url: comparison.url,
-        isBestPrice: comparison.price > 0 && comparisons.indexOf(comparison) === 0
-      }, businessDomain);
+      await trackCustomEvent(
+        "product_click",
+        {
+          productId: comparison.title, // Use title as ID since there's no id field
+          productName: comparison.title,
+          productPrice: `${comparison.currency}${comparison.price}`,
+          retailer: comparison.merchant || comparison.store,
+          url: comparison.url,
+          isBestPrice:
+            comparison.price > 0 && comparisons.indexOf(comparison) === 0,
+        },
+        businessDomain,
+      );
 
       // Use enhanced product click tracking if business domain is available
       if (businessDomain) {
@@ -297,24 +302,24 @@ const SearchResults = () => {
             name: comparison.title,
             id: comparison.title, // Use title as ID since there's no id field
             price: `${comparison.currency}${comparison.price}`,
-            retailer: comparison.merchant || comparison.store
+            retailer: comparison.merchant || comparison.store,
           },
-          businessDomain
+          businessDomain,
         );
 
         if (result.success) {
           // Open the tracked URL
-          window.open(result.targetUrl, '_blank');
+          window.open(result.targetUrl, "_blank");
           return;
         }
       }
 
       // Fallback to regular redirect
-      window.open(getRedirectUrl(comparison.url), '_blank');
+      window.open(getRedirectUrl(comparison.url), "_blank");
     } catch (error) {
-      console.error('Error handling product click:', error);
+      console.error("Error handling product click:", error);
       // Fallback to regular redirect
-      window.open(getRedirectUrl(comparison.url), '_blank');
+      window.open(getRedirectUrl(comparison.url), "_blank");
     }
   };
 
@@ -561,20 +566,26 @@ const SearchResults = () => {
                       let businessDomain: string | undefined;
                       try {
                         const urlObj = new URL(originalProduct.url);
-                        if (urlObj.hostname.includes('myshopify.com')) {
+                        if (urlObj.hostname.includes("myshopify.com")) {
                           businessDomain = urlObj.hostname;
                         }
                       } catch (error) {
-                        console.log('Could not parse URL for business domain extraction');
+                        console.log(
+                          "Could not parse URL for business domain extraction",
+                        );
                       }
 
                       // Track the original product click
-                      await trackCustomEvent('original_product_click', {
-                        productId: originalProduct.title,
-                        productName: originalProduct.title,
-                        productPrice: `${originalProduct.currency}${originalProduct.price}`,
-                        url: originalProduct.url
-                      }, businessDomain);
+                      await trackCustomEvent(
+                        "original_product_click",
+                        {
+                          productId: originalProduct.title,
+                          productName: originalProduct.title,
+                          productPrice: `${originalProduct.currency}${originalProduct.price}`,
+                          url: originalProduct.url,
+                        },
+                        businessDomain,
+                      );
 
                       // Use enhanced tracking if business domain is available
                       if (businessDomain) {
@@ -585,22 +596,31 @@ const SearchResults = () => {
                             name: originalProduct.title,
                             id: originalProduct.title,
                             price: `${originalProduct.currency}${originalProduct.price}`,
-                            retailer: 'Original Store'
+                            retailer: "Original Store",
                           },
-                          businessDomain
+                          businessDomain,
                         );
 
                         if (result.success) {
-                          window.open(result.targetUrl, '_blank');
+                          window.open(result.targetUrl, "_blank");
                           return;
                         }
                       }
 
                       // Fallback to regular redirect
-                      window.open(getRedirectUrl(originalProduct.url), '_blank');
+                      window.open(
+                        getRedirectUrl(originalProduct.url),
+                        "_blank",
+                      );
                     } catch (error) {
-                      console.error('Error handling original product click:', error);
-                      window.open(getRedirectUrl(originalProduct.url), '_blank');
+                      console.error(
+                        "Error handling original product click:",
+                        error,
+                      );
+                      window.open(
+                        getRedirectUrl(originalProduct.url),
+                        "_blank",
+                      );
                     }
                   }}
                   aria-label="View original product details"

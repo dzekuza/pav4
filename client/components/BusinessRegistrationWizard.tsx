@@ -240,14 +240,15 @@ export function BusinessRegistrationWizard({
       if (response.ok) {
         toast({
           title: "Registration Successful",
-          description: "Your business account has been created successfully! Redirecting to dashboard...",
+          description:
+            "Your business account has been created successfully! Redirecting to dashboard...",
         });
-        
+
         // Call onComplete callback if provided
         if (onComplete) {
           onComplete();
         }
-        
+
         // Redirect to dashboard after a short delay
         setTimeout(() => {
           navigate("/business/dashboard");
@@ -494,14 +495,28 @@ export function BusinessRegistrationWizard({
                     <SelectItem value="Food">Food</SelectItem>
                     <SelectItem value="Baby & Kids">Baby & Kids</SelectItem>
                     <SelectItem value="Pet Supplies">Pet Supplies</SelectItem>
-                    <SelectItem value="Office & Business">Office & Business</SelectItem>
-                    <SelectItem value="Jewelry & Watches">Jewelry & Watches</SelectItem>
-                    <SelectItem value="Tools & Hardware">Tools & Hardware</SelectItem>
-                    <SelectItem value="Music & Instruments">Music & Instruments</SelectItem>
+                    <SelectItem value="Office & Business">
+                      Office & Business
+                    </SelectItem>
+                    <SelectItem value="Jewelry & Watches">
+                      Jewelry & Watches
+                    </SelectItem>
+                    <SelectItem value="Tools & Hardware">
+                      Tools & Hardware
+                    </SelectItem>
+                    <SelectItem value="Music & Instruments">
+                      Music & Instruments
+                    </SelectItem>
                     <SelectItem value="Art & Crafts">Art & Crafts</SelectItem>
-                    <SelectItem value="Garden & Outdoor">Garden & Outdoor</SelectItem>
-                    <SelectItem value="Kitchen & Dining">Kitchen & Dining</SelectItem>
-                    <SelectItem value="Bath & Personal Care">Bath & Personal Care</SelectItem>
+                    <SelectItem value="Garden & Outdoor">
+                      Garden & Outdoor
+                    </SelectItem>
+                    <SelectItem value="Kitchen & Dining">
+                      Kitchen & Dining
+                    </SelectItem>
+                    <SelectItem value="Bath & Personal Care">
+                      Bath & Personal Care
+                    </SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>

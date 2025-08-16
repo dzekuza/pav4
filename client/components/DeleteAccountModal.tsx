@@ -69,14 +69,16 @@ export function DeleteAccountModal({
       if (response.ok) {
         toast({
           title: "Account Deleted",
-          description: "Your business account and all associated data have been permanently deleted.",
+          description:
+            "Your business account and all associated data have been permanently deleted.",
         });
         onClose();
         navigate("/business-login");
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to delete account. Please try again.",
+          description:
+            data.error || "Failed to delete account. Please try again.",
           variant: "destructive",
         });
       }
@@ -84,7 +86,8 @@ export function DeleteAccountModal({
       console.error("Error deleting account:", error);
       toast({
         title: "Network Error",
-        description: "Failed to connect to server. Please check your connection and try again.",
+        description:
+          "Failed to connect to server. Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -110,7 +113,8 @@ export function DeleteAccountModal({
             Delete Business Account
           </DialogTitle>
           <DialogDescription className="text-left text-white/80">
-            This action cannot be undone. This will permanently delete your business account and all associated data including:
+            This action cannot be undone. This will permanently delete your
+            business account and all associated data including:
           </DialogDescription>
         </DialogHeader>
 
@@ -130,7 +134,9 @@ export function DeleteAccountModal({
           </Alert>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-white">Confirm Password</Label>
+            <Label htmlFor="password" className="text-white">
+              Confirm Password
+            </Label>
             <div className="relative">
               <Input
                 id="password"

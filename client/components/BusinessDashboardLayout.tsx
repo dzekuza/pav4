@@ -170,8 +170,10 @@ export default function BusinessDashboardLayout() {
                 className="max-h-8 w-auto object-contain"
                 onError={(e) => {
                   // Fallback to icon if image fails to load
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.nextElementSibling?.classList.remove(
+                    "hidden",
+                  );
                 }}
               />
             ) : (
@@ -179,14 +181,18 @@ export default function BusinessDashboardLayout() {
                 <Building2 className="h-8 w-8 text-white/60" />
               </div>
             )}
-            
+
             {/* Business Info */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-3xl font-bold text-white truncate">{stats.name}</h1>
-              <p className="text-white/70 text-sm md:text-base truncate">{stats.domain}</p>
+              <h1 className="text-xl md:text-3xl font-bold text-white truncate">
+                {stats.name}
+              </h1>
+              <p className="text-white/70 text-sm md:text-base truncate">
+                {stats.domain}
+              </p>
             </div>
           </div>
-          
+
           {/* Profile Dropdown - Only show on desktop */}
           <div className="hidden md:flex flex-shrink-0 ml-4">
             <ProfileDropdown
@@ -216,10 +222,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/activity")}
+            onClick={() => navigate("/business/dashboard/checkout/activity")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/activity")
+              isActiveRoute("/business/dashboard/checkout/activity")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -229,10 +235,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/integrate")}
+            onClick={() => navigate("/business/dashboard/checkout/integrate")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/integrate")
+              isActiveRoute("/business/dashboard/checkout/integrate")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -242,10 +248,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/analytics")}
+            onClick={() => navigate("/business/dashboard/checkout/analytics")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/analytics")
+              isActiveRoute("/business/dashboard/checkout/analytics")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -255,10 +261,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/products")}
+            onClick={() => navigate("/business/dashboard/checkout/products")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/products")
+              isActiveRoute("/business/dashboard/checkout/products")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -268,10 +274,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/settings")}
+            onClick={() => navigate("/business/dashboard/checkout/settings")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/settings")
+              isActiveRoute("/business/dashboard/checkout/settings")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -296,65 +302,65 @@ export default function BusinessDashboardLayout() {
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
               isActiveRoute("/business/dashboard")
                 ? "text-white bg-white/20 shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10"
+                : "text-white/70 hover:text-white hover:bg-white/10",
             )}
           >
             <Home className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Dashboard</span>
           </button>
-          
+
           <button
-            onClick={() => navigate("/business/dashboard/activity")}
+            onClick={() => navigate("/business/dashboard/checkout/activity")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/activity")
+              isActiveRoute("/business/dashboard/checkout/activity")
                 ? "text-white bg-white/20 shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10"
+                : "text-white/70 hover:text-white hover:bg-white/10",
             )}
           >
             <Activity className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Activity</span>
           </button>
-          
+
           <button
-            onClick={() => navigate("/business/dashboard/integrate")}
+            onClick={() => navigate("/business/dashboard/checkout/integrate")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/integrate")
+              isActiveRoute("/business/dashboard/checkout/integrate")
                 ? "text-white bg-white/20 shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10"
+                : "text-white/70 hover:text-white hover:bg-white/10",
             )}
           >
             <Code className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Integrate</span>
           </button>
-          
+
           <button
-            onClick={() => navigate("/business/dashboard/analytics")}
+            onClick={() => navigate("/business/dashboard/checkout/analytics")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/analytics")
+              isActiveRoute("/business/dashboard/checkout/analytics")
                 ? "text-white bg-white/20 shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10"
+                : "text-white/70 hover:text-white hover:bg-white/10",
             )}
           >
             <BarChart3 className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Analytics</span>
           </button>
-          
+
           <button
-            onClick={() => navigate("/business/dashboard/products")}
+            onClick={() => navigate("/business/dashboard/checkout/products")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/products")
+              isActiveRoute("/business/dashboard/checkout/products")
                 ? "text-white bg-white/20 shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10"
+                : "text-white/70 hover:text-white hover:bg-white/10",
             )}
           >
             <Package className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Products</span>
           </button>
-          
+
           {/* Profile dropdown in mobile navigation */}
           <div className="flex flex-col items-center justify-center py-2 px-3">
             <ProfileDropdown
@@ -366,7 +372,9 @@ export default function BusinessDashboardLayout() {
               className="h-5 w-5"
               isMobile={true}
             />
-            <span className="text-xs font-medium text-white/70 mt-1">Profile</span>
+            <span className="text-xs font-medium text-white/70 mt-1">
+              Profile
+            </span>
           </div>
         </div>
       </div>

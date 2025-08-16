@@ -71,13 +71,13 @@ export default function BusinessIntegrationWizard({
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
     null,
   );
-  const [scriptPlatform, setScriptPlatform] = useState<Platform | null>(
-    null,
-  );
+  const [scriptPlatform, setScriptPlatform] = useState<Platform | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "checking">("checking");
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connected" | "disconnected" | "checking"
+  >("checking");
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
 
   // Cleanup any running timers on unmount
@@ -98,7 +98,9 @@ export default function BusinessIntegrationWizard({
         domainLower.includes("shopify") ||
         domainLower.includes("myshopify.com")
       ) {
-        setSelectedPlatform(platforms.find((p) => p.id === "shopify-simple") || null);
+        setSelectedPlatform(
+          platforms.find((p) => p.id === "shopify-simple") || null,
+        );
       } else if (
         domainLower.includes("woocommerce") ||
         domainLower.includes("wordpress")
@@ -115,7 +117,9 @@ export default function BusinessIntegrationWizard({
   // Set default script platform
   useEffect(() => {
     if (!scriptPlatform) {
-      setScriptPlatform(platforms.find((p) => p.id === "shopify-simple") || null);
+      setScriptPlatform(
+        platforms.find((p) => p.id === "shopify-simple") || null,
+      );
     }
   }, [scriptPlatform]);
 
@@ -123,8 +127,7 @@ export default function BusinessIntegrationWizard({
     {
       id: "shopify-simple",
       name: "Shopify (Simple)",
-      description:
-        "One-line script integration for basic tracking",
+      description: "One-line script integration for basic tracking",
       icon: "🛍️",
       features: [
         "Simple one-line script",
@@ -877,17 +880,20 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!domain) {
       toast({
         title: "Error",
-        description: "No website domain found. Please verify your domain first.",
+        description:
+          "No website domain found. Please verify your domain first.",
         variant: "destructive",
       });
       return;
     }
 
     setIsTesting(true);
-    
+
     try {
-      const websiteUrl = domain.startsWith("http") ? domain : `https://${domain}`;
-      
+      const websiteUrl = domain.startsWith("http")
+        ? domain
+        : `https://${domain}`;
+
       // Use the existing tracking verification endpoint
       const response = await fetch("/api/business/verify-tracking", {
         method: "POST",
@@ -905,46 +911,56 @@ document.addEventListener('DOMContentLoaded', function() {
       if (response.ok && data.success) {
         toast({
           title: "✅ Script Found!",
-          description: "The tracking script is properly installed and working on your website.",
+          description:
+            "The tracking script is properly installed and working on your website.",
         });
-        
+
         // Add a success result
-        setTestResults([{
-          timestamp: new Date().toISOString(),
-          event: "Script Verification",
-          details: "Tracking script found and verified on website",
-          status: "success" as const,
-        }]);
+        setTestResults([
+          {
+            timestamp: new Date().toISOString(),
+            event: "Script Verification",
+            details: "Tracking script found and verified on website",
+            status: "success" as const,
+          },
+        ]);
       } else {
         toast({
           title: "❌ Script Not Found",
-          description: data.error || "The tracking script was not found on your website. Please install it and try again.",
+          description:
+            data.error ||
+            "The tracking script was not found on your website. Please install it and try again.",
           variant: "destructive",
         });
-        
+
         // Add an error result
-        setTestResults([{
-          timestamp: new Date().toISOString(),
-          event: "Script Verification",
-          details: data.error || "Script not found on website",
-          status: "error" as const,
-        }]);
+        setTestResults([
+          {
+            timestamp: new Date().toISOString(),
+            event: "Script Verification",
+            details: data.error || "Script not found on website",
+            status: "error" as const,
+          },
+        ]);
       }
     } catch (error) {
       console.error("Error testing script presence:", error);
       toast({
         title: "Error",
-        description: "Failed to test script presence. Please check your domain and try again.",
+        description:
+          "Failed to test script presence. Please check your domain and try again.",
         variant: "destructive",
       });
-      
+
       // Add an error result
-      setTestResults([{
-        timestamp: new Date().toISOString(),
-        event: "Script Verification",
-        details: "Failed to test script presence",
-        status: "error" as const,
-      }]);
+      setTestResults([
+        {
+          timestamp: new Date().toISOString(),
+          event: "Script Verification",
+          details: "Failed to test script presence",
+          status: "error" as const,
+        },
+      ]);
     } finally {
       setIsTesting(false);
     }
@@ -1038,7 +1054,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     toast({
       title: "🎉 Setup Complete!",
-      description: "Your tracking integration has been successfully set up. Redirecting to dashboard...",
+      description:
+        "Your tracking integration has been successfully set up. Redirecting to dashboard...",
     });
 
     // Show a brief completion state before redirecting
@@ -1055,10 +1072,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     setIsCheckingConnection(true);
-    
+
     try {
-      const websiteUrl = business.domain.startsWith("http") ? business.domain : `https://${business.domain}`;
-      
+      const websiteUrl = business.domain.startsWith("http")
+        ? business.domain
+        : `https://${business.domain}`;
+
       const response = await fetch("/api/business/verify-tracking", {
         method: "POST",
         headers: {
@@ -1082,7 +1101,8 @@ document.addEventListener('DOMContentLoaded', function() {
         setConnectionStatus("disconnected");
         toast({
           title: "❌ Connection Failed",
-          description: data.error || "Unable to verify tracking script on your website.",
+          description:
+            data.error || "Unable to verify tracking script on your website.",
           variant: "destructive",
         });
       }
@@ -1125,7 +1145,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <>
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-white">Integration Status</h2>
+              <h2 className="text-2xl font-bold text-white">
+                Integration Status
+              </h2>
               <p className="text-white/70">
                 Monitor your tracking integration and connection status
               </p>
@@ -1146,19 +1168,29 @@ document.addEventListener('DOMContentLoaded', function() {
             <CardContent className="space-y-6">
               {/* Business Information */}
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                <h4 className="font-medium text-white mb-3">📋 Business Information:</h4>
+                <h4 className="font-medium text-white mb-3">
+                  📋 Business Information:
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
                   <div>
-                    <span className="font-medium text-white">Business Name:</span> {business?.name}
+                    <span className="font-medium text-white">
+                      Business Name:
+                    </span>{" "}
+                    {business?.name}
                   </div>
                   <div>
-                    <span className="font-medium text-white">Website:</span> {business?.domain}
+                    <span className="font-medium text-white">Website:</span>{" "}
+                    {business?.domain}
                   </div>
                   <div>
-                    <span className="font-medium text-white">Business ID:</span> {business?.id}
+                    <span className="font-medium text-white">Business ID:</span>{" "}
+                    {business?.id}
                   </div>
                   <div>
-                    <span className="font-medium text-white">Affiliate ID:</span> {business?.affiliateId}
+                    <span className="font-medium text-white">
+                      Affiliate ID:
+                    </span>{" "}
+                    {business?.affiliateId}
                   </div>
                 </div>
               </div>
@@ -1166,35 +1198,39 @@ document.addEventListener('DOMContentLoaded', function() {
               {/* Connection Status */}
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-white">🔗 Connection Status</h4>
+                  <h4 className="font-medium text-white">
+                    🔗 Connection Status
+                  </h4>
                   <Badge
                     variant={
                       connectionStatus === "connected"
                         ? "default"
                         : connectionStatus === "checking"
-                        ? "secondary"
-                        : "destructive"
+                          ? "secondary"
+                          : "destructive"
                     }
                     className={
                       connectionStatus === "connected"
                         ? "bg-green-500 text-white"
                         : connectionStatus === "checking"
-                        ? "bg-yellow-500 text-white"
-                        : "bg-red-500 text-white"
+                          ? "bg-yellow-500 text-white"
+                          : "bg-red-500 text-white"
                     }
                   >
                     {connectionStatus === "connected"
                       ? "✅ Connected"
                       : connectionStatus === "checking"
-                      ? "⏳ Checking..."
-                      : "❌ Disconnected"}
+                        ? "⏳ Checking..."
+                        : "❌ Disconnected"}
                   </Badge>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-sm text-white/80">Domain Verified</span>
+                    <span className="text-sm text-white/80">
+                      Domain Verified
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     {connectionStatus === "connected" ? (
@@ -1208,8 +1244,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       {connectionStatus === "connected"
                         ? "Tracking Script Active"
                         : connectionStatus === "checking"
-                        ? "Checking Script Status..."
-                        : "Tracking Script Not Found"}
+                          ? "Checking Script Status..."
+                          : "Tracking Script Not Found"}
                     </span>
                   </div>
                 </div>
@@ -1238,7 +1274,9 @@ document.addEventListener('DOMContentLoaded', function() {
               {/* Shopify Integration Section */}
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-white">🛍️ Shopify Integration</h4>
+                  <h4 className="font-medium text-white">
+                    🛍️ Shopify Integration
+                  </h4>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -1260,7 +1298,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => window.open("https://apps.shopify.com", "_blank")}
+                      onClick={() =>
+                        window.open("https://apps.shopify.com", "_blank")
+                      }
                       className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
@@ -1271,20 +1311,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div className="space-y-4">
                   <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
-                    <h5 className="font-medium text-white mb-3">Shopify App Integration</h5>
+                    <h5 className="font-medium text-white mb-3">
+                      Shopify App Integration
+                    </h5>
                     <div className="text-sm text-white/80 space-y-2">
-                      <p><strong>For the best tracking experience, install our Shopify app:</strong></p>
+                      <p>
+                        <strong>
+                          For the best tracking experience, install our Shopify
+                          app:
+                        </strong>
+                      </p>
                       <ol className="list-decimal list-inside space-y-1 ml-4">
-                        <li>On your Shopify admin panel, navigate to the <strong>Apps</strong> page</li>
-                        <li>Click <strong>"Visit Shopify app store"</strong></li>
-                        <li>Search for <strong>"iPick Price Tracking"</strong></li>
-                        <li>Click <strong>"Add app"</strong></li>
-                        <li>Click <strong>"Install app"</strong> when prompted</li>
-                        <li>Press the <strong>"Connect"</strong> button to connect your iPick account</li>
+                        <li>
+                          On your Shopify admin panel, navigate to the{" "}
+                          <strong>Apps</strong> page
+                        </li>
+                        <li>
+                          Click <strong>"Visit Shopify app store"</strong>
+                        </li>
+                        <li>
+                          Search for <strong>"iPick Price Tracking"</strong>
+                        </li>
+                        <li>
+                          Click <strong>"Add app"</strong>
+                        </li>
+                        <li>
+                          Click <strong>"Install app"</strong> when prompted
+                        </li>
+                        <li>
+                          Press the <strong>"Connect"</strong> button to connect
+                          your iPick account
+                        </li>
                         <li>When asked, authorize your account</li>
                       </ol>
                       <p className="mt-3 text-xs">
-                        <strong>Benefits:</strong> Automatic script installation, enhanced checkout tracking, real-time analytics, and no manual code editing required.
+                        <strong>Benefits:</strong> Automatic script
+                        installation, enhanced checkout tracking, real-time
+                        analytics, and no manual code editing required.
                       </p>
                     </div>
                   </div>
@@ -1292,7 +1355,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   {/* Test Results Display */}
                   {testResults.length > 0 && (
                     <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                      <h6 className="font-medium text-white mb-3">Connection Test Results:</h6>
+                      <h6 className="font-medium text-white mb-3">
+                        Connection Test Results:
+                      </h6>
                       <div className="space-y-2">
                         {testResults.map((result, index) => (
                           <div
@@ -1329,13 +1394,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
               {/* Quick Actions */}
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                <h4 className="font-medium text-white mb-3">⚡ Quick Actions</h4>
+                <h4 className="font-medium text-white mb-3">
+                  ⚡ Quick Actions
+                </h4>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     onClick={() => {
-                      const websiteUrl = business.domain?.startsWith("http") 
-                        ? business.domain 
+                      const websiteUrl = business.domain?.startsWith("http")
+                        ? business.domain
                         : `https://${business.domain}`;
                       window.open(websiteUrl, "_blank");
                     }}
@@ -1346,7 +1413,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => window.location.href = "/business/dashboard/analytics"}
+                    onClick={() =>
+                      (window.location.href = "/business/dashboard/checkout/analytics")
+                    }
                     className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   >
                     <Activity className="h-4 w-4 mr-2" />
@@ -1354,7 +1423,9 @@ document.addEventListener('DOMContentLoaded', function() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => window.location.href = "/business/dashboard/activity"}
+                    onClick={() =>
+                      (window.location.href = "/business/dashboard/checkout/activity")
+                    }
                     className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   >
                     <Eye className="h-4 w-4 mr-2" />
@@ -1370,7 +1441,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <>
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-white">Integration Setup</h2>
+              <h2 className="text-2xl font-bold text-white">
+                Integration Setup
+              </h2>
               <p className="text-white/70">
                 Set up tracking for your website in 4 simple steps
               </p>
@@ -1433,648 +1506,759 @@ document.addEventListener('DOMContentLoaded', function() {
         <>
           {/* Step 1: Domain Verification */}
           {currentStep === 1 && (
-        <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Shield className="h-5 w-5" />
-              Verify Domain Ownership
-            </CardTitle>
-            <CardDescription className="text-white/80">
-              Verify that you own the domain where you'll install the tracking
-              script
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {business.domainVerified ? (
-              <div className="text-center py-8">
-                <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  Domain Already Verified!
-                </h3>
-                <p className="text-white/70 mb-4">
-                  Your domain <strong>{business.domain}</strong> has been
-                  verified and is ready for integration.
-                </p>
-                <Button
-                  onClick={() => setCurrentStep(2)}
-                  className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                >
-                  Continue to Platform Selection
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="domain" className="text-white">
-                      Website Domain
-                    </Label>
-                    <Input
-                      id="domain"
-                      type="text"
-                      placeholder="example.com"
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    />
-                    <p className="text-sm text-white/70 mt-1">
-                      Enter your domain without http:// or https:// (e.g.,
-                      mysite.com)
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Shield className="h-5 w-5" />
+                  Verify Domain Ownership
+                </CardTitle>
+                <CardDescription className="text-white/80">
+                  Verify that you own the domain where you'll install the
+                  tracking script
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {business.domainVerified ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      Domain Already Verified!
+                    </h3>
+                    <p className="text-white/70 mb-4">
+                      Your domain <strong>{business.domain}</strong> has been
+                      verified and is ready for integration.
                     </p>
+                    <Button
+                      onClick={() => setCurrentStep(2)}
+                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                    >
+                      Continue to Platform Selection
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
                   </div>
-
-                  <Button
-                    onClick={generateVerificationToken}
-                    disabled={isVerifying || !domain.trim()}
-                    className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                  >
-                    {isVerifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating Token...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="h-4 w-4 mr-2" />
-                        Generate Verification Token
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {verificationToken && (
-                  <div className="border border-white/10 bg-white/5 rounded-lg p-4 space-y-4">
-                    <div>
-                      <h4 className="font-medium text-white mb-2">
-                        📋 DNS Verification Instructions:
-                      </h4>
-                      <ol className="text-sm text-white/80 space-y-2">
-                        <li>
-                          1. Log into your domain registrar or DNS provider
-                        </li>
-                        <li>2. Add a new TXT record to your domain</li>
-                        <li>3. Use the following values:</li>
-                      </ol>
-                    </div>
-
-                    <div className="bg-black/40 border border-white/10 rounded-lg p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-white">
-                            Record Type:
-                          </span>
-                          <div className="text-white/80">TXT</div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-white">
-                            Name/Host:
-                          </span>
-                          <div className="text-white/80">
-                            @ (or leave empty)
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-white">Value:</span>
-                          <div className="text-white/80 font-mono text-xs break-all">
-                            pricehunt-verification={verificationToken}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="font-medium text-white">TTL:</span>
-                          <div className="text-white/80">300 (or default)</div>
-                        </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="domain" className="text-white">
+                          Website Domain
+                        </Label>
+                        <Input
+                          id="domain"
+                          type="text"
+                          placeholder="example.com"
+                          value={domain}
+                          onChange={(e) => setDomain(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        />
+                        <p className="text-sm text-white/70 mt-1">
+                          Enter your domain without http:// or https:// (e.g.,
+                          mysite.com)
+                        </p>
                       </div>
-                    </div>
 
-                    <div className="flex gap-2">
                       <Button
-                        onClick={verifyDomain}
-                        disabled={isVerifying}
+                        onClick={generateVerificationToken}
+                        disabled={isVerifying || !domain.trim()}
                         className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                       >
                         {isVerifying ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Verifying...
+                            Generating Token...
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Verify Domain
+                            <Shield className="h-4 w-4 mr-2" />
+                            Generate Verification Token
                           </>
                         )}
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setVerificationToken("")}
-                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                      >
-                        Generate New Token
-                      </Button>
                     </div>
 
-                    <div className="border border-yellow-500/20 bg-yellow-500/10 rounded-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
-                        <div className="text-sm text-white/80">
-                          <p className="font-medium text-white mb-1">
-                            Important Notes:
-                          </p>
-                          <ul className="space-y-1">
-                            <li>
-                              • DNS changes can take up to 24 hours to propagate
-                            </li>
-                            <li>
-                              • Most DNS providers update within 5-30 minutes
-                            </li>
-                            <li>
-                              • Make sure to add the TXT record exactly as shown
-                            </li>
-                            <li>
-                              • You can verify the record using online DNS
-                              lookup tools
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Platform Selection */}
-      {currentStep === 2 && (
-        <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Store className="h-5 w-5" />
-              Choose Your Platform
-            </CardTitle>
-            <CardDescription className="text-white/80">
-              Select the platform your website is built on to get the
-              appropriate integration instructions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {platforms.map((platform) => (
-                <div
-                  key={platform.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    selectedPlatform?.id === platform.id
-                      ? "border-white bg-white/10"
-                      : "border-white/10 hover:border-white/20 bg-white/5"
-                  }`}
-                  onClick={() => setSelectedPlatform(platform)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">{platform.icon}</div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white">
-                        {platform.name}
-                      </h3>
-                      <p className="text-sm text-white/70 mb-2">
-                        {platform.description}
-                      </p>
-                      <div className="space-y-1">
-                        {platform.features.map((feature, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <CheckCircle className="h-3 w-3 text-green-400" />
-                            <span className="text-xs text-white/70">
-                              {feature}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {selectedPlatform?.id === platform.id && (
-                      <CheckCircle className="h-5 w-5 text-white" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 3: Integration Instructions */}
-      {currentStep === 3 && (
-        <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Code className="h-5 w-5" />
-              Integration Instructions
-            </CardTitle>
-            <CardDescription className="text-white/80">
-              Follow the instructions to integrate tracking with your platform
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Business Info Display */}
-            <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-              <h4 className="font-medium text-white mb-2">
-                📋 Your Business Information:
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
-                <div>
-                  <span className="font-medium text-white">Business Name:</span>{" "}
-                  {business?.name}
-                </div>
-                <div>
-                  <span className="font-medium text-white">Website:</span>{" "}
-                  {domain || business?.domain}
-                </div>
-                <div>
-                  <span className="font-medium text-white">Business ID:</span>{" "}
-                  {business?.id}
-                </div>
-                <div>
-                  <span className="font-medium text-white">Affiliate ID:</span>{" "}
-                  {business?.affiliateId}
-                </div>
-              </div>
-            </div>
-
-            {selectedPlatform && (
-              <div className="space-y-4">
-                {selectedPlatform.id === "shopify-simple" || selectedPlatform.id === "shopify" ? (
-                  // Shopify Integration Instructions
-                  <div className="space-y-4">
-                    <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
-                      <h4 className="font-medium text-white mb-3 flex items-center gap-2">
-                        🛍️ Shopify Integration Setup
-                      </h4>
-                      
-                      <div className="space-y-4">
+                    {verificationToken && (
+                      <div className="border border-white/10 bg-white/5 rounded-lg p-4 space-y-4">
                         <div>
-                          <h5 className="font-medium text-white mb-2">Step 1: Install the App</h5>
-                          <ol className="text-sm text-white/80 space-y-2 ml-4">
-                            <li>1. On your Shopify admin panel, navigate to the <strong>Apps</strong> page</li>
-                            <li>2. Click <strong>"Visit Shopify app store"</strong></li>
-                            <li>3. Search for <strong>"iPick Price Tracking"</strong></li>
-                            <li>4. Click <strong>"Add app"</strong></li>
-                            <li>5. Click <strong>"Install app"</strong> when prompted</li>
+                          <h4 className="font-medium text-white mb-2">
+                            📋 DNS Verification Instructions:
+                          </h4>
+                          <ol className="text-sm text-white/80 space-y-2">
+                            <li>
+                              1. Log into your domain registrar or DNS provider
+                            </li>
+                            <li>2. Add a new TXT record to your domain</li>
+                            <li>3. Use the following values:</li>
                           </ol>
                         </div>
 
-                        <div>
-                          <h5 className="font-medium text-white mb-2">Step 2: Authorize Your Account</h5>
-                          <ol className="text-sm text-white/80 space-y-2 ml-4">
-                            <li>1. Press the <strong>"Connect"</strong> button to connect your iPick account</li>
-                            <li>2. When asked, authorize your account</li>
-                            <li>3. Your iPick account has now been officially connected to your Shopify store</li>
-                          </ol>
-                        </div>
-
-                        <div>
-                          <h5 className="font-medium text-white mb-2">Step 3: Automatic Integration</h5>
-                          <ul className="text-sm text-white/80 space-y-1 ml-4">
-                            <li>• The app will automatically install tracking scripts</li>
-                            <li>• No manual code editing required</li>
-                            <li>• Enhanced checkout tracking enabled</li>
-                            <li>• Real-time analytics available</li>
-                          </ul>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 p-3 border border-yellow-500/20 bg-yellow-500/10 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
-                          <div className="text-sm text-white/80">
-                            <p className="font-medium text-white mb-1">Important Notes:</p>
-                            <ul className="space-y-1">
-                              <li>• Make sure you're logged into the correct Shopify store</li>
-                              <li>• The app requires access to your store data for tracking</li>
-                              <li>• You can uninstall the app at any time from your Shopify admin</li>
-                              <li>• Contact support if you encounter any issues during installation</li>
-                            </ul>
+                        <div className="bg-black/40 border border-white/10 rounded-lg p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-white">
+                                Record Type:
+                              </span>
+                              <div className="text-white/80">TXT</div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-white">
+                                Name/Host:
+                              </span>
+                              <div className="text-white/80">
+                                @ (or leave empty)
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-white">
+                                Value:
+                              </span>
+                              <div className="text-white/80 font-mono text-xs break-all">
+                                pricehunt-verification={verificationToken}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-medium text-white">
+                                TTL:
+                              </span>
+                              <div className="text-white/80">
+                                300 (or default)
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => window.open("https://apps.shopify.com", "_blank")}
-                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Go to Shopify App Store
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const websiteUrl = domain.startsWith("http") ? domain : `https://${domain}`;
-                          window.open(websiteUrl, "_blank");
-                        }}
-                        disabled={!domain}
-                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Your Store
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  // Other platforms - show script instructions
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-white">
-                        Tracking Script for {selectedPlatform.name}
-                      </h4>
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          copyToClipboard(selectedPlatform.scriptTemplate)
-                        }
-                        className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        {copiedScript ? "Copied!" : "Copy Script"}
-                      </Button>
-                    </div>
-
-                    <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-white">
-                      <pre className="text-xs overflow-x-auto">
-                        <code>{selectedPlatform.scriptTemplate}</code>
-                      </pre>
-                    </div>
-
-                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                      <h5 className="font-medium text-white mb-2">
-                        ✅ Installation Instructions:
-                      </h5>
-                      <ol className="text-sm text-white/80 space-y-1">
-                        <li>1. Copy the script above</li>
-                        <li>2. Add it to your website's &lt;head&gt; section</li>
-                        <li>3. For WooCommerce: Add to header.php or use a plugin</li>
-                        <li>4. For Magento: Add to default_head_blocks.xml</li>
-                        <li>5. For Custom: Add to your main HTML template</li>
-                        <li>6. The script will automatically load enhanced tracking features</li>
-                      </ol>
-                    </div>
-
-                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                      <h5 className="font-medium text-white mb-2">
-                        ⚠️ Important Notes:
-                      </h5>
-                      <ul className="text-sm text-white/80 space-y-1">
-                        <li>• Simple script - no complex code needed</li>
-                        <li>• Automatically loads enhanced tracking features</li>
-                        <li>• Tracks product views, cart additions, and purchases</li>
-                        <li>• Enhanced debugging available in browser console</li>
-                        <li>• Make sure to test the script after installation</li>
-                        <li>• Contact support if you need help with installation</li>
-                      </ul>
-                    </div>
-
-                    {/* Test Script Button for non-Shopify platforms */}
-                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h5 className="font-medium text-white mb-1">
-                            🧪 Test Your Script
-                          </h5>
-                          <p className="text-sm text-white/70">
-                            Verify that the tracking script is properly installed and working on your website
-                          </p>
-                        </div>
                         <div className="flex gap-2">
+                          <Button
+                            onClick={verifyDomain}
+                            disabled={isVerifying}
+                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                          >
+                            {isVerifying ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Verify Domain
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setVerificationToken("")}
+                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                          >
+                            Generate New Token
+                          </Button>
+                        </div>
+
+                        <div className="border border-yellow-500/20 bg-yellow-500/10 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
+                            <div className="text-sm text-white/80">
+                              <p className="font-medium text-white mb-1">
+                                Important Notes:
+                              </p>
+                              <ul className="space-y-1">
+                                <li>
+                                  • DNS changes can take up to 24 hours to
+                                  propagate
+                                </li>
+                                <li>
+                                  • Most DNS providers update within 5-30
+                                  minutes
+                                </li>
+                                <li>
+                                  • Make sure to add the TXT record exactly as
+                                  shown
+                                </li>
+                                <li>
+                                  • You can verify the record using online DNS
+                                  lookup tools
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2: Platform Selection */}
+          {currentStep === 2 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Store className="h-5 w-5" />
+                  Choose Your Platform
+                </CardTitle>
+                <CardDescription className="text-white/80">
+                  Select the platform your website is built on to get the
+                  appropriate integration instructions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {platforms.map((platform) => (
+                    <div
+                      key={platform.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedPlatform?.id === platform.id
+                          ? "border-white bg-white/10"
+                          : "border-white/10 hover:border-white/20 bg-white/5"
+                      }`}
+                      onClick={() => setSelectedPlatform(platform)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">{platform.icon}</div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-white">
+                            {platform.name}
+                          </h3>
+                          <p className="text-sm text-white/70 mb-2">
+                            {platform.description}
+                          </p>
+                          <div className="space-y-1">
+                            {platform.features.map((feature, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2"
+                              >
+                                <CheckCircle className="h-3 w-3 text-green-400" />
+                                <span className="text-xs text-white/70">
+                                  {feature}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {selectedPlatform?.id === platform.id && (
+                          <CheckCircle className="h-5 w-5 text-white" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3: Integration Instructions */}
+          {currentStep === 3 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Code className="h-5 w-5" />
+                  Integration Instructions
+                </CardTitle>
+                <CardDescription className="text-white/80">
+                  Follow the instructions to integrate tracking with your
+                  platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Business Info Display */}
+                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                  <h4 className="font-medium text-white mb-2">
+                    📋 Your Business Information:
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/80">
+                    <div>
+                      <span className="font-medium text-white">
+                        Business Name:
+                      </span>{" "}
+                      {business?.name}
+                    </div>
+                    <div>
+                      <span className="font-medium text-white">Website:</span>{" "}
+                      {domain || business?.domain}
+                    </div>
+                    <div>
+                      <span className="font-medium text-white">
+                        Business ID:
+                      </span>{" "}
+                      {business?.id}
+                    </div>
+                    <div>
+                      <span className="font-medium text-white">
+                        Affiliate ID:
+                      </span>{" "}
+                      {business?.affiliateId}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedPlatform && (
+                  <div className="space-y-4">
+                    {selectedPlatform.id === "shopify-simple" ||
+                    selectedPlatform.id === "shopify" ? (
+                      // Shopify Integration Instructions
+                      <div className="space-y-4">
+                        <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
+                          <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                            🛍️ Shopify Integration Setup
+                          </h4>
+
+                          <div className="space-y-4">
+                            <div>
+                              <h5 className="font-medium text-white mb-2">
+                                Step 1: Install the App
+                              </h5>
+                              <ol className="text-sm text-white/80 space-y-2 ml-4">
+                                <li>
+                                  1. On your Shopify admin panel, navigate to
+                                  the <strong>Apps</strong> page
+                                </li>
+                                <li>
+                                  2. Click{" "}
+                                  <strong>"Visit Shopify app store"</strong>
+                                </li>
+                                <li>
+                                  3. Search for{" "}
+                                  <strong>"iPick Price Tracking"</strong>
+                                </li>
+                                <li>
+                                  4. Click <strong>"Add app"</strong>
+                                </li>
+                                <li>
+                                  5. Click <strong>"Install app"</strong> when
+                                  prompted
+                                </li>
+                              </ol>
+                            </div>
+
+                            <div>
+                              <h5 className="font-medium text-white mb-2">
+                                Step 2: Authorize Your Account
+                              </h5>
+                              <ol className="text-sm text-white/80 space-y-2 ml-4">
+                                <li>
+                                  1. Press the <strong>"Connect"</strong> button
+                                  to connect your iPick account
+                                </li>
+                                <li>2. When asked, authorize your account</li>
+                                <li>
+                                  3. Your iPick account has now been officially
+                                  connected to your Shopify store
+                                </li>
+                              </ol>
+                            </div>
+
+                            <div>
+                              <h5 className="font-medium text-white mb-2">
+                                Step 3: Automatic Integration
+                              </h5>
+                              <ul className="text-sm text-white/80 space-y-1 ml-4">
+                                <li>
+                                  • The app will automatically install tracking
+                                  scripts
+                                </li>
+                                <li>• No manual code editing required</li>
+                                <li>• Enhanced checkout tracking enabled</li>
+                                <li>• Real-time analytics available</li>
+                              </ul>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 p-3 border border-yellow-500/20 bg-yellow-500/10 rounded-lg">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
+                              <div className="text-sm text-white/80">
+                                <p className="font-medium text-white mb-1">
+                                  Important Notes:
+                                </p>
+                                <ul className="space-y-1">
+                                  <li>
+                                    • Make sure you're logged into the correct
+                                    Shopify store
+                                  </li>
+                                  <li>
+                                    • The app requires access to your store data
+                                    for tracking
+                                  </li>
+                                  <li>
+                                    • You can uninstall the app at any time from
+                                    your Shopify admin
+                                  </li>
+                                  <li>
+                                    • Contact support if you encounter any
+                                    issues during installation
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() =>
+                              window.open("https://apps.shopify.com", "_blank")
+                            }
+                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Go to Shopify App Store
+                          </Button>
                           <Button
                             variant="outline"
                             onClick={() => {
-                              const websiteUrl = domain.startsWith("http") ? domain : `https://${domain}`;
+                              const websiteUrl = domain.startsWith("http")
+                                ? domain
+                                : `https://${domain}`;
                               window.open(websiteUrl, "_blank");
                             }}
                             disabled={!domain}
                             className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                           >
                             <ExternalLink className="h-4 w-4 mr-2" />
-                            Open Website
+                            Open Your Store
                           </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Other platforms - show script instructions
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-white">
+                            Tracking Script for {selectedPlatform.name}
+                          </h4>
                           <Button
-                            onClick={testScriptPresence}
-                            disabled={isTesting}
+                            size="sm"
+                            onClick={() =>
+                              copyToClipboard(selectedPlatform.scriptTemplate)
+                            }
                             className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                           >
-                            {isTesting ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Testing...
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-4 w-4 mr-2" />
-                                Test Script
-                              </>
-                            )}
+                            <Copy className="h-4 w-4 mr-2" />
+                            {copiedScript ? "Copied!" : "Copy Script"}
                           </Button>
                         </div>
-                      </div>
-                      
-                      <div className="text-sm text-white/70 space-y-2">
-                        <p><strong>What this test does:</strong></p>
-                        <ul className="list-disc list-inside space-y-1 ml-4">
-                          <li>Checks if the tracking script is loaded on your website</li>
-                          <li>Verifies script functionality and configuration</li>
-                          <li>Confirms business ID and affiliate ID are correct</li>
-                          <li>Provides detailed feedback on script status</li>
-                        </ul>
-                        <p className="mt-3 text-xs">
-                          <strong>Tip:</strong> Make sure you've added the script to your website before testing.
-                        </p>
-                      </div>
 
-                      {/* Test Results Display */}
-                      {testResults.length > 0 && (
-                        <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
-                          <h6 className="font-medium text-white mb-3">Test Results:</h6>
-                          <div className="space-y-2">
-                            {testResults.map((result, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
-                              >
-                                <div
-                                  className={`w-2 h-2 rounded-full ${
-                                    result.status === "success"
-                                      ? "bg-green-400"
-                                      : result.status === "error"
-                                        ? "bg-red-400"
-                                        : "bg-yellow-400"
-                                  }`}
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm text-white">
-                                    {result.event}
-                                  </div>
-                                  <div className="text-xs text-white/70">
-                                    {result.details}
-                                  </div>
-                                </div>
-                                <div className="text-xs text-white/60">
-                                  {new Date(result.timestamp).toLocaleTimeString()}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-white">
+                          <pre className="text-xs overflow-x-auto">
+                            <code>{selectedPlatform.scriptTemplate}</code>
+                          </pre>
                         </div>
+
+                        <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                          <h5 className="font-medium text-white mb-2">
+                            ✅ Installation Instructions:
+                          </h5>
+                          <ol className="text-sm text-white/80 space-y-1">
+                            <li>1. Copy the script above</li>
+                            <li>
+                              2. Add it to your website's &lt;head&gt; section
+                            </li>
+                            <li>
+                              3. For WooCommerce: Add to header.php or use a
+                              plugin
+                            </li>
+                            <li>
+                              4. For Magento: Add to default_head_blocks.xml
+                            </li>
+                            <li>
+                              5. For Custom: Add to your main HTML template
+                            </li>
+                            <li>
+                              6. The script will automatically load enhanced
+                              tracking features
+                            </li>
+                          </ol>
+                        </div>
+
+                        <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                          <h5 className="font-medium text-white mb-2">
+                            ⚠️ Important Notes:
+                          </h5>
+                          <ul className="text-sm text-white/80 space-y-1">
+                            <li>• Simple script - no complex code needed</li>
+                            <li>
+                              • Automatically loads enhanced tracking features
+                            </li>
+                            <li>
+                              • Tracks product views, cart additions, and
+                              purchases
+                            </li>
+                            <li>
+                              • Enhanced debugging available in browser console
+                            </li>
+                            <li>
+                              • Make sure to test the script after installation
+                            </li>
+                            <li>
+                              • Contact support if you need help with
+                              installation
+                            </li>
+                          </ul>
+                        </div>
+
+                        {/* Test Script Button for non-Shopify platforms */}
+                        <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h5 className="font-medium text-white mb-1">
+                                🧪 Test Your Script
+                              </h5>
+                              <p className="text-sm text-white/70">
+                                Verify that the tracking script is properly
+                                installed and working on your website
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  const websiteUrl = domain.startsWith("http")
+                                    ? domain
+                                    : `https://${domain}`;
+                                  window.open(websiteUrl, "_blank");
+                                }}
+                                disabled={!domain}
+                                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Open Website
+                              </Button>
+                              <Button
+                                onClick={testScriptPresence}
+                                disabled={isTesting}
+                                className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                              >
+                                {isTesting ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Testing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="h-4 w-4 mr-2" />
+                                    Test Script
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="text-sm text-white/70 space-y-2">
+                            <p>
+                              <strong>What this test does:</strong>
+                            </p>
+                            <ul className="list-disc list-inside space-y-1 ml-4">
+                              <li>
+                                Checks if the tracking script is loaded on your
+                                website
+                              </li>
+                              <li>
+                                Verifies script functionality and configuration
+                              </li>
+                              <li>
+                                Confirms business ID and affiliate ID are
+                                correct
+                              </li>
+                              <li>
+                                Provides detailed feedback on script status
+                              </li>
+                            </ul>
+                            <p className="mt-3 text-xs">
+                              <strong>Tip:</strong> Make sure you've added the
+                              script to your website before testing.
+                            </p>
+                          </div>
+
+                          {/* Test Results Display */}
+                          {testResults.length > 0 && (
+                            <div className="mt-4 border border-white/10 bg-white/5 rounded-lg p-4">
+                              <h6 className="font-medium text-white mb-3">
+                                Test Results:
+                              </h6>
+                              <div className="space-y-2">
+                                {testResults.map((result, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                                  >
+                                    <div
+                                      className={`w-2 h-2 rounded-full ${
+                                        result.status === "success"
+                                          ? "bg-green-400"
+                                          : result.status === "error"
+                                            ? "bg-red-400"
+                                            : "bg-yellow-400"
+                                      }`}
+                                    />
+                                    <div className="flex-1">
+                                      <div className="font-medium text-sm text-white">
+                                        {result.event}
+                                      </div>
+                                      <div className="text-xs text-white/70">
+                                        {result.details}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-white/60">
+                                      {new Date(
+                                        result.timestamp,
+                                      ).toLocaleTimeString()}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Testing */}
+          {currentStep === 4 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Play className="h-5 w-5" />
+                  Test Your Tracking
+                </CardTitle>
+                <CardDescription className="text-white/80">
+                  Verify that tracking is working correctly on your website
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Test Your Website</Label>
+                      <p className="text-sm text-white/70 mb-2">
+                        Open your website to test the tracking script
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={openTestWebsite}
+                          disabled={!domain}
+                          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open {domain || business?.domain}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={startTesting}
+                          disabled={isTesting || !domain}
+                          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          {isTesting ? "Testing..." : "Start Test"}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={generateTestEvents}
+                          disabled={isTesting}
+                          className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
+                        >
+                          <Activity className="h-4 w-4 mr-2" />
+                          Generate Test Events
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                      <h5 className="font-medium text-white mb-2">
+                        ⚠️ Testing Instructions:
+                      </h5>
+                      <ul className="text-sm text-white/80 space-y-1">
+                        <li>• Open your website in a new tab</li>
+                        <li>• Browse through different pages</li>
+                        <li>• View product pages</li>
+                        <li>• Add items to cart</li>
+                        <li>• Complete a test purchase</li>
+                        <li>• Return here to see tracking results</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Tracking Events</Label>
+                    <p className="text-sm text-white/70 mb-2">
+                      Real-time tracking events from your website
+                    </p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {testResults.length === 0 ? (
+                        <div className="text-center py-8 text-white/70">
+                          <Activity className="h-8 w-8 mx-auto mb-2 text-white/50" />
+                          <p>No tracking events yet</p>
+                          <p className="text-xs">
+                            Start testing to see events here
+                          </p>
+                        </div>
+                      ) : (
+                        testResults.map((result, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
+                          >
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                result.status === "success"
+                                  ? "bg-green-400"
+                                  : result.status === "error"
+                                    ? "bg-red-400"
+                                    : "bg-yellow-400"
+                              }`}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm text-white">
+                                {result.event}
+                              </div>
+                              <div className="text-xs text-white/70">
+                                {result.details}
+                              </div>
+                            </div>
+                            <div className="text-xs text-white/60">
+                              {new Date(result.timestamp).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 4: Testing */}
-      {currentStep === 4 && (
-        <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Play className="h-5 w-5" />
-              Test Your Tracking
-            </CardTitle>
-            <CardDescription className="text-white/80">
-              Verify that tracking is working correctly on your website
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div>
-                  <Label>Test Your Website</Label>
-                  <p className="text-sm text-white/70 mb-2">
-                    Open your website to test the tracking script
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={openTestWebsite}
-                      disabled={!domain}
-                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Open {domain || business?.domain}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={startTesting}
-                      disabled={isTesting || !domain}
-                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      {isTesting ? "Testing..." : "Start Test"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={generateTestEvents}
-                      disabled={isTesting}
-                      className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                    >
-                      <Activity className="h-4 w-4 mr-2" />
-                      Generate Test Events
-                    </Button>
-                  </div>
                 </div>
 
-                <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                  <h5 className="font-medium text-white mb-2">
-                    ⚠️ Testing Instructions:
-                  </h5>
-                  <ul className="text-sm text-white/80 space-y-1">
-                    <li>• Open your website in a new tab</li>
-                    <li>• Browse through different pages</li>
-                    <li>• View product pages</li>
-                    <li>• Add items to cart</li>
-                    <li>• Complete a test purchase</li>
-                    <li>• Return here to see tracking results</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div>
-                <Label>Tracking Events</Label>
-                <p className="text-sm text-white/70 mb-2">
-                  Real-time tracking events from your website
-                </p>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {testResults.length === 0 ? (
-                    <div className="text-center py-8 text-white/70">
-                      <Activity className="h-8 w-8 mx-auto mb-2 text-white/50" />
-                      <p>No tracking events yet</p>
-                      <p className="text-xs">
-                        Start testing to see events here
-                      </p>
-                    </div>
-                  ) : (
-                    testResults.map((result, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 p-3 border rounded-lg border-white/10 bg-white/5"
-                      >
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            result.status === "success"
-                              ? "bg-green-400"
-                              : result.status === "error"
-                                ? "bg-red-400"
-                                : "bg-yellow-400"
-                          }`}
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-sm text-white">
-                            {result.event}
-                          </div>
-                          <div className="text-xs text-white/70">
-                            {result.details}
-                          </div>
-                        </div>
-                        <div className="text-xs text-white/60">
-                          {new Date(result.timestamp).toLocaleTimeString()}
-                        </div>
+                {testResults.length > 0 && (
+                  <div className="border border-white/10 bg-white/5 rounded-lg p-4">
+                    <h5 className="font-medium text-white mb-2">
+                      ✅ Tracking Status:
+                    </h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/80">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span>Script Loaded</span>
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {testResults.length > 0 && (
-              <div className="border border-white/10 bg-white/5 rounded-lg p-4">
-                <h5 className="font-medium text-white mb-2">
-                  ✅ Tracking Status:
-                </h5>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-white/80">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span>Script Loaded</span>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span>User Tracking</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span>Product Views</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span>Purchase Tracking</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span>User Tracking</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span>Product Views</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span>Purchase Tracking</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                )}
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 

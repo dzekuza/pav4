@@ -48,10 +48,10 @@ export function ProfileDropdown({
         <Button
           variant="ghost"
           className={cn(
-            isMobile 
+            isMobile
               ? "relative h-8 w-8 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 transition-all duration-200"
               : "relative h-10 w-10 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-200",
-            className
+            className,
           )}
         >
           {businessLogo ? (
@@ -91,16 +91,18 @@ export function ProfileDropdown({
               </Avatar>
             )}
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-white">{businessName}</span>
+              <span className="text-sm font-medium text-white">
+                {businessName}
+              </span>
               <span className="text-xs text-white/60">{businessDomain}</span>
             </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/10" />
-        
+
         <DropdownMenuItem
           onClick={() => {
-            onNavigate("/business/dashboard/settings");
+            onNavigate("/business/dashboard/checkout/settings");
             setIsOpen(false);
           }}
           className="text-white hover:bg-white/10 cursor-pointer"
@@ -108,10 +110,10 @@ export function ProfileDropdown({
           <User className="mr-2 h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        
+
         <DropdownMenuItem
           onClick={() => {
-            onNavigate("/business/dashboard/settings");
+            onNavigate("/business/dashboard/checkout/settings");
             setIsOpen(false);
           }}
           className="text-white hover:bg-white/10 cursor-pointer"
@@ -119,9 +121,9 @@ export function ProfileDropdown({
           <Settings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>
-        
+
         <DropdownMenuSeparator className="bg-white/10" />
-        
+
         <DropdownMenuItem
           onClick={() => {
             onLogout();

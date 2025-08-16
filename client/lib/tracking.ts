@@ -13,8 +13,6 @@ interface TrackingData {
   utmCampaign?: string;
 }
 
-
-
 interface AffiliateConfig {
   amazonTag?: string;
   ebayPartnerId?: string;
@@ -30,19 +28,22 @@ interface AffiliateConfig {
 // Shopify tracking configuration
 const SHOPIFY_TRACKING_CONFIG = {
   development: {
-    apiUrl: 'https://checkoutdata--development.gadget.app/api/graphql',
+    apiUrl: "https://ipick.io/api/graphql",
   },
   production: {
-    apiUrl: 'https://checkoutdata.gadget.app/api/graphql',
-  }
+    apiUrl: "https://ipick.io/api/graphql",
+  },
 };
 
 // Get current environment
 const getShopifyApiUrl = () => {
-  const isDevelopment = window.location.hostname.includes('localhost') || 
-                       window.location.hostname.includes('netlify.app') && 
-                       window.location.hostname.includes('--development');
-  return isDevelopment ? SHOPIFY_TRACKING_CONFIG.development.apiUrl : SHOPIFY_TRACKING_CONFIG.production.apiUrl;
+  const isDevelopment =
+    window.location.hostname.includes("localhost") ||
+    (window.location.hostname.includes("netlify.app") &&
+      window.location.hostname.includes("--development"));
+  return isDevelopment
+    ? SHOPIFY_TRACKING_CONFIG.development.apiUrl
+    : SHOPIFY_TRACKING_CONFIG.production.apiUrl;
 };
 
 // Default affiliate configuration - replace with your actual affiliate IDs
@@ -59,23 +60,28 @@ const AFFILIATE_CONFIG: AffiliateConfig = {
 };
 
 // Enhanced Shopify referral tracking function
-export const trackReferral = async (businessDomain: string, productUrl: string, productName: string, userId: string | null = null) => {
+export const trackReferral = async (
+  businessDomain: string,
+  productUrl: string,
+  productName: string,
+  userId: string | null = null,
+) => {
   // Generate unique referral ID
-  const referralId = `aff_${businessDomain.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+  const referralId = `aff_${businessDomain.replace(/[^a-zA-Z0-9]/g, "")}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
   // Build target URL with UTM parameters
   const targetUrl = new URL(productUrl);
-  targetUrl.searchParams.set('utm_source', 'ipick');
-  targetUrl.searchParams.set('utm_medium', 'price_comparison');
-  targetUrl.searchParams.set('utm_campaign', 'product_referral');
-  targetUrl.searchParams.set('ref', referralId);
-  
+  targetUrl.searchParams.set("utm_source", "ipick");
+  targetUrl.searchParams.set("utm_medium", "price_comparison");
+  targetUrl.searchParams.set("utm_campaign", "product_referral");
+  targetUrl.searchParams.set("ref", referralId);
+
   try {
     // Use the new REST API endpoint instead of GraphQL
-    const response = await fetch('https://checkoutdata--development.gadget.app/api/trackReferral', {
-      method: 'POST',
+    const response = await fetch("https://ipick.io/api/trackReferral", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         referralId: referralId,
@@ -84,29 +90,36 @@ export const trackReferral = async (businessDomain: string, productUrl: string, 
         sourceUrl: window.location.href,
         productName: productName,
         userId: userId,
-        utmSource: 'ipick',
-        utmMedium: 'price_comparison',
-        utmCampaign: 'product_referral'
-      })
+        utmSource: "ipick",
+        utmMedium: "price_comparison",
+        utmCampaign: "product_referral",
+      }),
     });
-    
+
     const result = await response.json();
-    
+
     if (result.success) {
-      console.log('✅ Referral tracked successfully:', referralId);
+      console.log("✅ Referral tracked successfully:", referralId);
       return { success: true, referralId, targetUrl: targetUrl.toString() };
     } else {
-      console.error('❌ Referral tracking failed:', result.error);
-      return { success: false, error: result.error, targetUrl: targetUrl.toString() };
+      console.error("❌ Referral tracking failed:", result.error);
+      return {
+        success: false,
+        error: result.error,
+        targetUrl: targetUrl.toString(),
+      };
     }
   } catch (error) {
-    console.error('❌ Error tracking referral:', error);
+    console.error("❌ Error tracking referral:", error);
     return { success: false, error, targetUrl: targetUrl.toString() };
   }
 };
 
 // Enhanced product click handler that combines existing tracking with Shopify tracking
-export const handleProductClick = async (product: any, businessDomain?: string) => {
+export const handleProductClick = async (
+  product: any,
+  businessDomain?: string,
+) => {
   // Your existing tracking (keep this)
   const existingEvent = {
     event_type: "product_click",
@@ -116,69 +129,82 @@ export const handleProductClick = async (product: any, businessDomain?: string) 
     timestamp: Date.now(),
     url: product.url,
     data: {
-      product_name: product.title || product.name
-    }
+      product_name: product.title || product.name,
+    },
   };
-  
+
   // Send to your existing analytics
   await sendToYourAnalytics(existingEvent);
-  
+
   // NEW: Also track in Gadget for Shopify integration if business domain is provided
   if (businessDomain) {
     const shopifyResult = await trackReferral(
-      businessDomain, 
-      product.url, 
-      product.title || product.name, 
-      getCurrentUserId()
+      businessDomain,
+      product.url,
+      product.title || product.name,
+      getCurrentUserId(),
     );
-    
+
     // If Shopify tracking was successful, use the tracking URL
     if (shopifyResult.success) {
       return shopifyResult;
     }
   }
-  
+
   // Fallback to original URL with existing affiliate tracking
-  const affiliateUrl = generateAffiliateLink(product.url, product.retailer || 'unknown');
+  const affiliateUrl = generateAffiliateLink(
+    product.url,
+    product.retailer || "unknown",
+  );
   return { success: true, targetUrl: affiliateUrl };
 };
 
 // Enhanced analytics function combining existing data with Shopify data
-export const getCompleteAnalytics = async (businessDomain: string, startDate: string | null = null, endDate: string | null = null) => {
+export const getCompleteAnalytics = async (
+  businessDomain: string,
+  startDate: string | null = null,
+  endDate: string | null = null,
+) => {
   try {
     // Get Shopify events (checkout + order data) using the new REST API
-    const shopifyResponse = await fetch('https://checkoutdata--development.gadget.app/api/getBusinessAnalytics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const shopifyResponse = await fetch(
+      "https://ipick.io/api/getBusinessAnalytics",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          businessDomain: businessDomain,
+          startDate: startDate,
+          endDate: endDate,
+        }),
       },
-      body: JSON.stringify({
-        businessDomain: businessDomain,
-        startDate: startDate,
-        endDate: endDate
-      })
-    });
-    
+    );
+
     const shopifyResult = await shopifyResponse.json();
     const shopifyEvents = shopifyResult.data || [];
-    
+
     // Get your existing analytics data
-    const yourExistingEvents = await getYourExistingAnalytics(businessDomain, startDate, endDate);
-    
+    const yourExistingEvents = await getYourExistingAnalytics(
+      businessDomain,
+      startDate,
+      endDate,
+    );
+
     // Merge all events
     const allEvents = [...yourExistingEvents, ...shopifyEvents];
-    
+
     // Sort by timestamp
     allEvents.sort((a, b) => {
       const timeA = new Date(a.timestamp || a.createdAt).getTime();
       const timeB = new Date(b.timestamp || b.createdAt).getTime();
       return timeA - timeB;
     });
-    
+
     return allEvents;
-    
   } catch (error) {
-    console.error('Error fetching complete analytics:', error);
+    console.error("Error fetching complete analytics:", error);
     return [];
   }
 };
@@ -195,8 +221,10 @@ function generateAffiliateId(): string {
 }
 
 function getCurrentSessionId(): string {
-  return sessionStorage.getItem("pricehunt_session_id") || 
-         `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return (
+    sessionStorage.getItem("pricehunt_session_id") ||
+    `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  );
 }
 
 function getCurrentUserId(): string | null {
@@ -206,10 +234,14 @@ function getCurrentUserId(): string | null {
 
 async function sendToYourAnalytics(event: any): Promise<void> {
   // Your existing analytics tracking logic
-  console.log('Sending to existing analytics:', event);
+  console.log("Sending to existing analytics:", event);
 }
 
-async function getYourExistingAnalytics(businessDomain: string, startDate: string | null, endDate: string | null): Promise<any[]> {
+async function getYourExistingAnalytics(
+  businessDomain: string,
+  startDate: string | null,
+  endDate: string | null,
+): Promise<any[]> {
   // Implement based on your existing analytics system
   return []; // Placeholder
 }
@@ -219,7 +251,7 @@ export function generateAffiliateLink(
   originalUrl: string,
   retailer: string,
   businessDomain?: string,
-  productName?: string
+  productName?: string,
 ): string {
   try {
     const url = new URL(originalUrl);
@@ -227,14 +259,14 @@ export function generateAffiliateLink(
 
     // Add tracking parameters
     const trackingParams = new URLSearchParams(url.search);
-    
+
     // Enhanced UTM parameters for better tracking
     trackingParams.set("ref", "ipick");
     trackingParams.set("utm_source", "ipick");
     trackingParams.set("utm_medium", "price_comparison");
     trackingParams.set("utm_campaign", "product_referral");
     trackingParams.set("session_id", getSessionId());
-    
+
     // Add business domain and product info if available
     if (businessDomain) {
       trackingParams.set("business_domain", businessDomain);
@@ -299,12 +331,12 @@ export function trackAffiliateClick(data: TrackingData): void {
   const trackingKey = `affiliate_click_${data.productUrl}_${data.sessionId}`;
   const lastTracked = sessionStorage.getItem(trackingKey);
   const now = Date.now();
-  
-  if (lastTracked && (now - parseInt(lastTracked)) < 5000) {
+
+  if (lastTracked && now - parseInt(lastTracked) < 5000) {
     console.log("Preventing duplicate affiliate click tracking");
     return;
   }
-  
+
   sessionStorage.setItem(trackingKey, now.toString());
 
   // GTM event tracking
@@ -351,8 +383,6 @@ export function trackAffiliateClick(data: TrackingData): void {
     console.error("Error tracking affiliate click:", error);
   });
 }
-
-
 
 // Track product searches
 export function trackProductSearch(data: TrackingData): void {
@@ -496,18 +526,21 @@ export function createShopifyTrackingUrl(
     name?: string;
     price?: string;
     category?: string;
-  } = {}
+  } = {},
 ): string {
   try {
     const url = new URL(originalUrl);
     const trackingParams = new URLSearchParams(url.search);
-    
+
     // Enhanced UTM parameters for Shopify tracking
     trackingParams.set("utm_source", "ipick");
     trackingParams.set("utm_medium", "price_comparison");
     trackingParams.set("utm_campaign", "product_referral");
-    trackingParams.set("ref", `aff_${businessDomain.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`);
-    
+    trackingParams.set(
+      "ref",
+      `aff_${businessDomain.replace(/[^a-zA-Z0-9]/g, "")}_${Date.now()}`,
+    );
+
     // Add product-specific parameters
     if (productData.id) {
       trackingParams.set("product_id", productData.id);
@@ -521,10 +554,10 @@ export function createShopifyTrackingUrl(
     if (productData.category) {
       trackingParams.set("product_category", productData.category);
     }
-    
+
     // Add business domain for tracking
     trackingParams.set("business_domain", businessDomain);
-    
+
     url.search = trackingParams.toString();
     return url.toString();
   } catch (error) {
@@ -571,7 +604,7 @@ export function getStoredUtmParameters(): any {
 export async function trackCustomEvent(
   eventType: string,
   eventData: any = {},
-  businessDomain?: string
+  businessDomain?: string,
 ): Promise<boolean> {
   try {
     const eventPayload = {
@@ -581,28 +614,28 @@ export async function trackCustomEvent(
         timestamp: new Date().toISOString(),
         userId: getCurrentUserId(),
         url: window.location.href,
-        sessionId: getCurrentSessionId()
+        sessionId: getCurrentSessionId(),
       },
-      businessDomain
+      businessDomain,
     };
 
-    const response = await fetch('https://checkoutdata--development.gadget.app/api/track-event', {
-      method: 'POST',
+    const response = await fetch("https://ipick.io/api/track-event", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(eventPayload)
+      body: JSON.stringify(eventPayload),
     });
 
     if (response.ok) {
-      console.log('✅ Custom event tracked successfully:', eventType);
+      console.log("✅ Custom event tracked successfully:", eventType);
       return true;
     } else {
-      console.error('❌ Failed to track custom event:', response.statusText);
+      console.error("❌ Failed to track custom event:", response.statusText);
       return false;
     }
   } catch (error) {
-    console.error('❌ Error tracking custom event:', error);
+    console.error("❌ Error tracking custom event:", error);
     return false;
   }
 }
@@ -610,30 +643,34 @@ export async function trackCustomEvent(
 // Enhanced product click tracking with automatic Shopify integration
 export async function trackProductClick(
   product: any,
-  businessDomain?: string
+  businessDomain?: string,
 ): Promise<{ success: boolean; targetUrl: string }> {
   // Track the click event
-  await trackCustomEvent('product_click', {
-    productId: product.id,
-    productName: product.title || product.name,
-    productPrice: product.price,
-    retailer: product.retailer,
-    url: product.url
-  }, businessDomain);
+  await trackCustomEvent(
+    "product_click",
+    {
+      productId: product.id,
+      productName: product.title || product.name,
+      productPrice: product.price,
+      retailer: product.retailer,
+      url: product.url,
+    },
+    businessDomain,
+  );
 
   // If it's a Shopify store, use enhanced tracking
-  if (businessDomain && product.url.includes('myshopify.com')) {
+  if (businessDomain && product.url.includes("myshopify.com")) {
     const result = await handleProductClick(product, businessDomain);
     return result;
   }
 
   // Otherwise use regular affiliate tracking
   const affiliateUrl = generateAffiliateLink(
-    product.url, 
-    product.retailer || 'unknown',
+    product.url,
+    product.retailer || "unknown",
     businessDomain,
-    product.title || product.name
+    product.title || product.name,
   );
-  
+
   return { success: true, targetUrl: affiliateUrl };
 }

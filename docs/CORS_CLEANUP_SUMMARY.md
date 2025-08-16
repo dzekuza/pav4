@@ -7,28 +7,28 @@
 - ✅ **Removed duplicate** `https://ipick.io` entry
 - ✅ **Removed unused** IPv6 localhost entry (`http://[::1]:8083`)
 - ✅ **Organized by environment** - Development vs Production origins
-- ✅ **Added Gadget app domain** - `https://checkoutdata.gadget.app`
+- ✅ **Added main app domain** - `https://ipick.io`
 
 ### 2. **Environment-Based CORS Configuration**
 
 ```javascript
 const allowedOrigins = [
-    // Development origins (only in development environment)
-    ...(process.env.NODE_ENV === "development"
-        ? [
-            "http://localhost:3000",
-            "http://localhost:8080",
-            "http://localhost:8081",
-            "http://localhost:8082",
-            "http://localhost:8083",
-            "http://localhost:8084",
-            "http://127.0.0.1:8083",
-        ]
-        : []),
-    // Production origins (always included)
-    "https://ipick.io",
-    "https://app.pavlo.com",
-    "https://checkoutdata.gadget.app", // Gadget app domain
+  // Development origins (only in development environment)
+  ...(process.env.NODE_ENV === "development"
+    ? [
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://localhost:8082",
+        "http://localhost:8083",
+        "http://localhost:8084",
+        "http://127.0.0.1:8083",
+      ]
+    : []),
+  // Production origins (always included)
+  "https://ipick.io",
+  "https://app.pavlo.com",
+  "https://ipick.io", // Main app domain
 ];
 ```
 
@@ -38,8 +38,8 @@ Added Shopify-specific headers to CORS configuration:
 
 ```javascript
 allowedHeaders: [
-  "Content-Type", 
-  "Authorization", 
+  "Content-Type",
+  "Authorization",
   "X-Requested-With",
   "X-Shopify-Access-Token",
   "X-Shopify-Shop-Domain",
@@ -55,7 +55,7 @@ allowedHeaders: [
 
 - `https://ipick.io` - Main application
 - `https://app.pavlo.com` - Custom domain
-- `https://checkoutdata.gadget.app` - Gadget app (Shopify Admin access)
+- `https://ipick.io` - Main app (Shopify Admin access)
 
 ### **Development Domains Allowed:**
 
@@ -77,7 +77,7 @@ allowedHeaders: [
 
 ### 2. **Gadget App Integration**
 
-- `https://checkoutdata.gadget.app` now properly allowed
+- `https://ipick.io` now properly allowed
 - Shopify Admin can access the application
 - All necessary Shopify headers supported
 
@@ -96,7 +96,7 @@ allowedHeaders: [
 
 ### 1. **Test Gadget App Access**
 
-- Visit `https://checkoutdata.gadget.app/` in Shopify Admin
+- Visit `https://ipick.io/` in Shopify Admin
 - Should load without CORS errors
 
 ### 2. **Test Main Application**

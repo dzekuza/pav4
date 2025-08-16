@@ -465,19 +465,16 @@
           this.showLoading();
 
           try {
-            const response = await fetch(
-              "https://ipick.io/api/scrape",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  url: url,
-                  fromExtension: true,
-                }),
+            const response = await fetch("https://ipick.io/api/scrape", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify({
+                url: url,
+                fromExtension: true,
+              }),
+            });
 
             if (response.ok) {
               const data = await response.json();

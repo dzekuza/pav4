@@ -6,9 +6,10 @@ import fs from "fs";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || "1.0.0"),
     // Disable React DevTools in production
-    __REACT_DEVTOOLS_GLOBAL_HOOK__: mode === 'development' ? undefined : JSON.stringify({ isDisabled: true }),
+    __REACT_DEVTOOLS_GLOBAL_HOOK__:
+      mode === "development" ? undefined : JSON.stringify({ isDisabled: true }),
   },
   server: {
     host: "::",
@@ -18,8 +19,8 @@ export default defineConfig(({ mode }) => ({
       "Content-Security-Policy": "frame-ancestors 'self'",
     },
     proxy: {
-      '/api': {
-        target: 'http://localhost:8084',
+      "/api": {
+        target: "http://localhost:8084",
         changeOrigin: true,
         secure: false,
       },

@@ -78,16 +78,16 @@ Expected response:
 
 ```json
 {
-    "success": true,
-    "message": "Products API test successful",
-    "data": {
-        "databaseConnected": true,
-        "totalBusinesses": 5,
-        "totalProducts": 12,
-        "sampleCategories": ["Electronics", "Fashion"],
-        "environment": "production",
-        "hasDatabaseUrl": true
-    }
+  "success": true,
+  "message": "Products API test successful",
+  "data": {
+    "databaseConnected": true,
+    "totalBusinesses": 5,
+    "totalProducts": 12,
+    "sampleCategories": ["Electronics", "Fashion"],
+    "environment": "production",
+    "hasDatabaseUrl": true
+  }
 }
 ```
 
@@ -130,6 +130,7 @@ NODE_ENV=production
 ## Deployment Steps
 
 1. **Deploy the changes:**
+
    ```bash
    git add .
    git commit -m "Fix products API database connection and error handling"
@@ -137,6 +138,7 @@ NODE_ENV=production
    ```
 
 2. **Test the endpoints:**
+
    - Test database connection: `/api/products/test`
    - Test categories: `/api/products/categories`
    - Test products: `/api/products/category/Electronics`

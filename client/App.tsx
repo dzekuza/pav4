@@ -17,7 +17,10 @@ class ErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
   { hasError: boolean; error?: Error }
 > {
-  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+  constructor(props: {
+    children: React.ReactNode;
+    fallback?: React.ReactNode;
+  }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -34,35 +37,41 @@ class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <div style={{ 
-            padding: '20px', 
-            textAlign: 'center',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
+          <div
+            style={{
+              padding: "20px",
+              textAlign: "center",
+              fontFamily: "system-ui, -apple-system, sans-serif",
+            }}
+          >
             <h2>Something went wrong</h2>
-            <p>We're having trouble loading this page. Please try refreshing.</p>
-            <button 
+            <p>
+              We're having trouble loading this page. Please try refreshing.
+            </p>
+            <button
               onClick={() => window.location.reload()}
               style={{
-                background: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '5px',
-                cursor: 'pointer'
+                background: "#007bff",
+                color: "white",
+                border: "none",
+                padding: "10px 20px",
+                borderRadius: "5px",
+                cursor: "pointer",
               }}
             >
               Refresh Page
             </button>
             {this.state.error && (
-              <details style={{ marginTop: '20px', textAlign: 'left' }}>
+              <details style={{ marginTop: "20px", textAlign: "left" }}>
                 <summary>Error Details</summary>
-                <pre style={{ 
-                  background: '#f8f9fa', 
-                  padding: '10px', 
-                  borderRadius: '5px',
-                  overflow: 'auto'
-                }}>
+                <pre
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "10px",
+                    borderRadius: "5px",
+                    overflow: "auto",
+                  }}
+                >
                   {this.state.error.message}
                 </pre>
               </details>
@@ -98,8 +107,8 @@ const BusinessManagement = lazy(() =>
   })),
 );
 const BusinessLogin = lazy(() => import("./pages/BusinessLogin"));
-const BusinessDashboardLayout = lazy(
-  () => import("./components/BusinessDashboardLayout").then((m) => ({
+const BusinessDashboardLayout = lazy(() =>
+  import("./components/BusinessDashboardLayout").then((m) => ({
     default: m.default,
   })),
 );
@@ -121,6 +130,8 @@ const BusinessSettingsDashboard = lazy(
 const BusinessProductsDashboard = lazy(
   () => import("./pages/BusinessProductsDashboard"),
 );
+const DashboardSelector = lazy(() => import("./components/DashboardSelector"));
+const JourneyDashboard = lazy(() => import("./pages/JourneyDashboard"));
 const Browse = lazy(() => import("./pages/Browse"));
 const Landing2 = lazy(() => import("./pages/Landing2"));
 const BusinessIntegrate = lazy(() => import("./pages/BusinessIntegrate"));
@@ -315,6 +326,14 @@ const router = createBrowserRouter(
       path: "/business/dashboard",
       element: (
         <Suspense fallback={null}>
+          <DashboardSelector />
+        </Suspense>
+      ),
+    },
+    {
+      path: "/business/dashboard/checkout",
+      element: (
+        <Suspense fallback={null}>
           <BusinessDashboardLayout />
         </Suspense>
       ),
@@ -370,6 +389,14 @@ const router = createBrowserRouter(
           ),
         },
       ],
+    },
+    {
+      path: "/business/dashboard/journey",
+      element: (
+        <Suspense fallback={null}>
+          <JourneyDashboard />
+        </Suspense>
+      ),
     },
     // Legacy routes for backward compatibility
     {

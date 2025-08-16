@@ -174,17 +174,32 @@ export default function Admin() {
       if (response.ok) {
         const data = await response.json();
         setBusinesses(data.businesses);
-        
+
         // Calculate business statistics
         const stats: BusinessStats = {
           totalBusinesses: data.businesses.length,
-          activeBusinesses: data.businesses.filter((b: Business) => b.isActive).length,
-          verifiedBusinesses: data.businesses.filter((b: Business) => b.isVerified).length,
-          totalVisits: data.businesses.reduce((sum: number, b: Business) => sum + b.totalVisits, 0),
-          totalPurchases: data.businesses.reduce((sum: number, b: Business) => sum + b.totalPurchases, 0),
-          totalRevenue: data.businesses.reduce((sum: number, b: Business) => sum + b.totalRevenue, 0),
-          totalCommissionEarned: data.businesses.reduce((sum: number, b: Business) => 
-            sum + (b.totalRevenue * b.adminCommissionRate / 100), 0),
+          activeBusinesses: data.businesses.filter((b: Business) => b.isActive)
+            .length,
+          verifiedBusinesses: data.businesses.filter(
+            (b: Business) => b.isVerified,
+          ).length,
+          totalVisits: data.businesses.reduce(
+            (sum: number, b: Business) => sum + b.totalVisits,
+            0,
+          ),
+          totalPurchases: data.businesses.reduce(
+            (sum: number, b: Business) => sum + b.totalPurchases,
+            0,
+          ),
+          totalRevenue: data.businesses.reduce(
+            (sum: number, b: Business) => sum + b.totalRevenue,
+            0,
+          ),
+          totalCommissionEarned: data.businesses.reduce(
+            (sum: number, b: Business) =>
+              sum + (b.totalRevenue * b.adminCommissionRate) / 100,
+            0,
+          ),
         };
         setBusinessStats(stats);
       } else {
@@ -200,21 +215,24 @@ export default function Admin() {
   const updateCommissionRate = async (businessId: number, newRate: number) => {
     setUpdatingCommission(true);
     try {
-      const response = await fetch(`/api/admin/businesses/${businessId}/commission`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ commissionRate: newRate }),
-      });
+      const response = await fetch(
+        `/api/admin/businesses/${businessId}/commission`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ commissionRate: newRate }),
+        },
+      );
 
       if (response.ok) {
         // Update local state
-        setBusinesses(prev => prev.map(b => 
-          b.id === businessId 
-            ? { ...b, adminCommissionRate: newRate }
-            : b
-        ));
-        
+        setBusinesses((prev) =>
+          prev.map((b) =>
+            b.id === businessId ? { ...b, adminCommissionRate: newRate } : b,
+          ),
+        );
+
         // Recalculate stats
         fetchBusinesses();
         setEditingCommission(null);
@@ -374,15 +392,24 @@ export default function Admin() {
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList className="bg-white/10 border-white/20">
-            <TabsTrigger value="users" className="flex items-center gap-2 text-white data-[state=active]:bg-white data-[state=active]:text-black">
+            <TabsTrigger
+              value="users"
+              className="flex items-center gap-2 text-white data-[state=active]:bg-white data-[state=active]:text-black"
+            >
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="businesses" className="flex items-center gap-2 text-white data-[state=active]:bg-white data-[state=active]:text-black">
+            <TabsTrigger
+              value="businesses"
+              className="flex items-center gap-2 text-white data-[state=active]:bg-white data-[state=active]:text-black"
+            >
               <Building2 className="h-4 w-4" />
               Businesses
             </TabsTrigger>
-            <TabsTrigger value="affiliate" className="flex items-center gap-2 text-white data-[state=active]:bg-white data-[state=active]:text-black">
+            <TabsTrigger
+              value="affiliate"
+              className="flex items-center gap-2 text-white data-[state=active]:bg-white data-[state=active]:text-black"
+            >
               <ExternalLink className="h-4 w-4" />
               Affiliate URLs
             </TabsTrigger>
@@ -494,7 +521,9 @@ export default function Admin() {
                   <Building2 className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{businessStats.totalBusinesses}</div>
+                  <div className="text-2xl font-bold">
+                    {businessStats.totalBusinesses}
+                  </div>
                   <p className="text-xs text-white/70">
                     {businessStats.activeBusinesses} active
                   </p>
@@ -509,7 +538,9 @@ export default function Admin() {
                   <Eye className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{businessStats.totalVisits}</div>
+                  <div className="text-2xl font-bold">
+                    {businessStats.totalVisits}
+                  </div>
                   <p className="text-xs text-white/70">Across all businesses</p>
                 </CardContent>
               </Card>
@@ -522,7 +553,9 @@ export default function Admin() {
                   <DollarSign className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">€{businessStats.totalRevenue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold">
+                    €{businessStats.totalRevenue.toFixed(2)}
+                  </div>
                   <p className="text-xs text-white/70">
                     {businessStats.totalPurchases} purchases
                   </p>
@@ -537,7 +570,9 @@ export default function Admin() {
                   <DollarSign className="h-4 w-4 text-white/60" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">€{businessStats.totalCommissionEarned.toFixed(2)}</div>
+                  <div className="text-2xl font-bold">
+                    €{businessStats.totalCommissionEarned.toFixed(2)}
+                  </div>
                   <p className="text-xs text-white/70">From all businesses</p>
                 </CardContent>
               </Card>
@@ -546,7 +581,9 @@ export default function Admin() {
             {/* Businesses Table */}
             <Card className="border-white/10 bg-white/5 text-white">
               <CardHeader>
-                <CardTitle className="text-white">Registered Businesses</CardTitle>
+                <CardTitle className="text-white">
+                  Registered Businesses
+                </CardTitle>
                 <CardDescription className="text-white/80">
                   All businesses and their performance metrics
                 </CardDescription>
@@ -581,8 +618,12 @@ export default function Admin() {
                           <div className="flex items-center gap-4 text-xs text-white/60">
                             <span>👁️ {business.totalVisits} visits</span>
                             <span>🛒 {business.totalPurchases} purchases</span>
-                            <span>💰 €{business.totalRevenue.toFixed(2)} revenue</span>
-                            <span>📊 {business.adminCommissionRate}% commission</span>
+                            <span>
+                              💰 €{business.totalRevenue.toFixed(2)} revenue
+                            </span>
+                            <span>
+                              📊 {business.adminCommissionRate}% commission
+                            </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -591,11 +632,13 @@ export default function Admin() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setEditingCommission({
-                                  businessId: business.id,
-                                  currentRate: business.adminCommissionRate,
-                                  newRate: business.adminCommissionRate
-                                })}
+                                onClick={() =>
+                                  setEditingCommission({
+                                    businessId: business.id,
+                                    currentRate: business.adminCommissionRate,
+                                    newRate: business.adminCommissionRate,
+                                  })
+                                }
                                 className="flex items-center gap-1"
                               >
                                 <Settings className="h-3 w-3" />
@@ -604,14 +647,19 @@ export default function Admin() {
                             </DialogTrigger>
                             <DialogContent className="bg-gray-900 border-white/20 text-white">
                               <DialogHeader>
-                                <DialogTitle>Update Commission Rate</DialogTitle>
+                                <DialogTitle>
+                                  Update Commission Rate
+                                </DialogTitle>
                                 <DialogDescription className="text-white/70">
                                   Set commission rate for {business.name}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div>
-                                  <Label htmlFor="commission-rate" className="text-white">
+                                  <Label
+                                    htmlFor="commission-rate"
+                                    className="text-white"
+                                  >
                                     Commission Rate (%)
                                   </Label>
                                   <Input
@@ -620,10 +668,21 @@ export default function Admin() {
                                     min="0"
                                     max="100"
                                     step="0.1"
-                                    value={editingCommission?.newRate || business.adminCommissionRate}
-                                    onChange={(e) => setEditingCommission(prev => 
-                                      prev ? { ...prev, newRate: parseFloat(e.target.value) || 0 } : null
-                                    )}
+                                    value={
+                                      editingCommission?.newRate ||
+                                      business.adminCommissionRate
+                                    }
+                                    onChange={(e) =>
+                                      setEditingCommission((prev) =>
+                                        prev
+                                          ? {
+                                              ...prev,
+                                              newRate:
+                                                parseFloat(e.target.value) || 0,
+                                            }
+                                          : null,
+                                      )
+                                    }
                                     className="bg-gray-800 border-white/20 text-white"
                                   />
                                 </div>
@@ -637,13 +696,18 @@ export default function Admin() {
                                   <Button
                                     onClick={() => {
                                       if (editingCommission) {
-                                        updateCommissionRate(editingCommission.businessId, editingCommission.newRate);
+                                        updateCommissionRate(
+                                          editingCommission.businessId,
+                                          editingCommission.newRate,
+                                        );
                                       }
                                     }}
                                     disabled={updatingCommission}
                                     className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                                   >
-                                    {updatingCommission ? "Updating..." : "Update Rate"}
+                                    {updatingCommission
+                                      ? "Updating..."
+                                      : "Update Rate"}
                                   </Button>
                                 </div>
                               </div>

@@ -17,7 +17,10 @@ interface ForgotPasswordFormProps {
   userType?: "customer" | "business";
 }
 
-export function ForgotPasswordForm({ onBack, userType = "customer" }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({
+  onBack,
+  userType = "customer",
+}: ForgotPasswordFormProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,9 +38,10 @@ export function ForgotPasswordForm({ onBack, userType = "customer" }: ForgotPass
     setError("");
 
     try {
-      const endpoint = userType === "business" 
-        ? "/api/business/auth/forgot-password"
-        : "/api/auth/forgot-password";
+      const endpoint =
+        userType === "business"
+          ? "/api/business/auth/forgot-password"
+          : "/api/auth/forgot-password";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -76,15 +80,12 @@ export function ForgotPasswordForm({ onBack, userType = "customer" }: ForgotPass
         <CardContent className="space-y-4">
           <Alert className="border-green-500/20 bg-green-500/10 text-green-300">
             <AlertDescription>
-              If an account with this email exists, you'll receive a password reset link shortly.
+              If an account with this email exists, you'll receive a password
+              reset link shortly.
             </AlertDescription>
           </Alert>
-          
-          <Button
-            onClick={onBack}
-            variant="outline"
-            className="w-full"
-          >
+
+          <Button onClick={onBack} variant="outline" className="w-full">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Login
           </Button>

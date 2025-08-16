@@ -59,9 +59,9 @@ router.get("/redirect", async (req, res) => {
       console.log("Business click logged and visits incremented");
 
       // For business domains, use referral tracking URL instead of direct redirect
-      const baseUrl = process.env.FRONTEND_URL || 'https://ipick.io';
+      const baseUrl = process.env.FRONTEND_URL || "https://ipick.io";
       const referralUrl = `${baseUrl}/ref/${business.affiliateId}`;
-      
+
       // Add UTM parameters to the referral URL
       const utmParams = new URLSearchParams({
         utm_source: "ipick.io",
@@ -72,7 +72,10 @@ router.get("/redirect", async (req, res) => {
       });
 
       const finalReferralUrl = `${referralUrl}?${utmParams.toString()}`;
-      console.log("Redirecting to business via referral URL:", finalReferralUrl);
+      console.log(
+        "Redirecting to business via referral URL:",
+        finalReferralUrl,
+      );
       return res.redirect(302, finalReferralUrl);
     } else {
       console.log("No business found for domain:", hostname);

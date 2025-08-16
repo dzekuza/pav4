@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -26,7 +26,7 @@ export class EmailService {
   constructor() {
     this.resend = new Resend(process.env.RESEND_API_KEY);
     // Use Resend's default domain until custom domain is verified
-    this.defaultFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+    this.defaultFrom = process.env.EMAIL_FROM || "onboarding@resend.dev";
   }
 
   public static getInstance(): EmailService {
@@ -39,10 +39,12 @@ export class EmailService {
   /**
    * Send a simple email
    */
-  async sendEmail(options: EmailOptions): Promise<{ success: boolean; message?: string; error?: string }> {
+  async sendEmail(
+    options: EmailOptions,
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       if (!process.env.RESEND_API_KEY) {
-        throw new Error('RESEND_API_KEY is not configured');
+        throw new Error("RESEND_API_KEY is not configured");
       }
 
       const result = await this.resend.emails.send({
@@ -54,13 +56,14 @@ export class EmailService {
         attachments: options.attachments,
       });
 
-      console.log('Email sent successfully:', result);
-      return { success: true, message: 'Email sent successfully' };
+      console.log("Email sent successfully:", result);
+      return { success: true, message: "Email sent successfully" };
     } catch (error) {
-      console.error('Failed to send email:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      console.error("Failed to send email:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
       };
     }
   }
@@ -68,8 +71,12 @@ export class EmailService {
   /**
    * Send welcome email to new business
    */
-  async sendWelcomeEmail(businessName: string, businessEmail: string, domain: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    const subject = `Welcome to ${process.env.APP_NAME || 'Our Platform'}!`;
+  async sendWelcomeEmail(
+    businessName: string,
+    businessEmail: string,
+    domain: string,
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    const subject = `Welcome to ${process.env.APP_NAME || "Our Platform"}!`;
     const html = `
       <!DOCTYPE html>
       <html>
@@ -89,7 +96,7 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Welcome to ${process.env.APP_NAME || 'Our Platform'}!</h1>
+            <h1>Welcome to ${process.env.APP_NAME || "Our Platform"}!</h1>
           </div>
           <div class="content">
             <h2>Hello ${businessName}!</h2>
@@ -109,12 +116,12 @@ export class EmailService {
               <li>Start monitoring your analytics and conversions</li>
             </ol>
 
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/business/dashboard" class="button">Go to Dashboard</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/business/dashboard" class="button">Go to Dashboard</a>
             
             <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || "Our Platform"}. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -131,9 +138,13 @@ export class EmailService {
   /**
    * Send password reset email
    */
-  async sendPasswordResetEmail(email: string, resetToken: string, businessName?: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
-    const subject = 'Password Reset Request';
+  async sendPasswordResetEmail(
+    email: string,
+    resetToken: string,
+    businessName?: string,
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
+    const subject = "Password Reset Request";
     const html = `
       <!DOCTYPE html>
       <html>
@@ -157,7 +168,7 @@ export class EmailService {
             <h1>Password Reset Request</h1>
           </div>
           <div class="content">
-            <h2>Hello${businessName ? ` ${businessName}` : ''}!</h2>
+            <h2>Hello${businessName ? ` ${businessName}` : ""}!</h2>
             <p>We received a request to reset your password. If you didn't make this request, you can safely ignore this email.</p>
             
             <p>To reset your password, click the button below:</p>
@@ -171,7 +182,7 @@ export class EmailService {
             <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || "Our Platform"}. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -188,7 +199,12 @@ export class EmailService {
   /**
    * Send domain verification email
    */
-  async sendDomainVerificationEmail(businessEmail: string, businessName: string, domain: string, verificationToken: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  async sendDomainVerificationEmail(
+    businessEmail: string,
+    businessName: string,
+    domain: string,
+    verificationToken: string,
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
     const subject = `Verify Your Domain: ${domain}`;
     const html = `
       <!DOCTYPE html>
@@ -230,7 +246,7 @@ export class EmailService {
             <p><strong>Note:</strong> This verification token will expire in 24 hours.</p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || "Our Platform"}. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -247,12 +263,16 @@ export class EmailService {
   /**
    * Send notification email for new sales/conversions
    */
-  async sendSalesNotificationEmail(businessEmail: string, businessName: string, saleData: {
-    orderId: string;
-    amount: number;
-    commission: number;
-    productUrl?: string;
-  }): Promise<{ success: boolean; message?: string; error?: string }> {
+  async sendSalesNotificationEmail(
+    businessEmail: string,
+    businessName: string,
+    saleData: {
+      orderId: string;
+      amount: number;
+      commission: number;
+      productUrl?: string;
+    },
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
     const subject = `New Sale! Order #${saleData.orderId}`;
     const html = `
       <!DOCTYPE html>
@@ -284,13 +304,13 @@ export class EmailService {
               <p><strong>Order ID:</strong> ${saleData.orderId}</p>
               <p><strong>Sale Amount:</strong> <span class="amount">$${saleData.amount.toFixed(2)}</span></p>
               <p><strong>Your Commission:</strong> <span class="amount">$${saleData.commission.toFixed(2)}</span></p>
-              ${saleData.productUrl ? `<p><strong>Product:</strong> <a href="${saleData.productUrl}">View Product</a></p>` : ''}
+              ${saleData.productUrl ? `<p><strong>Product:</strong> <a href="${saleData.productUrl}">View Product</a></p>` : ""}
             </div>
             
             <p>Keep up the great work! Your tracking is working perfectly.</p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || "Our Platform"}. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -307,14 +327,18 @@ export class EmailService {
   /**
    * Send weekly/monthly analytics report
    */
-  async sendAnalyticsReportEmail(businessEmail: string, businessName: string, reportData: {
-    period: string;
-    totalVisits: number;
-    totalSales: number;
-    totalRevenue: number;
-    totalCommission: number;
-    conversionRate: number;
-  }): Promise<{ success: boolean; message?: string; error?: string }> {
+  async sendAnalyticsReportEmail(
+    businessEmail: string,
+    businessName: string,
+    reportData: {
+      period: string;
+      totalVisits: number;
+      totalSales: number;
+      totalRevenue: number;
+      totalCommission: number;
+      conversionRate: number;
+    },
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
     const subject = `${reportData.period} Analytics Report - ${businessName}`;
     const html = `
       <!DOCTYPE html>
@@ -370,7 +394,7 @@ export class EmailService {
             <p>Keep up the great work! 🚀</p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || 'Our Platform'}. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} ${process.env.APP_NAME || "Our Platform"}. All rights reserved.</p>
           </div>
         </div>
       </body>

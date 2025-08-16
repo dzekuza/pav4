@@ -117,14 +117,17 @@ Monitor function logs for:
 ### **Common Issues:**
 
 1. **"API key not configured"**
+
    - Check if `PAVL_APP` is set correctly
    - Verify the variable name matches exactly
 
 2. **"Failed to fetch dashboard data"**
+
    - Test the `/api/business/test-gadget-api` endpoint
    - Check Netlify function logs for detailed errors
 
 3. **Database connection errors**
+
    - Verify `NETLIFY_DATABASE_URL` is correct
    - Check database accessibility from Netlify
 

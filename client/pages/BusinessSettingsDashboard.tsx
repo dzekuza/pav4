@@ -45,7 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 // Available business categories
 const businessCategories = [
   "Electronics",
-  "Fashion", 
+  "Fashion",
   "Home & Garden",
   "Sports",
   "Beauty",
@@ -64,7 +64,7 @@ const businessCategories = [
   "Garden & Outdoor",
   "Kitchen & Dining",
   "Bath & Personal Care",
-  "Other"
+  "Other",
 ];
 
 // Available countries
@@ -101,7 +101,7 @@ const countries = [
   "Estonia",
   "Latvia",
   "Lithuania",
-  "Other"
+  "Other",
 ];
 
 interface BusinessStats {
@@ -236,7 +236,7 @@ export default function BusinessSettingsDashboard() {
         } catch (jsonError) {
           throw new Error("Invalid response from server");
         }
-        
+
         // Update local state with the response data
         if (data.business) {
           setSettings((prev) => ({
@@ -255,7 +255,7 @@ export default function BusinessSettingsDashboard() {
             },
           }));
         }
-        
+
         toast({
           title: "Profile Updated",
           description:
@@ -311,7 +311,9 @@ export default function BusinessSettingsDashboard() {
       {/* Settings Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-white">Business Settings</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-white">
+            Business Settings
+          </h2>
           <p className="text-sm md:text-base text-white/70">
             Manage your business profile, tracking, and security settings
           </p>
@@ -322,11 +324,33 @@ export default function BusinessSettingsDashboard() {
       <Tabs defaultValue="profile" className="space-y-4">
         <div className="overflow-x-auto tabs-scroll-container">
           <TabsList className="flex w-full min-w-max space-x-1 bg-white/5 border border-white/10">
-            <TabsTrigger value="profile" className="flex-shrink-0 px-3 md:px-4">Profile</TabsTrigger>
-            <TabsTrigger value="tracking" className="flex-shrink-0 px-3 md:px-4">Tracking</TabsTrigger>
-            <TabsTrigger value="commission" className="flex-shrink-0 px-3 md:px-4">Commission</TabsTrigger>
-            <TabsTrigger value="notifications" className="flex-shrink-0 px-3 md:px-4">Notifications</TabsTrigger>
-            <TabsTrigger value="security" className="flex-shrink-0 px-3 md:px-4">Security</TabsTrigger>
+            <TabsTrigger value="profile" className="flex-shrink-0 px-3 md:px-4">
+              Profile
+            </TabsTrigger>
+            <TabsTrigger
+              value="tracking"
+              className="flex-shrink-0 px-3 md:px-4"
+            >
+              Tracking
+            </TabsTrigger>
+            <TabsTrigger
+              value="commission"
+              className="flex-shrink-0 px-3 md:px-4"
+            >
+              Commission
+            </TabsTrigger>
+            <TabsTrigger
+              value="notifications"
+              className="flex-shrink-0 px-3 md:px-4"
+            >
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              className="flex-shrink-0 px-3 md:px-4"
+            >
+              Security
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -579,16 +603,19 @@ export default function BusinessSettingsDashboard() {
                       Commission Rate Managed by Admin
                     </h4>
                     <p className="text-sm text-white/70">
-                      Your commission rate is set by the platform administrator and cannot be changed from this dashboard. 
-                      Contact support if you need to discuss your commission rate.
+                      Your commission rate is set by the platform administrator
+                      and cannot be changed from this dashboard. Contact support
+                      if you need to discuss your commission rate.
                     </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="commission-rate">Current Commission Rate</Label>
+                  <Label htmlFor="commission-rate">
+                    Current Commission Rate
+                  </Label>
                   <div className="flex items-center gap-2">
                     <Input
                       id="commission-rate"
@@ -624,22 +651,34 @@ export default function BusinessSettingsDashboard() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Commission Details</Label>
                 <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-white/70">Total Revenue:</span>
-                    <span className="text-sm font-medium">${stats?.totalRevenue || 0}</span>
+                    <span className="text-sm text-white/70">
+                      Total Revenue:
+                    </span>
+                    <span className="text-sm font-medium">
+                      ${stats?.totalRevenue || 0}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-white/70">Commission Rate:</span>
-                    <span className="text-sm font-medium">{stats?.adminCommissionRate || 0}%</span>
+                    <span className="text-sm text-white/70">
+                      Commission Rate:
+                    </span>
+                    <span className="text-sm font-medium">
+                      {stats?.adminCommissionRate || 0}%
+                    </span>
                   </div>
                   <Separator className="bg-border" />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Projected Commission:</span>
-                    <span className="text-sm font-medium text-green-400">${stats?.projectedFee || 0}</span>
+                    <span className="text-sm font-medium">
+                      Projected Commission:
+                    </span>
+                    <span className="text-sm font-medium text-green-400">
+                      ${stats?.projectedFee || 0}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -649,7 +688,7 @@ export default function BusinessSettingsDashboard() {
 
         {/* Notification Settings */}
         <TabsContent value="notifications" className="space-y-4">
-          <NotificationSettings 
+          <NotificationSettings
             businessEmail={settings.businessInfo.email}
             businessName={settings.businessInfo.name}
           />

@@ -12,15 +12,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SearchHeader } from "@/components/SearchHeader";
-import { Eye, ShoppingCart, DollarSign, Calendar, Filter, Trash2 } from "lucide-react";
+import {
+  Eye,
+  ShoppingCart,
+  DollarSign,
+  Calendar,
+  Filter,
+  Trash2,
+} from "lucide-react";
 import { useBusinessAuth } from "@/hooks/use-auth";
 
 interface ActivityItem {
   id: string;
-  type: "click" | "purchase" | "add_to_cart" | "checkout_start" | "checkout_complete" | "page_view" | "product_view";
+  type:
+    | "click"
+    | "purchase"
+    | "add_to_cart"
+    | "checkout_start"
+    | "checkout_complete"
+    | "page_view"
+    | "product_view";
   productName: string;
   productUrl: string;
-  status: "browsed" | "purchased" | "abandoned" | "added to cart" | "checkout started" | "checkout completed" | "viewed";
+  status:
+    | "browsed"
+    | "purchased"
+    | "abandoned"
+    | "added to cart"
+    | "checkout started"
+    | "checkout completed"
+    | "viewed";
   amount?: number;
   timestamp: string;
   userAgent?: string;
@@ -34,7 +55,9 @@ export default function BusinessActivity() {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "clicks" | "purchases" | "add_to_cart" | "checkout" | "page_views">("all");
+  const [filter, setFilter] = useState<
+    "all" | "clicks" | "purchases" | "add_to_cart" | "checkout" | "page_views"
+  >("all");
   const [stats, setStats] = useState({
     totalClicks: 0,
     totalPurchases: 0,
@@ -61,7 +84,7 @@ export default function BusinessActivity() {
         `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
         {
           credentials: "include",
-        }
+        },
       );
 
       if (!dashboardResponse.ok) {
@@ -69,14 +92,16 @@ export default function BusinessActivity() {
       }
 
       const dashboardData = await dashboardResponse.json();
-      
+
       if (!dashboardData.success) {
-        throw new Error(dashboardData.error || "Failed to fetch dashboard data");
+        throw new Error(
+          dashboardData.error || "Failed to fetch dashboard data",
+        );
       }
 
       // Extract data from the consolidated dashboard response
       const { recentCheckouts, recentOrders } = dashboardData;
-      
+
       // Use consolidated data for all activity
       const clicks = recentCheckouts || [];
       const conversions = recentOrders || [];
@@ -88,8 +113,8 @@ export default function BusinessActivity() {
         ...clicks.map((checkout: any) => ({
           id: `checkout-${checkout.id}`,
           type: "checkout_start" as const,
-          productName: checkout.name || checkout.email || 'Checkout',
-          productUrl: checkout.sourceUrl || 'Shopify Checkout',
+          productName: checkout.name || checkout.email || "Checkout",
+          productUrl: checkout.sourceUrl || "Shopify Checkout",
           status: "checkout started" as const,
           amount: parseFloat(checkout.totalPrice) || 0,
           timestamp: checkout.createdAt,
@@ -102,7 +127,7 @@ export default function BusinessActivity() {
           id: `order-${order.id}`,
           type: "purchase" as const,
           productName: order.name || `Order ${order.id}`,
-          productUrl: order.shop?.domain || 'Shopify Order',
+          productUrl: order.shop?.domain || "Shopify Order",
           status: "purchased" as const,
           amount: parseFloat(order.totalPrice) || 0,
           timestamp: order.createdAt,
@@ -128,22 +153,26 @@ export default function BusinessActivity() {
         (sum: number, conv: any) => sum + conv.amount,
         0,
       );
-      
+
       // Add revenue from tracking events
       const trackingRevenue = events.reduce((sum: number, event: any) => {
-        const eventData = typeof event.eventData === 'string' 
-          ? JSON.parse(event.eventData) 
-          : event.eventData || {};
+        const eventData =
+          typeof event.eventData === "string"
+            ? JSON.parse(event.eventData)
+            : event.eventData || {};
         return sum + (eventData.total || eventData.value || 0);
       }, 0);
-      
+
       // Add revenue from checkout events
       const checkoutRevenue = checkouts.reduce((sum: number, checkout: any) => {
         return sum + (parseFloat(checkout.totalPrice) || 0);
       }, 0);
-      
-      const totalRevenueCombined = totalRevenue + trackingRevenue + checkoutRevenue;
-      const totalOrders = conversions.length + checkouts.filter((c: any) => c.eventType === 'order_created').length;
+
+      const totalRevenueCombined =
+        totalRevenue + trackingRevenue + checkoutRevenue;
+      const totalOrders =
+        conversions.length +
+        checkouts.filter((c: any) => c.eventType === "order_created").length;
       const conversionRate =
         totalClicks > 0 ? (totalOrders / totalClicks) * 100 : 0;
 
@@ -161,13 +190,17 @@ export default function BusinessActivity() {
   };
 
   const clearActivity = async () => {
-    if (!confirm("Are you sure you want to clear all activity data? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to clear all activity data? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
     try {
       setIsClearing(true);
-      
+
       const response = await fetch("/api/business/activity/clear", {
         method: "DELETE",
         credentials: "include",
@@ -182,12 +215,14 @@ export default function BusinessActivity() {
           totalRevenue: 0,
           conversionRate: 0,
         });
-        
+
         // Show success message
         alert("Activity data cleared successfully!");
       } else {
         const errorData = await response.json();
-        alert(`Failed to clear activity: ${errorData.error || "Unknown error"}`);
+        alert(
+          `Failed to clear activity: ${errorData.error || "Unknown error"}`,
+        );
       }
     } catch (error) {
       console.error("Error clearing activity:", error);
@@ -219,42 +254,42 @@ export default function BusinessActivity() {
     if (eventData.productName || eventData.title) {
       return eventData.productName || eventData.title;
     }
-    
+
     // Try to extract from URL
     if (event.url) {
       return extractProductName(event.url);
     }
-    
+
     // Default based on event type
     switch (event.eventType) {
-      case 'page_view':
-        return 'Page View';
-      case 'checkout_start':
-      case 'checkout_complete':
-        return 'Checkout';
-      case 'add_to_cart':
-        return eventData.productName || 'Product Added to Cart';
+      case "page_view":
+        return "Page View";
+      case "checkout_start":
+      case "checkout_complete":
+        return "Checkout";
+      case "add_to_cart":
+        return eventData.productName || "Product Added to Cart";
       default:
-        return 'Product';
+        return "Product";
     }
   };
 
   const getEventStatus = (eventType: string): string => {
     switch (eventType) {
-      case 'add_to_cart':
-        return 'added to cart';
-      case 'checkout_start':
-        return 'checkout started';
-      case 'checkout_complete':
-        return 'checkout completed';
-      case 'page_view':
-        return 'viewed';
-      case 'product_view':
-        return 'viewed';
-      case 'purchase':
-        return 'purchased';
+      case "add_to_cart":
+        return "added to cart";
+      case "checkout_start":
+        return "checkout started";
+      case "checkout_complete":
+        return "checkout completed";
+      case "page_view":
+        return "viewed";
+      case "product_view":
+        return "viewed";
+      case "purchase":
+        return "purchased";
       default:
-        return 'viewed';
+        return "viewed";
     }
   };
 
@@ -321,8 +356,13 @@ export default function BusinessActivity() {
     if (filter === "clicks") return activity.type === "click";
     if (filter === "purchases") return activity.type === "purchase";
     if (filter === "add_to_cart") return activity.type === "add_to_cart";
-    if (filter === "checkout") return activity.type === "checkout_start" || activity.type === "checkout_complete";
-    if (filter === "page_views") return activity.type === "page_view" || activity.type === "product_view";
+    if (filter === "checkout")
+      return (
+        activity.type === "checkout_start" ||
+        activity.type === "checkout_complete"
+      );
+    if (filter === "page_views")
+      return activity.type === "page_view" || activity.type === "product_view";
     return true;
   });
 
@@ -435,7 +475,9 @@ export default function BusinessActivity() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {activities.filter(a => a.type === 'add_to_cart').length.toLocaleString()}
+                {activities
+                  .filter((a) => a.type === "add_to_cart")
+                  .length.toLocaleString()}
               </div>
               <p className="text-xs text-white/80">Cart additions</p>
             </CardContent>
@@ -450,7 +492,13 @@ export default function BusinessActivity() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {activities.filter(a => a.type === 'checkout_start' || a.type === 'checkout_complete').length.toLocaleString()}
+                {activities
+                  .filter(
+                    (a) =>
+                      a.type === "checkout_start" ||
+                      a.type === "checkout_complete",
+                  )
+                  .length.toLocaleString()}
               </div>
               <p className="text-xs text-white/80">Checkout events</p>
             </CardContent>

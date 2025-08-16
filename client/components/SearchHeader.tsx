@@ -109,7 +109,7 @@ export function SearchHeader({
                 <Link to="/business/dashboard">Dashboard</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/business/dashboard/settings">Settings</Link>
+                <Link to="/business/dashboard/checkout/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

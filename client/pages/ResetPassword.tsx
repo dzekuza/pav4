@@ -11,7 +11,7 @@ export default function ResetPassword() {
             Enter your new password to complete the reset process
           </p>
         </div>
-        
+
         <ResetPasswordForm userType="business" />
       </div>
     </div>

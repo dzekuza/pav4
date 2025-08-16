@@ -4,12 +4,12 @@ import jwt from "jsonwebtoken";
 import axios from "axios";
 import { businessService, prisma } from "../services/database";
 import { emailService } from "../services/email";
-import { 
-  DOMAIN_VERIFICATION_CONFIG, 
-  isDashboardAccessAllowed, 
-  isTrackingAllowed, 
+import {
+  DOMAIN_VERIFICATION_CONFIG,
+  isDashboardAccessAllowed,
+  isTrackingAllowed,
   isAnalyticsAllowed,
-  getAvailableFeatures 
+  getAvailableFeatures,
 } from "../config/domain-verification";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -131,7 +131,8 @@ export const registerBusiness: RequestHandler = async (req, res) => {
         domainVerified: false, // New businesses start with no domain verification
         trackingVerified: business.trackingVerified,
         availableFeatures,
-        domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
+        domainVerificationRequired:
+          DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
       token,
     });
@@ -219,7 +220,8 @@ export const loginBusiness: RequestHandler = async (req, res) => {
         domainVerified: domainVerified,
         trackingVerified: business.trackingVerified,
         availableFeatures,
-        domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
+        domainVerificationRequired:
+          DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
       token,
     });
@@ -291,7 +293,8 @@ export const getCurrentBusiness: RequestHandler = async (req, res) => {
         trackingVerified: business.trackingVerified,
         domainVerified: domainVerified,
         availableFeatures,
-        domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
+        domainVerificationRequired:
+          DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
       },
       authenticated: true,
     });
@@ -381,11 +384,12 @@ export const getBusinessStats: RequestHandler = async (req, res) => {
     // Get available features
     const availableFeatures = getAvailableFeatures(domainVerified);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       stats,
       availableFeatures,
-      domainVerificationRequired: DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
+      domainVerificationRequired:
+        DOMAIN_VERIFICATION_CONFIG.REQUIRED_FOR_DASHBOARD_ACCESS,
     });
   } catch (error) {
     console.error("Error getting business stats:", error);
@@ -484,9 +488,7 @@ export const verifyBusinessTracking: RequestHandler = async (req, res) => {
     }
 
     // Check for tracking script presence
-    const trackingScripts = [
-      "https://ipick.io/tracker.js",
-    ];
+    const trackingScripts = ["https://ipick.io/tracker.js"];
 
     console.log("Checking for tracking scripts...");
     const foundScripts = trackingScripts.filter((script) => {
@@ -673,7 +675,8 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
 
     // Check if domain is already taken by another business
     if (domain !== business.domain) {
-      const existingBusiness = await businessService.findBusinessByDomain(domain);
+      const existingBusiness =
+        await businessService.findBusinessByDomain(domain);
       if (existingBusiness && existingBusiness.id !== business.id) {
         return res.status(400).json({
           success: false,
@@ -695,7 +698,7 @@ export const updateBusinessProfile: RequestHandler = async (req, res) => {
         category: category || null,
         description: description || null,
         logo: logo || null,
-      }
+      },
     );
 
     res.json({
@@ -741,7 +744,8 @@ export const forgotPassword: RequestHandler = async (req, res) => {
       // Don't reveal if email exists or not for security
       return res.json({
         success: true,
-        message: "If an account with this email exists, a password reset link has been sent",
+        message:
+          "If an account with this email exists, a password reset link has been sent",
       });
     }
 
@@ -749,20 +753,21 @@ export const forgotPassword: RequestHandler = async (req, res) => {
     const resetToken = jwt.sign(
       { businessId: business.id, type: "password-reset" },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     // Send password reset email
     const emailResult = await emailService.sendPasswordResetEmail(
       business.email,
       resetToken,
-      business.name
+      business.name,
     );
 
     if (emailResult.success) {
       res.json({
         success: true,
-        message: "If an account with this email exists, a password reset link has been sent",
+        message:
+          "If an account with this email exists, a password reset link has been sent",
       });
     } else {
       console.error("Failed to send password reset email:", emailResult.error);
@@ -779,8 +784,6 @@ export const forgotPassword: RequestHandler = async (req, res) => {
     });
   }
 };
-
-
 
 // Reset password with token
 export const resetPassword: RequestHandler = async (req, res) => {
@@ -815,7 +818,10 @@ export const resetPassword: RequestHandler = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     // Update password
-    await businessService.updateBusinessPassword(decoded.businessId, hashedPassword);
+    await businessService.updateBusinessPassword(
+      decoded.businessId,
+      hashedPassword,
+    );
 
     res.json({
       success: true,
@@ -891,7 +897,8 @@ export const deleteBusinessAccount: RequestHandler = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Business account and all associated data have been permanently deleted",
+      message:
+        "Business account and all associated data have been permanently deleted",
     });
   } catch (error) {
     console.error("Error deleting business account:", error);
@@ -941,7 +948,7 @@ export const getMyPageStats: RequestHandler = async (req, res) => {
 
     // Get domain from query params
     const { domain } = req.query;
-    if (!domain || typeof domain !== 'string') {
+    if (!domain || typeof domain !== "string") {
       return res.status(400).json({
         success: false,
         error: "Domain parameter is required",
@@ -949,7 +956,10 @@ export const getMyPageStats: RequestHandler = async (req, res) => {
     }
 
     // Get My Page specific stats
-    const stats = await businessService.getMyPageStats(decoded.businessId, domain);
+    const stats = await businessService.getMyPageStats(
+      decoded.businessId,
+      domain,
+    );
     if (!stats) {
       return res.status(404).json({
         success: false,
@@ -957,8 +967,8 @@ export const getMyPageStats: RequestHandler = async (req, res) => {
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       stats,
     });
   } catch (error) {

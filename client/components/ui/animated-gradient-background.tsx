@@ -73,20 +73,21 @@ const AnimatedGradient: React.FC<AnimatedGradientProps> = ({
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden">
-      <div className={cn(`absolute inset-0`, blurClass)}>
-        {gradientCircles}
-      </div>
+      <div className={cn(`absolute inset-0`, blurClass)}>{gradientCircles}</div>
     </div>
   );
 };
 
 // Main export that matches HeroWave interface
-const AnimatedGradientBackground: React.FC<AnimatedGradientBackgroundProps> = React.memo(({
-  fps, // unused but kept for compatibility
-  quality = "low", // unused but kept for compatibility
-}) => {
-  return <AnimatedGradient speed={5} blur="medium" />;
-});
+const AnimatedGradientBackground: React.FC<AnimatedGradientBackgroundProps> =
+  React.memo(
+    ({
+      fps, // unused but kept for compatibility
+      quality = "low", // unused but kept for compatibility
+    }) => {
+      return <AnimatedGradient speed={5} blur="medium" />;
+    },
+  );
 
 AnimatedGradientBackground.displayName = "AnimatedGradientBackground";
 

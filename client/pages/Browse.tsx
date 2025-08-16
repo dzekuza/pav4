@@ -181,8 +181,10 @@ export default function Browse() {
   const fetchProducts = async (categoryName: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/products/category/${encodeURIComponent(categoryName)}`);
-      
+      const response = await fetch(
+        `/api/products/category/${encodeURIComponent(categoryName)}`,
+      );
+
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
@@ -201,7 +203,7 @@ export default function Browse() {
     // Instead of redirecting directly, use the URL for search suggestions
     const requestId = Date.now().toString();
     const slug = encodeURIComponent(product.url);
-    
+
     // Navigate to search results page with the product URL
     navigate(`/new-search/${requestId}/${slug}`, {
       state: {
@@ -214,19 +216,23 @@ export default function Browse() {
   };
 
   const getCategoryIcon = (categoryName: string) => {
-    const category = categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+    const category = categories.find(
+      (c) => c.name.toLowerCase() === categoryName.toLowerCase(),
+    );
     return category?.icon || "📦";
   };
 
   const getCategoryDescription = (categoryName: string) => {
-    const category = categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+    const category = categories.find(
+      (c) => c.name.toLowerCase() === categoryName.toLowerCase(),
+    );
     return category?.description || "Discover amazing products";
   };
 
   const formatPrice = (price: string) => {
     // Convert USD prices to EUR (approximate conversion)
-    if (price && price.includes('$')) {
-      const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
+    if (price && price.includes("$")) {
+      const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ""));
       if (!isNaN(numericPrice)) {
         const eurPrice = (numericPrice * 0.85).toFixed(2); // Approximate USD to EUR conversion
         return `€${eurPrice}`;
@@ -257,24 +263,28 @@ export default function Browse() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SearchHeader showBackButton={false} />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <span className="text-4xl">{getCategoryIcon(selectedCategory)}</span>
+              <span className="text-4xl">
+                {getCategoryIcon(selectedCategory)}
+              </span>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                   {selectedCategory || "Browse"}
                 </h1>
                 <p className="text-muted-foreground">
-                  {selectedCategory ? getCategoryDescription(selectedCategory) : "Discover amazing products"}
+                  {selectedCategory
+                    ? getCategoryDescription(selectedCategory)
+                    : "Discover amazing products"}
                 </p>
               </div>
             </div>
           </div>
-          
+
           <Badge variant="secondary" className="bg-muted text-muted-foreground">
             {products.length} products available
           </Badge>
@@ -282,7 +292,11 @@ export default function Browse() {
 
         {/* Category Tabs */}
         {availableCategories.length > 0 && (
-          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
+          <Tabs
+            value={selectedCategory}
+            onValueChange={setSelectedCategory}
+            className="mb-8"
+          >
             <div className="overflow-x-auto">
               <TabsList className="flex w-full min-w-max space-x-1 bg-muted border border-border">
                 {availableCategories.map((cat) => (
@@ -338,7 +352,7 @@ export default function Browse() {
                     <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-3">
                   {/* Product Image */}
                   {product.imageUrl && (
@@ -350,7 +364,7 @@ export default function Browse() {
                       />
                     </div>
                   )}
-                  
+
                   <div className="space-y-2">
                     <h3 className="font-semibold text-card-foreground line-clamp-2 group-hover:text-primary transition-colors">
                       {product.title}
@@ -361,7 +375,7 @@ export default function Browse() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -370,7 +384,10 @@ export default function Browse() {
                       </span>
                     </div>
                     {product.price && (
-                      <Badge variant="secondary" className="bg-success/20 text-success">
+                      <Badge
+                        variant="secondary"
+                        className="bg-success/20 text-success"
+                      >
                         {formatPrice(product.price)}
                       </Badge>
                     )}
@@ -392,13 +409,16 @@ export default function Browse() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Browse products from verified businesses in your favorite categories.
+                Browse products from verified businesses in your favorite
+                categories.
               </p>
               <p className="text-sm text-muted-foreground">
-                Click on any product to search for better prices across multiple retailers.
+                Click on any product to search for better prices across multiple
+                retailers.
               </p>
               <p className="text-sm text-muted-foreground">
-                All purchases are tracked and contribute to the business's analytics.
+                All purchases are tracked and contribute to the business's
+                analytics.
               </p>
             </CardContent>
           </Card>
