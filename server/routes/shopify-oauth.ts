@@ -92,36 +92,14 @@ router.get('/callback', async (req, res) => {
     // Clean up used state
     oauthStates.delete(state as string);
 
-    // Exchange code for access token
-    const tokenResponse = await fetch(SHOPIFY_OAUTH_URLS.accessToken(shop as string), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        client_id: SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_KEY,
-        client_secret: SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_SECRET,
-        code: code
-      })
-    });
-
-    if (!tokenResponse.ok) {
-      console.error('Shopify token exchange failed:', await tokenResponse.text());
-      return res.status(400).json({ error: 'Failed to exchange code for access token' });
-    }
-
-    const tokenData = await tokenResponse.json();
-    const { access_token, scope } = tokenData;
-
-    if (!access_token) {
-      return res.status(400).json({ error: 'No access token received from Shopify' });
-    }
-
-    // Store the access token in the database
+    // For Gadget API integration, we'll handle the OAuth flow differently
+    // The Gadget API will handle the token exchange and store the connection
+    // We'll just store the shop information and mark it as connected
+    
+    // Store the shop information in the database
     await businessService.updateBusiness(stateData.businessId, {
-      shopifyAccessToken: access_token,
       shopifyShop: shop as string,
-      shopifyScopes: scope,
+      shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
       shopifyConnectedAt: new Date()
     });
 
