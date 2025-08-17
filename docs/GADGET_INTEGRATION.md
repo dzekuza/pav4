@@ -1,251 +1,295 @@
-# Gadget Analytics Integration
+# Gadget Integration for ipick.io
 
-This document describes the integration with the ipick Tracker Gadget app for
-analytics data.
+This document outlines the complete integration between ipick.io and Gadget for Shopify analytics and OAuth management.
 
 ## Overview
 
-The Gadget integration provides real-time analytics data from the ipick Tracker
-app, including:
+The Gadget integration provides:
+- **Shopify OAuth Management**: Secure authentication flow for Shopify merchants
+- **Analytics Data Collection**: Real-time event tracking and order attribution
+- **Webhook Processing**: Automated data synchronization between Gadget and ipick.io
+- **API Endpoints**: Secure access to analytics data for the ipick.io dashboard
 
-- User events (page views, product views, add to cart, etc.)
-- Orders and revenue data
-- Click tracking and attribution
-- Session and aggregate analytics
+## Environment Variables
 
-## Environment Setup
-
-Add the following environment variables to your `.env.local` file:
+Add these to your `.env` file:
 
 ```bash
-GADGET_GRAPHQL_ENDPOINT=https://itrcks--development.gadget.app/api/graphql
-GADGET_API_KEY=gak-your-api-key-here
+# Gadget API Configuration
+GADGET_API_URL="https://itrcks.gadget.app"
+SHOPIFY_INSTALL_URL="https://itrcks.gadget.app/api/shopify/install-or-render"
+SHOPIFY_CALLBACK_URL="https://itrcks.gadget.app/api/connections/auth/shopify/callback"
+GADGET_API_KEY="your-gadget-api-key"
+
+# Webhook Security
+IPICK_WEBHOOK_SECRET="npg_lLWeCGKpqh2413ygrbrsbr"
 ```
-
-For production, set these in your Netlify environment variables.
-
-## Architecture
-
-### Server-Side Components
-
-1. **Gadget Client** (`server/gadgetClient.ts`)
-   - Handles GraphQL requests to Gadget API
-   - Includes rate limiting and retry logic
-   - Server-only to keep API key secure
-
-2. **GraphQL Queries** (`server/gadgetQueries.ts`)
-   - Predefined queries for events, orders, aggregates, and clicks
-   - Supports filtering and pagination
-
-3. **API Routes** (`server/routes/gadget.ts`)
-   - RESTful endpoints that proxy to Gadget GraphQL
-   - Handles authentication and parameter validation
-   - Supports filtering by shop domain, date range, event types
-
-### Client-Side Components
-
-1. **React Query Hooks** (`client/hooks/useGadget.ts`)
-   - Data fetching hooks with infinite scrolling
-   - Automatic caching and background updates
-   - Error handling and loading states
-
-2. **Dashboard Components**
-   - `KPICards`: Displays key performance indicators
-   - `FiltersBar`: Filter controls for date range, shop domain, event types
-   - `EventsTable`: Table view of events with pagination
-
-3. **TypeScript Types** (`shared/types/gadget.ts`)
-   - Type-safe interfaces for all Gadget data structures
-   - Ensures consistency between client and server
 
 ## API Endpoints
 
-### GET /api/gadget/events
+### OAuth Endpoints
 
-Fetches user events with optional filtering.
+#### 1. Start OAuth Flow
+```http
+GET /api/shopify/oauth/connect?shop=your-store.myshopify.com
+Authorization: Bearer <business-token>
+```
 
-**Query Parameters:**
-
-- `first`: Number of events to fetch (default: 50)
-- `after`: Cursor for pagination
-- `shopDomain`: Filter by shop domain
-- `eventType`: Filter by event type(s)
-- `from`: Start date (ISO format)
-- `to`: End date (ISO format)
-
-### GET /api/gadget/orders
-
-Fetches order data with optional filtering.
-
-**Query Parameters:**
-
-- `first`: Number of orders to fetch (default: 50)
-- `after`: Cursor for pagination
-- `shopDomain`: Filter by shop domain
-- `from`: Start date (ISO format)
-- `to`: End date (ISO format)
-
-### GET /api/gadget/aggregates
-
-Fetches daily aggregated data.
-
-**Query Parameters:**
-
-- `first`: Number of days to fetch (default: 30)
-- `after`: Cursor for pagination
-- `shopDomain`: Filter by shop domain
-- `from`: Start date (ISO format)
-- `to`: End date (ISO format)
-
-### GET /api/gadget/clicks
-
-Fetches click tracking data.
-
-**Query Parameters:**
-
-- `first`: Number of clicks to fetch (default: 50)
-- `after`: Cursor for pagination
-- `shopDomain`: Filter by shop domain
-
-## Usage Examples
-
-### Basic Dashboard Setup
-
-```tsx
-import {
-    useGadgetAggregates,
-    useGadgetEvents,
-    useGadgetOrders,
-} from "@/hooks/useGadget";
-
-function Dashboard() {
-    const { data: eventsData, isLoading: eventsLoading } = useGadgetEvents({
-        first: 100,
-        from: "2024-01-01",
-        to: "2024-01-31",
-    });
-
-    const { data: ordersData, isLoading: ordersLoading } = useGadgetOrders({
-        first: 100,
-        from: "2024-01-01",
-        to: "2024-01-31",
-    });
-
-    const { data: aggregatesData, isLoading: aggregatesLoading } =
-        useGadgetAggregates({
-            first: 30,
-            from: "2024-01-01",
-            to: "2024-01-31",
-        });
-
-    // Extract data from infinite query results
-    const events = extractEventsFromPages(eventsData);
-    const orders = extractOrdersFromPages(ordersData);
-    const aggregates = extractAggregatesFromPages(aggregatesData);
-
-    return (
-        <div>
-            <KPICards
-                aggregates={aggregates}
-                events={events}
-                orders={orders}
-                isLoading={eventsLoading || ordersLoading || aggregatesLoading}
-            />
-        </div>
-    );
+**Response:**
+```json
+{
+  "success": true,
+  "authUrl": "https://itrcks.gadget.app/api/shopify/install-or-render?shop=your-store.myshopify.com&state=...",
+  "shop": "your-store.myshopify.com",
+  "state": "generated-state-token",
+  "webhookEndpoint": "https://ipick.io/api/webhooks/gadget",
+  "webhookSecret": "configured"
 }
 ```
 
-### Filtering Data
+#### 2. OAuth Callback
+```http
+GET /api/shopify/oauth/callback?code=...&state=...&shop=...
+```
 
-```tsx
-function FilteredDashboard() {
-    const [shopDomain, setShopDomain] = useState("");
-    const [dateRange, setDateRange] = useState({
-        from: "2024-01-01",
-        to: "2024-01-31",
-    });
+**Redirects to:** `/business/dashboard?shopify_connected=true&shop=your-store.myshopify.com`
 
-    const { data: eventsData } = useGadgetEvents({
-        first: 100,
-        shopDomain: shopDomain || undefined,
-        from: dateRange.from,
-        to: dateRange.to,
-    });
+#### 3. Check OAuth Status
+```http
+GET /api/shopify/oauth/status
+Authorization: Bearer <business-token>
+```
 
-    return (
-        <div>
-            <FiltersBar
-                shopDomain={shopDomain}
-                onShopDomainChange={setShopDomain}
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-                selectedEventTypes={[]}
-                onEventTypesChange={() => {}}
-                onClearFilters={() => {}}
-            />
-            {/* Dashboard content */}
-        </div>
-    );
+**Response:**
+```json
+{
+  "success": true,
+  "isConnected": true,
+  "shop": "your-store.myshopify.com",
+  "scopes": "read_products,read_orders,...",
+  "lastConnected": "2024-01-15T10:30:00Z",
+  "status": "connected",
+  "webhookConfigured": true
 }
+```
+
+#### 4. Get Webhook Configuration
+```http
+GET /api/shopify/oauth/webhook-config
+Authorization: Bearer <business-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "webhookEndpoint": "https://ipick.io/api/webhooks/gadget",
+  "webhookSecret": "configured",
+  "shop": "your-store.myshopify.com",
+  "events": {
+    "SHOPIFY_CONNECTION_CREATED": "shopify_connection_created",
+    "SHOPIFY_CONNECTION_UPDATED": "shopify_connection_updated",
+    "SHOPIFY_CONNECTION_DELETED": "shopify_connection_deleted",
+    "ORDER_CREATED": "order_created",
+    "ORDER_UPDATED": "order_updated"
+  }
+}
+```
+
+### Analytics Endpoints
+
+#### 1. Get Events Data
+```http
+GET /api/gadget/events?shopDomain=your-store.myshopify.com&first=50
+Authorization: Bearer <gadget-api-key>
+```
+
+#### 2. Get Orders Data
+```http
+GET /api/gadget/orders?shopDomain=your-store.myshopify.com&first=50
+Authorization: Bearer <gadget-api-key>
+```
+
+#### 3. Get Aggregates Data
+```http
+GET /api/gadget/aggregates?shopDomain=your-store.myshopify.com&first=50
+Authorization: Bearer <gadget-api-key>
+```
+
+#### 4. Get Clicks Data
+```http
+GET /api/gadget/clicks?shopDomain=your-store.myshopify.com&first=50
+Authorization: Bearer <gadget-api-key>
+```
+
+### Webhook Endpoint
+
+#### Gadget Webhook
+```http
+POST /api/webhooks/gadget
+Content-Type: application/json
+x-gadget-signature: <hmac-sha256-signature>
+```
+
+**Webhook Events:**
+- `shopify_connection_created`
+- `shopify_connection_updated`
+- `shopify_connection_deleted`
+- `order_created`
+- `order_updated`
+
+## Webhook Security
+
+The webhook endpoint validates requests using HMAC-SHA256 signatures:
+
+```javascript
+// Signature generation (on Gadget side)
+const signature = crypto
+  .createHmac('sha256', IPICK_WEBHOOK_SECRET)
+  .update(JSON.stringify(payload), 'utf8')
+  .digest('hex');
+
+// Signature verification (on ipick.io side)
+const expectedSignature = crypto
+  .createHmac('sha256', IPICK_WEBHOOK_SECRET)
+  .update(payload, 'utf8')
+  .digest('hex');
+
+const isValid = crypto.timingSafeEqual(
+  Buffer.from(signature, 'hex'),
+  Buffer.from(expectedSignature, 'hex')
+);
+```
+
+## Database Schema Updates
+
+The integration requires these fields in the `business` table:
+
+```sql
+ALTER TABLE business ADD COLUMN IF NOT EXISTS shopify_status VARCHAR(20) DEFAULT 'disconnected';
+ALTER TABLE business ADD COLUMN IF NOT EXISTS shopify_connected_at TIMESTAMP;
 ```
 
 ## Testing
 
-Use the provided test script to verify the API integration:
-
+### Test Webhook Integration
 ```bash
-# Test the Gadget API directly
-curl -X POST https://your-app--development.gadget.app/api/graphql \
-  -H "Authorization: Bearer your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"query":"query{events(first:10){edges{node{id eventType occurredAt}}}}"}'
+# Set environment variables
+export IPICK_WEBHOOK_SECRET="npg_lLWeCGKpqh2413ygrbrsbr"
+export WEBHOOK_URL="http://localhost:3000/api/webhooks/gadget"
 
-# Test the proxy endpoints
-curl -H "Authorization: Bearer your-api-key" \
-  "http://localhost:3000/api/gadget/events?first=10"
+# Run test script
+node scripts/test-gadget-webhook.js
+```
+
+### Test OAuth Flow
+1. Start the development server
+2. Navigate to `/business/dashboard`
+3. Click "Connect Shopify Store"
+4. Enter a test shop domain
+5. Verify the OAuth flow completes successfully
+
+## Error Handling
+
+### Common Error Responses
+
+#### 401 Unauthorized
+```json
+{
+  "error": "Invalid signature"
+}
+```
+
+#### 400 Bad Request
+```json
+{
+  "error": "Missing required OAuth parameters"
+}
+```
+
+#### 500 Internal Server Error
+```json
+{
+  "error": "Shopify OAuth is not properly configured. Please contact support.",
+  "missing": {
+    "gadgetApiUrl": false,
+    "installUrl": false,
+    "callbackUrl": false,
+    "webhookSecret": true
+  }
+}
 ```
 
 ## Security Considerations
 
-1. **API Key Protection**: The Gadget API key is never exposed to the client
-2. **Authentication**: All endpoints require business authentication
-3. **Rate Limiting**: Built-in retry logic with exponential backoff
-4. **Input Validation**: All parameters are validated server-side
+1. **Webhook Signatures**: All webhook requests must include valid HMAC signatures
+2. **State Parameters**: OAuth flows use cryptographically secure state tokens
+3. **Rate Limiting**: API endpoints are protected by rate limiting
+4. **Input Validation**: All inputs are validated and sanitized
+5. **HTTPS Only**: Production endpoints require HTTPS
 
-## Error Handling
+## Monitoring
 
-The integration includes comprehensive error handling:
+### Logs to Monitor
+- Webhook signature verification failures
+- OAuth state validation errors
+- Database connection issues
+- API rate limit violations
 
-- Network errors with automatic retries
-- GraphQL errors with detailed error messages
-- Loading states and skeleton components
-- Graceful fallbacks for missing data
-
-## Performance Optimization
-
-- React Query caching for efficient data fetching
-- Infinite scrolling for large datasets
-- Debounced filter updates
-- Optimistic updates where appropriate
+### Health Checks
+```http
+GET /api/health
+```
 
 ## Troubleshooting
 
-### Common Issues
+### Webhook Not Receiving Data
+1. Verify `IPICK_WEBHOOK_SECRET` is set correctly
+2. Check webhook endpoint URL is accessible
+3. Ensure signature headers are being sent
+4. Review server logs for errors
 
-1. **401 Unauthorized**: Check that the Gadget API key is correct and has proper
-   permissions
-2. **GraphQL Errors**: Verify that the query structure matches the Gadget schema
-3. **No Data**: Ensure that the date range and filters are appropriate
-4. **Rate Limiting**: The client includes automatic retry logic, but check
-   Gadget rate limits
+### OAuth Flow Failing
+1. Verify all environment variables are set
+2. Check Gadget API connectivity
+3. Ensure callback URL is correct
+4. Review OAuth state validation
 
-### Debug Mode
+### Analytics Data Missing
+1. Verify Gadget API key is valid
+2. Check shop domain format
+3. Ensure proper authentication headers
+4. Review GraphQL query syntax
 
-Enable debug logging by setting the environment variable:
+## Deployment
 
+### Production Checklist
+- [ ] Set all required environment variables
+- [ ] Configure webhook endpoint URL
+- [ ] Test webhook signature verification
+- [ ] Verify OAuth flow end-to-end
+- [ ] Test analytics API endpoints
+- [ ] Monitor error logs
+- [ ] Set up health checks
+
+### Environment Variables for Production
 ```bash
-DEBUG=gadget:*
+# Required
+GADGET_API_URL="https://itrcks.gadget.app"
+SHOPIFY_INSTALL_URL="https://itrcks.gadget.app/api/shopify/install-or-render"
+SHOPIFY_CALLBACK_URL="https://itrcks.gadget.app/api/connections/auth/shopify/callback"
+GADGET_API_KEY="your-production-gadget-api-key"
+IPICK_WEBHOOK_SECRET="your-production-webhook-secret"
+
+# Optional
+FRONTEND_URL="https://ipick.io"
+NODE_ENV="production"
 ```
 
-This will log all GraphQL requests and responses for debugging purposes.
+## Support
+
+For issues with the Gadget integration:
+1. Check the server logs for detailed error messages
+2. Verify all environment variables are correctly set
+3. Test the webhook endpoint using the provided test script
+4. Contact the development team with specific error details

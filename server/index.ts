@@ -115,6 +115,7 @@ import {
   handleShopifyWebhook,
   getWebhookStats,
 } from "./routes/shopify-webhooks";
+import gadgetWebhookRouter from "./routes/gadget-webhooks";
 
 // Load environment variables
 dotenv.config();
@@ -400,6 +401,9 @@ app.use("/api/shopify/oauth", shopifyOAuthRouter);
   // Shopify webhook routes
   app.post("/api/shopify-webhooks", handleShopifyWebhook);
   app.get("/api/shopify-webhooks/stats", getWebhookStats);
+  
+  // Gadget webhook routes
+  app.use("/api/webhooks", gadgetWebhookRouter);
 
   // Test tracking route
   app.post("/api/test-tracking", async (req, res) => {

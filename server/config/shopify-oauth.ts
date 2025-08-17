@@ -5,6 +5,7 @@ export const SHOPIFY_OAUTH_CONFIG = {
   SHOPIFY_INSTALL_URL: process.env.SHOPIFY_INSTALL_URL || 'https://itrcks.gadget.app/api/shopify/install-or-render',
   SHOPIFY_CALLBACK_URL: process.env.SHOPIFY_CALLBACK_URL || 'https://itrcks.gadget.app/api/connections/auth/shopify/callback',
   GADGET_API_KEY: process.env.GADGET_API_KEY || '',
+  IPICK_WEBHOOK_SECRET: process.env.IPICK_WEBHOOK_SECRET || '',
   SHOPIFY_SCOPES: [
     'read_products',
     'read_orders', 
@@ -13,7 +14,9 @@ export const SHOPIFY_OAUTH_CONFIG = {
     'read_analytics',
     'read_marketing_events',
     'read_sales',
-    'read_reports'
+    'read_reports',
+    'write_script_tags',
+    'write_themes'
   ].join(','),
   SHOPIFY_VERSION: '2024-01'
 };
@@ -22,7 +25,8 @@ export const SHOPIFY_OAUTH_CONFIG = {
 export function validateOAuthConfig(): boolean {
   return !!(SHOPIFY_OAUTH_CONFIG.GADGET_API_URL && 
            SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL && 
-           SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL);
+           SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL &&
+           SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET);
 }
 
 // OAuth URLs via Gadget API
@@ -71,3 +75,16 @@ export function extractShopFromUrl(url: string): string | null {
   
   return null;
 }
+
+// Webhook configuration for Gadget integration
+export const GADGET_WEBHOOK_CONFIG = {
+  SECRET: process.env.IPICK_WEBHOOK_SECRET || '',
+  ENDPOINT: '/api/webhooks/gadget',
+  EVENTS: {
+    SHOPIFY_CONNECTION_CREATED: 'shopify_connection_created',
+    SHOPIFY_CONNECTION_UPDATED: 'shopify_connection_updated',
+    SHOPIFY_CONNECTION_DELETED: 'shopify_connection_deleted',
+    ORDER_CREATED: 'order_created',
+    ORDER_UPDATED: 'order_updated'
+  }
+};

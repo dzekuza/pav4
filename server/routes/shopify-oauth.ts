@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { requireBusinessAuth } from '../middleware/business-auth.js';
-import { SHOPIFY_OAUTH_CONFIG, SHOPIFY_OAUTH_URLS, generateShopifyAuthUrl, validateShopifyShop, validateOAuthConfig } from '../config/shopify-oauth.js';
+import { SHOPIFY_OAUTH_CONFIG, SHOPIFY_OAUTH_URLS, generateShopifyAuthUrl, validateShopifyShop, validateOAuthConfig, GADGET_WEBHOOK_CONFIG } from '../config/shopify-oauth.js';
 import { businessService } from '../services/database.js';
 
 const router = express.Router();
@@ -18,7 +18,13 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
     // Validate OAuth configuration
     if (!validateOAuthConfig()) {
       return res.status(500).json({ 
-        error: 'Shopify OAuth is not properly configured. Please contact support.'
+        error: 'Shopify OAuth is not properly configured. Please contact support.',
+        missing: {
+          gadgetApiUrl: !SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
+          installUrl: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL,
+          callbackUrl: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL,
+          webhookSecret: !SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET
+        }
       });
     }
 
@@ -51,14 +57,16 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       }
     }
 
-    // Generate authorization URL
+    // Generate authorization URL using Gadget's install endpoint
     const authUrl = generateShopifyAuthUrl(shop as string, state);
 
     res.json({
       success: true,
       authUrl,
       shop,
-      state
+      state,
+      webhookEndpoint: `${process.env.FRONTEND_URL || 'https://ipick.io'}${GADGET_WEBHOOK_CONFIG.ENDPOINT}`,
+      webhookSecret: SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET ? 'configured' : 'missing'
     });
 
   } catch (error) {
@@ -100,7 +108,8 @@ router.get('/callback', async (req, res) => {
     await businessService.updateBusiness(stateData.businessId, {
       shopifyShop: shop as string,
       shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
-      shopifyConnectedAt: new Date()
+      shopifyConnectedAt: new Date(),
+      shopifyStatus: 'connected'
     });
 
     // Redirect to dashboard with success message
@@ -133,7 +142,9 @@ router.get('/status', requireBusinessAuth, async (req, res) => {
       isConnected,
       shop: business.shopifyShop,
       scopes: business.shopifyScopes,
-      lastConnected: business.shopifyConnectedAt || business.updatedAt
+      lastConnected: business.shopifyConnectedAt || business.updatedAt,
+      status: business.shopifyStatus || 'disconnected',
+      webhookConfigured: !!SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET
     });
 
   } catch (error) {
@@ -152,7 +163,8 @@ router.post('/disconnect', requireBusinessAuth, async (req, res) => {
       shopifyAccessToken: null,
       shopifyShop: null,
       shopifyScopes: null,
-      shopifyConnectedAt: null
+      shopifyConnectedAt: null,
+      shopifyStatus: 'disconnected'
     });
 
     res.json({
@@ -163,6 +175,31 @@ router.post('/disconnect', requireBusinessAuth, async (req, res) => {
   } catch (error) {
     console.error('Shopify OAuth disconnect error:', error);
     res.status(500).json({ error: 'Failed to disconnect Shopify store' });
+  }
+});
+
+// GET /api/shopify/oauth/webhook-config - Get webhook configuration for Gadget
+router.get('/webhook-config', requireBusinessAuth, async (req, res) => {
+  try {
+    const businessId = (req as any).businessId;
+    
+    const business = await businessService.getBusinessById(businessId);
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    res.json({
+      success: true,
+      webhookEndpoint: `${process.env.FRONTEND_URL || 'https://ipick.io'}${GADGET_WEBHOOK_CONFIG.ENDPOINT}`,
+      webhookSecret: SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET ? 'configured' : 'missing',
+      shop: business.shopifyShop,
+      events: GADGET_WEBHOOK_CONFIG.EVENTS
+    });
+
+  } catch (error) {
+    console.error('Webhook config error:', error);
+    res.status(500).json({ error: 'Failed to get webhook configuration' });
   }
 });
 
