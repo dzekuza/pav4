@@ -175,7 +175,7 @@ export async function createServer() {
             "https://api.searchapi.io",
             "https://n8n.srv824584.hstgr.cloud",
             "https://ipick.io",
-            "https://ipick.io",
+            "https://itrcks.gadget.app",
             "http://localhost:5746",
             "http://localhost:5747",
             "http://localhost:8082",
@@ -228,6 +228,7 @@ export async function createServer() {
     // Production origins
     "https://ipick.io",
     "https://app.pavlo.com",
+    "https://itrcks.gadget.app", // Gadget app domain
     "https://ipick.io", // Main app domain
   ];
 
