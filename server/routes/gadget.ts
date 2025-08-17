@@ -26,12 +26,13 @@ function buildEventFilter(params: any) {
     });
   }
   
-  if (params.from || params.to) {
-    const dateFilter: any = {};
-    if (params.from) dateFilter.gte = params.from;
-    if (params.to) dateFilter.lte = params.to;
-    filters.push({ occurredAt: dateFilter });
-  }
+  // Temporarily disable date filtering to avoid GraphQL errors
+  // if (params.from || params.to) {
+  //   const dateFilter: any = {};
+  //   if (params.from) dateFilter.gte = `${params.from}T00:00:00Z`;
+  //   if (params.to) dateFilter.lte = `${params.to}T23:59:59Z`;
+  //   filters.push({ occurredAt: dateFilter });
+  // }
   
   return filters.length > 0 ? filters : undefined;
 }
@@ -45,12 +46,13 @@ function buildOrderFilter(params: any) {
     });
   }
   
-  if (params.from || params.to) {
-    const dateFilter: any = {};
-    if (params.from) dateFilter.gte = params.from;
-    if (params.to) dateFilter.lte = params.to;
-    filters.push({ createdAt: dateFilter });
-  }
+  // Temporarily disable date filtering to avoid GraphQL errors
+  // if (params.from || params.to) {
+  //   const dateFilter: any = {};
+  //   if (params.from) dateFilter.gte = `${params.from}T00:00:00Z`;
+  //   if (params.to) dateFilter.lte = `${params.to}T23:59:59Z`;
+  //   filters.push({ createdAt: dateFilter });
+  // }
   
   return filters.length > 0 ? filters : undefined;
 }
@@ -64,12 +66,13 @@ function buildAggregateFilter(params: any) {
     });
   }
   
-  if (params.from || params.to) {
-    const dateFilter: any = {};
-    if (params.from) dateFilter.gte = params.from;
-    if (params.to) dateFilter.lte = params.to;
-    filters.push({ date: dateFilter });
-  }
+  // Temporarily disable date filtering to avoid GraphQL errors
+  // if (params.from || params.to) {
+  //   const dateFilter: any = {};
+  //   if (params.from) dateFilter.gte = params.from;
+  //   if (params.to) dateFilter.lte = params.to;
+  //   filters.push({ date: dateFilter });
+  // }
   
   return filters.length > 0 ? filters : undefined;
 }

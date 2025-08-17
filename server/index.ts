@@ -314,6 +314,7 @@ export async function createServer() {
 
   // Gadget analytics routes
   app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
+app.use("/api/shopify", requireBusinessAuth, shopifyRouter);
 
   // Business authentication routes without rate limiting
   app.post(

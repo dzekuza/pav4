@@ -38,8 +38,8 @@ interface ReferralUrls {
 
 export default function BusinessDashboardHome() {
   const [referralUrls, setReferralUrls] = useState<ReferralUrls | null>(null);
-  const [shopDomain, setShopDomain] = useState("checkoutipick.myshopify.com");
-  const [shopifyAccessToken, setShopifyAccessToken] = useState("shpua_2b819ec253e95573ad4e8d3e0a2af183");
+  const [shopDomain, setShopDomain] = useState("f12f80-2.myshopify.com");
+  const [shopifyAccessToken, setShopifyAccessToken] = useState("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");
   const [dateRange, setDateRange] = useState({
     from: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd')
@@ -129,8 +129,8 @@ export default function BusinessDashboardHome() {
   }, [navigate]);
 
   const handleClearFilters = () => {
-    setShopDomain("checkoutipick.myshopify.com");
-    setShopifyAccessToken("shpua_2b819ec253e95573ad4e8d3e0a2af183");
+    setShopDomain("f12f80-2.myshopify.com");
+    setShopifyAccessToken("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");
     setDateRange({
       from: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
       to: format(new Date(), 'yyyy-MM-dd')

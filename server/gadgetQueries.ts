@@ -35,7 +35,6 @@ export const GET_ORDERS = /* GraphQL */ `
           totalPrice
           currency
           createdAt
-          sessionId
           click { id clickId destinationUrl }
           shop { id domain }
         }

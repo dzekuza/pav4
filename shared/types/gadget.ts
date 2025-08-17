@@ -24,7 +24,6 @@ export type GadgetOrder = {
   totalPrice: number;
   currency: string;
   createdAt: string;
-  sessionId: string;
   click?: { id: string; clickId: string; destinationUrl: string | null } | null;
   shop?: { id: string; domain: string } | null;
 };
