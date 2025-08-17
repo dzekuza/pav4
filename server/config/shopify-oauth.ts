@@ -1,9 +1,9 @@
 // Shopify OAuth Configuration via Gadget API
 export const SHOPIFY_OAUTH_CONFIG = {
   // Gadget API endpoints for Shopify OAuth
-  GADGET_API_URL: process.env.GADGET_API_URL || 'https://itrcks.gadget.app',
-  SHOPIFY_INSTALL_URL: process.env.SHOPIFY_INSTALL_URL || 'https://itrcks.gadget.app/api/shopify/install-or-render',
-  SHOPIFY_CALLBACK_URL: process.env.SHOPIFY_CALLBACK_URL || 'https://itrcks.gadget.app/api/connections/auth/shopify/callback',
+  GADGET_API_URL: process.env.GADGET_API_URL || 'https://itrcks--development.gadget.app',
+  SHOPIFY_INSTALL_URL: process.env.SHOPIFY_INSTALL_URL || 'https://itrcks--development.gadget.app/api/shopify/install',
+  SHOPIFY_CALLBACK_URL: process.env.SHOPIFY_CALLBACK_URL || 'https://itrcks--development.gadget.app/api/connections/auth/shopify/callback',
   GADGET_API_KEY: process.env.GADGET_API_KEY || '',
   IPICK_WEBHOOK_SECRET: process.env.IPICK_WEBHOOK_SECRET || '',
   SHOPIFY_SCOPES: [
@@ -31,21 +31,14 @@ export function validateOAuthConfig(): boolean {
 
 // OAuth URLs via Gadget API
 export const SHOPIFY_OAUTH_URLS = {
-  // Use Gadget's Shopify install URL
+  // Use Gadget's standard Shopify install URL
   install: (shop?: string) => {
     const baseUrl = SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL;
     return shop ? `${baseUrl}?shop=${encodeURIComponent(shop)}` : baseUrl;
   },
   
   // Gadget callback URL
-  callback: SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL,
-  
-  // Legacy support for direct Shopify OAuth (if needed)
-  authorize: (shop: string) => 
-    `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_KEY}&scope=${SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES}&redirect_uri=${encodeURIComponent(SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL)}`,
-  
-  accessToken: (shop: string) => 
-    `https://${shop}/admin/oauth/access_token`
+  callback: SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL
 };
 
 // Helper functions

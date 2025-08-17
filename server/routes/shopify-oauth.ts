@@ -42,38 +42,11 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       });
     }
 
-    // Generate state parameter for security
-    const state = crypto.randomBytes(32).toString('hex');
-    oauthStates.set(state, { 
-      businessId, 
-      timestamp: Date.now() 
-    });
+    // Generate the standard Gadget Shopify install URL
+    const installUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(shop as string)}`;
 
-    // Clean up old states (older than 1 hour)
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    for (const [key, value] of oauthStates.entries()) {
-      if (value.timestamp < oneHourAgo) {
-        oauthStates.delete(key);
-      }
-    }
-
-    // Generate authorization URL using Gadget's install endpoint
-    const authUrl = generateShopifyAuthUrl(shop as string, state);
-
-    // Option 1: Redirect directly to Gadget (recommended for embedded apps)
-    res.redirect(authUrl);
-
-    // Option 2: Return JSON for non-embedded flows (commented out)
-    /*
-    res.json({
-      success: true,
-      authUrl,
-      shop,
-      state,
-      webhookEndpoint: `${process.env.FRONTEND_URL || 'https://ipick.io'}${GADGET_WEBHOOK_CONFIG.ENDPOINT}`,
-      webhookSecret: SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET ? 'configured' : 'missing'
-    });
-    */
+    // Redirect directly to Gadget's managed OAuth flow
+    res.redirect(installUrl);
 
   } catch (error) {
     console.error('Shopify OAuth connect error:', error);
