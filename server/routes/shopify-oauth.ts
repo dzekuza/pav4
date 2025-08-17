@@ -108,7 +108,7 @@ router.get('/status', requireBusinessAuth, async (req, res) => {
   try {
     const businessId = (req as any).businessId;
     
-    const business = await businessService.getBusinessById(businessId);
+    const business = await businessService.findBusinessById(businessId);
     
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });
@@ -162,7 +162,7 @@ router.get('/webhook-config', requireBusinessAuth, async (req, res) => {
   try {
     const businessId = (req as any).businessId;
     
-    const business = await businessService.getBusinessById(businessId);
+    const business = await businessService.findBusinessById(businessId);
     
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });

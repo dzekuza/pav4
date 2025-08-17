@@ -529,6 +529,7 @@ export const businessService = {
       shopifyShop: string | null;
       shopifyScopes: string | null;
       shopifyConnectedAt: Date | null;
+      shopifyStatus: string | null;
     }>,
   ) {
     return prisma.business.update({
