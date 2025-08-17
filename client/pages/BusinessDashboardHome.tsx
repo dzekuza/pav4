@@ -39,7 +39,7 @@ interface ReferralUrls {
 export default function BusinessDashboardHome() {
   const [referralUrls, setReferralUrls] = useState<ReferralUrls | null>(null);
   const [shopDomain, setShopDomain] = useState("f12f80-2.myshopify.com");
-  const [shopifyAccessToken, setShopifyAccessToken] = useState("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");
+  const [shopifyAccessToken, setShopifyAccessToken] = useState("");
   const [dateRange, setDateRange] = useState({
     from: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd')
@@ -130,7 +130,7 @@ export default function BusinessDashboardHome() {
 
   const handleClearFilters = () => {
     setShopDomain("f12f80-2.myshopify.com");
-    setShopifyAccessToken("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");
+    setShopifyAccessToken("");
     setDateRange({
       from: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
       to: format(new Date(), 'yyyy-MM-dd')

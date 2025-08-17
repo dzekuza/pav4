@@ -1,5 +1,5 @@
 // Test godislove.lt Shopify store data
-const SHOPIFY_ACCESS_TOKEN = "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";
+const SHOPIFY_ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN || "YOUR_SHOPIFY_ACCESS_TOKEN_HERE";
 const SHOP_DOMAIN = "godislove.lt";
 
 async function testGodisloveShopify() {
