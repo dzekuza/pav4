@@ -60,6 +60,11 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
     // Generate authorization URL using Gadget's install endpoint
     const authUrl = generateShopifyAuthUrl(shop as string, state);
 
+    // Option 1: Redirect directly to Gadget (recommended for embedded apps)
+    res.redirect(authUrl);
+
+    // Option 2: Return JSON for non-embedded flows (commented out)
+    /*
     res.json({
       success: true,
       authUrl,
@@ -68,6 +73,7 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       webhookEndpoint: `${process.env.FRONTEND_URL || 'https://ipick.io'}${GADGET_WEBHOOK_CONFIG.ENDPOINT}`,
       webhookSecret: SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET ? 'configured' : 'missing'
     });
+    */
 
   } catch (error) {
     console.error('Shopify OAuth connect error:', error);
