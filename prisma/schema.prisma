@@ -82,6 +82,10 @@ model Business {
   updatedAt           DateTime             @updatedAt
   affiliateId         String               @unique
   trackingVerified    Boolean              @default(false)
+  shopifyAccessToken  String?
+  shopifyShop         String?
+  shopifyScopes       String?
+  shopifyConnectedAt  DateTime?
   clicks              BusinessClick[]
   conversions         BusinessConversion[]
   commissionRates     CommissionRate[]

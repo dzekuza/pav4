@@ -11,6 +11,7 @@ import favoritesRouter from "./routes/favorites";
 import affiliateRouter from "./routes/affiliate";
 import gadgetRouter from "./routes/gadget";
 import shopifyRouter from "./routes/shopify";
+import shopifyOAuthRouter from "./routes/shopify-oauth";
 
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import {
@@ -315,6 +316,7 @@ export async function createServer() {
   // Gadget analytics routes
   app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
 app.use("/api/shopify", requireBusinessAuth, shopifyRouter);
+app.use("/api/shopify/oauth", shopifyOAuthRouter);
 
   // Business authentication routes without rate limiting
   app.post(

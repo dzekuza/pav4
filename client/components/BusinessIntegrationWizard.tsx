@@ -30,6 +30,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ShopifyOAuthConnect } from "@/components/dashboard/ShopifyOAuthConnect";
 
 interface BusinessStats {
   id: number;
@@ -1271,11 +1272,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
               </div>
 
-              {/* Shopify Integration Section */}
+              {/* Shopify OAuth Integration Section */}
               <div className="border border-white/10 bg-white/5 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium text-white">
-                    🛍️ Shopify Integration
+                    🔐 Shopify OAuth Connection
                   </h4>
                   <div className="flex gap-2">
                     <Button
@@ -1310,6 +1311,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Shopify OAuth Component */}
+                  <ShopifyOAuthConnect 
+                    onConnect={(shop) => {
+                      toast({
+                        title: "Shopify Connected!",
+                        description: `Successfully connected to ${shop}`,
+                      });
+                    }}
+                    onDisconnect={() => {
+                      toast({
+                        title: "Shopify Disconnected",
+                        description: "Your Shopify store has been disconnected",
+                      });
+                    }}
+                  />
+
+                  {/* Shopify App Integration Instructions */}
                   <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
                     <h5 className="font-medium text-white mb-3">
                       Shopify App Integration
@@ -1799,9 +1817,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectedPlatform.id === "shopify" ? (
                       // Shopify Integration Instructions
                       <div className="space-y-4">
+                        {/* Shopify OAuth Component */}
                         <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
                           <h4 className="font-medium text-white mb-3 flex items-center gap-2">
-                            🛍️ Shopify Integration Setup
+                            🔐 Secure Shopify Connection
+                          </h4>
+                          <p className="text-sm text-white/80 mb-4">
+                            Connect your Shopify store securely using OAuth authentication. 
+                            This eliminates the need for manual access tokens and provides 
+                            enhanced security and data access.
+                          </p>
+                          <ShopifyOAuthConnect 
+                            onConnect={(shop) => {
+                              toast({
+                                title: "Shopify Connected!",
+                                description: `Successfully connected to ${shop}. You can now proceed to install the app.`,
+                              });
+                            }}
+                            onDisconnect={() => {
+                              toast({
+                                title: "Shopify Disconnected",
+                                description: "Your Shopify store has been disconnected",
+                              });
+                            }}
+                          />
+                        </div>
+
+                        <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-4">
+                          <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                            🛍️ Shopify App Installation
                           </h4>
 
                           <div className="space-y-4">

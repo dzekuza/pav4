@@ -525,6 +525,10 @@ export const businessService = {
       country: string;
       category: string;
       commission: number;
+      shopifyAccessToken: string | null;
+      shopifyShop: string | null;
+      shopifyScopes: string | null;
+      shopifyConnectedAt: Date | null;
     }>,
   ) {
     return prisma.business.update({
