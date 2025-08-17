@@ -1,0 +1,41 @@
+### Test Gadget GraphQL API directly
+POST {{GADGET_GRAPHQL_ENDPOINT}}
+Authorization: Bearer {{GADGET_API_KEY}}
+Content-Type: application/json
+
+{
+  "query": "query($first:Int){ events(first:$first){ edges{ node{ id eventType occurredAt } } pageInfo{ hasNextPage endCursor } } }",
+  "variables": { "first": 10 }
+}
+
+### Test Events API
+GET /api/gadget/events?first=10
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test Orders API
+GET /api/gadget/orders?first=10
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test Aggregates API
+GET /api/gadget/aggregates?first=30
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test Clicks API
+GET /api/gadget/clicks?first=10
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test with filters for checkoutipick.myshopify.com
+GET /api/gadget/events?first=10&shopDomain=checkoutipick.myshopify.com&from=2024-01-01&to=2024-12-31
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test orders for checkoutipick.myshopify.com
+GET /api/gadget/orders?first=10&shopDomain=checkoutipick.myshopify.com&from=2024-01-01&to=2024-12-31
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test aggregates for checkoutipick.myshopify.com
+GET /api/gadget/aggregates?first=30&shopDomain=checkoutipick.myshopify.com&from=2024-01-01&to=2024-12-31
+Authorization: Bearer {{GADGET_API_KEY}}
+
+### Test clicks for checkoutipick.myshopify.com
+GET /api/gadget/clicks?first=10&shopDomain=checkoutipick.myshopify.com
+Authorization: Bearer {{GADGET_API_KEY}}

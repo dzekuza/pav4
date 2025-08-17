@@ -9,6 +9,8 @@ import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
 import favoritesRouter from "./routes/favorites";
 import affiliateRouter from "./routes/affiliate";
+import gadgetRouter from "./routes/gadget";
+import shopifyRouter from "./routes/shopify";
 
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import {
@@ -309,6 +311,9 @@ export async function createServer() {
 
   // Affiliate routes
   app.use("/api/affiliate", affiliateRouter);
+
+  // Gadget analytics routes
+  app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
 
   // Business authentication routes without rate limiting
   app.post(
