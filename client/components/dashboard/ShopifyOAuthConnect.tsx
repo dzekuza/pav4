@@ -29,7 +29,6 @@ interface ShopifyOAuthConnectProps {
 
 export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthConnectProps) {
   const [shop, setShop] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<ShopifyOAuthStatus | null>(null);
@@ -79,7 +78,7 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     if (!shop.trim()) {
       setError('Please enter your Shopify store URL');
       return;
@@ -92,24 +91,16 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
       return;
     }
 
-    setIsConnecting(true);
     setError(null);
 
-    try {
-      const response = await fetch(`/api/shopify/oauth/connect?shop=${encodeURIComponent(shop.trim())}`);
-      const data = await response.json();
-
-      if (response.ok && data.authUrl) {
-        // Redirect to Shopify OAuth
-        window.location.href = data.authUrl;
-      } else {
-        setError(data.error || 'Failed to start OAuth process');
-      }
-    } catch (error) {
-      setError('Failed to connect to Shopify. Please try again.');
-    } finally {
-      setIsConnecting(false);
-    }
+    // Direct redirect to Gadget's Shopify install URL
+    const installUrl = `https://itrcks--development.gadget.app/api/shopify/install?shop=${encodeURIComponent(shop.trim())}`;
+    
+    // Option 1: Direct redirect (recommended for embedded apps)
+    window.location.href = installUrl;
+    
+    // Option 2: Open in popup (alternative approach)
+    // window.open(installUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
   };
 
   const handleDisconnect = async () => {
@@ -253,14 +244,10 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
                 />
                 <Button
                   onClick={handleConnect}
-                  disabled={isConnecting || !shop.trim()}
+                  disabled={!shop.trim()}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isConnecting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                  )}
+                  <ExternalLink className="h-4 w-4 mr-2" />
                   Connect
                 </Button>
               </div>

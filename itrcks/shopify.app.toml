@@ -1,0 +1,23 @@
+# Learn more about working with Shopify TOML files with Gadget at https://docs.gadget.dev/guides/plugins/shopify/advanced-topics/shopify-app-toml
+
+client_id = "58b025fff34dbe266ed5be6cccf85487"
+name = "itrcks"
+application_url = "https://itrcks.gadget.app/api/shopify/install-or-render"
+embedded = true
+
+[build]
+# Gadget manages all your scopes, webhooks and api versioning for your app
+# As such, this line should not be changed unless you are working with
+# Shopify managed installations. Read more at https://docs.gadget.dev/guides/plugins/shopify/advanced-topics/shopify-app-toml
+include_config_on_deploy = true
+
+[auth]
+redirect_urls = ["https://itrcks.gadget.app/api/connections/auth/shopify/callback"]
+
+[webhooks]
+api_version = "2025-07"
+
+[app_proxy]
+url = "https://itrcks.gadget.app/api/graphql"
+subpath = "itrcks-development-api"
+prefix = "apps"
