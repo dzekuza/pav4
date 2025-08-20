@@ -33,13 +33,16 @@ export function validateOAuthConfig(): boolean {
 export const SHOPIFY_OAUTH_URLS = {
   // Gadget OAuth authorization URL for external app
   gadgetAuth: (shop: string, businessId: string) => {
-    // Use the correct callback URL that should be whitelisted in Gadget
-    const callbackUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`;
-    console.log('Generated callback URL:', callbackUrl);
-    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}&redirectUri=${encodeURIComponent(callbackUrl)}`;
+    // Use Gadget's own callback URL as the redirect URI
+    const gadgetCallbackUrl = `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections/auth/shopify/callback`;
+    console.log('Using Gadget callback URL:', gadgetCallbackUrl);
+    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}&redirectUri=${encodeURIComponent(gadgetCallbackUrl)}`;
   },
   
-  // Callback URL for Gadget to redirect back to our app
+  // Gadget's callback URL
+  gadgetCallback: `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections/auth/shopify/callback`,
+  
+  // Our app's callback URL (for webhook handling)
   callback: `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`
 };
 

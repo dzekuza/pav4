@@ -89,7 +89,7 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       redirectUrl: gadgetAuthUrl,
       shop: shop,
       businessId: businessId,
-      note: 'Using Gadget OAuth flow for external app'
+      note: 'Using Gadget OAuth flow - Gadget will handle callback internally, connection status will be notified via webhook'
     });
 
   } catch (error) {
@@ -147,55 +147,65 @@ router.get('/prepare', requireBusinessAuth, async (req, res) => {
   }
 });
 
-// GET /api/shopify/oauth/callback - Handle OAuth callback from Gadget
+// GET /api/shopify/oauth/callback - Handle OAuth callback from Gadget (if Gadget redirects back to us)
 router.get('/callback', async (req, res) => {
   try {
-    const { shop, businessId, success, error } = req.query;
+    const { shop, businessId, success, error, connectionId } = req.query;
 
     console.log('Gadget OAuth callback received:', {
       shop: shop,
       businessId: businessId,
       success: success,
       error: error,
+      connectionId: connectionId,
       query: req.query
     });
 
-    // Validate required parameters
-    if (!shop || !businessId) {
-      console.error('Missing required parameters:', { shop: !!shop, businessId: !!businessId });
-      return res.status(400).json({ error: 'Missing required parameters' });
-    }
+    // If Gadget redirects back to us with connection info
+    if (shop && businessId) {
+      // Validate required parameters
+      if (!shop || !businessId) {
+        console.error('Missing required parameters:', { shop: !!shop, businessId: !!businessId });
+        return res.status(400).json({ error: 'Missing required parameters' });
+      }
 
-    if (error) {
-      console.error('OAuth error from Gadget:', error);
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_error=true&error=${encodeURIComponent(error as string)}`;
-      return res.redirect(errorUrl);
-    }
+      if (error) {
+        console.error('OAuth error from Gadget:', error);
+        const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_error=true&error=${encodeURIComponent(error as string)}`;
+        return res.redirect(errorUrl);
+      }
 
-    // Update business with connection info
-    try {
-      await businessService.updateBusiness(parseInt(businessId as string), {
-        shopifyShop: shop as string,
-        shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
-        shopifyConnectedAt: new Date(),
-        shopifyStatus: 'connected'
-      });
+      // Update business with connection info
+      try {
+        await businessService.updateBusiness(parseInt(businessId as string), {
+          shopifyShop: shop as string,
+          shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
+          shopifyConnectedAt: new Date(),
+          shopifyStatus: 'connected'
+        });
 
-      console.log('Shopify OAuth callback successful:', {
-        businessId: businessId,
-        shop: shop,
-        scopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES
-      });
+        console.log('Shopify OAuth callback successful:', {
+          businessId: businessId,
+          shop: shop,
+          scopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES
+        });
 
-      // Redirect to dashboard with success message
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_connected=true&shop=${shop}&businessId=${businessId}`;
-      
+        // Redirect to dashboard with success message
+        const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_connected=true&shop=${shop}&businessId=${businessId}`;
+        
+        res.redirect(redirectUrl);
+
+      } catch (dbError) {
+        console.error('Database update failed:', dbError);
+        const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_error=db_error`;
+        res.redirect(errorUrl);
+      }
+    } else {
+      // If no parameters, this might be a direct callback from Gadget after internal processing
+      // In this case, we should redirect to the dashboard and let the webhook handle the connection status
+      console.log('Gadget callback received without parameters - redirecting to dashboard');
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_processing=true`;
       res.redirect(redirectUrl);
-
-    } catch (dbError) {
-      console.error('Database update failed:', dbError);
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_error=db_error`;
-      res.redirect(errorUrl);
     }
 
   } catch (error) {
