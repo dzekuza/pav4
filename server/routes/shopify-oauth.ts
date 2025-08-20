@@ -912,4 +912,123 @@ router.get('/debug', async (req, res) => {
   }
 });
 
+// GET /api/shopify/oauth/fetch-token-graphql - Fetch access token using GraphQL
+router.get('/fetch-token-graphql', requireBusinessAuth, async (req, res) => {
+  try {
+    const { shop } = req.query;
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    if (!shop || typeof shop !== 'string') {
+      return res.status(400).json({ error: 'Shop parameter is required' });
+    }
+
+    console.log(`Fetching access token via GraphQL for business ${businessId} and shop ${shop}`);
+
+    // Try to fetch the access token using GraphQL
+    try {
+      const graphqlQuery = `
+        query GetShopifyShop($id: GadgetID!) {
+          shopifyShop(id: $id) {
+            id
+            domain
+            myshopifyDomain
+            createdAt
+          }
+        }
+      `;
+
+      // First, let's try to find the shop by domain using a different approach
+      const findShopQuery = `
+        query FindShopifyShop($domain: String!) {
+          shopifyShops(first: 1, filter: { domain: { equals: $domain } }) {
+            edges {
+              node {
+                id
+                domain
+                myshopifyDomain
+                createdAt
+              }
+            }
+          }
+        }
+      `;
+
+      const graphqlResponse = await fetch(`${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/graphql`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: findShopQuery,
+          variables: { domain: shop }
+        })
+      });
+
+      console.log('GraphQL response status:', graphqlResponse.status);
+
+      if (graphqlResponse.ok) {
+        const graphqlData = await graphqlResponse.json();
+        console.log('GraphQL response data:', graphqlData);
+
+        // Check if we found a shop
+        const shopEdge = graphqlData.data?.shopifyShops?.edges?.[0];
+        if (shopEdge && shopEdge.node) {
+          const shopRecord = shopEdge.node;
+          console.log(`Found shop record for ${shop} via GraphQL:`, shopRecord);
+
+          // Since we can't get accessToken via GraphQL, we'll mark it as connected
+          // and use the manual update approach
+          await businessService.updateBusiness(businessId, {
+            shopifyShop: shop,
+            shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
+            shopifyConnectedAt: new Date(),
+            shopifyStatus: 'connected'
+          });
+
+          res.json({
+            success: true,
+            message: 'Shop found and marked as connected via GraphQL',
+            shop: shop,
+            businessId: businessId,
+            status: 'connected',
+            hasAccessToken: false,
+            note: 'Access token not available via GraphQL - use manual update if needed',
+            shopData: shopRecord
+          });
+        } else {
+          console.log(`No shop found for ${shop} via GraphQL`);
+          res.json({
+            success: false,
+            message: 'No shop found with this domain via GraphQL',
+            shop: shop,
+            businessId: businessId,
+            status: 'not_found',
+            graphqlData: graphqlData
+          });
+        }
+      } else {
+        const errorText = await graphqlResponse.text();
+        console.error('GraphQL request failed:', graphqlResponse.status, errorText);
+        res.status(500).json({ 
+          error: 'Failed to fetch access token via GraphQL',
+          status: graphqlResponse.status,
+          response: errorText.substring(0, 500)
+        });
+      }
+    } catch (graphqlError) {
+      console.error('GraphQL error:', graphqlError);
+      res.status(500).json({ 
+        error: 'Failed to connect to Gadget GraphQL API',
+        details: graphqlError.message
+      });
+    }
+
+  } catch (error) {
+    console.error('Fetch token GraphQL error:', error);
+    res.status(500).json({ error: 'Failed to fetch access token via GraphQL' });
+  }
+});
+
 export default router;
