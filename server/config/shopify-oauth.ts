@@ -33,10 +33,24 @@ export function validateOAuthConfig(): boolean {
 export const SHOPIFY_OAUTH_URLS = {
   // Gadget OAuth authorization URL for external app
   gadgetAuth: (shop: string, businessId: string) => {
-    // Use Gadget's own callback URL as the redirect URI
-    const gadgetCallbackUrl = `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections/auth/shopify/callback`;
-    console.log('Using Gadget callback URL:', gadgetCallbackUrl);
-    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}&redirectUri=${encodeURIComponent(gadgetCallbackUrl)}`;
+    // For production, we should use our own callback URL
+    // For development, we can use Gadget's callback URL
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        process.env.SHOPIFY_APP_URL?.includes('ipick.io') ||
+                        process.env.FRONTEND_URL?.includes('ipick.io');
+    
+    let callbackUrl;
+    if (isProduction) {
+      // Use our production callback URL
+      callbackUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`;
+      console.log('Using production callback URL:', callbackUrl);
+    } else {
+      // Use Gadget's callback URL for development
+      callbackUrl = `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections/auth/shopify/callback`;
+      console.log('Using Gadget callback URL:', callbackUrl);
+    }
+    
+    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}&redirectUri=${encodeURIComponent(callbackUrl)}`;
   },
   
   // Gadget's callback URL

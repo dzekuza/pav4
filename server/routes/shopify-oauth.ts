@@ -80,7 +80,10 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       NODE_ENV: process.env.NODE_ENV,
       SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL,
       FRONTEND_URL: process.env.FRONTEND_URL,
-      GADGET_API_URL: process.env.GADGET_API_URL
+      GADGET_API_URL: process.env.GADGET_API_URL,
+      isProduction: process.env.NODE_ENV === 'production' || 
+                   process.env.SHOPIFY_APP_URL?.includes('ipick.io') ||
+                   process.env.FRONTEND_URL?.includes('ipick.io')
     });
     
     res.json({
@@ -89,7 +92,14 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       redirectUrl: gadgetAuthUrl,
       shop: shop,
       businessId: businessId,
-      note: 'Using Gadget OAuth flow - Gadget will handle callback internally, connection status will be notified via webhook'
+      note: 'Using Gadget OAuth flow - Gadget will handle callback internally, connection status will be notified via webhook',
+      debug: {
+        callbackUrl: gadgetAuthUrl.includes('redirectUri=') ? 
+          decodeURIComponent(gadgetAuthUrl.split('redirectUri=')[1]) : 'Not found',
+        isProduction: process.env.NODE_ENV === 'production' || 
+                     process.env.SHOPIFY_APP_URL?.includes('ipick.io') ||
+                     process.env.FRONTEND_URL?.includes('ipick.io')
+      }
     });
 
   } catch (error) {
