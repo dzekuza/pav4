@@ -409,6 +409,72 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
+// GET /api/shopify/oauth/manual-update - Manually update connection status (for debugging/testing)
+router.get('/manual-update', requireBusinessAuth, async (req, res) => {
+  try {
+    const { shop } = req.query;
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    if (!shop || typeof shop !== 'string') {
+      return res.status(400).json({ error: 'Shop parameter is required' });
+    }
+
+    console.log(`Manually updating Shopify connection for business ${businessId} to shop ${shop}`);
+
+    // Update business with connection info
+    await businessService.updateBusiness(businessId, {
+      shopifyShop: shop,
+      shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
+      shopifyConnectedAt: new Date(),
+      shopifyStatus: 'connected'
+    });
+
+    console.log(`Successfully manually updated Shopify connection for business ${businessId}`);
+
+    res.json({
+      success: true,
+      message: 'Shopify connection manually updated',
+      shop: shop,
+      businessId: businessId,
+      status: 'connected'
+    });
+
+  } catch (error) {
+    console.error('Manual update error:', error);
+    res.status(500).json({ error: 'Failed to manually update connection' });
+  }
+});
+
+// GET /api/shopify/oauth/debug-status - Debug endpoint to check current business status
+router.get('/debug-status', requireBusinessAuth, async (req, res) => {
+  try {
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    console.log(`Debug status for business ${businessId}:`, {
+      shopifyShop: business.shopifyShop,
+      shopifyStatus: business.shopifyStatus,
+      shopifyConnectedAt: business.shopifyConnectedAt,
+      shopifyScopes: business.shopifyScopes
+    });
+
+    res.json({
+      success: true,
+      businessId: businessId,
+      shopifyShop: business.shopifyShop,
+      shopifyStatus: business.shopifyStatus,
+      shopifyConnectedAt: business.shopifyConnectedAt,
+      shopifyScopes: business.shopifyScopes,
+      isConnected: !!(business.shopifyShop && business.shopifyStatus === 'connected')
+    });
+
+  } catch (error) {
+    console.error('Debug status error:', error);
+    res.status(500).json({ error: 'Failed to get debug status' });
+  }
+});
+
 // GET /api/shopify/oauth/test-connect - Test OAuth flow without authentication (for testing only)
 router.get('/test-connect', async (req, res) => {
   try {

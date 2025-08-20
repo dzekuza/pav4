@@ -192,8 +192,10 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
           setPopupCheckInterval(null);
           setPopupWindow(null);
           
-          // Check if OAuth was successful
-          checkOAuthStatus();
+          // Check if OAuth was successful - check multiple times with delay
+          setTimeout(() => checkOAuthStatus(), 1000);
+          setTimeout(() => checkOAuthStatus(), 3000);
+          setTimeout(() => checkOAuthStatus(), 5000);
           
           // Show success message
           setSuccess(`OAuth flow completed for ${shopDomain}. Please check the connection status below.`);
@@ -269,6 +271,33 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
   };
 
+  const handleManualUpdate = async () => {
+    if (!shop.trim()) {
+      setError('Please enter your Shopify store URL first');
+      return;
+    }
+
+    setSuccess(null); // Clear previous success messages
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`/api/shopify/oauth/manual-update?shop=${encodeURIComponent(shop.trim())}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSuccess(`OAuth status updated successfully. ${data.message || ''}`);
+        checkOAuthStatus(); // Refresh status after manual update
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to update OAuth status');
+      }
+    } catch (error) {
+      setError('Failed to update OAuth status. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatScopes = (scopes: string) => {
     return scopes.split(',').map(scope => 
       scope.trim().replace('read_', '').replace(/_/g, ' ')
@@ -313,6 +342,28 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
               </button>
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Manual Update Button for OAuth completion */}
+        {success && success.includes('OAuth flow completed') && !status?.isConnected && (
+          <div className="flex gap-2">
+            <Button
+              onClick={checkOAuthStatus}
+              variant="outline"
+              className="text-blue-400 border-blue-400/30 hover:bg-blue-400/10"
+            >
+              <Loader2 className="h-4 w-4 mr-2" />
+              Refresh Status
+            </Button>
+            <Button
+              onClick={handleManualUpdate}
+              variant="outline"
+              className="text-green-400 border-green-400/30 hover:bg-green-400/10"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Mark as Connected
+            </Button>
+          </div>
         )}
 
         {/* Loading State */}
