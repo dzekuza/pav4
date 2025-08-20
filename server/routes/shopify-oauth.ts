@@ -42,10 +42,27 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       });
     }
 
-    // Generate the standard Gadget Shopify install URL
-    const installUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(shop as string)}`;
+    // Generate a secure state parameter
+    const state = crypto.randomBytes(32).toString('hex');
+    
+    // Store state with business ID and timestamp
+    oauthStates.set(state, {
+      businessId,
+      timestamp: Date.now()
+    });
 
-    // Redirect directly to Gadget's managed OAuth flow
+    // Clean up old states (older than 1 hour)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    for (const [key, value] of oauthStates.entries()) {
+      if (value.timestamp < oneHourAgo) {
+        oauthStates.delete(key);
+      }
+    }
+
+    // Generate the Gadget Shopify install URL with state parameter
+    const installUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(shop as string)}&state=${encodeURIComponent(state)}`;
+
+    // Redirect to Gadget's managed OAuth flow
     res.redirect(installUrl);
 
   } catch (error) {
@@ -61,6 +78,7 @@ router.get('/callback', async (req, res) => {
 
     // Validate required parameters
     if (!code || !state || !shop) {
+      console.error('Missing OAuth parameters:', { code: !!code, state: !!state, shop: !!shop });
       return res.status(400).json({ error: 'Missing required OAuth parameters' });
     }
 
@@ -73,15 +91,16 @@ router.get('/callback', async (req, res) => {
     // Verify state parameter
     const stateData = oauthStates.get(state as string);
     if (!stateData) {
+      console.error('Invalid or expired state parameter:', state);
       return res.status(400).json({ error: 'Invalid or expired state parameter' });
     }
 
     // Clean up used state
     oauthStates.delete(state as string);
 
-    // For Gadget API integration, we'll handle the OAuth flow differently
-    // The Gadget API will handle the token exchange and store the connection
-    // We'll just store the shop information and mark it as connected
+    // For Gadget API integration, the OAuth flow is handled by Gadget
+    // We just need to mark the business as connected and store the shop information
+    // The actual token exchange and connection management is handled by Gadget
     
     // Store the shop information in the database
     await businessService.updateBusiness(stateData.businessId, {
@@ -89,6 +108,12 @@ router.get('/callback', async (req, res) => {
       shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
       shopifyConnectedAt: new Date(),
       shopifyStatus: 'connected'
+    });
+
+    console.log('Shopify OAuth callback successful:', {
+      businessId: stateData.businessId,
+      shop: shop,
+      scopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES
     });
 
     // Redirect to dashboard with success message
@@ -114,7 +139,7 @@ router.get('/status', requireBusinessAuth, async (req, res) => {
       return res.status(404).json({ error: 'Business not found' });
     }
 
-    const isConnected = !!(business.shopifyAccessToken && business.shopifyShop);
+    const isConnected = !!(business.shopifyShop && business.shopifyStatus === 'connected');
     
     res.json({
       success: true,

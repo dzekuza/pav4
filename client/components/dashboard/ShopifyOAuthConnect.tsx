@@ -93,14 +93,11 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
 
     setError(null);
 
-    // Direct redirect to Gadget's Shopify install URL
-    const installUrl = `https://itrcks--development.gadget.app/api/shopify/install?shop=${encodeURIComponent(shop.trim())}`;
+    // Redirect to our backend OAuth connect endpoint which will handle the Gadget redirect
+    const connectUrl = `/api/shopify/oauth/connect?shop=${encodeURIComponent(shop.trim())}`;
     
-    // Option 1: Direct redirect (recommended for embedded apps)
-    window.location.href = installUrl;
-    
-    // Option 2: Open in popup (alternative approach)
-    // window.open(installUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+    // Redirect to our backend endpoint which will then redirect to Gadget
+    window.location.href = connectUrl;
   };
 
   const handleDisconnect = async () => {
