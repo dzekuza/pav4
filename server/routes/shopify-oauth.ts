@@ -42,6 +42,20 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       });
     }
 
+    // IMPORTANT: Disconnect any existing Shopify connection before starting new OAuth flow
+    // This ensures users can connect to any Shopify store regardless of their registered domain
+    console.log(`Disconnecting existing Shopify connection for business ${businessId} before connecting to ${shop}`);
+    
+    await businessService.updateBusiness(businessId, {
+      shopifyAccessToken: null,
+      shopifyShop: null,
+      shopifyScopes: null,
+      shopifyConnectedAt: null,
+      shopifyStatus: 'disconnected'
+    });
+
+    console.log(`Successfully disconnected existing Shopify connection for business ${businessId}`);
+
     // Generate a secure state parameter
     const state = crypto.randomBytes(32).toString('hex');
     
@@ -61,6 +75,8 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
 
     // Generate the Gadget Shopify install URL with state parameter
     const installUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(shop as string)}&state=${encodeURIComponent(state)}`;
+
+    console.log(`Redirecting business ${businessId} to Shopify OAuth for shop: ${shop}`);
 
     // Redirect to Gadget's managed OAuth flow
     res.redirect(installUrl);
@@ -162,6 +178,12 @@ router.post('/disconnect', requireBusinessAuth, async (req, res) => {
   try {
     const businessId = (req as any).businessId;
     
+    // Get current business info for logging
+    const business = await businessService.findBusinessById(businessId);
+    const currentShop = business?.shopifyShop;
+    
+    console.log(`Disconnecting Shopify store for business ${businessId} (current shop: ${currentShop || 'none'})`);
+    
     // Remove Shopify credentials
     await businessService.updateBusiness(businessId, {
       shopifyAccessToken: null,
@@ -171,14 +193,52 @@ router.post('/disconnect', requireBusinessAuth, async (req, res) => {
       shopifyStatus: 'disconnected'
     });
 
+    console.log(`Successfully disconnected Shopify store for business ${businessId}`);
+
     res.json({
       success: true,
-      message: 'Shopify store disconnected successfully'
+      message: 'Shopify store disconnected successfully',
+      disconnectedShop: currentShop
     });
 
   } catch (error) {
     console.error('Shopify OAuth disconnect error:', error);
     res.status(500).json({ error: 'Failed to disconnect Shopify store' });
+  }
+});
+
+// GET /api/shopify/oauth/force-disconnect - Force disconnect (for testing/debugging)
+router.get('/force-disconnect', requireBusinessAuth, async (req, res) => {
+  try {
+    const businessId = (req as any).businessId;
+    
+    // Get current business info for logging
+    const business = await businessService.findBusinessById(businessId);
+    const currentShop = business?.shopifyShop;
+    
+    console.log(`Force disconnecting Shopify store for business ${businessId} (current shop: ${currentShop || 'none'})`);
+    
+    // Remove Shopify credentials
+    await businessService.updateBusiness(businessId, {
+      shopifyAccessToken: null,
+      shopifyShop: null,
+      shopifyScopes: null,
+      shopifyConnectedAt: null,
+      shopifyStatus: 'disconnected'
+    });
+
+    console.log(`Successfully force disconnected Shopify store for business ${businessId}`);
+
+    res.json({
+      success: true,
+      message: 'Shopify store force disconnected successfully',
+      disconnectedShop: currentShop,
+      note: 'You can now connect to any Shopify store'
+    });
+
+  } catch (error) {
+    console.error('Shopify OAuth force disconnect error:', error);
+    res.status(500).json({ error: 'Failed to force disconnect Shopify store' });
   }
 });
 

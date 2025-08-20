@@ -110,7 +110,8 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
       });
 
       if (response.ok) {
-        setSuccess('Shopify store disconnected successfully');
+        const data = await response.json();
+        setSuccess(`Shopify store disconnected successfully${data.disconnectedShop ? ` (${data.disconnectedShop})` : ''}`);
         setStatus({ isConnected: false });
         onDisconnect?.();
       } else {
@@ -118,6 +119,28 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
       }
     } catch (error) {
       setError('Failed to disconnect Shopify store');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
+  const handleForceDisconnect = async () => {
+    setIsDisconnecting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/shopify/oauth/force-disconnect');
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuccess(`Shopify store force disconnected successfully${data.disconnectedShop ? ` (${data.disconnectedShop})` : ''}. ${data.note || ''}`);
+        setStatus({ isConnected: false });
+        onDisconnect?.();
+      } else {
+        setError('Failed to force disconnect Shopify store');
+      }
+    } catch (error) {
+      setError('Failed to force disconnect Shopify store');
     } finally {
       setIsDisconnecting(false);
     }
@@ -222,6 +245,20 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
                 <Unlink className="h-4 w-4 mr-2" />
               )}
               Disconnect Store
+            </Button>
+
+            <Button
+              onClick={handleForceDisconnect}
+              disabled={isDisconnecting}
+              variant="outline"
+              className="text-orange-400 border-orange-400/30 hover:bg-orange-400/10"
+            >
+              {isDisconnecting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Settings className="h-4 w-4 mr-2" />
+              )}
+              Force Disconnect
             </Button>
           </div>
         ) : (
