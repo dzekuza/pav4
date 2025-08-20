@@ -298,6 +298,37 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
   };
 
+  const handleFetchToken = async () => {
+    if (!shop.trim()) {
+      setError('Please enter your Shopify store URL first');
+      return;
+    }
+
+    setSuccess(null); // Clear previous success messages
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`/api/shopify/oauth/fetch-token?shop=${encodeURIComponent(shop.trim())}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSuccess(`Access token fetched successfully! ${data.message || ''}`);
+          checkOAuthStatus(); // Refresh status after fetching token
+        } else {
+          setError(data.message || 'No access token found for this shop');
+        }
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to fetch access token');
+      }
+    } catch (error) {
+      setError('Failed to fetch access token. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatScopes = (scopes: string) => {
     return scopes.split(',').map(scope => 
       scope.trim().replace('read_', '').replace(/_/g, ' ')
@@ -362,6 +393,14 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Mark as Connected
+            </Button>
+            <Button
+              onClick={handleFetchToken}
+              variant="outline"
+              className="text-purple-400 border-purple-400/30 hover:bg-purple-400/10"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Fetch Access Token
             </Button>
           </div>
         )}

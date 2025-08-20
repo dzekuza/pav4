@@ -446,6 +446,132 @@ router.get('/manual-update', requireBusinessAuth, async (req, res) => {
   }
 });
 
+// GET /api/shopify/oauth/fetch-token - Fetch access token from Gadget
+router.get('/fetch-token', requireBusinessAuth, async (req, res) => {
+  try {
+    const { shop } = req.query;
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    if (!shop || typeof shop !== 'string') {
+      return res.status(400).json({ error: 'Shop parameter is required' });
+    }
+
+    console.log(`Fetching access token from Gadget for business ${businessId} and shop ${shop}`);
+
+    // Try to fetch the access token from Gadget
+    try {
+      const gadgetResponse = await fetch(`${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections?shop=${encodeURIComponent(shop)}`, {
+        headers: {
+          'Authorization': `Bearer ${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (gadgetResponse.ok) {
+        const gadgetData = await gadgetResponse.json();
+        console.log('Gadget connection data:', gadgetData);
+
+        // Look for the connection with access token
+        const connection = gadgetData.connections?.find((conn: any) => 
+          conn.shop === shop && conn.accessToken
+        );
+
+        if (connection && connection.accessToken) {
+          console.log(`Found access token for shop ${shop}`);
+
+          // Update business with connection info including access token
+          await businessService.updateBusiness(businessId, {
+            shopifyShop: shop,
+            shopifyAccessToken: connection.accessToken,
+            shopifyScopes: connection.scopes || SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
+            shopifyConnectedAt: new Date(),
+            shopifyStatus: 'connected'
+          });
+
+          res.json({
+            success: true,
+            message: 'Access token fetched and stored successfully',
+            shop: shop,
+            businessId: businessId,
+            status: 'connected',
+            hasAccessToken: true,
+            scopes: connection.scopes
+          });
+        } else {
+          console.log(`No access token found for shop ${shop}`);
+          res.json({
+            success: false,
+            message: 'No access token found for this shop',
+            shop: shop,
+            businessId: businessId,
+            status: 'not_found'
+          });
+        }
+      } else {
+        console.error('Failed to fetch from Gadget:', gadgetResponse.status, gadgetResponse.statusText);
+        res.status(500).json({ 
+          error: 'Failed to fetch access token from Gadget',
+          status: gadgetResponse.status
+        });
+      }
+    } catch (gadgetError) {
+      console.error('Error fetching from Gadget:', gadgetError);
+      res.status(500).json({ 
+        error: 'Failed to connect to Gadget API',
+        details: gadgetError.message
+      });
+    }
+
+  } catch (error) {
+    console.error('Fetch token error:', error);
+    res.status(500).json({ error: 'Failed to fetch access token' });
+  }
+});
+
+// GET /api/shopify/oauth/update-with-token - Update connection with access token
+router.get('/update-with-token', requireBusinessAuth, async (req, res) => {
+  try {
+    const { shop, accessToken } = req.query;
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    if (!shop || typeof shop !== 'string') {
+      return res.status(400).json({ error: 'Shop parameter is required' });
+    }
+
+    if (!accessToken || typeof accessToken !== 'string') {
+      return res.status(400).json({ error: 'Access token is required' });
+    }
+
+    console.log(`Updating Shopify connection with access token for business ${businessId} to shop ${shop}`);
+
+    // Update business with connection info including access token
+    await businessService.updateBusiness(businessId, {
+      shopifyShop: shop,
+      shopifyAccessToken: accessToken,
+      shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
+      shopifyConnectedAt: new Date(),
+      shopifyStatus: 'connected'
+    });
+
+    console.log(`Successfully updated Shopify connection with access token for business ${businessId}`);
+
+    res.json({
+      success: true,
+      message: 'Shopify connection updated with access token',
+      shop: shop,
+      businessId: businessId,
+      status: 'connected',
+      hasAccessToken: true
+    });
+
+  } catch (error) {
+    console.error('Update with token error:', error);
+    res.status(500).json({ error: 'Failed to update connection with access token' });
+  }
+});
+
 // GET /api/shopify/oauth/debug-status - Debug endpoint to check current business status
 router.get('/debug-status', requireBusinessAuth, async (req, res) => {
   try {
