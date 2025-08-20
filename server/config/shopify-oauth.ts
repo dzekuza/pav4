@@ -3,7 +3,9 @@ export const SHOPIFY_OAUTH_CONFIG = {
   // Gadget API configuration for external app
   GADGET_API_URL: process.env.GADGET_API_URL || 'https://itrcks--development.gadget.app',
   GADGET_API_KEY: process.env.GADGET_API_KEY || '',
-  SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || process.env.FRONTEND_URL || 'http://localhost:8083',
+  // Use production URL for ipick.io, fallback to localhost for development
+  SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 
+                   (process.env.NODE_ENV === 'production' ? 'https://ipick.io' : 'http://localhost:8083'),
   IPICK_WEBHOOK_SECRET: process.env.IPICK_WEBHOOK_SECRET || '',
   SHOPIFY_SCOPES: [
     'read_products',
@@ -31,7 +33,10 @@ export function validateOAuthConfig(): boolean {
 export const SHOPIFY_OAUTH_URLS = {
   // Gadget OAuth authorization URL for external app
   gadgetAuth: (shop: string, businessId: string) => {
-    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}`;
+    // Use the correct callback URL that should be whitelisted in Gadget
+    const callbackUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`;
+    console.log('Generated callback URL:', callbackUrl);
+    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}&redirectUri=${encodeURIComponent(callbackUrl)}`;
   },
   
   // Callback URL for Gadget to redirect back to our app

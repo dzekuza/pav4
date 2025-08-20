@@ -76,6 +76,12 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
     const gadgetAuthUrl = generateShopifyAuthUrl(shop, businessId.toString());
 
     console.log('Generated Gadget OAuth URL:', gadgetAuthUrl);
+    console.log('Environment info:', {
+      NODE_ENV: process.env.NODE_ENV,
+      SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL,
+      FRONTEND_URL: process.env.FRONTEND_URL,
+      GADGET_API_URL: process.env.GADGET_API_URL
+    });
     
     res.json({
       success: true,
