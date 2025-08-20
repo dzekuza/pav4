@@ -3,5 +3,10 @@ if (process.env.NETLIFY_DATABASE_URL && !process.env.DATABASE_URL) {
   process.env.DATABASE_URL = process.env.NETLIFY_DATABASE_URL;
 }
 
-// Re-export server factory for Netlify function entry at netlify/functions/server.ts
-export { createServer } from "./index";
+// Import the server factory
+import { createServer } from "./index";
+
+// Create and export the Express app instance as default
+const app = createServer();
+
+export default app;
