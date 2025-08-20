@@ -456,6 +456,77 @@ router.get('/manual-update', requireBusinessAuth, async (req, res) => {
   }
 });
 
+// GET /api/shopify/oauth/test-gadget - Test Gadget API connectivity
+router.get('/test-gadget', requireBusinessAuth, async (req, res) => {
+  try {
+    console.log('Testing Gadget API connectivity...');
+    console.log('GADGET_API_URL:', SHOPIFY_OAUTH_CONFIG.GADGET_API_URL);
+    console.log('GADGET_API_KEY:', SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY ? 'Set' : 'Not set');
+
+    if (!SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY) {
+      return res.status(500).json({
+        error: 'Gadget API key not configured',
+        message: 'Please set the GADGET_API_KEY environment variable',
+        config: {
+          GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
+          GADGET_API_KEY: 'Not set'
+        }
+      });
+    }
+
+    // Test basic connectivity to Gadget
+    try {
+      const testResponse = await fetch(`${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/shopifyShops?first=1`, {
+        headers: {
+          'Authorization': `Bearer ${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Gadget test response status:', testResponse.status);
+
+      if (testResponse.ok) {
+        const testData = await testResponse.json();
+        res.json({
+          success: true,
+          message: 'Gadget API connection successful',
+          status: testResponse.status,
+          data: testData,
+          config: {
+            GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
+            GADGET_API_KEY: 'Set (hidden)'
+          }
+        });
+      } else {
+        const errorText = await testResponse.text();
+        res.status(500).json({
+          error: 'Gadget API test failed',
+          status: testResponse.status,
+          response: errorText.substring(0, 500),
+          config: {
+            GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
+            GADGET_API_KEY: 'Set (hidden)'
+          }
+        });
+      }
+    } catch (testError) {
+      console.error('Gadget API test error:', testError);
+      res.status(500).json({
+        error: 'Failed to connect to Gadget API',
+        details: testError.message,
+        config: {
+          GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
+          GADGET_API_KEY: 'Set (hidden)'
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Test Gadget error:', error);
+    res.status(500).json({ error: 'Failed to test Gadget API' });
+  }
+});
+
 // GET /api/shopify/oauth/fetch-token - Fetch access token from Gadget
 router.get('/fetch-token', requireBusinessAuth, async (req, res) => {
   try {
@@ -469,32 +540,35 @@ router.get('/fetch-token', requireBusinessAuth, async (req, res) => {
 
     console.log(`Fetching access token from Gadget for business ${businessId} and shop ${shop}`);
 
-    // Try to fetch the access token from Gadget
+    // Try to fetch the access token from Gadget using the correct API structure
     try {
-      const gadgetResponse = await fetch(`${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections?shop=${encodeURIComponent(shop)}`, {
+      // First, try to get the shop connection from Gadget
+      const gadgetResponse = await fetch(`${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/shopifyShops?filter=${encodeURIComponent(JSON.stringify({ domain: { equals: shop } }))}`, {
         headers: {
           'Authorization': `Bearer ${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY}`,
           'Content-Type': 'application/json'
         }
       });
 
+      console.log('Gadget API response status:', gadgetResponse.status);
+
       if (gadgetResponse.ok) {
         const gadgetData = await gadgetResponse.json();
-        console.log('Gadget connection data:', gadgetData);
+        console.log('Gadget shop data:', gadgetData);
 
-        // Look for the connection with access token
-        const connection = gadgetData.connections?.find((conn: any) => 
-          conn.shop === shop && conn.accessToken
+        // Look for the shop with access token
+        const shopRecord = gadgetData.shopifyShops?.find((shopData: any) => 
+          shopData.domain === shop && shopData.accessToken
         );
 
-        if (connection && connection.accessToken) {
+        if (shopRecord && shopRecord.accessToken) {
           console.log(`Found access token for shop ${shop}`);
 
           // Update business with connection info including access token
           await businessService.updateBusiness(businessId, {
             shopifyShop: shop,
-            shopifyAccessToken: connection.accessToken,
-            shopifyScopes: connection.scopes || SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
+            shopifyAccessToken: shopRecord.accessToken,
+            shopifyScopes: shopRecord.scopes || SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
             shopifyConnectedAt: new Date(),
             shopifyStatus: 'connected'
           });
@@ -506,24 +580,50 @@ router.get('/fetch-token', requireBusinessAuth, async (req, res) => {
             businessId: businessId,
             status: 'connected',
             hasAccessToken: true,
-            scopes: connection.scopes
+            scopes: shopRecord.scopes
           });
         } else {
           console.log(`No access token found for shop ${shop}`);
-          res.json({
-            success: false,
-            message: 'No access token found for this shop',
-            shop: shop,
-            businessId: businessId,
-            status: 'not_found'
-          });
+          
+          // Try alternative approach - check if shop exists but no token
+          if (gadgetData.shopifyShops?.length > 0) {
+            res.json({
+              success: false,
+              message: 'Shop found but no access token available',
+              shop: shop,
+              businessId: businessId,
+              status: 'no_token',
+              note: 'The shop is connected but access token is not available'
+            });
+          } else {
+            res.json({
+              success: false,
+              message: 'No shop found with this domain',
+              shop: shop,
+              businessId: businessId,
+              status: 'not_found'
+            });
+          }
         }
       } else {
-        console.error('Failed to fetch from Gadget:', gadgetResponse.status, gadgetResponse.statusText);
-        res.status(500).json({ 
-          error: 'Failed to fetch access token from Gadget',
-          status: gadgetResponse.status
-        });
+        const errorText = await gadgetResponse.text();
+        console.error('Failed to fetch from Gadget:', gadgetResponse.status, errorText);
+        
+        // If it's a configuration error, provide helpful guidance
+        if (gadgetResponse.status === 400 || gadgetResponse.status === 500) {
+          res.status(500).json({ 
+            error: 'Gadget API configuration issue',
+            details: 'The Gadget app may not be properly configured for Shopify OAuth',
+            status: gadgetResponse.status,
+            response: errorText.substring(0, 200) // First 200 chars of error
+          });
+        } else {
+          res.status(500).json({ 
+            error: 'Failed to fetch access token from Gadget',
+            status: gadgetResponse.status,
+            response: errorText.substring(0, 200)
+          });
+        }
       }
     } catch (gadgetError) {
       console.error('Error fetching from Gadget:', gadgetError);

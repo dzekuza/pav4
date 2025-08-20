@@ -65,7 +65,7 @@ const route: RouteHandler<{ Querystring: QueryParams }> = async ({
     }
 
     // Check if API key matches expected pattern
-    if (apiKey !== 'ipick-analytics-api') {
+    if (apiKey !== 'GADGET_API_KEY') {
       return reply.code(401).send({ 
         error: 'Invalid API key', 
         message: 'Invalid API key provided' 
