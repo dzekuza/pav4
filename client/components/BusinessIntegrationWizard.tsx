@@ -126,6 +126,216 @@ export default function BusinessIntegrationWizard({
 
   const platforms: Platform[] = [
     {
+      id: "shopify-script",
+      name: "Shopify (Script)",
+      description: "Google Tag Manager script for tracking successful orders",
+      icon: "📊",
+      features: [
+        "Google Tag Manager integration",
+        "Thank you page tracking",
+        "UTM parameter tracking",
+        "Session attribution",
+        "Purchase confirmation",
+        "No app installation required",
+      ],
+      get scriptTemplate() {
+        return `// Google Tag Manager Custom HTML Tag for iPick Order Tracking
+// Add this as a Custom HTML tag in Google Tag Manager
+// Trigger: Thank You Page (order confirmation page)
+
+<script>
+(function() {
+  'use strict';
+  
+  // Configuration
+  const config = {
+    businessId: "${business?.id || "YOUR_BUSINESS_ID"}",
+    affiliateId: "${business?.affiliateId || "YOUR_AFFILIATE_ID"}",
+    apiUrl: "https://ipick.io/.netlify/functions/track-shopify-script",
+    debug: false
+  };
+  
+  // Debug logging
+  function log(message, data) {
+    if (config.debug) {
+      console.log('[iPick Script]', message, data);
+    }
+  }
+  
+  // Extract UTM parameters from URL
+  function getUtmParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+      utm_source: urlParams.get('utm_source'),
+      utm_medium: urlParams.get('utm_medium'),
+      utm_campaign: urlParams.get('utm_campaign'),
+      utm_term: urlParams.get('utm_term'),
+      utm_content: urlParams.get('utm_content'),
+      ref: urlParams.get('ref'),
+      business_domain: urlParams.get('business_domain'),
+      session_id: urlParams.get('session_id')
+    };
+  }
+  
+  // Extract order data from Shopify thank you page
+  function extractOrderData() {
+    try {
+      // Try to get order data from Shopify's global object
+      if (window.Shopify && window.Shopify.checkout) {
+        return {
+          order_id: window.Shopify.checkout.order_id,
+          total_price: window.Shopify.checkout.total_price,
+          currency: window.Shopify.checkout.currency,
+          email: window.Shopify.checkout.email,
+          customer_id: window.Shopify.checkout.customer_id
+        };
+      }
+      
+      // Fallback: Try to extract from page content
+      const orderIdMatch = document.body.textContent.match(/Order #([0-9]+)/i);
+      const totalMatch = document.body.textContent.match(/Total[^$]*?([$€£]?[0-9,]+\.?[0-9]*)/i);
+      
+      return {
+        order_id: orderIdMatch ? orderIdMatch[1] : null,
+        total_price: totalMatch ? totalMatch[1] : null,
+        currency: 'USD',
+        email: null,
+        customer_id: null
+      };
+    } catch (error) {
+      log('Error extracting order data:', error);
+      return null;
+    }
+  }
+  
+  // Extract product data from order
+  function extractProductData() {
+    try {
+      const products = [];
+      
+      // Look for product information in the page
+      const productElements = document.querySelectorAll('[data-product-id], .product-item, .line-item');
+      
+      productElements.forEach(element => {
+        const productId = element.getAttribute('data-product-id') || 
+                         element.querySelector('[data-product-id]')?.getAttribute('data-product-id');
+        const productName = element.querySelector('.product-name, .line-item-title, h3, h4')?.textContent?.trim();
+        const productPrice = element.querySelector('.price, .line-item-price')?.textContent?.trim();
+        const quantity = element.querySelector('.quantity')?.textContent?.trim() || '1';
+        
+        if (productId || productName) {
+          products.push({
+            product_id: productId,
+            product_name: productName,
+            product_price: productPrice,
+            quantity: quantity
+          });
+        }
+      });
+      
+      return products;
+    } catch (error) {
+      log('Error extracting product data:', error);
+      return [];
+    }
+  }
+  
+  // Send tracking data to iPick API
+  async function sendTrackingData(orderData, productData, utmParams) {
+    try {
+      const trackingData = {
+        event_type: 'purchase_complete',
+        business_id: config.businessId,
+        affiliate_id: config.affiliateId,
+        platform: 'shopify-script',
+        session_id: utmParams.session_id || generateSessionId(),
+        user_agent: navigator.userAgent,
+        referrer: document.referrer,
+        timestamp: Date.now(),
+        url: window.location.href,
+        page_title: document.title,
+        data: {
+          order_id: orderData.order_id,
+          total_price: orderData.total_price,
+          currency: orderData.currency,
+          email: orderData.email,
+          customer_id: orderData.customer_id,
+          products: productData,
+          utm_source: utmParams.utm_source,
+          utm_medium: utmParams.utm_medium,
+          utm_campaign: utmParams.utm_campaign,
+          utm_term: utmParams.utm_term,
+          utm_content: utmParams.utm_content,
+          ref: utmParams.ref,
+          business_domain: utmParams.business_domain,
+          shop_domain: window.location.hostname,
+          source: 'shopify-script-gtm'
+        }
+      };
+      
+      log('Sending tracking data:', trackingData);
+      
+      const response = await fetch(config.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(trackingData)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        log('Tracking successful:', result);
+        return true;
+      } else {
+        throw new Error(\`HTTP \${response.status}\`);
+      }
+    } catch (error) {
+      log('Error sending tracking data:', error);
+      return false;
+    }
+  }
+  
+  // Generate session ID if not present
+  function generateSessionId() {
+    return 'script_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  // Main execution
+  function main() {
+    log('iPick Shopify Script started');
+    
+    // Wait for page to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', executeTracking);
+    } else {
+      executeTracking();
+    }
+  }
+  
+  function executeTracking() {
+    // Extract data
+    const utmParams = getUtmParameters();
+    const orderData = extractOrderData();
+    const productData = extractProductData();
+    
+    log('Extracted data:', { utmParams, orderData, productData });
+    
+    // Only track if we have order data or UTM parameters
+    if (orderData || Object.values(utmParams).some(param => param)) {
+      sendTrackingData(orderData, productData, utmParams);
+    } else {
+      log('No order data or UTM parameters found, skipping tracking');
+    }
+  }
+  
+  // Start tracking
+  main();
+})();
+</script>`;
+      },
+    },
+    {
       id: "shopify-simple",
       name: "Shopify (Simple)",
       description: "One-line script integration for basic tracking",

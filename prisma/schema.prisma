@@ -97,6 +97,7 @@ model Business {
   webhooks            Webhook[]
   domainVerifications DomainVerification[]
   products            Product[]
+  sessionAttributions SessionAttribution[]
 
   @@map("businesses")
 }
@@ -478,6 +479,32 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   @@map("products")
+}
+
+model SessionAttribution {
+  id             Int      @id @default(autoincrement())
+  businessId     Int
+  sessionId      String
+  orderId        String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  businessDomain String?
+  shopDomain     String?
+  totalAmount    Float
+  currency       String   @default("USD")
+  customerEmail  String?
+  customerId     String?
+  timestamp      DateTime @default(now())
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([sessionId])
+  @@index([orderId])
+  @@index([timestamp])
+  @@index([businessId, timestamp])
+  @@index([utmSource, utmMedium, utmCampaign])
+  @@map("session_attributions")
 }
 
 model ShopifyEvent {

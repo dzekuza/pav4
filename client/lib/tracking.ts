@@ -275,6 +275,24 @@ export function generateAffiliateLink(
       trackingParams.set("product_name", productName);
     }
 
+    // Add enhanced session tracking for Shopify script integration
+    const currentUtmParams = getStoredUtmParameters();
+    if (currentUtmParams.utm_source) {
+      trackingParams.set("utm_source", currentUtmParams.utm_source);
+    }
+    if (currentUtmParams.utm_medium) {
+      trackingParams.set("utm_medium", currentUtmParams.utm_medium);
+    }
+    if (currentUtmParams.utm_campaign) {
+      trackingParams.set("utm_campaign", currentUtmParams.utm_campaign);
+    }
+    if (currentUtmParams.utm_term) {
+      trackingParams.set("utm_term", currentUtmParams.utm_term);
+    }
+    if (currentUtmParams.utm_content) {
+      trackingParams.set("utm_content", currentUtmParams.utm_content);
+    }
+
     // Add retailer-specific affiliate parameters
     if (hostname.includes("amazon") && AFFILIATE_CONFIG.amazonTag) {
       trackingParams.set("tag", AFFILIATE_CONFIG.amazonTag);

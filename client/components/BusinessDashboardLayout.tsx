@@ -27,6 +27,7 @@ import {
   Building2,
   User,
   Package,
+  Tag,
 } from "lucide-react";
 
 interface BusinessStats {
@@ -285,6 +286,19 @@ export default function BusinessDashboardLayout() {
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/business/dashboard/checkout/attribution")}
+            className={cn(
+              "flex items-center rounded-full",
+              isActiveRoute("/business/dashboard/checkout/attribution")
+                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
+                : "text-white hover:bg-white/10 hover:text-white",
+            )}
+          >
+            <Tag className="mr-2 h-4 w-4" />
+            Attribution
+          </Button>
         </div>
 
         {/* Content Area */}
@@ -359,6 +373,19 @@ export default function BusinessDashboardLayout() {
           >
             <Package className="h-5 w-5 mb-1" />
             <span className="text-xs font-medium">Products</span>
+          </button>
+
+          <button
+            onClick={() => navigate("/business/dashboard/checkout/attribution")}
+            className={cn(
+              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
+              isActiveRoute("/business/dashboard/checkout/attribution")
+                ? "text-white bg-white/20 shadow-sm"
+                : "text-white/70 hover:text-white hover:bg-white/10",
+            )}
+          >
+            <Tag className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Attribution</span>
           </button>
 
           {/* Profile dropdown in mobile navigation */}

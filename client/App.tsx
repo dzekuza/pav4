@@ -131,6 +131,9 @@ const BusinessSettingsDashboard = lazy(
 const BusinessProductsDashboard = lazy(
   () => import("./pages/BusinessProductsDashboard"),
 );
+const BusinessAttributionDashboard = lazy(
+  () => import("./pages/BusinessAttributionDashboard"),
+);
 const DashboardSelector = lazy(() => import("./components/DashboardSelector"));
 const JourneyDashboard = lazy(() => import("./pages/JourneyDashboard"));
 const Browse = lazy(() => import("./pages/Browse"));
@@ -386,6 +389,14 @@ const router = createBrowserRouter(
           element: (
             <Suspense fallback={null}>
               <BusinessSettingsDashboard />
+            </Suspense>
+          ),
+        },
+        {
+          path: "attribution",
+          element: (
+            <Suspense fallback={null}>
+              <BusinessAttributionDashboard />
             </Suspense>
           ),
         },

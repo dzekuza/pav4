@@ -83,6 +83,7 @@ import redirectRouter from "./routes/redirect";
 
 import trackProductVisitRouter from "./routes/track-product-visit";
 import { trackEvent, getTrackingEvents } from "./routes/track-event";
+import sessionAttributionsRouter from "./routes/session-attributions";
 import {
   trackSessionEvent,
   getSessionAnalytics,
@@ -367,6 +368,9 @@ app.use("/api/shopify/oauth", shopifyOAuthRouter);
     trackEvent(req, res, next);
   });
   app.get("/api/tracking-events", getTrackingEvents);
+
+  // Session attribution routes
+  app.use("/api/business", sessionAttributionsRouter);
 
   // Session tracking routes
   app.post("/api/track-session", (req, res, next) => {

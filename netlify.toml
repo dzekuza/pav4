@@ -18,6 +18,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/track-shopify-script"
+  to = "/.netlify/functions/track-shopify-script"
+  status = 200
+
+[[redirects]]
   from = "/ref/*"
   to = "/.netlify/functions/server"
   status = 200
