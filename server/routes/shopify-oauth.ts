@@ -7,7 +7,7 @@ import {
   generateShopifyAuthUrl, 
   validateShopifyShop, 
   validateOAuthConfig, 
-  GADGET_WEBHOOK_CONFIG 
+  SHOPIFY_WEBHOOK_CONFIG 
 } from '../config/shopify-oauth';
 import { requireBusinessAuth } from '../middleware/business-auth';
 
@@ -16,7 +16,7 @@ const router = express.Router();
 // Store OAuth states in memory (in production, use Redis or database)
 const oauthStates = new Map<string, { businessId: number; timestamp: number }>();
 
-// GET /api/shopify/oauth/connect - Start OAuth flow using Gadget (returns URL for popup)
+// GET /api/shopify/oauth/connect - Start OAuth flow using direct Shopify OAuth
 router.get('/connect', requireBusinessAuth, async (req, res) => {
   try {
     console.log('Shopify OAuth connect request received:', {
@@ -71,69 +71,35 @@ router.get('/connect', requireBusinessAuth, async (req, res) => {
       // Continue with OAuth flow even if disconnect fails
     }
 
-    // Use Gadget's OAuth flow instead of direct Shopify OAuth
-    console.log('Using Gadget OAuth flow for shop:', shop);
+    // Generate a secure state parameter for CSRF protection
+    const state = crypto.randomBytes(32).toString('hex');
     
-    // Call Gadget's initiate endpoint
-    const gadgetInitiateUrl = `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/initiate`;
+    // Store state with business ID and timestamp
+    oauthStates.set(state, {
+      businessId: businessId,
+      timestamp: Date.now()
+    });
+
+    // Build the Shopify OAuth authorization URL
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:8083';
+    const redirectUri = `${baseUrl}/api/shopify/oauth/callback`;
     
-    try {
-      const initiateResponse = await fetch(gadgetInitiateUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY}`
-        },
-        body: JSON.stringify({
-          shop: shop,
-          userId: businessId.toString(), // Use business ID instead of Neon Auth user ID
-          redirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard`
-        })
-      });
+    const authUrl = `https://${shop}/admin/oauth/authorize?` +
+      `client_id=${SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_KEY}&` +
+      `scope=${encodeURIComponent(SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES)}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `state=${state}`;
 
-      if (!initiateResponse.ok) {
-        const errorText = await initiateResponse.text();
-        console.error('Gadget initiate failed:', errorText);
-        throw new Error(`Gadget initiate failed: ${initiateResponse.status}`);
-      }
-
-      const initiateData = await initiateResponse.json();
-      console.log('Gadget initiate response:', initiateData);
-
-      if (!initiateData.installUrl) {
-        throw new Error('No install URL returned from Gadget');
-      }
-
-      // Return the OAuth URL for popup instead of redirecting
-      const oauthUrl = `${initiateData.installUrl}&businessId=${businessId}`;
-
-      console.log('Returning OAuth URL for popup:', oauthUrl);
-      
-      res.json({
-        success: true,
-        message: 'OAuth URL generated successfully',
-        redirectUrl: oauthUrl,
-        shop: shop,
-        businessId: businessId,
-        userId: businessId.toString()
-      });
-
-    } catch (gadgetError) {
-      console.error('Gadget OAuth initiation failed:', gadgetError);
-      
-      // Fallback to direct Gadget install URL if initiate fails
-      const fallbackUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(shop)}&businessId=${businessId}`;
-      console.log('Using fallback URL:', fallbackUrl);
-      
-      res.json({
-        success: true,
-        message: 'OAuth URL generated successfully (fallback)',
-        redirectUrl: fallbackUrl,
-        shop: shop,
-        businessId: businessId,
-        userId: businessId.toString()
-      });
-    }
+    console.log('Generated Shopify OAuth URL:', authUrl);
+    
+    res.json({
+      success: true,
+      message: 'OAuth URL generated successfully',
+      redirectUrl: authUrl,
+      shop: shop,
+      businessId: businessId,
+      state: state
+    });
 
   } catch (error) {
     console.error('Shopify OAuth connect error:', error);
@@ -230,34 +196,51 @@ router.get('/callback', async (req, res) => {
       shop: shop
     });
 
-    // IMPORTANT: For Gadget managed OAuth, we need to verify the connection was successful
-    // by checking if the shop is now connected in Gadget before marking it as connected in our system
-    
-    try {
-      // Store the shop information in the database
-      await businessService.updateBusiness(stateData.businessId, {
-        shopifyShop: shop as string,
-        shopifyScopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES,
-        shopifyConnectedAt: new Date(),
-        shopifyStatus: 'connected'
-      });
+    // Exchange authorization code for access token
+    const tokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_KEY,
+        client_secret: process.env.SHOPIFY_API_SECRET || '',
+        code: code
+      })
+    });
 
-      console.log('Shopify OAuth callback successful:', {
-        businessId: stateData.businessId,
-        shop: shop,
-        scopes: SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES
-      });
-
-      // Redirect to dashboard with success message
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_connected=true&shop=${shop}`;
-      
-      res.redirect(redirectUrl);
-
-    } catch (dbError) {
-      console.error('Database update failed:', dbError);
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_error=db_error`;
-      res.redirect(errorUrl);
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Failed to exchange code for access token:', errorText);
+      throw new Error('Failed to exchange code for access token');
     }
+
+    const tokenData = await tokenResponse.json();
+    console.log('Access token received:', {
+      hasToken: !!tokenData.access_token,
+      scope: tokenData.scope,
+      expiresIn: tokenData.expires_in
+    });
+
+    // Store the shop information and access token in the database
+    await businessService.updateBusiness(stateData.businessId, {
+      shopifyShop: shop as string,
+      shopifyAccessToken: tokenData.access_token,
+      shopifyScopes: tokenData.scope,
+      shopifyConnectedAt: new Date(),
+      shopifyStatus: 'connected'
+    });
+
+    console.log('Shopify OAuth callback successful:', {
+      businessId: stateData.businessId,
+      shop: shop,
+      scopes: tokenData.scope
+    });
+
+    // Redirect to dashboard with success message
+    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8084'}/business/dashboard?shopify_connected=true&shop=${shop}`;
+    
+    res.redirect(redirectUrl);
 
   } catch (error) {
     console.error('Shopify OAuth callback error:', error);
@@ -375,10 +358,10 @@ router.get('/webhook-config', requireBusinessAuth, async (req, res) => {
 
           res.json({
         success: true,
-        webhookEndpoint: `${process.env.FRONTEND_URL || 'https://ipick.io'}${GADGET_WEBHOOK_CONFIG.ENDPOINT}`,
+        webhookEndpoint: `${process.env.FRONTEND_URL || 'https://ipick.io'}${SHOPIFY_WEBHOOK_CONFIG.ENDPOINT}`,
         webhookSecret: SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET ? 'configured' : 'missing',
         shop: business.shopifyShop,
-        events: GADGET_WEBHOOK_CONFIG.EVENTS
+        events: SHOPIFY_WEBHOOK_CONFIG.EVENTS
       });
 
   } catch (error) {
@@ -443,9 +426,9 @@ router.get('/test-connect', async (req, res) => {
       return res.status(500).json({ 
         error: 'Shopify OAuth is not properly configured. Please contact support.',
         missing: {
-          gadgetApiUrl: !SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
-          installUrl: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL,
-          callbackUrl: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_CALLBACK_URL,
+          shopifyApiKey: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_KEY,
+          shopifyApiSecret: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_API_SECRET,
+          shopifyAppUrl: !SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL,
           webhookSecret: !SHOPIFY_OAUTH_CONFIG.IPICK_WEBHOOK_SECRET
         }
       });
@@ -474,8 +457,8 @@ router.get('/test-connect', async (req, res) => {
       timestamp: Date.now()
     });
 
-    // Generate the Gadget Shopify install URL with state parameter
-    const installUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(shop as string)}&state=${encodeURIComponent(state)}`;
+    // Generate the Shopify OAuth authorization URL with state parameter
+    const installUrl = generateShopifyAuthUrl(shop as string, state);
 
     console.log(`Test redirect to Shopify OAuth for shop: ${shop}`);
     console.log(`Install URL: ${installUrl}`);
@@ -521,8 +504,8 @@ router.get('/test-config', async (req, res) => {
     const isShopValid = validateShopifyShop(testShop);
     console.log('Shop validation for', testShop, ':', isShopValid);
     
-    // Generate test URL following Gadget's OAuth flow
-    const testUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_INSTALL_URL}?shop=${encodeURIComponent(testShop)}`;
+    // Generate test URL following Shopify's OAuth flow
+    const testUrl = generateShopifyAuthUrl(testShop);
     console.log('Test URL:', testUrl);
     
     res.json({
