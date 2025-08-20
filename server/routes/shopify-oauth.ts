@@ -461,7 +461,8 @@ router.get('/test-gadget', requireBusinessAuth, async (req, res) => {
   try {
     console.log('Testing Gadget API connectivity...');
     console.log('GADGET_API_URL:', SHOPIFY_OAUTH_CONFIG.GADGET_API_URL);
-    console.log('GADGET_API_KEY:', SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY ? 'Set' : 'Not set');
+    console.log('GADGET_API_KEY:', SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY ? 
+      `Set (${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY.substring(0, 10)}...)` : 'Not set');
 
     if (!SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY) {
       return res.status(500).json({
@@ -494,7 +495,7 @@ router.get('/test-gadget', requireBusinessAuth, async (req, res) => {
           data: testData,
           config: {
             GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
-            GADGET_API_KEY: 'Set (hidden)'
+            GADGET_API_KEY: `Set (${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY.substring(0, 10)}...)`
           }
         });
       } else {
@@ -505,7 +506,7 @@ router.get('/test-gadget', requireBusinessAuth, async (req, res) => {
           response: errorText.substring(0, 500),
           config: {
             GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
-            GADGET_API_KEY: 'Set (hidden)'
+            GADGET_API_KEY: `Set (${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY.substring(0, 10)}...)`
           }
         });
       }
@@ -516,7 +517,7 @@ router.get('/test-gadget', requireBusinessAuth, async (req, res) => {
         details: testError.message,
         config: {
           GADGET_API_URL: SHOPIFY_OAUTH_CONFIG.GADGET_API_URL,
-          GADGET_API_KEY: 'Set (hidden)'
+          GADGET_API_KEY: `Set (${SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY.substring(0, 10)}...)`
         }
       });
     }

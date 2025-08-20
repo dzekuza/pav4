@@ -2,7 +2,8 @@
 export const SHOPIFY_OAUTH_CONFIG = {
   // Gadget API configuration for external app
   GADGET_API_URL: process.env.GADGET_API_URL || 'https://itrcks--development.gadget.app',
-  GADGET_API_KEY: process.env.GADGET_API_KEY || '',
+  // Use the external API key for external access
+  GADGET_API_KEY: process.env.GADGET_API_KEY || process.env.GADGET_EXTERNAL_API_KEY || '',
   // Use production URL for ipick.io, fallback to localhost for development
   SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 
                    (process.env.NODE_ENV === 'production' ? 'https://ipick.io' : 'http://localhost:8083'),
