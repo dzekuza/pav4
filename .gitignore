@@ -9,13 +9,37 @@ dist/
 build/
 .netlify/
 
-# Environment variables
+# Environment variables and sensitive configuration
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.md
+.env.*
+*.env
+
+# API Keys and Secrets
+**/api-keys.json
+**/secrets.json
+**/config.json
+**/credentials.json
+**/keys.json
+**/tokens.json
+
+# Test files with sensitive data
+scripts/test-*.js
+scripts/debug-*.js
+scripts/setup-*.js
+scripts/*-oauth*.js
+scripts/*-shopify*.js
+scripts/*-gadget*.js
+
+# Documentation with sensitive information
+docs/*-oauth*.md
+docs/*-shopify*.md
+docs/*-gadget*.md
+docs/*-troubleshooting*.md
+
 # IDE
 .vscode/
 .idea/
@@ -57,4 +81,7 @@ prisma/dev.db-journal
 # Misc
 *.tgz
 *.tar.gz
+
+# Specific sensitive files
 server/routes/business.ts
+scripts/setup-env.js
