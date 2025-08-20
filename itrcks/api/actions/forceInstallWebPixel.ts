@@ -1,7 +1,11 @@
 import { ActionOptions } from "gadget-server";
 
-export const run: ActionRun = async ({ params, logger, api, connections }) => {
+export const run: ActionRun = async ({ params, logger, api, connections, config }) => {
   const shopId = params.shopId;
+  
+  if (!shopId) {
+    throw new Error("shopId parameter is required");
+  }
   
   logger.info(`Starting forced Web Pixel installation for shop: ${shopId}`);
   
@@ -21,14 +25,14 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     
     // Get the Shopify client for this specific shop
     logger.info(`Getting Shopify client for shop ${shopId}`);
-    const shopify = await connections.shopify.forShopId(shopId);
+    const shopify = await connections.shopify.forShopId(shopId as string);
     
     if (!shopify) {
       throw new Error(`Could not get Shopify client for shop ${shopId}`);
     }
     
     // Get the current app URL for the collector endpoint
-    const appUrl = connections.shopify.currentAppUrl || "https://itrcks--development.gadget.app";
+    const appUrl = config.currentAppUrl || "https://itrcks--development.gadget.app";
     const collectorUrl = `${appUrl}/collector`;
     
     // Define the complete Web Pixel JavaScript code for tracking
@@ -195,7 +199,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
         errors: errors,
         shopId: shopId,
         shopName: shop.name,
-        message: `Failed to create Web Pixel: ${errors.map(e => e.message).join(', ')}`
+        message: `Failed to create Web Pixel: ${errors.map((e: { message: string }) => e.message).join(', ')}`
       };
     }
     
@@ -227,13 +231,16 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
   } catch (error) {
     logger.error(`Failed to install Web Pixel for shop ${shopId}:`, error);
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     // Return error details for debugging instead of throwing
     return {
       success: false,
       shopId: shopId,
-      error: error.message,
-      stack: error.stack,
-      message: `Failed to install Web Pixel for shop ${shopId}: ${error.message}`
+      error: errorMessage,
+      stack: errorStack,
+      message: `Failed to install Web Pixel for shop ${shopId}: ${errorMessage}`
     };
   }
 };

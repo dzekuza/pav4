@@ -31,9 +31,12 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
   const [shop, setShop] = useState('');
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState<ShopifyOAuthStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [popupWindow, setPopupWindow] = useState<Window | null>(null);
+  const [popupCheckInterval, setPopupCheckInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Check OAuth status on component mount
   useEffect(() => {
@@ -59,6 +62,41 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
   }, []);
 
+  // Cleanup popup on component unmount
+  useEffect(() => {
+    return () => {
+      if (popupWindow && !popupWindow.closed) {
+        popupWindow.close();
+      }
+      if (popupCheckInterval) {
+        clearInterval(popupCheckInterval);
+      }
+    };
+  }, [popupWindow, popupCheckInterval]);
+
+  // Listen for messages from popup window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type) {
+        switch (event.data.type) {
+          case 'shopify-oauth-success':
+            console.log('OAuth success message received:', event.data);
+            setSuccess(`Successfully connected to ${event.data.shop}!`);
+            checkOAuthStatus();
+            break;
+          
+          case 'shopify-oauth-error':
+            console.log('OAuth error message received:', event.data);
+            setError('Failed to connect Shopify store. Please try again.');
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const checkOAuthStatus = async () => {
     try {
       setIsLoading(true);
@@ -78,7 +116,7 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
   };
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!shop.trim()) {
       setError('Please enter your Shopify store URL');
       return;
@@ -92,12 +130,97 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
 
     setError(null);
+    setIsConnecting(true);
 
-    // Redirect to our backend OAuth connect endpoint which will handle the Gadget redirect
-    const connectUrl = `/api/shopify/oauth/connect?shop=${encodeURIComponent(shop.trim())}`;
-    
-    // Redirect to our backend endpoint which will then redirect to Gadget
-    window.location.href = connectUrl;
+    try {
+      // Get the OAuth URL from our backend
+      const response = await fetch(`/api/shopify/oauth/connect?shop=${encodeURIComponent(shop.trim())}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.redirectUrl) {
+          // Open popup window with OAuth URL
+          openOAuthPopup(data.redirectUrl, shop.trim());
+        } else {
+          throw new Error('No redirect URL received');
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start OAuth flow');
+      }
+
+    } catch (error) {
+      console.error('Failed to start OAuth:', error);
+      setError(error instanceof Error ? error.message : 'Failed to start OAuth flow. Please try again.');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const openOAuthPopup = (oauthUrl: string, shopDomain: string) => {
+    // Close any existing popup
+    if (popupWindow && !popupWindow.closed) {
+      popupWindow.close();
+    }
+
+    // Calculate popup dimensions
+    const width = 600;
+    const height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    // Open popup window
+    const popup = window.open(
+      oauthUrl,
+      'shopify-oauth',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+
+    if (!popup) {
+      setError('Popup blocked! Please allow popups for this site and try again.');
+      return;
+    }
+
+    setPopupWindow(popup);
+
+    // Monitor popup for completion
+    const checkInterval = setInterval(() => {
+      try {
+        if (popup.closed) {
+          clearInterval(checkInterval);
+          setPopupCheckInterval(null);
+          setPopupWindow(null);
+          
+          // Check if OAuth was successful
+          checkOAuthStatus();
+          
+          // Show success message
+          setSuccess(`OAuth flow completed for ${shopDomain}. Please check the connection status below.`);
+        }
+      } catch (error) {
+        // Popup might be on different domain, ignore errors
+      }
+    }, 1000);
+
+    setPopupCheckInterval(checkInterval);
+
+    // Show instructions
+    setSuccess('OAuth popup opened! Please complete the authorization in the popup window.');
+  };
+
+  const handleShopifyLogin = () => {
+    if (shop.trim()) {
+      const shopifyLoginUrl = `https://${shop.trim()}/admin`;
+      window.open(shopifyLoginUrl, '_blank');
+      setSuccess('Shopify login opened in new tab. Please login and then try connecting again.');
+    }
+  };
+
+  const handleRetryConnect = () => {
+    setError(null);
+    setSuccess(null);
+    handleConnect();
   };
 
   const handleDisconnect = async () => {
@@ -278,17 +401,23 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
                 />
                 <Button
                   onClick={handleConnect}
-                  disabled={!shop.trim()}
+                  disabled={!shop.trim() || isConnecting}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Connect
+                  {isConnecting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                  )}
+                  {isConnecting ? 'Connecting...' : 'Connect'}
                 </Button>
               </div>
               <p className="text-xs text-white/60">
                 Enter your Shopify store URL to securely connect and access your data
               </p>
             </div>
+
+            {/* Removed requiresShopifyLogin and shopifyLoginUrl handling */}
 
             <div className="bg-white/5 rounded-lg p-3">
               <h4 className="text-sm font-medium text-white mb-2">What we'll access:</h4>

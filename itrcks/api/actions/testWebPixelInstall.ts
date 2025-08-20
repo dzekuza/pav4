@@ -1,6 +1,10 @@
 export const run: ActionRun = async ({ params, logger, api, connections }) => {
   const { shopId } = params;
   
+  if (!shopId) {
+    throw new Error("shopId parameter is required");
+  }
+  
   try {
     logger.info("Starting Web Pixel installation test for shop: " + shopId);
     
@@ -72,10 +76,11 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
     };
     
   } catch (error) {
-    logger.error("Error during Web Pixel installation test: " + error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Error during Web Pixel installation test: " + errorMessage);
     return {
       success: false,
-      error: error.message,
+      error: errorMessage,
       shopId: shopId
     };
   }

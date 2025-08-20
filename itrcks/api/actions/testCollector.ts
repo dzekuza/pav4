@@ -2,15 +2,18 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
   logger.info("Starting testCollector action");
 
   try {
-    // Create test event data
+    // Get the current shop ID from connections
+    const shopId = connections.shopify.currentShopId;
+    
+    // Create test event data with proper parameter structure
     const testEventData = {
-      eventType: "page_view" as const,
+      eventType: "page_view",
       sessionId: "test_session_123",
       path: "/test-page",
       occurredAt: new Date(),
       userAgent: "Test Browser",
       shop: {
-        _link: "75941839177"
+        _link: shopId
       },
       rawData: {
         test: true,
@@ -25,7 +28,7 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
 
     logger.info("Test event data created:", testEventData);
 
-    // Call the event.create action directly
+    // Call the event.create action with proper parameter structure
     const result = await api.event.create(testEventData);
 
     logger.info("Event created successfully:", { id: result.id });
@@ -40,10 +43,13 @@ export const run: ActionRun = async ({ params, logger, api, connections }) => {
   } catch (error) {
     logger.error("Error in testCollector:", error);
 
+    // Properly handle unknown error type
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     return {
       success: false,
       message: "Failed to create test event",
-      error: error.message
+      error: errorMessage
     };
   }
 };

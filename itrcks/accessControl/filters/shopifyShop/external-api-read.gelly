@@ -1,0 +1,5 @@
+# TODO: Gadget assistant picked the "id" field for tenancy but couldn't locate a field with that name on model shopifyShop -- this needs to be fixed!
+filter ($session: Session) on ShopifyShop [
+  where true == false
+]
+# structured filters: [{"type":"tenancy_read_filter","field":"id"}]

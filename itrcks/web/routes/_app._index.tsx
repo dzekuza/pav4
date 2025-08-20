@@ -1,5 +1,8 @@
-import { useFindMany } from "@gadgetinc/react";
+import { useFindMany, useFindFirst } from "@gadgetinc/react";
+import { useGadget } from "@gadgetinc/react-shopify-app-bridge";
+import { useNavigate } from "@remix-run/react";
 import {
+  Badge,
   BlockStack,
   Box,
   Button,
@@ -12,6 +15,19 @@ import {
 import { api } from "../api";
 
 export default function Index() {
+  const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useGadget();
+  const [{ data: shop, fetching: shopFetching, error: shopError }] = useFindFirst(api.shopifyShop, {
+    select: {
+      id: true,
+      name: true,
+      domain: true,
+      myshopifyDomain: true,
+      createdAt: true,
+      shopifyCreatedAt: true,
+      planDisplayName: true,
+    },
+  });
   const [{ data: events, fetching: eventsFetching, error: eventsError }] = useFindMany(api.event, { first: 250 });
   const [{ data: orders, fetching: ordersFetching, error: ordersError }] = useFindMany(api.order, { first: 250 });
   const [{ data: clicks, fetching: clicksFetching, error: clicksError }] = useFindMany(api.click, { first: 250 });
@@ -32,6 +48,41 @@ export default function Index() {
     return data?.length || 0;
   };
 
+  const getConnectionStatus = () => {
+    if (authLoading || shopFetching) {
+      return {
+        badge: <Badge tone="info">Loading</Badge>,
+        title: "Checking Connection...",
+        message: "Verifying your Shopify connection status.",
+      };
+    }
+
+    if (shopError) {
+      return {
+        badge: <Badge tone="critical">Error</Badge>,
+        title: "Connection Error",
+        message: `Unable to verify connection: ${shopError.message}`,
+      };
+    }
+
+    if (!isAuthenticated || !shop) {
+      return {
+        badge: <Badge tone="critical">Disconnected</Badge>,
+        title: "Not Connected to Shopify",
+        message: "Your app is not properly connected to Shopify. Please reinstall the app or contact support if this issue persists.",
+      };
+    }
+
+    return {
+      badge: <Badge tone="success">Connected</Badge>,
+      title: "Connected to Shopify",
+      message: `Successfully connected to ${shop.name || shop.myshopifyDomain}`,
+      shop: shop,
+    };
+  };
+
+  const connectionStatus = getConnectionStatus();
+
   return (
     <Page title="ipick Tracker - Analytics Overview">
       <Layout>
@@ -51,10 +102,78 @@ export default function Index() {
           </Card>
         </Layout.Section>
 
+        {/* Connection Status Section */}
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <InlineStack gap="200" align="space-between">
+                <InlineStack gap="300" align="start">
+                  <Text variant="headingMd" as="h2">
+                    Shopify Connection Status
+                  </Text>
+                  {connectionStatus.badge}
+                </InlineStack>
+              </InlineStack>
+              
+              <BlockStack gap="300">
+                <Text variant="bodyLg" as="p">
+                  {connectionStatus.title}
+                </Text>
+                <Text variant="bodyMd" as="p" tone="subdued">
+                  {connectionStatus.message}
+                </Text>
+                
+                {connectionStatus.shop && (
+                  <BlockStack gap="200">
+                    <InlineStack gap="400">
+                      <Box>
+                        <Text variant="bodySm" as="p">
+                          <strong>Shop:</strong> {connectionStatus.shop.name || 'N/A'}
+                        </Text>
+                      </Box>
+                      <Box>
+                        <Text variant="bodySm" as="p">
+                          <strong>Domain:</strong> {connectionStatus.shop.domain || connectionStatus.shop.myshopifyDomain || 'N/A'}
+                        </Text>
+                      </Box>
+                      <Box>
+                        <Text variant="bodySm" as="p">
+                          <strong>Plan:</strong> {connectionStatus.shop.planDisplayName || 'N/A'}
+                        </Text>
+                      </Box>
+                    </InlineStack>
+                    <InlineStack gap="400">
+                      <Box>
+                        <Text variant="bodySm" as="p">
+                          <strong>Shop ID:</strong> {connectionStatus.shop.id}
+                        </Text>
+                      </Box>
+                      <Box>
+                        <Text variant="bodySm" as="p">
+                          <strong>Connected:</strong> {connectionStatus.shop.createdAt ? new Date(connectionStatus.shop.createdAt).toLocaleDateString() : 'N/A'}
+                        </Text>
+                      </Box>
+                    </InlineStack>
+                  </BlockStack>
+                )}
+                
+                {(!isAuthenticated || !shop) && !authLoading && !shopFetching && (
+                  <Box>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      <strong>Troubleshooting:</strong> If you're seeing this message, try refreshing the page or reinstalling the app from your Shopify admin. 
+                      Make sure you're accessing this app from within your Shopify admin panel.
+                    </Text>
+                  </Box>
+                )}
+              </BlockStack>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
         {/* KPI Cards */}
         <Layout.Section>
           {hasErrors && (
-            <Card tone="critical">
+            <Card>
               <BlockStack gap="200">
                 <Text variant="headingMd" as="h3">
                   Error Loading Data
@@ -153,7 +272,11 @@ export default function Index() {
                   cart additions, and checkout events across your store.
                 </Text>
                 <Box>
-                  <Button variant="primary" size="large">
+                  <Button 
+                    variant="primary" 
+                    size="large"
+                    onClick={() => navigate("/events")}
+                  >
                     View All Events
                   </Button>
                 </Box>
@@ -170,7 +293,11 @@ export default function Index() {
                   and interactions led to successful conversions.
                 </Text>
                 <Box>
-                  <Button variant="primary" size="large">
+                  <Button 
+                    variant="primary" 
+                    size="large"
+                    onClick={() => navigate("/orders")}
+                  >
                     View Order Attribution
                   </Button>
                 </Box>
@@ -191,7 +318,11 @@ export default function Index() {
                   IP addresses, and user agents for comprehensive traffic analysis.
                 </Text>
                 <Box>
-                  <Button variant="primary" size="large">
+                  <Button 
+                    variant="primary" 
+                    size="large"
+                    onClick={() => navigate("/clicks")}
+                  >
                     View Click Tracking
                   </Button>
                 </Box>
@@ -208,7 +339,11 @@ export default function Index() {
                   product views, and other key metrics aggregated by date.
                 </Text>
                 <Box>
-                  <Button variant="primary" size="large">
+                  <Button 
+                    variant="primary" 
+                    size="large"
+                    onClick={() => navigate("/reports")}
+                  >
                     View Daily Reports
                   </Button>
                 </Box>

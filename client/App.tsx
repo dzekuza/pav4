@@ -8,6 +8,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import React, { lazy, Suspense, useState, useEffect } from "react";
 import { AuthProvider } from "@/hooks/use-auth";
 import { BusinessAuthProvider } from "@/hooks/use-auth";
+import { NeonAuthProvider } from "@/components/auth/NeonAuthProvider";
 import LoadingSkeleton from "@/components/ui/loading-skeleton";
 
 import { initializeTracking } from "@/lib/tracking";
@@ -460,11 +461,13 @@ const App = () => {
         <TooltipProvider>
           <AuthProvider>
             <BusinessAuthProvider>
-              <Toaster />
-              <Sonner />
-              <Suspense fallback={null}>
-                <RouterProvider router={router} />
-              </Suspense>
+              <NeonAuthProvider>
+                <Toaster />
+                <Sonner />
+                <Suspense fallback={null}>
+                  <RouterProvider router={router} />
+                </Suspense>
+              </NeonAuthProvider>
             </BusinessAuthProvider>
           </AuthProvider>
         </TooltipProvider>

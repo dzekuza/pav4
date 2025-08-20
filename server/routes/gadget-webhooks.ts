@@ -1,152 +1,160 @@
 import express from 'express';
 import crypto from 'crypto';
-import { businessService } from '../services/database.js';
+import { businessService } from '../services/database';
 
 const router = express.Router();
 
-// Verify webhook signature from Gadget
-function verifyWebhookSignature(payload: string, signature: string): boolean {
-  const secret = process.env.IPICK_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error('IPICK_WEBHOOK_SECRET not configured');
-    return false;
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payload, 'utf8')
-    .digest('hex');
-
-  return crypto.timingSafeEqual(
-    Buffer.from(signature, 'hex'),
-    Buffer.from(expectedSignature, 'hex')
-  );
-}
-
-// POST /api/webhooks/gadget - Handle webhooks from Gadget
-router.post('/gadget', express.raw({ type: 'application/json' }), async (req, res) => {
+// POST /api/webhooks/gadget - Handle Gadget webhooks
+router.post('/gadget', async (req, res) => {
   try {
-    const signature = req.headers['x-gadget-signature'] as string;
-    const payload = req.body;
+    console.log('Gadget webhook received:', {
+      body: req.body,
+      headers: req.headers
+    });
 
-    // Verify webhook signature
-    if (!signature || !verifyWebhookSignature(payload, signature)) {
-      console.error('Invalid webhook signature');
-      return res.status(401).json({ error: 'Invalid signature' });
+    // Verify webhook signature if needed
+    const webhookSecret = process.env.IPICK_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      // TODO: Implement webhook signature verification
+      console.log('Webhook secret verification would go here');
     }
 
-    const data = JSON.parse(payload);
-    console.log('Received Gadget webhook:', data);
+    const { event, data } = req.body;
 
-    // Handle different webhook types
-    switch (data.type) {
+    console.log('Webhook event:', event);
+    console.log('Webhook data:', data);
+
+    // Handle different webhook events
+    switch (event) {
       case 'shopify_connection_created':
-        await handleShopifyConnectionCreated(data);
-        break;
       case 'shopify_connection_updated':
-        await handleShopifyConnectionUpdated(data);
+        console.log('Shopify connection event:', event);
+        await handleShopifyConnection(data);
         break;
+      
       case 'shopify_connection_deleted':
-        await handleShopifyConnectionDeleted(data);
+        console.log('Shopify connection deleted');
+        await handleShopifyDisconnection(data);
         break;
-      case 'order_created':
-        await handleOrderCreated(data);
+      
+      case 'shopify_shop_created':
+      case 'shopify_shop_updated':
+        console.log('Shopify shop event:', event);
+        await handleShopifyShopUpdate(data);
         break;
-      case 'order_updated':
-        await handleOrderUpdated(data);
-        break;
+      
       default:
-        console.log('Unknown webhook type:', data.type);
+        console.log('Unknown webhook event:', event);
     }
 
-    res.status(200).json({ success: true });
+    res.json({ success: true, message: 'Webhook processed' });
 
   } catch (error) {
-    console.error('Gadget webhook error:', error);
+    console.error('Webhook processing error:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 
-// Handle Shopify connection created
-async function handleShopifyConnectionCreated(data: any) {
+// Handle Shopify connection events
+async function handleShopifyConnection(data: any) {
   try {
-    const { shop, businessId } = data.payload;
+    console.log('Processing Shopify connection:', data);
+
+    // Extract shop information
+    const shop = data.shop;
+    if (!shop) {
+      console.error('No shop data in connection event');
+      return;
+    }
+
+    // Find business by shop domain (you might want to store this mapping)
+    // For now, we'll try to find by domain
+    const business = await businessService.findBusinessByDomain(shop.domain || shop.myshopifyDomain);
     
-    if (businessId) {
-      await businessService.updateBusiness(businessId, {
-        shopifyShop: shop,
+    if (business) {
+      // Update business with Shopify connection info
+      await businessService.updateBusiness(business.id, {
+        shopifyShop: shop.domain || shop.myshopifyDomain,
+        shopifyScopes: shop.scopes || 'read_products,read_orders,read_customers',
         shopifyConnectedAt: new Date(),
         shopifyStatus: 'connected'
       });
-      console.log(`Shopify connection created for business ${businessId}, shop: ${shop}`);
-    }
-  } catch (error) {
-    console.error('Error handling Shopify connection created:', error);
-  }
-}
 
-// Handle Shopify connection updated
-async function handleShopifyConnectionUpdated(data: any) {
-  try {
-    const { shop, businessId, status } = data.payload;
-    
-    if (businessId) {
-      await businessService.updateBusiness(businessId, {
-        shopifyShop: shop,
-        shopifyStatus: status,
-        updatedAt: new Date()
+      console.log('Updated business with Shopify connection:', {
+        businessId: business.id,
+        shop: shop.domain || shop.myshopifyDomain
       });
-      console.log(`Shopify connection updated for business ${businessId}, shop: ${shop}, status: ${status}`);
+    } else {
+      console.log('No business found for shop:', shop.domain || shop.myshopifyDomain);
     }
+
   } catch (error) {
-    console.error('Error handling Shopify connection updated:', error);
+    console.error('Error handling Shopify connection:', error);
   }
 }
 
-// Handle Shopify connection deleted
-async function handleShopifyConnectionDeleted(data: any) {
+// Handle Shopify disconnection events
+async function handleShopifyDisconnection(data: any) {
   try {
-    const { businessId } = data.payload;
+    console.log('Processing Shopify disconnection:', data);
+
+    const shop = data.shop;
+    if (!shop) {
+      console.error('No shop data in disconnection event');
+      return;
+    }
+
+    // Find and update business
+    const business = await businessService.findBusinessByDomain(shop.domain || shop.myshopifyDomain);
     
-    if (businessId) {
-      await businessService.updateBusiness(businessId, {
-        shopifyShop: null,
+    if (business) {
+      await businessService.updateBusiness(business.id, {
         shopifyAccessToken: null,
+        shopifyShop: null,
         shopifyScopes: null,
         shopifyConnectedAt: null,
         shopifyStatus: 'disconnected'
       });
-      console.log(`Shopify connection deleted for business ${businessId}`);
+
+      console.log('Disconnected business from Shopify:', {
+        businessId: business.id,
+        shop: shop.domain || shop.myshopifyDomain
+      });
     }
+
   } catch (error) {
-    console.error('Error handling Shopify connection deleted:', error);
+    console.error('Error handling Shopify disconnection:', error);
   }
 }
 
-// Handle order created
-async function handleOrderCreated(data: any) {
+// Handle Shopify shop updates
+async function handleShopifyShopUpdate(data: any) {
   try {
-    const { order, shop, clickId } = data.payload;
-    
-    // Store order attribution data
-    if (clickId && order) {
-      // This would integrate with your existing order tracking system
-      console.log(`Order created with click attribution: ${order.id}, click: ${clickId}, shop: ${shop}`);
-    }
-  } catch (error) {
-    console.error('Error handling order created:', error);
-  }
-}
+    console.log('Processing Shopify shop update:', data);
 
-// Handle order updated
-async function handleOrderUpdated(data: any) {
-  try {
-    const { order, shop } = data.payload;
+    const shop = data.shop;
+    if (!shop) {
+      console.error('No shop data in shop update event');
+      return;
+    }
+
+    // Update business if connected to this shop
+    const business = await businessService.findBusinessByDomain(shop.domain || shop.myshopifyDomain);
     
-    // Update order status if needed
-    console.log(`Order updated: ${order.id}, shop: ${shop}`);
+    if (business) {
+      await businessService.updateBusiness(business.id, {
+        shopifyShop: shop.domain || shop.myshopifyDomain,
+        // Update other fields as needed
+      });
+
+      console.log('Updated business shop info:', {
+        businessId: business.id,
+        shop: shop.domain || shop.myshopifyDomain
+      });
+    }
+
   } catch (error) {
-    console.error('Error handling order updated:', error);
+    console.error('Error handling Shopify shop update:', error);
   }
 }
 

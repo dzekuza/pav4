@@ -6,321 +6,477 @@
 {% assign track_checkout_events = block.settings.track_checkout_events %}
 {% assign custom_session_id = block.settings.custom_session_id %}
 
-<!-- Load the Gadget API client library asynchronously -->
-<!-- The defer attribute ensures the script loads after HTML parsing but before DOMContentLoaded -->
-<script defer src="https://itrcks--development.gadget.app/api/client/web.min.js"></script>
-
 <script>
-// Wait for the HTML document to be fully loaded and parsed
-// This ensures both the DOM is ready and our deferred Gadget script is loaded
-document.addEventListener("DOMContentLoaded", () => {
-  // Initialize the Gadget API client
-  // This creates a new instance of the Gadget client that we can use to interact with our backend
-  // Any part of this extension that needs to interact with Gadget should wait until the client is initialized
-  // The `shopId` property sets up the session to be associated with the shop that is currently loaded. `shop.id` is a Liquid variable that is automatically available in the Shopify theme context.
-  window.api = new ItrcksClient({
-    browserSession: {
-      shopId: {{ shop.id }}
-    },
-    /*
-     * The endpoint property is required when using Shopify app proxy.
-     * Shopify app proxy allows your app to serve content through the Shopify store's domain (e.g., yourstore.myshopify.com) by proxying requests to your Gadget API.
-     * This endpoint tells the Gadget client to make requests through the Shopify app proxy instead of directly to the Gadget API, ensuring proper authentication and routing.
-     * Remove the line below if you are no longer using Shopify app proxy.
-     */
-    endpoint: "/apps/itrcks-development-api"
-  });
-
-  // Extract block settings as JavaScript variables
-  const enableTracking = {{ enable_tracking }};
-  const debugMode = {{ debug_mode }};
-  const trackPageViews = {{ track_page_views }};
-  const trackProductViews = {{ track_product_views }};
-  const trackAddToCart = {{ track_add_to_cart }};
-  const trackCheckoutEvents = {{ track_checkout_events }};
-  const customSessionIdSetting = {{ custom_session_id | json }};
-  const shopId = {{ shop.id | json }};
-
-  // Generate or use custom session ID
-  function getSessionId() {
-    if (customSessionIdSetting && customSessionIdSetting.trim() !== '') {
-      return customSessionIdSetting;
-    }
-    
-    // Generate a session ID if one doesn't exist
-    let sessionId = sessionStorage.getItem('ipick_session_id');
-    if (!sessionId) {
-      sessionId = 'ipick_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      sessionStorage.setItem('ipick_session_id', sessionId);
-    }
-    return sessionId;
+// iPick Analytics Tracker - Wrapped in IIFE to prevent conflicts
+(function() {
+  'use strict';
+  
+  // Prevent multiple instances from initializing
+  const namespace = 'iPick_Analytics_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  if (window[namespace]) {
+    return;
   }
+  window[namespace] = true;
 
-  // Debug logging function
-  function debugLog(message, data = null) {
-    if (debugMode) {
-      console.log('[iPick Analytics]', message, data || '');
-    }
-  }
+  // Configuration from Liquid template
+  const config = {
+    enableTracking: {{ enable_tracking }},
+    debugMode: {{ debug_mode }},
+    trackPageViews: {{ track_page_views }},
+    trackProductViews: {{ track_product_views }},
+    trackAddToCart: {{ track_add_to_cart }},
+    trackCheckoutEvents: {{ track_checkout_events }},
+    customSessionId: {{ custom_session_id | json }},
+    shopId: {{ shop.id | json }},
+    collectorEndpoint: 'https://itrcks--development.gadget.app/collector'
+  };
 
-  // Main function to create events in Gadget
-  async function createEvent(eventData) {
-    if (!enableTracking) {
-      debugLog('Tracking disabled, skipping event:', eventData.eventType);
-      return { success: false, error: 'Tracking disabled' };
-    }
+  // State management
+  const state = {
+    initialized: false,
+    currentPath: window.location.pathname,
+    sessionId: null,
+    lastError: null
+  };
 
-    try {
-      debugLog('Creating event:', eventData);
-      
-      const result = await window.api.event.create({
-        eventType: eventData.eventType,
-        path: eventData.path,
-        sessionId: eventData.sessionId,
-        occurredAt: eventData.occurredAt,
-        shop: {
-          _link: shopId
-        },
-        productId: eventData.productId || null,
-        variantId: eventData.variantId || null,
-        userAgent: eventData.userAgent || navigator.userAgent,
-        quantity: eventData.quantity || null,
-        value: eventData.value || null,
-        currency: eventData.currency || null,
-        cartToken: eventData.cartToken || null,
-        checkoutId: eventData.checkoutId || null,
-        orderId: eventData.orderId || null,
-        rawData: eventData.rawData || null,
-        clickId: eventData.clickId || null
-      });
-
-      debugLog('Event created successfully:', result);
-      return { success: true };
-    } catch (error) {
-      console.error('[iPick Analytics] Error creating event:', error);
-      debugLog('Event creation failed:', error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // Track page views
-  function trackPageView() {
-    if (!trackPageViews) {
-      debugLog('Page view tracking disabled');
-      return;
-    }
-
-    const eventData = {
-      eventType: 'page_view',
-      path: window.location.pathname,
-      sessionId: getSessionId(),
-      occurredAt: new Date(),
-      userAgent: navigator.userAgent
-    };
-
-    createEvent(eventData);
-  }
-
-  // Track product views
-  function trackProductView() {
-    if (!trackProductViews) {
-      debugLog('Product view tracking disabled');
-      return;
-    }
-
-    // Check if we're on a product page
-    const productId = window.meta?.product?.id || 
-                     document.querySelector('[data-product-id]')?.getAttribute('data-product-id') ||
-                     window.ShopifyAnalytics?.meta?.product?.id;
-    
-    const variantId = window.meta?.product?.variant_id ||
-                     document.querySelector('[data-variant-id]')?.getAttribute('data-variant-id') ||
-                     window.ShopifyAnalytics?.meta?.product?.variants?.[0]?.id;
-
-    if (productId) {
-      const eventData = {
-        eventType: 'product_view',
-        path: window.location.pathname,
-        sessionId: getSessionId(),
-        occurredAt: new Date(),
-        productId: productId.toString(),
-        variantId: variantId ? variantId.toString() : null,
-        userAgent: navigator.userAgent
-      };
-
-      createEvent(eventData);
-    }
-  }
-
-  // Track add to cart events
-  function trackAddToCart(cartData) {
-    if (!trackAddToCart) {
-      debugLog('Add to cart tracking disabled');
-      return;
-    }
-
-    const eventData = {
-      eventType: 'add_to_cart',
-      path: window.location.pathname,
-      sessionId: getSessionId(),
-      occurredAt: new Date(),
-      productId: cartData.productId?.toString() || null,
-      variantId: cartData.variantId?.toString() || null,
-      quantity: cartData.quantity || null,
-      value: cartData.price || null,
-      currency: window.Shopify?.currency?.active || 'USD',
-      cartToken: cartData.cartToken || null,
-      userAgent: navigator.userAgent,
-      rawData: cartData
-    };
-
-    createEvent(eventData);
-  }
-
-  // Track checkout events
-  function trackCheckout(eventType, checkoutData = {}) {
-    if (!trackCheckoutEvents) {
-      debugLog('Checkout tracking disabled');
-      return;
-    }
-
-    const eventData = {
-      eventType: eventType,
-      path: window.location.pathname,
-      sessionId: getSessionId(),
-      occurredAt: new Date(),
-      checkoutId: checkoutData.checkoutId || null,
-      orderId: checkoutData.orderId || null,
-      value: checkoutData.totalPrice || null,
-      currency: checkoutData.currency || window.Shopify?.currency?.active || 'USD',
-      cartToken: checkoutData.cartToken || null,
-      userAgent: navigator.userAgent,
-      rawData: checkoutData
-    };
-
-    createEvent(eventData);
-  }
-
-  // Initialize tracking once API is ready
-  function initializeTracking() {
-    debugLog('Initializing iPick Analytics tracking');
-
-    // Track initial page view
-    trackPageView();
-
-    // Track product view if on product page
-    trackProductView();
-
-    // Listen for Shopify analytics events
-    document.addEventListener('shopify:section:load', () => {
-      setTimeout(() => {
-        trackPageView();
-        trackProductView();
-      }, 100);
-    });
-
-    // Listen for cart changes (add to cart)
-    if (window.Shopify && window.Shopify.routes) {
-      // Override fetch to intercept cart API calls
-      const originalFetch = window.fetch;
-      window.fetch = function(...args) {
-        const url = args[0];
-        const options = args[1];
+  // Utility functions
+  const utils = {
+    // Debug logging with error handling
+    log: function(level, message, data) {
+      try {
+        if (!config.debugMode && level !== 'error') return;
         
-        // Check if this is an add to cart request
-        if (typeof url === 'string' && url.includes('/cart/add') && options?.method === 'POST') {
-          return originalFetch.apply(this, args)
-            .then(response => {
-              if (response.ok) {
-                // Parse form data if available
-                if (options.body instanceof FormData) {
-                  const formData = {};
-                  for (let [key, value] of options.body.entries()) {
-                    formData[key] = value;
-                  }
-                  
-                  trackAddToCart({
-                    variantId: formData.id,
-                    quantity: parseInt(formData.quantity) || 1,
-                    productId: formData.product_id
-                  });
-                } else {
-                  // Fallback tracking
-                  trackAddToCart({});
-                }
-              }
-              return response;
-            });
+        const timestamp = new Date().toISOString();
+        const prefix = `[iPick Analytics ${timestamp}]`;
+        
+        switch(level) {
+          case 'error':
+            console.error(prefix, message, data || '');
+            break;
+          case 'warn':
+            console.warn(prefix, message, data || '');
+            break;
+          default:
+            console.log(prefix, message, data || '');
         }
-        
-        return originalFetch.apply(this, args);
-      };
-    }
-
-    // Listen for checkout events using URL changes
-    let currentPath = window.location.pathname;
-    const checkPath = () => {
-      const newPath = window.location.pathname;
-      if (newPath !== currentPath) {
-        currentPath = newPath;
-        
-        // Track checkout begin
-        if (newPath.includes('/checkout') && !currentPath.includes('/checkout')) {
-          trackCheckout('begin_checkout');
-        }
-        
-        // Track page views on path changes
-        trackPageView();
-        trackProductView();
+      } catch (e) {
+        // Fail silently if logging fails
       }
-    };
+    },
 
-    // Listen for popstate (back/forward navigation)
-    window.addEventListener('popstate', checkPath);
+    // Generate or retrieve session ID with error handling
+    getSessionId: function() {
+      try {
+        if (state.sessionId) return state.sessionId;
+        
+        if (config.customSessionId && config.customSessionId.trim() !== '') {
+          state.sessionId = config.customSessionId.trim();
+          return state.sessionId;
+        }
+        
+        // Try to get from sessionStorage
+        let sessionId = null;
+        try {
+          sessionId = sessionStorage.getItem('ipick_session_id');
+        } catch (e) {
+          utils.log('warn', 'SessionStorage not available, using temporary session ID');
+        }
+        
+        if (!sessionId) {
+          sessionId = 'ipick_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          try {
+            sessionStorage.setItem('ipick_session_id', sessionId);
+          } catch (e) {
+            // Fail silently if sessionStorage is not available
+          }
+        }
+        
+        state.sessionId = sessionId;
+        return sessionId;
+      } catch (error) {
+        utils.log('error', 'Error getting session ID:', error);
+        // Return a fallback session ID
+        return 'ipick_fallback_' + Date.now();
+      }
+    },
 
-    // Periodically check for path changes (for SPA-like behavior)
-    setInterval(checkPath, 1000);
+    // Safe fetch with comprehensive error handling
+    sendEvent: async function(eventData) {
+      try {
+        if (!config.enableTracking) {
+          utils.log('info', 'Tracking disabled, skipping event:', eventData.eventType);
+          return { success: false, error: 'Tracking disabled' };
+        }
 
-    // Listen for checkout completion (thank you page)
-    if (window.location.pathname.includes('/thank_you') || 
-        window.location.pathname.includes('/orders/') ||
-        window.Shopify?.checkout?.order_id) {
-      
-      trackCheckout('checkout_completed', {
-        orderId: window.Shopify?.checkout?.order_id,
-        totalPrice: window.Shopify?.checkout?.total_price,
-        currency: window.Shopify?.checkout?.currency
-      });
-    }
-
-    // Track checkout abandonment on page unload
-    window.addEventListener('beforeunload', () => {
-      if (window.location.pathname.includes('/checkout')) {
-        // Use navigator.sendBeacon for reliable tracking on page unload
-        const eventData = {
-          eventType: 'checkout_abandoned',
-          path: window.location.pathname,
-          sessionId: getSessionId(),
-          occurredAt: new Date(),
-          userAgent: navigator.userAgent
+        utils.log('info', 'Sending event:', eventData);
+        
+        const payload = {
+          eventType: eventData.eventType,
+          path: eventData.path || window.location.pathname,
+          sessionId: utils.getSessionId(),
+          occurredAt: new Date().toISOString(),
+          shopId: config.shopId,
+          productId: eventData.productId || null,
+          variantId: eventData.variantId || null,
+          userAgent: navigator.userAgent || null,
+          quantity: eventData.quantity || null,
+          value: eventData.value || null,
+          currency: eventData.currency || utils.getCurrency(),
+          cartToken: eventData.cartToken || null,
+          checkoutId: eventData.checkoutId || null,
+          orderId: eventData.orderId || null,
+          ipAddress: null, // Will be captured server-side
+          rawData: eventData.rawData || null,
+          clickId: eventData.clickId || null
         };
 
-        if (navigator.sendBeacon) {
-          // Send as beacon for reliability
-          navigator.sendBeacon('/apps/itrcks-development-api/collector', JSON.stringify(eventData));
-        } else {
-          // Fallback to regular tracking
-          trackCheckout('checkout_abandoned');
-        }
-      }
-    });
+        const response = await fetch(config.collectorEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          mode: 'cors',
+          body: JSON.stringify(payload)
+        });
 
-    debugLog('iPick Analytics tracking initialized successfully');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        utils.log('info', 'Event sent successfully');
+        return { success: true };
+        
+      } catch (error) {
+        state.lastError = error;
+        utils.log('error', 'Failed to send event:', error);
+        return { success: false, error: error.message || 'Unknown error' };
+      }
+    },
+
+    // Get currency with fallback
+    getCurrency: function() {
+      try {
+        return window.Shopify?.currency?.active || 
+               window.ShopifyAnalytics?.meta?.currency ||
+               'USD';
+      } catch (e) {
+        return 'USD';
+      }
+    },
+
+    // Safe element selection
+    safeQuerySelector: function(selector) {
+      try {
+        return document.querySelector(selector);
+      } catch (e) {
+        return null;
+      }
+    },
+
+    // Safe attribute getting
+    safeGetAttribute: function(element, attribute) {
+      try {
+        return element ? element.getAttribute(attribute) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+  };
+
+  // Tracking functions
+  const tracker = {
+    // Track page views with error handling
+    pageView: function() {
+      try {
+        if (!config.trackPageViews) {
+          utils.log('info', 'Page view tracking disabled');
+          return;
+        }
+
+        utils.sendEvent({
+          eventType: 'page_view',
+          path: window.location.pathname
+        });
+      } catch (error) {
+        utils.log('error', 'Error tracking page view:', error);
+      }
+    },
+
+    // Track product views with error handling
+    productView: function() {
+      try {
+        if (!config.trackProductViews) {
+          utils.log('info', 'Product view tracking disabled');
+          return;
+        }
+
+        // Multiple ways to get product ID
+        const productId = window.meta?.product?.id || 
+                         utils.safeGetAttribute(utils.safeQuerySelector('[data-product-id]'), 'data-product-id') ||
+                         window.ShopifyAnalytics?.meta?.product?.id;
+        
+        const variantId = window.meta?.product?.variant_id ||
+                         utils.safeGetAttribute(utils.safeQuerySelector('[data-variant-id]'), 'data-variant-id') ||
+                         window.ShopifyAnalytics?.meta?.product?.variants?.[0]?.id;
+
+        if (productId) {
+          utils.sendEvent({
+            eventType: 'product_view',
+            productId: productId.toString(),
+            variantId: variantId ? variantId.toString() : null
+          });
+        } else {
+          utils.log('info', 'No product ID found, skipping product view tracking');
+        }
+      } catch (error) {
+        utils.log('error', 'Error tracking product view:', error);
+      }
+    },
+
+    // Track add to cart with error handling
+    addToCart: function(cartData = {}) {
+      try {
+        if (!config.trackAddToCart) {
+          utils.log('info', 'Add to cart tracking disabled');
+          return;
+        }
+
+        utils.sendEvent({
+          eventType: 'add_to_cart',
+          productId: cartData.productId?.toString() || null,
+          variantId: cartData.variantId?.toString() || null,
+          quantity: parseInt(cartData.quantity) || null,
+          value: parseFloat(cartData.price) || null,
+          cartToken: cartData.cartToken || null,
+          rawData: cartData
+        });
+      } catch (error) {
+        utils.log('error', 'Error tracking add to cart:', error);
+      }
+    },
+
+    // Track checkout events with error handling
+    checkout: function(eventType, checkoutData = {}) {
+      try {
+        if (!config.trackCheckoutEvents) {
+          utils.log('info', 'Checkout tracking disabled');
+          return;
+        }
+
+        utils.sendEvent({
+          eventType: eventType,
+          checkoutId: checkoutData.checkoutId || null,
+          orderId: checkoutData.orderId || null,
+          value: parseFloat(checkoutData.totalPrice) || null,
+          currency: checkoutData.currency || utils.getCurrency(),
+          cartToken: checkoutData.cartToken || null,
+          rawData: checkoutData
+        });
+      } catch (error) {
+        utils.log('error', 'Error tracking checkout event:', error);
+      }
+    }
+  };
+
+  // Event listeners with error handling
+  const listeners = {
+    // Set up cart tracking
+    setupCartTracking: function() {
+      try {
+        // Simple approach: listen for form submissions to cart/add
+        document.addEventListener('submit', function(event) {
+          try {
+            const form = event.target;
+            const action = form.getAttribute('action');
+            
+            if (action && action.includes('/cart/add')) {
+              const formData = new FormData(form);
+              const cartData = {
+                variantId: formData.get('id'),
+                quantity: formData.get('quantity') || '1',
+                productId: formData.get('product_id')
+              };
+              
+              // Delay slightly to ensure form submission completes
+              setTimeout(() => tracker.addToCart(cartData), 100);
+            }
+          } catch (e) {
+            utils.log('error', 'Error in form submit handler:', e);
+          }
+        });
+
+        // Also listen for AJAX cart additions
+        const originalFetch = window.fetch;
+        if (originalFetch) {
+          window.fetch = function(...args) {
+            try {
+              const url = args[0];
+              const options = args[1];
+              
+              if (typeof url === 'string' && url.includes('/cart/add') && options?.method === 'POST') {
+                const promise = originalFetch.apply(this, args);
+                promise.then(response => {
+                  if (response.ok) {
+                    // Try to extract data from request body
+                    let cartData = {};
+                    if (options.body instanceof FormData) {
+                      for (let [key, value] of options.body.entries()) {
+                        cartData[key] = value;
+                      }
+                    }
+                    tracker.addToCart(cartData);
+                  }
+                }).catch(e => {
+                  utils.log('error', 'Error in fetch promise:', e);
+                });
+                return promise;
+              }
+              
+              return originalFetch.apply(this, args);
+            } catch (e) {
+              utils.log('error', 'Error in fetch override:', e);
+              return originalFetch.apply(this, args);
+            }
+          };
+        }
+      } catch (error) {
+        utils.log('error', 'Error setting up cart tracking:', error);
+      }
+    },
+
+    // Set up navigation tracking
+    setupNavigationTracking: function() {
+      try {
+        // Listen for popstate events
+        window.addEventListener('popstate', function() {
+          setTimeout(() => {
+            tracker.pageView();
+            tracker.productView();
+          }, 100);
+        });
+
+        // Periodically check for URL changes (SPA support)
+        setInterval(() => {
+          try {
+            const newPath = window.location.pathname;
+            if (newPath !== state.currentPath) {
+              state.currentPath = newPath;
+              
+              // Track checkout begin
+              if (newPath.includes('/checkout') && !state.currentPath.includes('/checkout')) {
+                tracker.checkout('begin_checkout');
+              }
+              
+              tracker.pageView();
+              tracker.productView();
+            }
+          } catch (e) {
+            utils.log('error', 'Error in path check:', e);
+          }
+        }, 2000);
+      } catch (error) {
+        utils.log('error', 'Error setting up navigation tracking:', error);
+      }
+    },
+
+    // Set up checkout completion tracking
+    setupCheckoutTracking: function() {
+      try {
+        // Check if we're on a thank you page
+        if (window.location.pathname.includes('/thank_you') || 
+            window.location.pathname.includes('/orders/')) {
+          
+          const checkoutData = {
+            orderId: window.Shopify?.checkout?.order_id || null,
+            totalPrice: window.Shopify?.checkout?.total_price || null,
+            currency: window.Shopify?.checkout?.currency || null
+          };
+          
+          tracker.checkout('checkout_completed', checkoutData);
+        }
+
+        // Track checkout abandonment on page unload
+        window.addEventListener('beforeunload', function() {
+          try {
+            if (window.location.pathname.includes('/checkout')) {
+              const eventData = {
+                eventType: 'checkout_abandoned',
+                path: window.location.pathname,
+                sessionId: utils.getSessionId(),
+                occurredAt: new Date().toISOString(),
+                shopId: config.shopId
+              };
+
+              // Use sendBeacon if available for reliability
+              if (navigator.sendBeacon) {
+                const blob = new Blob([JSON.stringify(eventData)], {
+                  type: 'application/json'
+                });
+                navigator.sendBeacon(config.collectorEndpoint, blob);
+              }
+            }
+          } catch (e) {
+            utils.log('error', 'Error in beforeunload handler:', e);
+          }
+        });
+      } catch (error) {
+        utils.log('error', 'Error setting up checkout tracking:', error);
+      }
+    },
+
+    // Set up Shopify theme events
+    setupShopifyEvents: function() {
+      try {
+        document.addEventListener('shopify:section:load', function() {
+          setTimeout(() => {
+            tracker.pageView();
+            tracker.productView();
+          }, 200);
+        });
+      } catch (error) {
+        utils.log('error', 'Error setting up Shopify events:', error);
+      }
+    }
+  };
+
+  // Main initialization function
+  function initialize() {
+    try {
+      if (state.initialized) {
+        utils.log('warn', 'iPick Analytics already initialized');
+        return;
+      }
+
+      utils.log('info', 'Initializing iPick Analytics', config);
+
+      // Track initial page view and product view
+      tracker.pageView();
+      tracker.productView();
+
+      // Set up event listeners
+      listeners.setupCartTracking();
+      listeners.setupNavigationTracking();
+      listeners.setupCheckoutTracking();
+      listeners.setupShopifyEvents();
+
+      state.initialized = true;
+      utils.log('info', 'iPick Analytics initialized successfully');
+
+    } catch (error) {
+      utils.log('error', 'Failed to initialize iPick Analytics:', error);
+    }
   }
 
-  // Wait a bit for the API to be fully ready, then initialize tracking
-  setTimeout(initializeTracking, 500);
-});
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    // DOM is already ready
+    setTimeout(initialize, 100);
+  }
+
+})();
 </script>
 
 {% schema %}

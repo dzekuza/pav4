@@ -87,6 +87,8 @@ model Business {
   shopifyScopes       String?
   shopifyConnectedAt  DateTime?
   shopifyStatus       String?              @default("disconnected")
+  // Neon Auth integration
+  neonUserId          String?              @unique
   clicks              BusinessClick[]
   conversions         BusinessConversion[]
   commissionRates     CommissionRate[]

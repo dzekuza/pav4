@@ -11,6 +11,10 @@ export const permissions: GadgetPermissions = {
   roles: {
     "shopify-app-users": {
       storageKey: "Role-Shopify-App",
+      default: {
+        read: true,
+        action: true,
+      },
       models: {
         aggregate: {
           read: {
@@ -126,6 +130,61 @@ export const permissions: GadgetPermissions = {
         event: {
           actions: {
             create: true,
+          },
+        },
+      },
+    },
+    API: {
+      storageKey: "ekrzERck1lEz",
+      models: {
+        aggregate: {
+          read: true,
+        },
+      },
+    },
+    "external-api": {
+      storageKey: "external-api",
+      models: {
+        aggregate: {
+          read: {
+            filter:
+              "accessControl/filters/aggregate/external-api-read.gelly",
+          },
+        },
+        click: {
+          read: {
+            filter:
+              "accessControl/filters/click/external-api-read.gelly",
+          },
+        },
+        event: {
+          read: {
+            filter:
+              "accessControl/filters/event/external-api-read.gelly",
+          },
+        },
+        order: {
+          read: {
+            filter:
+              "accessControl/filters/order/external-api-read.gelly",
+          },
+        },
+        shopifyOrder: {
+          read: {
+            filter:
+              "accessControl/filters/shopifyOrder/external-api-read.gelly",
+          },
+        },
+        shopifyProduct: {
+          read: {
+            filter:
+              "accessControl/filters/shopifyProduct/external-api-read.gelly",
+          },
+        },
+        shopifyShop: {
+          read: {
+            filter:
+              "accessControl/filters/shopifyShop/external-api-read.gelly",
           },
         },
       },

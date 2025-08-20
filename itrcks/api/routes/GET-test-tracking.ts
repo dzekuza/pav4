@@ -1,6 +1,6 @@
 import { RouteHandler } from "gadget-server";
 
-const route: RouteHandler = async ({ request, reply, api, logger, connections, config }) => {
+const route: RouteHandler = async ({ request, reply, api, logger, connections, config, currentAppUrl }) => {
   try {
     logger.info("Testing tracking system...");
 
@@ -96,7 +96,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections, c
         clickId: "test-click-123"
       };
 
-      const collectorUrl = `${config.currentAppUrl || 'https://localhost:3000'}/collector`;
+      const collectorUrl = `${currentAppUrl || 'https://localhost:3000'}/collector`;
       
       const response = await fetch(collectorUrl, {
         method: 'POST',
@@ -114,7 +114,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections, c
       };
     } catch (error) {
       collectorTestResult = {
-        error: error.message || "Unknown error testing collector",
+        error: (error as Error)?.message || "Unknown error testing collector",
         success: false
       };
     }
@@ -124,7 +124,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections, c
       timestamp: new Date().toISOString(),
       environment: {
         nodeEnv: process.env.NODE_ENV,
-        currentAppUrl: config.currentAppUrl,
+        currentAppUrl: currentAppUrl,
         hasShopifyConnection: !!connections.shopify
       },
       shopifyConnection: connections.shopify ? {
@@ -166,7 +166,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections, c
           "5. Check this route again to see if events are being tracked",
           "6. Use browser dev tools to inspect network requests to /collector"
         ],
-        collectorEndpoint: `${config.currentAppUrl || 'https://localhost:3000'}/collector`,
+        collectorEndpoint: `${currentAppUrl || 'https://localhost:3000'}/collector`,
         samplePayload: {
           events: [
             {
@@ -191,7 +191,7 @@ const route: RouteHandler = async ({ request, reply, api, logger, connections, c
     
     await reply.code(500).send({
       success: false,
-      error: error.message || "Internal server error",
+      error: (error as Error)?.message || "Internal server error",
       message: "Failed to run tracking system test"
     });
   }

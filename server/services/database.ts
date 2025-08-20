@@ -624,6 +624,34 @@ export const businessService = {
     });
   },
 
+  async findBusinessByNeonUserId(neonUserId: string) {
+    return prisma.business.findUnique({
+      where: { neonUserId },
+    });
+  },
+
+  async createBusinessFromNeonUser(neonUser: any) {
+    // Generate unique affiliate ID
+    const affiliateId = generateAffiliateId(neonUser.email || 'neon-user');
+    
+    return prisma.business.create({
+      data: {
+        name: neonUser.name || neonUser.email || 'Neon User',
+        domain: neonUser.email?.split('@')[1] || 'neon-user.com',
+        website: `https://${neonUser.email?.split('@')[1] || 'neon-user.com'}`,
+        description: 'Business account created via Neon Auth',
+        email: neonUser.email || 'neon-user@example.com',
+        password: 'neon-auth-user', // Placeholder, not used for Neon Auth
+        affiliateId,
+        neonUserId: neonUser.id,
+        isActive: true,
+        isVerified: true,
+        commission: 5.0,
+        adminCommissionRate: 5.0
+      },
+    });
+  },
+
   async updateBusinessStats(
     businessId: number,
     data: {

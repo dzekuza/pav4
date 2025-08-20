@@ -23,15 +23,17 @@ const route: RouteHandler<{ Body: { shopId: string } }> = async ({ request, repl
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
     logger.error("Error during force Web Pixel installation", { 
-      error: error.message,
+      error: errorMessage,
       shopId: request.body?.shopId 
     });
 
     await reply.code(500).send({
       success: false,
       error: "Internal server error",
-      message: error.message
+      message: errorMessage
     });
   }
 };
