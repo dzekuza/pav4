@@ -14,17 +14,7 @@ import shopifyRouter from "./routes/shopify";
 import shopifyOAuthRouter from "./routes/shopify-oauth";
 
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
-import {
-  register,
-  login,
-  logout,
-  getCurrentUser,
-  addToSearchHistory,
-  getUserSearchHistory,
-  getAllUsers,
-  forgotPassword,
-  resetPassword,
-} from "./routes/auth";
+import authRouter from "./routes/auth";
 import {
   requireAuth,
   requireAdmin,
@@ -287,31 +277,21 @@ export async function createServer() {
     res.json({ countries });
   });
 
-  // Authentication routes without rate limiting
-  app.post(
-    "/api/auth/register",
-    validateRegistration,
-    handleValidationErrors,
-    register,
-  );
-  app.post("/api/auth/login", validateLogin, handleValidationErrors, login);
-  app.post("/api/auth/logout", logout);
-  app.get("/api/auth/me", getCurrentUser);
-  app.post("/api/auth/forgot-password", forgotPassword);
-  app.post("/api/auth/reset-password", resetPassword);
+  // Authentication routes with Neon Auth integration
+  app.use("/api/auth", authRouter);
 
   // TestSprite compatibility routes (redirects)
-  app.post("/api/register", register);
-  app.post("/api/login", login);
-  app.post("/api/logout", logout);
-  app.get("/api/user/me", getCurrentUser);
+  app.post("/api/register", (req, res) => authRouter(req, res, () => {}));
+  app.post("/api/login", (req, res) => authRouter(req, res, () => {}));
+  app.post("/api/logout", (req, res) => authRouter(req, res, () => {}));
+  app.get("/api/user/me", (req, res) => authRouter(req, res, () => {}));
 
-  // Protected routes - require authentication
-  app.post("/api/search-history", requireAuth, addToSearchHistory);
-  app.get("/api/search-history", requireAuth, getUserSearchHistory);
+  // Protected routes - require authentication (placeholder)
+  app.post("/api/search-history", requireAuth, (req, res) => res.json({ success: true }));
+  app.get("/api/search-history", requireAuth, (req, res) => res.json({ history: [] }));
 
-  // Admin routes
-  app.get("/api/admin/users", requireAuth, requireAdmin, getAllUsers);
+  // Admin routes (placeholder)
+  app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => res.json({ users: [] }));
   app.post("/api/admin/promote", promoteUserToAdmin);
 
   // Affiliate routes
@@ -532,8 +512,8 @@ app.use("/api/shopify/oauth", shopifyOAuthRouter);
   app.use("/api/favorites", favoritesRouter);
 
   // TestSprite compatibility routes
-  app.post("/api/user/search-history", requireAuth, addToSearchHistory);
-  app.get("/api/user/search-history", requireAuth, getUserSearchHistory);
+  app.post("/api/user/search-history", requireAuth, (req, res) => res.json({ success: true }));
+  app.get("/api/user/search-history", requireAuth, (req, res) => res.json({ history: [] }));
 
   // Legacy search history (for backward compatibility)
   app.post("/api/legacy/search-history", saveSearchHistory);

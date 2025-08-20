@@ -1,20 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { neonAuthClient } from '../../lib/neon-auth';
+import { neonAuthClient, NeonAuthUser, stack } from '../../lib/neon-auth';
 
 interface NeonAuthContextType {
-  user: any;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  user: NeonAuthUser | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
-  signInWithOAuth: (provider: string) => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'github' | 'discord') => Promise<{ success: boolean; url?: string; error?: string }>;
 }
 
 const NeonAuthContext = createContext<NeonAuthContextType | undefined>(undefined);
 
 export const useNeonAuth = () => {
   const context = useContext(NeonAuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useNeonAuth must be used within a NeonAuthProvider');
   }
   return context;
@@ -25,77 +25,55 @@ interface NeonAuthProviderProps {
 }
 
 export const NeonAuthProvider: React.FC<NeonAuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<NeonAuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const checkAuth = async () => {
+    // Initialize auth state
+    const initAuth = async () => {
       try {
-        const currentUser = await neonAuthClient.getCurrentUser();
-        setUser(currentUser);
+        const result = await neonAuthClient.getCurrentUser();
+        if (result.success && result.user) {
+          setUser(result.user);
+        }
       } catch (error) {
-        console.log('No authenticated user found');
+        console.error('Failed to get current user:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    checkAuth();
+    initAuth();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const result = await neonAuthClient.signInWithCredentials({
-        email,
-        password,
-      });
+    const result = await neonAuthClient.signInWithCredentials(email, password);
+    if (result.success && result.user) {
       setUser(result.user);
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
     }
+    return { success: result.success, error: result.error };
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
-    try {
-      const result = await neonAuthClient.signUpWithCredentials({
-        email,
-        password,
-        name,
-      });
+  const signUp = async (email: string, password: string, name?: string) => {
+    const result = await neonAuthClient.signUpWithCredentials(email, password, name);
+    if (result.success && result.user) {
       setUser(result.user);
-    } catch (error) {
-      console.error('Sign up error:', error);
-      throw error;
     }
+    return { success: result.success, error: result.error };
   };
 
   const signOut = async () => {
-    try {
-      await neonAuthClient.signOut();
-      setUser(null);
-    } catch (error) {
-      console.error('Sign out error:', error);
-      throw error;
-    }
+    await neonAuthClient.signOut();
+    setUser(null);
   };
 
-  const signInWithOAuth = async (provider: string) => {
-    try {
-      await neonAuthClient.signInWithOAuth({
-        provider,
-        redirectUrl: window.location.origin + '/auth/callback',
-      });
-    } catch (error) {
-      console.error('OAuth sign in error:', error);
-      throw error;
-    }
+  const signInWithOAuth = async (provider: 'google' | 'github' | 'discord') => {
+    return await neonAuthClient.signInWithOAuth(provider);
   };
 
   const value: NeonAuthContextType = {
     user,
-    isLoading,
+    loading,
     signIn,
     signUp,
     signOut,

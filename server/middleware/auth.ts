@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
-import { verifyToken, userService } from "../routes/auth";
+import { businessService } from "../services/database";
+import { requireNeonAuth } from "../lib/neon-auth";
 import { setUserContext, clearUserContext } from "../services/database";
 
 // Extend Express Request type to include user info
@@ -18,58 +19,8 @@ declare global {
 // Middleware to check if user is authenticated
 export const requireAuth: RequestHandler = async (req, res, next) => {
   try {
-    // Check for token in cookies or Authorization header
-    let token = req.cookies.auth_token;
-
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (!token) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ error: "Invalid authentication token" });
-    }
-
-    try {
-      // Handle both string and number user IDs
-      const userId =
-        typeof decoded.userId === "string"
-          ? parseInt(decoded.userId, 10)
-          : decoded.userId;
-
-      if (isNaN(userId)) {
-        return res.status(401).json({ error: "Invalid user ID in token" });
-      }
-
-      const user = await userService.findUserById(userId);
-      if (!user) {
-        return res.status(401).json({ error: "User not found" });
-      }
-
-      // Attach user info to request
-      req.user = {
-        id: user.id,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      };
-
-      // Set RLS context for this request
-      await setUserContext(user.id, user.email);
-
-      next();
-    } catch (dbError) {
-      console.error("Database error in requireAuth:", dbError);
-      return res
-        .status(500)
-        .json({ error: "Database error during authentication" });
-    }
+    // Use the new Neon Auth middleware
+    await requireNeonAuth(req, res, next);
   } catch (error) {
     console.error("Auth middleware error:", error);
     return res.status(500).json({ error: "Authentication error" });

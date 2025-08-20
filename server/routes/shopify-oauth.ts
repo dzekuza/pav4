@@ -9,7 +9,7 @@ import {
   validateOAuthConfig, 
   GADGET_WEBHOOK_CONFIG 
 } from '../config/shopify-oauth';
-import { requireNeonAuth, requireBusinessAccount } from '../lib/neon-auth';
+import { requireBusinessAuth } from '../middleware/business-auth';
 
 const router = express.Router();
 
@@ -17,18 +17,17 @@ const router = express.Router();
 const oauthStates = new Map<string, { businessId: number; timestamp: number }>();
 
 // GET /api/shopify/oauth/connect - Start OAuth flow using Gadget (returns URL for popup)
-router.get('/connect', requireNeonAuth, requireBusinessAccount, async (req, res) => {
+router.get('/connect', requireBusinessAuth, async (req, res) => {
   try {
     console.log('Shopify OAuth connect request received:', {
       query: req.query,
-      businessId: (req as any).businessId,
-      userId: (req as any).userId,
+      business: (req as any).business,
       headers: req.headers
     });
 
     const { shop } = req.query;
-    const businessId = (req as any).businessId;
-    const userId = (req as any).userId;
+    const business = (req as any).business;
+    const businessId = business?.id;
 
     // Validate shop parameter
     if (!shop || typeof shop !== 'string') {
@@ -49,13 +48,6 @@ router.get('/connect', requireNeonAuth, requireBusinessAccount, async (req, res)
     if (!businessId) {
       console.error('No business ID found in request');
       return res.status(401).json({ error: 'Business authentication required' });
-    }
-
-    console.log('Validating business exists:', businessId);
-    const business = await businessService.findBusinessById(businessId);
-    if (!business) {
-      console.error('Business not found:', businessId);
-      return res.status(404).json({ error: 'Business not found' });
     }
 
     console.log('Business found:', { id: business.id, name: business.name });
@@ -94,7 +86,7 @@ router.get('/connect', requireNeonAuth, requireBusinessAccount, async (req, res)
         },
         body: JSON.stringify({
           shop: shop,
-          userId: userId.toString(), // Use Neon Auth user ID
+          userId: businessId.toString(), // Use business ID instead of Neon Auth user ID
           redirectUrl: `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard`
         })
       });
@@ -123,7 +115,7 @@ router.get('/connect', requireNeonAuth, requireBusinessAccount, async (req, res)
         redirectUrl: oauthUrl,
         shop: shop,
         businessId: businessId,
-        userId: userId
+        userId: businessId.toString()
       });
 
     } catch (gadgetError) {
@@ -139,7 +131,7 @@ router.get('/connect', requireNeonAuth, requireBusinessAccount, async (req, res)
         redirectUrl: fallbackUrl,
         shop: shop,
         businessId: businessId,
-        userId: userId
+        userId: businessId.toString()
       });
     }
 
@@ -154,13 +146,13 @@ router.get('/connect', requireNeonAuth, requireBusinessAccount, async (req, res)
 });
 
 // GET /api/shopify/oauth/prepare - Prepare OAuth flow (check if user needs to login to Shopify first)
-router.get('/prepare', requireNeonAuth, requireBusinessAccount, async (req, res) => {
+router.get('/prepare', requireBusinessAuth, async (req, res) => {
   try {
     const { shop } = req.query;
-    const businessId = (req as any).businessId;
-    const userId = (req as any).userId;
+    const business = (req as any).business;
+    const businessId = business?.id;
 
-    console.log('Shopify OAuth prepare request:', { shop, businessId, userId });
+    console.log('Shopify OAuth prepare request:', { shop, businessId });
 
     // Validate shop parameter
     if (!shop || typeof shop !== 'string') {
@@ -275,11 +267,10 @@ router.get('/callback', async (req, res) => {
 });
 
 // GET /api/shopify/oauth/status - Check OAuth status
-router.get('/status', requireNeonAuth, requireBusinessAccount, async (req, res) => {
+router.get('/status', requireBusinessAuth, async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
-    
-    const business = await businessService.findBusinessById(businessId);
+    const business = (req as any).business;
+    const businessId = business?.id;
     
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });
@@ -304,12 +295,12 @@ router.get('/status', requireNeonAuth, requireBusinessAccount, async (req, res) 
 });
 
 // POST /api/shopify/oauth/disconnect - Disconnect Shopify store
-router.post('/disconnect', requireNeonAuth, requireBusinessAccount, async (req, res) => {
+router.post('/disconnect', requireBusinessAuth, async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
+    const business = (req as any).business;
+    const businessId = business?.id;
     
     // Get current business info for logging
-    const business = await businessService.findBusinessById(businessId);
     const currentShop = business?.shopifyShop;
     
     console.log(`Disconnecting Shopify store for business ${businessId} (current shop: ${currentShop || 'none'})`);
@@ -338,12 +329,12 @@ router.post('/disconnect', requireNeonAuth, requireBusinessAccount, async (req, 
 });
 
 // GET /api/shopify/oauth/force-disconnect - Force disconnect (for testing/debugging)
-router.get('/force-disconnect', requireNeonAuth, requireBusinessAccount, async (req, res) => {
+router.get('/force-disconnect', requireBusinessAuth, async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
+    const business = (req as any).business;
+    const businessId = business?.id;
     
     // Get current business info for logging
-    const business = await businessService.findBusinessById(businessId);
     const currentShop = business?.shopifyShop;
     
     console.log(`Force disconnecting Shopify store for business ${businessId} (current shop: ${currentShop || 'none'})`);
@@ -373,11 +364,10 @@ router.get('/force-disconnect', requireNeonAuth, requireBusinessAccount, async (
 });
 
 // GET /api/shopify/oauth/webhook-config - Get webhook configuration for Gadget
-router.get('/webhook-config', requireNeonAuth, requireBusinessAccount, async (req, res) => {
+router.get('/webhook-config', requireBusinessAuth, async (req, res) => {
   try {
-    const businessId = (req as any).businessId;
-    
-    const business = await businessService.findBusinessById(businessId);
+    const business = (req as any).business;
+    const businessId = business?.id;
     
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });
