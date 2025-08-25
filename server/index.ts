@@ -12,6 +12,7 @@ import affiliateRouter from "./routes/affiliate";
 import gadgetRouter from "./routes/gadget";
 import shopifyRouter from "./routes/shopify";
 import shopifyOAuthRouter from "./routes/shopify-oauth";
+import shopifyWebhookRouter from "./routes/shopify-webhooks";
 
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import authRouter from "./routes/auth";
