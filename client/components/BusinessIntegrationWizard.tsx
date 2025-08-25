@@ -67,8 +67,6 @@ export default function BusinessIntegrationWizard({
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [domain, setDomain] = useState(business.domain || "");
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationToken, setVerificationToken] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
     null,
   );

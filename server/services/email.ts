@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend with API key only if it exists
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export interface EmailTemplate {
   subject: string;
@@ -20,11 +20,11 @@ export interface EmailOptions {
 
 export class EmailService {
   private static instance: EmailService;
-  private resend: Resend;
+  private resend: Resend | null;
   private defaultFrom: string;
 
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+    this.resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
     // Use Resend's default domain until custom domain is verified
     this.defaultFrom = process.env.EMAIL_FROM || "onboarding@resend.dev";
   }
@@ -43,8 +43,9 @@ export class EmailService {
     options: EmailOptions,
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      if (!process.env.RESEND_API_KEY) {
-        throw new Error("RESEND_API_KEY is not configured");
+      if (!this.resend) {
+        console.warn("RESEND_API_KEY is not configured, email sending is disabled");
+        return { success: false, error: "Email service not configured" };
       }
 
       const result = await this.resend.emails.send({

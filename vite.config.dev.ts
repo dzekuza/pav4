@@ -20,6 +20,17 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:8084",
         changeOrigin: true,
         secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
       },
     },
   },
@@ -50,14 +61,33 @@ function expressPlugin(): Plugin {
     apply: "serve", // Only apply during development (serve mode)
     async configureServer(server) {
       try {
+        console.log("Starting Express server...");
+        
+        // Set environment variables for the server
+        process.env.NODE_ENV = "development";
+        
         // Dynamic import to prevent loading server during build
         const { createServer } = await import("./server");
         const app = await createServer();
 
+        // Start the Express server on port 8084
+        const expressServer = app.listen(8084, () => {
+          console.log("🚀 Express server running on port 8084");
+          console.log("📱 Frontend: http://localhost:8083");
+          console.log("🔧 API: http://localhost:8084/api");
+        });
+
+        // Handle server errors
+        expressServer.on('error', (error) => {
+          console.error('Express server error:', error);
+        });
+
         // Add Express app as middleware to Vite dev server
         server.middlewares.use(app);
+        
+        console.log("Express server configured successfully");
       } catch (error) {
-        console.warn("Failed to load Express server for development:", error);
+        console.error("Failed to load Express server for development:", error);
         // Don't fail the build if server can't be loaded
       }
     },
