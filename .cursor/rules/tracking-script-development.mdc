@@ -1,0 +1,77 @@
+# Tracking Script Development Rules
+
+## Script Location
+
+- **Main Script**: [public/ipick-tracking.js](mdc:public/ipick-tracking.js)
+- **Deployment**: Available at `https://ipick.io/ipick-tracking.js`
+
+## Configuration
+
+```javascript
+const IPICK_ENDPOINT = "https://ipick.io/api/track-event";
+const AFFILIATE_ID = "aff_beautydayl_1756154229316_i8kgfy";
+const BUSINESS_ID = "4"; // Always use numeric ID
+```
+
+## Event Payload Structure
+
+```javascript
+const payload = {
+    event_type: eventType, // snake_case
+    business_id: BUSINESS_ID, // numeric string
+    affiliate_id: AFFILIATE_ID, // string
+    platform: "shopify", // string
+    session_id: getSessionId(), // string
+    user_agent: navigator.userAgent, // string
+    referrer: document.referrer, // string
+    timestamp: new Date().toISOString(), // ISO string
+    url: window.location.href, // string
+    data: eventData, // object
+};
+```
+
+## Event Types
+
+- `page_view` - Product page visits
+- `add_to_cart` - Cart additions
+- `checkout` - Checkout initiation
+- `checkout_step` - Individual checkout steps
+- `purchase_complete` - Completed purchases
+
+## Testing Tools
+
+- [scripts/test-beautyday-tracking.js](mdc:scripts/test-beautyday-tracking.js) -
+  Basic endpoint test
+- [scripts/test-checkout-tracking.js](mdc:scripts/test-checkout-tracking.js) -
+  Checkout flow test
+- [scripts/test-enhanced-checkout.js](mdc:scripts/test-enhanced-checkout.js) -
+  Full checkout test
+- [scripts/check-tracking-events.js](mdc:scripts/check-tracking-events.js) -
+  Database verification
+
+## Testing Commands
+
+```bash
+# Test basic tracking
+node scripts/test-beautyday-tracking.js
+
+# Test checkout flow
+node scripts/test-checkout-tracking.js
+
+# Check database events
+node scripts/check-tracking-events.js
+
+# Test with curl
+./scripts/test-tracking-curl.sh
+```
+
+## Key Rules
+
+1. **Business ID**: Always numeric (e.g., '4' not 'beautydayl')
+2. **Field Names**: Use snake_case in API payloads
+3. **Session Tracking**: Generate unique session IDs
+4. **Error Handling**: Log errors but don't break user experience
+5. **CORS**: Endpoint allows all origins for third-party integration
+   description: globs: alwaysApply: true
+
+---

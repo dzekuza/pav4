@@ -1,0 +1,59 @@
+# iPick Tracking System Architecture
+
+## Overview
+
+The iPick tracking system uses a custom tracking script and webhook-based
+approach, NOT Gadget. All tracking data flows through our own API endpoints and
+database.
+
+## Core Components
+
+### Tracking Script
+
+- **Location**: [public/ipick-tracking.js](mdc:public/ipick-tracking.js)
+- **Purpose**: Client-side tracking script for third-party websites
+- **Configuration**: Uses business ID (numeric) and affiliate ID
+- **Events**: page_view, add_to_cart, checkout, purchase_complete, checkout_step
+
+### API Endpoints
+
+- **Track Events**: `POST /api/track-event` - Receives tracking data from client
+  script
+- **Business Events**: `GET /api/business/activity/events` - Returns events for
+  business dashboard
+- **Public Events**: `GET /api/tracking-events` - Public endpoint for testing
+
+### Database Schema
+
+- **Table**: `tracking_events` - Stores all tracking events
+- **Key Fields**: eventType, businessId, affiliateId, sessionId, eventData,
+  timestamp
+- **Business Stats**: Updated automatically based on event types
+
+## Business Dashboard
+
+- **Main File**:
+  [client/pages/BusinessDashboardHome.tsx](mdc:client/pages/BusinessDashboardHome.tsx)
+- **No Gadget Dependencies**: Uses only our tracking system
+- **Data Source**: `/api/business/activity/events` endpoint
+- **Display**: Shows events, KPIs, and referral URLs
+
+## Testing Tools
+
+- [scripts/test-beautyday-tracking.js](mdc:scripts/test-beautyday-tracking.js) -
+  Test tracking endpoint
+- [scripts/check-tracking-events.js](mdc:scripts/check-tracking-events.js) -
+  View database events
+- [scripts/test-enhanced-checkout.js](mdc:scripts/test-enhanced-checkout.js) -
+  Test checkout flow
+
+## Key Rules
+
+1. **Never use Gadget**: All tracking must use our custom system
+2. **Business IDs**: Always use numeric IDs (e.g., '4' not 'beautydayl')
+3. **Event Structure**: Use snake_case field names in API payloads
+4. **Session Tracking**: Include sessionId for user journey tracking
+5. **CORS**: Tracking endpoints allow all origins for third-party integration
+   description: globs: alwaysApply: true
+
+---

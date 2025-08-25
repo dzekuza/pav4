@@ -1,0 +1,65 @@
+# Business Dashboard Development Rules
+
+## Architecture
+
+- **No Gadget Dependencies**: Remove all imports from `shared/types/gadget`
+- **Use Our Tracking System**: All data comes from
+  `/api/business/activity/events`
+- **Unified Event Interface**: Use `UnifiedEvent` interface for consistent data
+  structure
+
+## Data Fetching
+
+```typescript
+// ✅ Correct - Use our tracking system
+const response = await fetch("/api/business/activity/events?limit=100", {
+    credentials: "include",
+});
+
+// ❌ Wrong - Don't use Gadget
+const response = await fetch("/api/events/tracking?businessId=${business.id}");
+```
+
+## Event Structure
+
+```typescript
+interface UnifiedEvent {
+    id: string;
+    sessionId: string;
+    eventType: string;
+    path: string;
+    occurredAt: string;
+    productId?: string | null;
+    shopDomain?: string | null;
+    clickId?: string | null;
+    metadata?: any;
+    value?: number | null;
+    currency?: string | null;
+}
+```
+
+## Key Files
+
+- [client/pages/BusinessDashboardHome.tsx](mdc:client/pages/BusinessDashboardHome.tsx) -
+  Main dashboard
+- [client/pages/BusinessActivity.tsx](mdc:client/pages/BusinessActivity.tsx) -
+  Activity logs
+- [client/pages/BusinessDashboard.tsx](mdc:client/pages/BusinessDashboard.tsx) -
+  Legacy dashboard
+
+## Event Types to Display
+
+- `page_view` - Product page visits
+- `add_to_cart` - Cart additions
+- `checkout` - Checkout initiation
+- `checkout_step` - Individual checkout steps
+- `purchase_complete` - Completed purchases
+
+## Styling
+
+- Use dark theme with white text
+- Cards: `border-white/10 bg-white/5 text-white`
+- Badges: `text-white border-white/20`
+- Loading states with spinners description: globs: alwaysApply: true
+
+---

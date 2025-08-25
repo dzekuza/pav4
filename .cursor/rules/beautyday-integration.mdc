@@ -1,0 +1,65 @@
+# Beautyday.lt Integration Guide
+
+## Configuration
+
+- **Business ID**: `4` (numeric)
+- **Affiliate ID**: `aff_beautydayl_1756154229316_i8kgfy`
+- **Domain**: `beautyday.lt`
+- **Platform**: Shopify
+
+## Installation
+
+Add this script tag to beautyday.lt Shopify theme:
+
+```html
+<script src="https://ipick.io/ipick-tracking.js" async></script>
+```
+
+## Testing Tools
+
+- [scripts/test-beautyday-tracking.js](mdc:scripts/test-beautyday-tracking.js) -
+  Basic endpoint test
+- [scripts/check-beautyday-business.js](mdc:scripts/check-beautyday-business.js) -
+  Verify business exists
+- [scripts/check-tracking-events.js](mdc:scripts/check-tracking-events.js) -
+  View recent events
+- [test-beautyday-tracking.html](mdc:test-beautyday-tracking.html) - Local test
+  environment
+
+## Testing Commands
+
+```bash
+# Check if business exists
+node scripts/check-beautyday-business.js
+
+# Test tracking endpoint
+node scripts/test-beautyday-tracking.js
+
+# View recent events
+node scripts/check-tracking-events.js
+
+# Test with curl
+./scripts/test-tracking-curl.sh
+```
+
+## Expected Results
+
+- **Business Found**: ID 4, Name "Beautyday", Domain "beautyday.lt"
+- **Events Recorded**: page_view, add_to_cart, checkout, purchase_complete
+- **Business Stats**: Total visits, purchases, revenue updated
+
+## Verification Steps
+
+1. Check browser console for tracking messages
+2. Verify events in database
+3. Check business statistics updates
+4. Test complete checkout flow
+
+## Documentation
+
+- [docs/BEAUTYDAY_TRACKING_INSTALLATION.md](mdc:docs/BEAUTYDAY_TRACKING_INSTALLATION.md) -
+  Installation guide
+- [docs/BEAUTYDAY_TRACKING_SUMMARY.md](mdc:docs/BEAUTYDAY_TRACKING_SUMMARY.md) -
+  Implementation summary description: globs: alwaysApply: true
+
+---

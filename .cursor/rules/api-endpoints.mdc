@@ -1,0 +1,82 @@
+# API Endpoints Development Rules
+
+## Tracking Endpoints
+
+### Track Event
+
+- **Endpoint**: `POST /api/track-event`
+- **Handler**: [server/routes/track-event.ts](mdc:server/routes/track-event.ts)
+- **Netlify**:
+  [netlify/functions/track-event.ts](mdc:netlify/functions/track-event.ts)
+- **Purpose**: Receives tracking events from client script
+- **CORS**: Allows all origins (`*`)
+
+### Business Activity Events
+
+- **Endpoint**: `GET /api/business/activity/events`
+- **Handler**: [server/index.ts](mdc:server/index.ts) (lines 665-700)
+- **Purpose**: Returns tracking events for business dashboard
+- **Auth**: Requires business authentication
+
+### Public Tracking Events
+
+- **Endpoint**: `GET /api/tracking-events`
+- **Purpose**: Public endpoint for testing and verification
+- **Auth**: No authentication required
+
+## Request/Response Structure
+
+### Track Event Request
+
+```typescript
+{
+    event_type: string; // Required
+    business_id: string; // Required (numeric)
+    affiliate_id: string; // Required
+    platform: string; // Optional, default: 'shopify'
+    session_id: string; // Optional
+    user_agent: string; // Optional
+    referrer: string; // Optional
+    timestamp: string; // Optional, ISO string
+    url: string; // Optional
+    data: object; // Optional, event-specific data
+}
+```
+
+### Track Event Response
+
+```typescript
+{
+    success: boolean;
+    message: string;
+    event_id: number;
+}
+```
+
+## Business Dashboard Endpoints
+
+### Business Stats
+
+- **Endpoint**: `GET /api/business/auth/stats`
+- **Purpose**: Returns business statistics and KPIs
+
+### Business Dashboard
+
+- **Endpoint**: `GET /api/business/dashboard`
+- **Purpose**: Returns consolidated dashboard data
+
+## Error Handling
+
+- **400**: Missing required fields
+- **401**: Authentication required
+- **404**: Business not found
+- **500**: Internal server error
+
+## Database Operations
+
+- **Table**: `tracking_events`
+- **Business Stats**: Automatically updated based on event types
+- **Duplicate Prevention**: 5-second window for same session/event type
+  description: globs: alwaysApply: true
+
+---
