@@ -1,5 +1,5 @@
 import serverless from 'serverless-http';
-import { createServer } from '../../server/index';
+import { createServer } from '../../server/netlify-server';
 
 // Create a handler that initializes the server on first request
 let app: any = null;
