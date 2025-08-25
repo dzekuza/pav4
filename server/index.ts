@@ -13,6 +13,7 @@ import affiliateRouter from "./routes/affiliate";
 import shopifyRouter from "./routes/shopify";
 import shopifyOAuthRouter from "./routes/shopify-oauth";
 import shopifyWebhookRouter from "./routes/shopify-webhooks";
+import eventsRouter from "./routes/events";
 
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
 import authRouter from "./routes/auth";
@@ -310,6 +311,9 @@ export async function createServer() {
   // Protected Shopify routes
   app.use("/api/shopify", requireBusinessAuth, shopifyRouter);
   app.use("/api/shopify/oauth", shopifyOAuthRouter);
+
+  // Events routes
+  app.use("/api/events", requireBusinessAuth, eventsRouter);
 
   // Business authentication routes without rate limiting
   app.post(
