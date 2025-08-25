@@ -269,85 +269,11 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
   };
 
-  const handleForceDisconnect = async () => {
-    setIsDisconnecting(true);
-    setError(null);
 
-    try {
-      const response = await fetch('/api/shopify/oauth/force-disconnect');
 
-      if (response.ok) {
-        const data = await response.json();
-        setSuccess(`Shopify store force disconnected successfully${data.disconnectedShop ? ` (${data.disconnectedShop})` : ''}. ${data.note || ''}`);
-        setStatus({ isConnected: false });
-        onDisconnect?.();
-      } else {
-        setError('Failed to force disconnect Shopify store');
-      }
-    } catch (error) {
-      setError('Failed to force disconnect Shopify store');
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
 
-  const handleManualUpdate = async () => {
-    if (!shop.trim()) {
-      setError('Please enter your Shopify store URL first');
-      return;
-    }
 
-    setSuccess(null); // Clear previous success messages
-    setError(null);
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch(`/api/shopify/oauth/manual-update?shop=${encodeURIComponent(shop.trim())}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSuccess(`OAuth status updated successfully. ${data.message || ''}`);
-        checkOAuthStatus(); // Refresh status after manual update
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to update OAuth status');
-      }
-    } catch (error) {
-      setError('Failed to update OAuth status. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleFetchToken = async () => {
-    if (!shop.trim()) {
-      setError('Please enter your Shopify store URL first');
-      return;
-    }
-
-    setSuccess(null); // Clear previous success messages
-    setError(null);
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch(`/api/shopify/oauth/fetch-token?shop=${encodeURIComponent(shop.trim())}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setSuccess(`Access token fetched successfully! ${data.message || ''}`);
-          checkOAuthStatus(); // Refresh status after fetching token
-        } else {
-          setError(data.message || 'No access token found for this shop');
-        }
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to fetch access token');
-      }
-    } catch (error) {
-      setError('Failed to fetch access token. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatScopes = (scopes: string) => {
     return scopes.split(',').map(scope => 
@@ -406,22 +332,8 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
               <Loader2 className="h-4 w-4 mr-2" />
               Refresh Status
             </Button>
-            <Button
-              onClick={handleManualUpdate}
-              variant="outline"
-              className="text-green-400 border-green-400/30 hover:bg-green-400/10"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Mark as Connected
-            </Button>
-            <Button
-              onClick={handleFetchToken}
-              variant="outline"
-              className="text-purple-400 border-purple-400/30 hover:bg-purple-400/10"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Fetch Access Token
-            </Button>
+
+
           </div>
         )}
 
@@ -480,19 +392,7 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
               Disconnect Store
             </Button>
 
-            <Button
-              onClick={handleForceDisconnect}
-              disabled={isDisconnecting}
-              variant="outline"
-              className="text-orange-400 border-orange-400/30 hover:bg-orange-400/10"
-            >
-              {isDisconnecting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Settings className="h-4 w-4 mr-2" />
-              )}
-              Force Disconnect
-            </Button>
+
           </div>
         ) : (
           /* Connect Form */
