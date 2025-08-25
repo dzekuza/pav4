@@ -10,8 +10,8 @@ import {
   XCircle, 
   ExternalLink, 
   Loader2,
-  Settings,
-  Unlink
+  Unlink,
+  RefreshCw
 } from "lucide-react";
 
 interface ShopifyOAuthStatus {
@@ -19,7 +19,8 @@ interface ShopifyOAuthStatus {
   shop?: string;
   scopes?: string;
   lastConnected?: string;
-  error?: string;
+  status?: string;
+  webhookConfigured?: boolean;
 }
 
 interface ShopifyOAuthConnectProps {
@@ -36,32 +37,31 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [popupWindow, setPopupWindow] = useState<Window | null>(null);
-  const [popupCheckInterval, setPopupCheckInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Check OAuth status on component mount and when component becomes visible
   useEffect(() => {
     checkOAuthStatus();
     
-    // Also check status when the component becomes visible (for better UX)
+    // Check status when the component becomes visible (but only if not already connected)
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
+      if (!document.hidden && (!status?.isConnected)) {
         checkOAuthStatus();
       }
     };
     
-    // Set up periodic status check (every 30 seconds) to keep status fresh
+    // Set up periodic status check (every 60 seconds) only if not connected
     const statusInterval = setInterval(() => {
-      if (!document.hidden) {
+      if (!document.hidden && (!status?.isConnected)) {
         checkOAuthStatus();
       }
-    }, 30000);
+    }, 60000); // Changed from 10 seconds to 60 seconds
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(statusInterval);
     };
-  }, []);
+  }, [status?.isConnected]); // Add dependency to stop checking when connected
 
   // Check for URL parameters (success/error from OAuth callback)
   useEffect(() => {
@@ -72,7 +72,8 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
 
     if (shopifyConnected && connectedShop) {
       setSuccess(`Successfully connected to ${connectedShop}!`);
-      checkOAuthStatus();
+      // Force immediate status check (only once)
+      setTimeout(() => checkOAuthStatus(), 2000);
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (shopifyError) {
@@ -88,11 +89,8 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
       if (popupWindow && !popupWindow.closed) {
         popupWindow.close();
       }
-      if (popupCheckInterval) {
-        clearInterval(popupCheckInterval);
-      }
     };
-  }, [popupWindow, popupCheckInterval]);
+  }, [popupWindow]);
 
   // Listen for messages from popup window
   useEffect(() => {
@@ -102,15 +100,11 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
           case 'SHOPIFY_OAUTH_SUCCESS':
             console.log('OAuth success message received:', event.data);
             setSuccess(`Successfully connected to ${event.data.shop}!`);
-            checkOAuthStatus();
+            // Force immediate status check (only once)
+            setTimeout(() => checkOAuthStatus(), 2000);
             // Close popup if it's still open
             if (popupWindow && !popupWindow.closed) {
               popupWindow.close();
-            }
-            // Clear popup check interval
-            if (popupCheckInterval) {
-              clearInterval(popupCheckInterval);
-              setPopupCheckInterval(null);
             }
             setPopupWindow(null);
             break;
@@ -122,11 +116,6 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
             if (popupWindow && !popupWindow.closed) {
               popupWindow.close();
             }
-            // Clear popup check interval
-            if (popupCheckInterval) {
-              clearInterval(popupCheckInterval);
-              setPopupCheckInterval(null);
-            }
             setPopupWindow(null);
             break;
         }
@@ -135,7 +124,7 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [popupWindow, popupCheckInterval]);
+  }, [popupWindow]);
 
   const checkOAuthStatus = async () => {
     try {
@@ -157,6 +146,9 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
         // Clear any success messages if status is disconnected
         if (!data.isConnected) {
           setSuccess(null);
+        } else {
+          // If connected, clear any error messages
+          setError(null);
         }
       } else {
         const errorData = await response.json();
@@ -238,46 +230,7 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     }
 
     setPopupWindow(popup);
-
-    // Monitor popup for completion
-    const checkInterval = setInterval(() => {
-      try {
-        if (popup.closed) {
-          clearInterval(checkInterval);
-          setPopupCheckInterval(null);
-          setPopupWindow(null);
-          
-          // Check if OAuth was successful - check multiple times with delay
-          setTimeout(() => checkOAuthStatus(), 1000);
-          setTimeout(() => checkOAuthStatus(), 3000);
-          setTimeout(() => checkOAuthStatus(), 5000);
-          
-          // Show success message
-          setSuccess(`OAuth flow completed for ${shopDomain}. Please check the connection status below.`);
-        }
-      } catch (error) {
-        // Popup might be on different domain, ignore errors
-      }
-    }, 1000);
-
-    setPopupCheckInterval(checkInterval);
-
-    // Show instructions
     setSuccess('OAuth popup opened! Please complete the authorization in the popup window.');
-  };
-
-  const handleShopifyLogin = () => {
-    if (shop.trim()) {
-      const shopifyLoginUrl = `https://${shop.trim()}/admin`;
-      window.open(shopifyLoginUrl, '_blank');
-      setSuccess('Shopify login opened in new tab. Please login and then try connecting again.');
-    }
-  };
-
-  const handleRetryConnect = () => {
-    setError(null);
-    setSuccess(null);
-    handleConnect();
   };
 
   const handleDisconnect = async () => {
@@ -291,188 +244,185 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
 
       if (response.ok) {
         const data = await response.json();
-        setSuccess(`Shopify store disconnected successfully${data.disconnectedShop ? ` (${data.disconnectedShop})` : ''}`);
+        setSuccess(`Shopify store disconnected successfully${data.previousShop ? ` (${data.previousShop})` : ''}`);
         setStatus({ isConnected: false });
         onDisconnect?.();
       } else {
         setError('Failed to disconnect Shopify store');
       }
     } catch (error) {
-      setError('Failed to disconnect Shopify store');
+      console.error('Failed to disconnect:', error);
+      setError('Failed to disconnect Shopify store. Please try again.');
     } finally {
       setIsDisconnecting(false);
     }
   };
 
-
-
-
-
-
-
-  const formatScopes = (scopes: string) => {
-    return scopes.split(',').map(scope => 
-      scope.trim().replace('read_', '').replace(/_/g, ' ')
-    );
+  const handleRetryConnect = () => {
+    setError(null);
+    setSuccess(null);
+    handleConnect();
   };
 
+  // Auto-fill shop if we have a connected store
+  useEffect(() => {
+    if (status?.shop && !shop) {
+      setShop(status.shop);
+    }
+  }, [status?.shop, shop]);
+
   return (
-    <Card className="border-white/10 bg-white/5 text-white">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
           <Store className="h-5 w-5" />
           Shopify Store Connection
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Success/Error Messages */}
-        {success && (
-          <Alert className="border-green-500/20 bg-green-500/10">
-            <CheckCircle className="h-4 w-4 text-green-400" />
-            <AlertDescription className="text-green-400">
-              {success}
-              <button
-                onClick={() => setSuccess(null)}
-                className="ml-2 text-green-300 hover:text-green-100 underline"
-              >
-                Dismiss
-              </button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {error && (
-          <Alert className="border-red-500/20 bg-red-500/10">
-            <XCircle className="h-4 w-4 text-red-400" />
-            <AlertDescription className="text-red-400">
-              {error}
-              <button
-                onClick={() => setError(null)}
-                className="ml-2 text-red-300 hover:text-red-100 underline"
-              >
-                Dismiss
-              </button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Manual Update Button for OAuth completion */}
-        {success && success.includes('OAuth flow completed') && !status?.isConnected && (
-          <div className="flex gap-2">
-            <Button
-              onClick={checkOAuthStatus}
-              variant="outline"
-              className="text-blue-400 border-blue-400/30 hover:bg-blue-400/10"
-            >
-              <Loader2 className="h-4 w-4 mr-2" />
-              Refresh Status
-            </Button>
-
-
-          </div>
-        )}
-
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-white" />
-            <span className="ml-2 text-white">Checking connection status...</span>
-          </div>
-        ) : status?.isConnected ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <span className="text-green-400 font-medium">Connected to Shopify</span>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">Store:</span>
-                <Badge variant="secondary" className="bg-white/10 text-white">
-                  {status.shop}
-                </Badge>
-              </div>
-              
-              {status.scopes && (
-                <div>
-                  <span className="text-white/60 text-sm">Permissions:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {formatScopes(status.scopes).map((scope, index) => (
-                      <Badge key={index} variant="outline" className="text-xs bg-white/5 text-white/80 border-white/20">
-                        {scope}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {status.lastConnected && (
-                <div className="text-xs text-white/60">
-                  Connected: {new Date(status.lastConnected).toLocaleDateString()}
-                </div>
-              )}
-            </div>
-
-            <Button
-              onClick={handleDisconnect}
-              disabled={isDisconnecting}
-              variant="outline"
-              className="text-red-400 border-red-400/30 hover:bg-red-400/10"
-            >
-              {isDisconnecting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Unlink className="h-4 w-4 mr-2" />
-              )}
-              Disconnect Store
-            </Button>
-
-
-          </div>
-        ) : (
-          /* Connect Form */
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-white">
-                Connect Your Shopify Store
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="your-store.myshopify.com"
-                  value={shop}
-                  onChange={(e) => setShop(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                />
-                <Button
-                  onClick={handleConnect}
-                  disabled={!shop.trim() || isConnecting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isConnecting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4 mr-2" />
+        {/* Status Display */}
+        {status && (
+          <div className="flex items-center gap-2 p-3 rounded-lg border">
+            {status.isConnected ? (
+              <>
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <div className="flex-1">
+                  <p className="font-medium text-green-700">Connected to {status.shop}</p>
+                  {status.lastConnected && (
+                    <p className="text-sm text-gray-600">
+                      Connected: {new Date(status.lastConnected).toLocaleDateString()}
+                    </p>
                   )}
-                  {isConnecting ? 'Connecting...' : 'Connect'}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisconnect}
+                  disabled={isDisconnecting}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  {isDisconnecting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Unlink className="h-4 w-4" />
+                  )}
+                  Disconnect
                 </Button>
-              </div>
-              <p className="text-xs text-white/60">
-                Enter your Shopify store URL to securely connect and access your data
+              </>
+            ) : (
+              <>
+                <XCircle className="h-5 w-5 text-gray-400" />
+                <div className="flex-1">
+                  <p className="font-medium text-gray-700">Not Connected</p>
+                  <p className="text-sm text-gray-600">Connect your Shopify store to start tracking</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Connection Form */}
+        {(!status?.isConnected || !status) && (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="shop" className="block text-sm font-medium text-gray-700 mb-2">
+                Shopify Store URL
+              </label>
+              <Input
+                id="shop"
+                type="text"
+                placeholder="your-store.myshopify.com"
+                value={shop}
+                onChange={(e) => setShop(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your Shopify store URL (e.g., your-store.myshopify.com)
               </p>
             </div>
 
-            {/* Removed requiresShopifyLogin and shopifyLoginUrl handling */}
+            <Button
+              onClick={handleConnect}
+              disabled={isConnecting || !shop.trim()}
+              className="w-full"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Store className="h-4 w-4 mr-2" />
+                  Connect Shopify Store
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
-            <div className="bg-white/5 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-white mb-2">What we'll access:</h4>
-              <ul className="text-xs text-white/80 space-y-1">
-                <li>• Products and inventory</li>
-                <li>• Orders and sales data</li>
-                <li>• Customer information</li>
-                <li>• Analytics and reports</li>
-              </ul>
-            </div>
+        {/* Permissions Info */}
+        {(!status?.isConnected || !status) && (
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">What we'll access:</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Products and inventory</li>
+              <li>• Orders and sales data</li>
+              <li>• Customer information</li>
+              <li>• Analytics and reports</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <Alert className="border-red-200 bg-red-50">
+            <XCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">{error}</AlertDescription>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetryConnect}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </Alert>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <span className="ml-2 text-gray-600">Checking connection status...</span>
+          </div>
+        )}
+
+        {/* Manual Refresh Button */}
+        {status && (
+          <div className="flex justify-center pt-2">
+            <Button
+              onClick={checkOAuthStatus}
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+              className="text-gray-600 hover:text-gray-800"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh Status
+            </Button>
           </div>
         )}
       </CardContent>

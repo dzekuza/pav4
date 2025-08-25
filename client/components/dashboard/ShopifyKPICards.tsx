@@ -67,9 +67,9 @@ export function ShopifyKPICards({
   const customersWithOrders = customers.filter(c => c.orders_count > 0).length;
   const conversionRate = totalCustomers > 0 ? (customersWithOrders / totalCustomers) * 100 : 0;
 
-  // Gadget data for comparison
-  const totalSessions = aggregates.reduce((sum, agg) => sum + agg.sessions, 0);
-  const totalProductViews = aggregates.reduce((sum, agg) => sum + agg.productViews, 0);
+  // Gadget data for comparison - now optional since we're removing Gadget
+  const totalSessions = aggregates.length > 0 ? aggregates.reduce((sum, agg) => sum + agg.sessions, 0) : 0;
+  const totalProductViews = aggregates.length > 0 ? aggregates.reduce((sum, agg) => sum + agg.productViews, 0) : 0;
   const totalAddToCart = events.filter(e => e.eventType === 'add_to_cart').length;
   const totalCheckoutStart = events.filter(e => e.eventType === 'checkout_start').length;
 

@@ -6,7 +6,6 @@ import { ShopifyKPICards } from "@/components/dashboard/ShopifyKPICards";
 import { FiltersBar } from "@/components/dashboard/FiltersBar";
 import { EventsTable } from "@/components/dashboard/EventsTable";
 import { ShopifyOrdersTable } from "@/components/dashboard/ShopifyOrdersTable";
-import { useGadgetEvents, useGadgetOrders, useGadgetAggregates, extractEventsFromPages, extractOrdersFromPages, extractAggregatesFromPages } from "@/hooks/useGadget";
 import {
   Card,
   CardContent,
@@ -36,6 +35,53 @@ interface ReferralUrls {
   };
 }
 
+interface DashboardData {
+  summary: {
+    totalBusinesses: number;
+    businessDomain: string;
+    totalCheckouts: number;
+    completedCheckouts: number;
+    totalOrders: number;
+    conversionRate: number;
+    totalRevenue: number;
+    currency: string;
+  };
+  businesses: Array<{
+    id: string;
+    domain: string;
+    myshopifyDomain: string;
+    name: string;
+    email: string;
+    currency: string;
+    plan: string;
+    createdAt: string;
+  }>;
+  recentCheckouts: Array<any>;
+  recentOrders: Array<any>;
+  referralStatistics: {
+    totalReferrals: number;
+    ipickReferrals: number;
+    ipickConversionRate: number;
+    totalConversions: number;
+    referralRevenue: number;
+    topSources: any;
+  };
+  trends: {
+    last30Days: {
+      checkouts: number;
+      orders: number;
+      revenue: number;
+    };
+    last7Days: {
+      checkouts: number;
+      orders: number;
+      revenue: number;
+    };
+  };
+  orderStatuses: any;
+  recentReferrals: Array<any>;
+}
+
 export default function BusinessDashboardHome() {
   const [referralUrls, setReferralUrls] = useState<ReferralUrls | null>(null);
   const [shopDomain, setShopDomain] = useState("f12f80-2.myshopify.com");
@@ -45,59 +91,49 @@ export default function BusinessDashboardHome() {
     to: format(new Date(), 'yyyy-MM-dd')
   });
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Gadget data hooks
-  const {
-    data: eventsData,
-    isLoading: eventsLoading,
-    error: eventsError,
-    fetchNextPage: fetchNextEvents,
-    hasNextPage: hasNextEvents,
-    isFetchingNextPage: isFetchingNextEvents,
-  } = useGadgetEvents({
-    first: 100,
-    shopDomain: shopDomain || undefined,
-    eventType: selectedEventTypes.length > 0 ? selectedEventTypes : undefined,
-    from: dateRange.from,
-    to: dateRange.to,
-  });
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  const {
-    data: ordersData,
-    isLoading: ordersLoading,
-    error: ordersError,
-    fetchNextPage: fetchNextOrders,
-    hasNextPage: hasNextOrders,
-    isFetchingNextPage: isFetchingNextOrders,
-  } = useGadgetOrders({
-    first: 100,
-    shopDomain: shopDomain || undefined,
-    from: dateRange.from,
-    to: dateRange.to,
-  });
+      const response = await fetch(
+        `/api/business/dashboard?startDate=${dateRange.from}&endDate=${dateRange.to}&limit=100`,
+        {
+          credentials: "include",
+        }
+      );
 
-  const {
-    data: aggregatesData,
-    isLoading: aggregatesLoading,
-    error: aggregatesError,
-    fetchNextPage: fetchNextAggregates,
-    hasNextPage: hasNextAggregates,
-    isFetchingNextPage: isFetchingNextAggregates,
-  } = useGadgetAggregates({
-    first: 30,
-    shopDomain: shopDomain || undefined,
-    from: dateRange.from,
-    to: dateRange.to,
-  });
+      if (response.status === 401) {
+        navigate("/business/login");
+        return;
+      }
 
-  // Extract data from infinite query results
-  const events = extractEventsFromPages(eventsData);
-  const orders = extractOrdersFromPages(ordersData);
-  const aggregates = extractAggregatesFromPages(aggregatesData);
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data");
+      }
 
-  const isLoading = eventsLoading || ordersLoading || aggregatesLoading;
-  const hasError = eventsError || ordersError || aggregatesError;
+      const data = await response.json();
+      if (data.success) {
+        setDashboardData(data.data);
+      } else {
+        throw new Error(data.error || "Failed to fetch dashboard data");
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setError(error instanceof Error ? error.message : "Failed to fetch data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [dateRange, navigate]);
 
   const fetchReferralUrls = async () => {
     try {
@@ -138,7 +174,7 @@ export default function BusinessDashboardHome() {
     setSelectedEventTypes([]);
   };
 
-  if (hasError) {
+  if (error) {
     return (
       <div className="text-center py-8">
         <p className="text-red-500 mb-4">
@@ -187,8 +223,8 @@ export default function BusinessDashboardHome() {
         shopDomain={shopDomain}
         accessToken={shopifyAccessToken}
         dateRange={dateRange}
-        aggregates={aggregates}
-        events={events}
+        aggregates={[]} // Empty array since we're not using Gadget aggregates anymore
+        events={dashboardData?.recentCheckouts || []}
         isLoading={isLoading}
       />
 
@@ -201,11 +237,11 @@ export default function BusinessDashboardHome() {
 
       {/* Gadget Events Table */}
       <EventsTable
-        events={events}
-        isLoading={eventsLoading}
-        hasNextPage={hasNextEvents}
-        isFetchingNextPage={isFetchingNextEvents}
-        onLoadMore={() => fetchNextEvents()}
+        events={[]} // Empty array since we're not using Gadget events anymore
+        isLoading={isLoading}
+        hasNextPage={false} // No pagination for now
+        isFetchingNextPage={false}
+        onLoadMore={() => {}}
       />
 
       {/* Referral URLs Section */}

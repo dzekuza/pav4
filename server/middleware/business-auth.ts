@@ -81,6 +81,11 @@ export const requireBusinessAuth = async (
       name: business.name,
       domain: business.domain,
       email: business.email,
+      shopifyShop: business.shopifyShop,
+      shopifyStatus: business.shopifyStatus,
+      shopifyScopes: business.shopifyScopes,
+      shopifyConnectedAt: business.shopifyConnectedAt,
+      shopifyAccessToken: business.shopifyAccessToken,
     };
 
     next();

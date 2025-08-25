@@ -9,9 +9,9 @@ const router = express.Router();
 
 // Shopify HMAC verification for direct webhooks
 function verifyShopifyHmac(rawBody: Buffer, providedHmac: string | string[] | undefined): boolean {
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET_KEY;
+  const secret = process.env.IPICK_WEBHOOK_SECRET || process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET_KEY;
   if (!secret) {
-    console.error('SHOPIFY_WEBHOOK_SECRET not configured');
+    console.error('IPICK_WEBHOOK_SECRET not configured');
     return false;
   }
 
@@ -480,7 +480,7 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
 
 // Direct Shopify webhook endpoint: POST /api/shopify/webhooks
 router.post(
-  '/webhooks',
+  '/',
   // Shopify requires raw body for HMAC verification
   express.raw({ type: 'application/json' }),
   async (req, res) => {

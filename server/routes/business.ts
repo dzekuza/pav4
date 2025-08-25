@@ -637,7 +637,6 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
   try {
     console.log('=== getBusinessDashboardData called ===');
     console.log('Environment:', process.env.NODE_ENV);
-    console.log('Has PAVLP_DASHBOARD_ACCESS:', !!process.env.PAVLP_DASHBOARD_ACCESS);
     
     const authResult = await authenticateBusiness(req, res);
     if (!authResult) return;
@@ -734,104 +733,167 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
       return res.json(testData);
     }
     
-    try {
-      const { gadgetAnalytics } = await import('../services/gadget-analytics');
-      
-      console.log('Calling gadgetAnalytics.generateDashboardData...');
-      const dashboardData = await gadgetAnalytics.generateDashboardData(
-        authResult.business.domain,
-        startDate as string || null,
-        endDate as string || null
-      );
-
-      console.log('Dashboard data response:', {
-        success: dashboardData.success,
-        hasError: !dashboardData.success,
-        error: !dashboardData.success ? (dashboardData as any).error : null
-      });
-
-      if (!dashboardData.success) {
-        console.error('Gadget analytics failed:', (dashboardData as any).error);
-        
-        // Provide fallback data when Gadget API is not available
-        console.log('Providing fallback dashboard data...');
-        const fallbackData = {
-          success: true,
-          data: {
-            summary: {
-              totalBusinesses: 1,
-              businessDomain: authResult.business.domain,
-              totalCheckouts: 0,
-              completedCheckouts: 0,
-              totalOrders: 0,
-              conversionRate: 0,
-              totalRevenue: 0,
-              currency: 'EUR'
-            },
-            businesses: [{
-              id: 'fallback',
-              domain: authResult.business.domain,
-              myshopifyDomain: authResult.business.domain,
-              name: authResult.business.name || 'Business',
-              email: authResult.business.email || '',
-              currency: 'EUR',
-              plan: 'Basic',
-              createdAt: new Date().toISOString()
-            }],
-            recentCheckouts: [],
-            recentOrders: [],
-            referralStatistics: {
-              totalReferrals: 0,
-              pavlo4Referrals: 0,
-              pavlo4ConversionRate: 0,
-              totalConversions: 0,
-              referralRevenue: 0,
-              topSources: {}
-            },
-            trends: {
-              last30Days: {
-                checkouts: 0,
-                orders: 0,
-                revenue: 0
-              },
-              last7Days: {
-                checkouts: 0,
-                orders: 0,
-                revenue: 0
-              }
-            },
-            orderStatuses: {},
-            recentReferrals: []
-          },
-          metadata: {
-            generatedAt: new Date().toISOString(),
-            filters: {
-              businessDomain: authResult.business.domain,
-              startDate: startDate,
-              endDate: endDate
-            },
-            note: 'Fallback data - Gadget API unavailable'
-          }
+    // Get webhook data from our own database
+    console.log('Fetching webhook data from database...');
+    
+    // Parse date range
+    const endDateObj = endDate ? new Date(endDate as string) : new Date();
+    const startDateObj = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+    
+    // Get Shopify webhook events
+    const webhookEvents = await prisma.shopifyEvent.findMany({
+      where: {
+        shop_domain: authResult.business.shopifyShop || authResult.business.domain,
+        processed_at: {
+          gte: startDateObj,
+          lte: endDateObj
+        }
+      },
+      orderBy: {
+        processed_at: 'desc'
+      },
+      take: 100
+    });
+    
+    console.log(`Found ${webhookEvents.length} webhook events`);
+    
+    // Get tracking events
+    const trackingEvents = await prisma.trackingEvent.findMany({
+      where: {
+        businessId: authResult.business.id,
+        timestamp: {
+          gte: startDateObj,
+          lte: endDateObj
+        }
+      },
+      orderBy: {
+        timestamp: 'desc'
+      },
+      take: 100
+    });
+    
+    console.log(`Found ${trackingEvents.length} tracking events`);
+    
+    // Process webhook events into orders and checkouts
+    const orders = webhookEvents
+      .filter(event => event.topic === 'orders/create' || event.topic === 'orders/paid')
+      .map(event => {
+        const payload = event.payload as any;
+        return {
+          id: event.event_id,
+          orderNumber: payload?.order_number || payload?.id,
+          totalPrice: payload?.total_price || '0',
+          currency: payload?.currency || 'EUR',
+          customerEmail: payload?.customer?.email,
+          createdAt: event.processed_at,
+          status: event.topic === 'orders/paid' ? 'paid' : 'created',
+          shopDomain: event.shop_domain
         };
-        
-        return res.json(fallbackData);
+      });
+    
+    const checkouts = webhookEvents
+      .filter(event => event.topic === 'checkouts/create' || event.topic === 'checkouts/update')
+      .map(event => {
+        const payload = event.payload as any;
+        return {
+          id: event.event_id,
+          totalPrice: payload?.total_price || '0',
+          currency: payload?.currency || 'EUR',
+          customerEmail: payload?.email,
+          createdAt: event.processed_at,
+          status: 'checkout',
+          shopDomain: event.shop_domain
+        };
+      });
+    
+    // Calculate statistics
+    const totalOrders = orders.length;
+    const totalCheckouts = checkouts.length;
+    const totalRevenue = orders.reduce((sum, order) => {
+      const price = parseFloat(order.totalPrice) || 0;
+      return sum + price;
+    }, 0);
+    const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    
+    const dashboardData = {
+      success: true,
+      data: {
+        summary: {
+          totalBusinesses: 1,
+          businessDomain: authResult.business.domain,
+          totalCheckouts: totalCheckouts,
+          completedCheckouts: totalCheckouts,
+          totalOrders: totalOrders,
+          conversionRate: conversionRate,
+          totalRevenue: totalRevenue,
+          currency: 'EUR'
+        },
+        businesses: [{
+          id: authResult.business.id.toString(),
+          domain: authResult.business.domain,
+          myshopifyDomain: authResult.business.shopifyShop || authResult.business.domain,
+          name: authResult.business.name || 'Business',
+          email: authResult.business.email || '',
+          currency: 'EUR',
+          plan: 'Basic',
+          createdAt: authResult.business.createdAt?.toISOString() || new Date().toISOString()
+        }],
+        recentCheckouts: checkouts,
+        recentOrders: orders,
+        referralStatistics: {
+          totalReferrals: trackingEvents.length,
+          ipickReferrals: trackingEvents.filter(e => e.eventData?.utmSource === 'ipick.io').length,
+          ipickConversionRate: 0,
+          totalConversions: totalOrders,
+          referralRevenue: totalRevenue,
+          topSources: {}
+        },
+        trends: {
+          last30Days: {
+            checkouts: totalCheckouts,
+            orders: totalOrders,
+            revenue: totalRevenue
+          },
+          last7Days: {
+            checkouts: checkouts.filter(c => c.createdAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
+            orders: orders.filter(o => o.createdAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length,
+            revenue: orders.filter(o => o.createdAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+              .reduce((sum, order) => sum + (parseFloat(order.totalPrice) || 0), 0)
+          }
+        },
+        orderStatuses: {
+          paid: orders.filter(o => o.status === 'paid').length,
+          created: orders.filter(o => o.status === 'created').length
+        },
+        recentReferrals: trackingEvents.slice(0, 10)
+      },
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        filters: {
+          businessDomain: authResult.business.domain,
+          startDate: startDateObj.toISOString(),
+          endDate: endDateObj.toISOString()
+        },
+        note: 'Data from webhook events and tracking events'
       }
+    };
 
-      res.json({
-        success: true,
-        ...dashboardData
-      });
-    } catch (gadgetError) {
-      console.error('Error calling gadget analytics:', gadgetError);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to fetch dashboard data",
-        details: gadgetError instanceof Error ? gadgetError.message : String(gadgetError)
-      });
-    }
+    console.log('Dashboard data generated successfully:', {
+      orders: totalOrders,
+      checkouts: totalCheckouts,
+      revenue: totalRevenue
+    });
+
+    res.json(dashboardData);
+
   } catch (error) {
     console.error('Error in getBusinessDashboardData:', error);
-    handleError(res, error, "fetch business dashboard data");
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate dashboard data',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 

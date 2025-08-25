@@ -28,6 +28,9 @@ import {
   Activity,
   Globe,
   Settings,
+  Plus,
+  List,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ShopifyOAuthConnect } from "@/components/dashboard/ShopifyOAuthConnect";
@@ -78,6 +81,9 @@ export default function BusinessIntegrationWizard({
     "connected" | "disconnected" | "checking"
   >("checking");
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  const [webhooks, setWebhooks] = useState<any[]>([]);
+  const [isCreatingWebhook, setIsCreatingWebhook] = useState(false);
+  const [isLoadingWebhooks, setIsLoadingWebhooks] = useState(false);
 
   // Cleanup any running timers on unmount
   useEffect(() => {
@@ -615,6 +621,97 @@ document.addEventListener('DOMContentLoaded', function() {
       trackingVerified: business.trackingVerified,
     });
   }, [business]);
+
+  // Webhook management functions
+  const createWebhook = async () => {
+    setIsCreatingWebhook(true);
+    try {
+      const response = await fetch('/api/shopify/oauth/create-webhook', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: "✅ Webhook Created",
+          description: "Order creation webhook has been created successfully.",
+        });
+        // Refresh webhooks list
+        listWebhooks();
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "❌ Webhook Creation Failed",
+          description: errorData.error || "Failed to create webhook.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating webhook:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create webhook. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingWebhook(false);
+    }
+  };
+
+  const listWebhooks = async () => {
+    setIsLoadingWebhooks(true);
+    try {
+      const response = await fetch('/api/shopify/oauth/webhooks', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setWebhooks(data.webhooks || []);
+      } else {
+        console.error('Failed to load webhooks');
+        setWebhooks([]);
+      }
+    } catch (error) {
+      console.error('Error loading webhooks:', error);
+      setWebhooks([]);
+    } finally {
+      setIsLoadingWebhooks(false);
+    }
+  };
+
+  const deleteWebhook = async (webhookId: string) => {
+    try {
+      const response = await fetch(`/api/shopify/oauth/webhook/${webhookId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        toast({
+          title: "✅ Webhook Deleted",
+          description: "Webhook has been deleted successfully.",
+        });
+        // Refresh webhooks list
+        listWebhooks();
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "❌ Webhook Deletion Failed",
+          description: errorData.error || "Failed to delete webhook.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting webhook:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete webhook. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6 text-white">
@@ -1167,31 +1264,74 @@ document.addEventListener('DOMContentLoaded', function() {
 
                             <div>
                               <h5 className="font-medium text-white mb-2">
-                                Setup Instructions
+                                Webhook Management
                               </h5>
-                              <ol className="text-sm text-white/80 space-y-2 ml-4">
-                                <li>
-                                  1. In your Shopify admin, go to <strong>Settings → Notifications</strong>
-                                </li>
-                                <li>
-                                  2. Scroll down to <strong>Webhooks</strong> section
-                                </li>
-                                <li>
-                                  3. Click <strong>"Create webhook"</strong>
-                                </li>
-                                <li>
-                                  4. Select <strong>"Order creation"</strong> as the event
-                                </li>
-                                <li>
-                                  5. Set the webhook URL to: <code className="bg-black/40 px-1 rounded">https://ipick.io/api/shopify/webhooks</code>
-                                </li>
-                                <li>
-                                  6. Set the format to <strong>JSON</strong>
-                                </li>
-                                <li>
-                                  7. Click <strong>"Save webhook"</strong>
-                                </li>
-                              </ol>
+                              <div className="space-y-3">
+                                <Button
+                                  onClick={createWebhook}
+                                  disabled={isCreatingWebhook}
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  {isCreatingWebhook ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Creating Webhook...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Create Webhook Automatically
+                                    </>
+                                  )}
+                                </Button>
+                                
+                                <Button
+                                  onClick={listWebhooks}
+                                  disabled={isLoadingWebhooks}
+                                  variant="outline"
+                                  className="w-full border-white/20 text-white hover:bg-white/10"
+                                >
+                                  {isLoadingWebhooks ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Loading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <List className="h-4 w-4 mr-2" />
+                                      View Existing Webhooks
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                              
+                              {webhooks.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  <h6 className="font-medium text-white">Current Webhooks:</h6>
+                                  {webhooks.map((webhook) => (
+                                    <div key={webhook.id} className="bg-black/20 border border-white/10 rounded p-3">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="text-sm font-medium text-white">
+                                            {webhook.topic}
+                                          </div>
+                                          <div className="text-xs text-white/60 break-all">
+                                            {webhook.address}
+                                          </div>
+                                        </div>
+                                        <Button
+                                          onClick={() => deleteWebhook(webhook.id)}
+                                          variant="outline"
+                                          size="sm"
+                                          className="ml-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-3">

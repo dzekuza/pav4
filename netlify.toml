@@ -1,5 +1,5 @@
 [build]
-  command = "npx prisma generate && npm run build:client"
+  command = "npm run build:client"
   functions = "netlify/functions"
   publish = "dist/spa"
 
@@ -7,10 +7,12 @@
   SECRETS_SCAN_ENABLED = "false"
   SECRETS_SCAN_OMIT_KEYS = "DATABASE_URL,GEMINI_API_KEY,N8N_WEBHOOK_URL,GADGET_API_KEY"
   NPM_FLAGS = "--production=false"
+  NODE_VERSION = "18"
 
 [functions]
   external_node_modules = ["express", "@netlify/neon", "bcryptjs", "jsonwebtoken", "cors", "helmet", "compression", "cookie-parser", "@react-email/render", "@prisma/client"]
   node_bundler = "esbuild"
+  included_files = ["prisma/schema.prisma"]
   
 [[redirects]]
   from = "/api/track-event"

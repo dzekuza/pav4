@@ -9,7 +9,7 @@ import { handleDemo } from "./routes/demo";
 import n8nScrapeRouter from "./routes/n8n-scrape";
 import favoritesRouter from "./routes/favorites";
 import affiliateRouter from "./routes/affiliate";
-import gadgetRouter from "./routes/gadget";
+// import gadgetRouter from "./routes/gadget"; // REMOVED
 import shopifyRouter from "./routes/shopify";
 import shopifyOAuthRouter from "./routes/shopify-oauth";
 import shopifyWebhookRouter from "./routes/shopify-webhooks";
@@ -50,7 +50,7 @@ import {
   getCheckoutAnalytics,
   getBusinessDashboardData,
   generateReferralUrl,
-  testGadgetApi,
+  // testGadgetApi, // REMOVED
 } from "./routes/business";
 import {
   registerBusiness as registerBusinessAuth,
@@ -303,8 +303,8 @@ export async function createServer() {
   // Affiliate routes
   app.use("/api/affiliate", affiliateRouter);
 
-  // Gadget analytics routes
-  app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
+  // Gadget analytics routes - REMOVED
+  // app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
   // Public Shopify webhooks (no auth) - mount at specific webhook path
   app.use("/api/shopify/webhooks", shopifyWebhookRouter);
   // Protected Shopify routes
@@ -352,7 +352,7 @@ export async function createServer() {
     requireBusinessAuth,
     getBusinessDashboardData,
   );
-  app.get("/api/business/test-gadget-api", testGadgetApi);
+  // app.get("/api/business/test-gadget-api", testGadgetApi); // REMOVED
 
   // Open CORS for tracking endpoint so third-party business sites can send events
   app.options("/api/track-event", (req, res, next) => {
@@ -393,8 +393,8 @@ export async function createServer() {
   app.get("/api/session-analytics", getSessionAnalytics);
   app.get("/api/business-session-summary", getBusinessSessionSummary);
 
-  // Shopify webhook routes
-  app.post("/api/shopify-webhooks", handleShopifyWebhook);
+  // Shopify webhook routes (handled by router)
+  // app.post("/api/shopify-webhooks", handleShopifyWebhook); // REMOVED - conflicting with router
   app.get("/api/shopify-webhooks/stats", getWebhookStats);
   
   // Gadget webhook routes

@@ -246,7 +246,7 @@ router.get('/callback', async (req, res) => {
         } else {
             // If no opener, redirect to dashboard
             setTimeout(() => {
-                window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=true&error=${encodeURIComponent(error as string)}';
+                window.location.href = '${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_error=true&error=${encodeURIComponent(error as string)}';
             }, 3000);
         }
     </script>
@@ -257,10 +257,10 @@ router.get('/callback', async (req, res) => {
       return res.send(errorHtml);
     }
 
-    // Validate required parameters
+      // Validate required parameters
     if (!code || !state || !shop) {
       console.error('Missing required OAuth parameters:', { code: !!code, state: !!state, shop: !!shop });
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=missing_params`;
+      const errorUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_error=missing_params`;
       return res.redirect(errorUrl);
     }
 
@@ -268,7 +268,7 @@ router.get('/callback', async (req, res) => {
     const stateData = parseOAuthState(state as string);
     if (!stateData) {
       console.error('Invalid OAuth state parameter');
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=invalid_state`;
+      const errorUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_error=invalid_state`;
       return res.redirect(errorUrl);
     }
 
@@ -277,9 +277,9 @@ router.get('/callback', async (req, res) => {
     // Validate shop format
     if (!validateShopifyShop(shop as string)) {
       console.error('Invalid shop format in callback:', shop);
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=invalid_shop`;
-      return res.redirect(errorUrl);
-    }
+      const errorUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_error=invalid_shop`;
+        return res.redirect(errorUrl);
+      }
 
     try {
       // Exchange authorization code for access token
@@ -296,17 +296,48 @@ router.get('/callback', async (req, res) => {
       // Update business with connection info
       await businessService.updateBusiness(parseInt(businessId), {
         shopifyAccessToken: tokenData.accessToken,
-        shopifyShop: shop as string,
+          shopifyShop: shop as string,
         shopifyScopes: tokenData.scopes,
-        shopifyConnectedAt: new Date(),
-        shopifyStatus: 'connected'
-      });
+          shopifyConnectedAt: new Date(),
+          shopifyStatus: 'connected'
+        });
 
-      console.log('Shopify OAuth callback successful:', {
-        businessId: businessId,
-        shop: shop,
+        console.log('Shopify OAuth callback successful:', {
+          businessId: businessId,
+          shop: shop,
         scopes: tokenData.scopes
       });
+
+      // Create webhook automatically after successful connection
+      try {
+        const webhookUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/api/shopify/webhooks`;
+        
+        const webhookData = {
+          webhook: {
+            topic: "orders/create",
+            address: webhookUrl,
+            format: "json"
+          }
+        };
+
+        const webhookResponse = await fetch(`https://${shop}/admin/api/2024-10/webhooks.json`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': tokenData.accessToken
+          },
+          body: JSON.stringify(webhookData)
+        });
+
+        if (webhookResponse.ok) {
+          const webhookResult = await webhookResponse.json();
+          console.log('Webhook created automatically:', webhookResult);
+        } else {
+          console.warn('Failed to create webhook automatically:', await webhookResponse.text());
+        }
+      } catch (webhookError) {
+        console.warn('Error creating webhook automatically:', webhookError);
+      }
 
       // Return HTML page that closes the popup and sends message to parent
       const successHtml = `
@@ -389,7 +420,7 @@ router.get('/callback', async (req, res) => {
         } else {
             // If no opener, redirect to dashboard
             setTimeout(() => {
-                window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_connected=true&shop=${shop}&businessId=${businessId}';
+                window.location.href = '${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_connected=true&shop=${shop}&businessId=${businessId}';
             }, 2000);
         }
     </script>
@@ -401,13 +432,13 @@ router.get('/callback', async (req, res) => {
 
     } catch (tokenError) {
       console.error('Token exchange failed:', tokenError);
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=token_exchange_failed`;
-      res.redirect(errorUrl);
+      const errorUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_error=token_exchange_failed`;
+        res.redirect(errorUrl);
     }
 
   } catch (error) {
     console.error('Shopify OAuth callback error:', error);
-    const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=true`;
+    const errorUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/business/dashboard?shopify_error=true`;
     res.redirect(errorUrl);
   }
 });
@@ -517,6 +548,167 @@ router.get('/config', requireBusinessAuth, async (req, res) => {
   } catch (error) {
     console.error('Shopify OAuth config error:', error);
     res.status(500).json({ error: 'Failed to get OAuth configuration' });
+  }
+});
+
+// POST /api/shopify/oauth/create-webhook - Create webhook for connected store
+router.post('/create-webhook', requireBusinessAuth, async (req, res) => {
+  try {
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    if (!business.shopifyShop || business.shopifyStatus !== 'connected') {
+      return res.status(400).json({ error: 'Shopify store not connected' });
+    }
+
+    const shop = business.shopifyShop;
+    const accessToken = business.shopifyAccessToken;
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Shopify access token not found' });
+    }
+
+    // Create webhook using Shopify Admin API
+    const webhookUrl = `${process.env.FRONTEND_URL || 'https://ipick.io'}/api/shopify/webhooks`;
+    
+    const webhookData = {
+      webhook: {
+        topic: "orders/create",
+        address: webhookUrl,
+        format: "json"
+      }
+    };
+
+    const response = await fetch(`https://${shop}/admin/api/2024-10/webhooks.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify(webhookData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to create webhook:', errorText);
+      return res.status(500).json({ error: 'Failed to create webhook' });
+    }
+
+    const webhookResponse = await response.json();
+    console.log('Webhook created successfully:', webhookResponse);
+
+    res.json({
+      success: true,
+      message: 'Webhook created successfully',
+      webhook: webhookResponse.webhook,
+      webhookUrl: webhookUrl
+    });
+
+  } catch (error) {
+    console.error('Webhook creation error:', error);
+    res.status(500).json({ error: 'Failed to create webhook' });
+  }
+});
+
+// GET /api/shopify/oauth/webhooks - List webhooks for connected store
+router.get('/webhooks', requireBusinessAuth, async (req, res) => {
+  try {
+    const business = (req as any).business;
+    const businessId = business?.id;
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    if (!business.shopifyShop || business.shopifyStatus !== 'connected') {
+      return res.status(400).json({ error: 'Shopify store not connected' });
+    }
+
+    const shop = business.shopifyShop;
+    const accessToken = business.shopifyAccessToken;
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Shopify access token not found' });
+    }
+
+    // Get webhooks using Shopify Admin API
+    const response = await fetch(`https://${shop}/admin/api/2024-10/webhooks.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to get webhooks:', errorText);
+      return res.status(500).json({ error: 'Failed to get webhooks' });
+    }
+
+    const webhooksResponse = await response.json();
+    console.log('Webhooks retrieved successfully:', webhooksResponse);
+
+    res.json({
+      success: true,
+      webhooks: webhooksResponse.webhooks
+    });
+
+  } catch (error) {
+    console.error('Webhook retrieval error:', error);
+    res.status(500).json({ error: 'Failed to get webhooks' });
+  }
+});
+
+// DELETE /api/shopify/oauth/webhook/:id - Delete specific webhook
+router.delete('/webhook/:id', requireBusinessAuth, async (req, res) => {
+  try {
+    const business = (req as any).business;
+    const businessId = business?.id;
+    const webhookId = req.params.id;
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+
+    if (!business.shopifyShop || business.shopifyStatus !== 'connected') {
+      return res.status(400).json({ error: 'Shopify store not connected' });
+    }
+
+    const shop = business.shopifyShop;
+    const accessToken = business.shopifyAccessToken;
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Shopify access token not found' });
+    }
+
+    // Delete webhook using Shopify Admin API
+    const response = await fetch(`https://${shop}/admin/api/2024-10/webhooks/${webhookId}.json`, {
+      method: 'DELETE',
+      headers: {
+        'X-Shopify-Access-Token': accessToken
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to delete webhook:', errorText);
+      return res.status(500).json({ error: 'Failed to delete webhook' });
+    }
+
+    console.log('Webhook deleted successfully:', webhookId);
+
+    res.json({
+      success: true,
+      message: 'Webhook deleted successfully',
+      webhookId: webhookId
+    });
+
+  } catch (error) {
+    console.error('Webhook deletion error:', error);
+    res.status(500).json({ error: 'Failed to delete webhook' });
   }
 });
 
