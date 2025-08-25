@@ -7,6 +7,31 @@ import { businessService } from '../services/database.js';
 
 const router = express.Router();
 
+// Shopify HMAC verification for direct webhooks
+function verifyShopifyHmac(rawBody: Buffer, providedHmac: string | string[] | undefined): boolean {
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET || process.env.SHOPIFY_API_SECRET_KEY;
+  if (!secret) {
+    console.error('SHOPIFY_WEBHOOK_SECRET not configured');
+    return false;
+  }
+
+  if (!providedHmac || Array.isArray(providedHmac)) {
+    return false;
+  }
+
+  const digest = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('base64');
+
+  // Use timingSafeEqual to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(providedHmac));
+  } catch {
+    return false;
+  }
+}
+
 // Validation schema for Shopify webhook data
 const ShopifyWebhookSchema = z.object({
   topic: z.string(),
@@ -452,6 +477,71 @@ export async function handleShopifyWebhook(req: Request, res: Response) {
     });
   }
 }
+
+// Direct Shopify webhook endpoint: POST /api/shopify/webhooks
+router.post(
+  '/webhooks',
+  // Shopify requires raw body for HMAC verification
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    try {
+      const hmacHeader = req.headers['x-shopify-hmac-sha256'];
+      const topic = (req.headers['x-shopify-topic'] as string) || '';
+      const shopDomain = (req.headers['x-shopify-shop-domain'] as string) || '';
+      const eventId = (req.headers['x-shopify-webhook-id'] as string) || '';
+
+      if (!verifyShopifyHmac(req.body as Buffer, hmacHeader)) {
+        console.warn('Invalid Shopify HMAC for direct webhook');
+        return res.status(401).send('Unauthorized');
+      }
+
+      // Parse JSON payload
+      const payload = JSON.parse((req.body as Buffer).toString('utf8'));
+
+      // Build internal webhook data structure consumed by processors
+      const webhookData = {
+        topic: topic,
+        shop_domain: shopDomain,
+        event_id: eventId || (payload?.id ? String(payload.id) : undefined) || crypto.randomUUID(),
+        triggered_at: new Date().toISOString(),
+        payload: payload,
+      } as any;
+
+      // Route by topic
+      if (topic.startsWith('orders/')) {
+        await processOrderEvent(webhookData);
+      } else if (topic.startsWith('products/')) {
+        await processProductEvent(webhookData);
+      } else if (topic.startsWith('customers/')) {
+        await processCustomerEvent(webhookData);
+      } else if (topic.startsWith('carts/') || topic.startsWith('checkouts/')) {
+        await processCartEvent(webhookData);
+      } else {
+        // Generic persistence
+        await prisma.shopifyEvent.create({
+          data: {
+            event_id: webhookData.event_id,
+            shop_domain: webhookData.shop_domain,
+            topic: webhookData.topic,
+            triggered_at: new Date(webhookData.triggered_at),
+            processed_at: new Date(),
+            event_type: 'other',
+            resource_id: payload?.id ? String(payload.id) : 'unknown',
+            payload: webhookData.payload,
+            metadata: {},
+          },
+        });
+      }
+
+      // Respond 200 OK quickly
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error('Direct Shopify webhook error:', error);
+      // Still respond 200 to avoid retries storm; monitor logs for failures
+      res.status(200).send('OK');
+    }
+  }
+);
 
 /**
  * Get webhook statistics
