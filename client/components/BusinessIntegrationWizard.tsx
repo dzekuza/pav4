@@ -910,7 +910,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <Button
                     variant="outline"
                     onClick={() =>
-                      (window.location.href = "/business/dashboard/checkout/analytics")
+                      (window.location.href = "/business/dashboard/analytics")
                     }
                     className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   >
@@ -920,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <Button
                     variant="outline"
                     onClick={() =>
-                      (window.location.href = "/business/dashboard/checkout/activity")
+                      (window.location.href = "/business/dashboard/activity")
                     }
                     className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
                   >

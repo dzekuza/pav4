@@ -115,7 +115,7 @@ export const trackReferral = async (
   }
 };
 
-// Enhanced product click handler that combines existing tracking with Shopify tracking
+// Enhanced product click handler that combines existing tracking with business tracking
 export const handleProductClick = async (
   product: any,
   businessDomain?: string,
@@ -130,33 +130,41 @@ export const handleProductClick = async (
     url: product.url,
     data: {
       product_name: product.title || product.name,
+      source: "n8n_suggestion",
+      business_domain: businessDomain,
     },
   };
 
   // Send to your existing analytics
   await sendToYourAnalytics(existingEvent);
 
-  // NEW: Also track in Gadget for Shopify integration if business domain is provided
+  // Enhanced tracking for all business domains (not just Shopify)
   if (businessDomain) {
-    const shopifyResult = await trackReferral(
-      businessDomain,
-      product.url,
-      product.title || product.name,
-      getCurrentUserId(),
-    );
+    // Try Shopify-specific tracking first
+    if (businessDomain.includes("myshopify.com") || businessDomain.includes("shopify.com")) {
+      const shopifyResult = await trackReferral(
+        businessDomain,
+        product.url,
+        product.title || product.name,
+        getCurrentUserId(),
+      );
 
-    // If Shopify tracking was successful, use the tracking URL
-    if (shopifyResult.success) {
-      return shopifyResult;
+      // If Shopify tracking was successful, use the tracking URL
+      if (shopifyResult.success) {
+        return shopifyResult;
+      }
     }
+    
+    // For other business domains, use enhanced redirect
+    const { getRedirectUrl } = await import("./utils");
+    const redirectUrl = getRedirectUrl(product.url, "n8n_suggestion");
+    return { success: true, targetUrl: redirectUrl };
   }
 
-  // Fallback to original URL with existing affiliate tracking
-  const affiliateUrl = generateAffiliateLink(
-    product.url,
-    product.retailer || "unknown",
-  );
-  return { success: true, targetUrl: affiliateUrl };
+  // Fallback to enhanced redirect for non-business domains
+  const { getRedirectUrl } = await import("./utils");
+  const redirectUrl = getRedirectUrl(product.url, "n8n_suggestion");
+  return { success: true, targetUrl: redirectUrl };
 };
 
 // Enhanced analytics function combining existing data with Shopify data
@@ -658,12 +666,12 @@ export async function trackCustomEvent(
   }
 }
 
-// Enhanced product click tracking with automatic Shopify integration
+// Enhanced product click tracking with automatic business integration
 export async function trackProductClick(
   product: any,
   businessDomain?: string,
 ): Promise<{ success: boolean; targetUrl: string }> {
-  // Track the click event
+  // Track the click event with enhanced data
   await trackCustomEvent(
     "product_click",
     {
@@ -672,23 +680,21 @@ export async function trackProductClick(
       productPrice: product.price,
       retailer: product.retailer,
       url: product.url,
+      source: "n8n_suggestion", // Mark as coming from n8n
+      businessDomain: businessDomain,
     },
     businessDomain,
   );
 
-  // If it's a Shopify store, use enhanced tracking
-  if (businessDomain && product.url.includes("myshopify.com")) {
+  // If it's a business domain, use enhanced tracking
+  if (businessDomain) {
     const result = await handleProductClick(product, businessDomain);
     return result;
   }
 
-  // Otherwise use regular affiliate tracking
-  const affiliateUrl = generateAffiliateLink(
-    product.url,
-    product.retailer || "unknown",
-    businessDomain,
-    product.title || product.name,
-  );
-
-  return { success: true, targetUrl: affiliateUrl };
+  // Otherwise use regular affiliate tracking with enhanced redirect
+  const { getRedirectUrl } = await import("./utils");
+  const redirectUrl = getRedirectUrl(product.url, "n8n_suggestion");
+  
+  return { success: true, targetUrl: redirectUrl };
 }

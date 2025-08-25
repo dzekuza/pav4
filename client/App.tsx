@@ -134,8 +134,8 @@ const BusinessProductsDashboard = lazy(
 const BusinessAttributionDashboard = lazy(
   () => import("./pages/BusinessAttributionDashboard"),
 );
-const DashboardSelector = lazy(() => import("./components/DashboardSelector"));
-const JourneyDashboard = lazy(() => import("./pages/JourneyDashboard"));
+
+
 const Browse = lazy(() => import("./pages/Browse"));
 const Landing2 = lazy(() => import("./pages/Landing2"));
 const BusinessIntegrate = lazy(() => import("./pages/BusinessIntegrate"));
@@ -330,14 +330,6 @@ const router = createBrowserRouter(
       path: "/business/dashboard",
       element: (
         <Suspense fallback={null}>
-          <DashboardSelector />
-        </Suspense>
-      ),
-    },
-    {
-      path: "/business/dashboard/checkout",
-      element: (
-        <Suspense fallback={null}>
           <BusinessDashboardLayout />
         </Suspense>
       ),
@@ -401,14 +393,6 @@ const router = createBrowserRouter(
           ),
         },
       ],
-    },
-    {
-      path: "/business/dashboard/journey",
-      element: (
-        <Suspense fallback={null}>
-          <JourneyDashboard />
-        </Suspense>
-      ),
     },
     // Legacy routes for backward compatibility
     {

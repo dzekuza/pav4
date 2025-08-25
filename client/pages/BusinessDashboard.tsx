@@ -140,7 +140,7 @@ export default function BusinessDashboard() {
   };
 
   const handleDomainVerification = () => {
-    navigate("/business/dashboard/checkout/integrate");
+            navigate("/business/dashboard/integrate");
   };
 
   if (isLoading) {
@@ -323,19 +323,19 @@ export default function BusinessDashboard() {
           </div>
           <div className="flex gap-2">
             <Button
-              onClick={() => navigate("/business/dashboard/checkout/activity")}
+              onClick={() => navigate("/business/dashboard/activity")}
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
               User Activity
             </Button>
             <Button
-              onClick={() => navigate("/business/dashboard/checkout/integrate")}
+              onClick={() => navigate("/business/dashboard/integrate")}
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
               Integrate
             </Button>
             <Button
-              onClick={() => navigate("/business/dashboard/checkout/products")}
+              onClick={() => navigate("/business/dashboard/products")}
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
               <Package className="mr-2 h-4 w-4" />
@@ -349,7 +349,7 @@ export default function BusinessDashboard() {
               My Page
             </Button>
             <Button
-              onClick={() => navigate("/business/dashboard/checkout/settings")}
+              onClick={() => navigate("/business/dashboard/settings")}
               className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
             >
               <Settings className="mr-2 h-4 w-4" />

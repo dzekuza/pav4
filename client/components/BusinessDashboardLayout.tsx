@@ -223,10 +223,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/checkout/activity")}
+            onClick={() => navigate("/business/dashboard/activity")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/checkout/activity")
+              isActiveRoute("/business/dashboard/activity")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -236,10 +236,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/checkout/integrate")}
+            onClick={() => navigate("/business/dashboard/integrate")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/checkout/integrate")
+              isActiveRoute("/business/dashboard/integrate")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -249,10 +249,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/checkout/analytics")}
+            onClick={() => navigate("/business/dashboard/analytics")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/checkout/analytics")
+              isActiveRoute("/business/dashboard/analytics")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -262,10 +262,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/checkout/products")}
+            onClick={() => navigate("/business/dashboard/products")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/checkout/products")
+              isActiveRoute("/business/dashboard/products")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -275,10 +275,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/checkout/settings")}
+            onClick={() => navigate("/business/dashboard/settings")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/checkout/settings")
+              isActiveRoute("/business/dashboard/settings")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -288,10 +288,10 @@ export default function BusinessDashboardLayout() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard/checkout/attribution")}
+            onClick={() => navigate("/business/dashboard/attribution")}
             className={cn(
               "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard/checkout/attribution")
+              isActiveRoute("/business/dashboard/attribution")
                 ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
                 : "text-white hover:bg-white/10 hover:text-white",
             )}
@@ -324,10 +324,10 @@ export default function BusinessDashboardLayout() {
           </button>
 
           <button
-            onClick={() => navigate("/business/dashboard/checkout/activity")}
+            onClick={() => navigate("/business/dashboard/activity")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/checkout/activity")
+              isActiveRoute("/business/dashboard/activity")
                 ? "text-white bg-white/20 shadow-sm"
                 : "text-white/70 hover:text-white hover:bg-white/10",
             )}
@@ -337,10 +337,10 @@ export default function BusinessDashboardLayout() {
           </button>
 
           <button
-            onClick={() => navigate("/business/dashboard/checkout/integrate")}
+            onClick={() => navigate("/business/dashboard/integrate")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/checkout/integrate")
+              isActiveRoute("/business/dashboard/integrate")
                 ? "text-white bg-white/20 shadow-sm"
                 : "text-white/70 hover:text-white hover:bg-white/10",
             )}
@@ -350,10 +350,10 @@ export default function BusinessDashboardLayout() {
           </button>
 
           <button
-            onClick={() => navigate("/business/dashboard/checkout/analytics")}
+            onClick={() => navigate("/business/dashboard/analytics")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/checkout/analytics")
+              isActiveRoute("/business/dashboard/analytics")
                 ? "text-white bg-white/20 shadow-sm"
                 : "text-white/70 hover:text-white hover:bg-white/10",
             )}
@@ -363,10 +363,10 @@ export default function BusinessDashboardLayout() {
           </button>
 
           <button
-            onClick={() => navigate("/business/dashboard/checkout/products")}
+            onClick={() => navigate("/business/dashboard/products")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/checkout/products")
+              isActiveRoute("/business/dashboard/products")
                 ? "text-white bg-white/20 shadow-sm"
                 : "text-white/70 hover:text-white hover:bg-white/10",
             )}
@@ -376,10 +376,10 @@ export default function BusinessDashboardLayout() {
           </button>
 
           <button
-            onClick={() => navigate("/business/dashboard/checkout/attribution")}
+            onClick={() => navigate("/business/dashboard/attribution")}
             className={cn(
               "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard/checkout/attribution")
+              isActiveRoute("/business/dashboard/attribution")
                 ? "text-white bg-white/20 shadow-sm"
                 : "text-white/70 hover:text-white hover:bg-white/10",
             )}

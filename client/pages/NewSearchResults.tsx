@@ -42,7 +42,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
-import { getRedirectUrl } from "../lib/utils";
+import { getRedirectUrl, extractBusinessDomain } from "../lib/utils";
 import { trackProductClick, trackCustomEvent } from "@/lib/tracking";
 
 // Helper functions
@@ -430,21 +430,15 @@ const NewSearchResults = () => {
     });
   };
 
-  // Enhanced product click handler with tracking
+  // Enhanced product click handler with n8n tracking
   const handleProductClick = async (suggestion: any) => {
     try {
-      // Extract business domain from URL if it's a Shopify store
-      let businessDomain: string | undefined;
-      try {
-        const urlObj = new URL(suggestion.link);
-        if (urlObj.hostname.includes("myshopify.com")) {
-          businessDomain = urlObj.hostname;
-        }
-      } catch (error) {
-        console.log("Could not parse URL for business domain extraction");
-      }
+      // Enhanced business domain detection using the new utility function
+      const businessDomain = extractBusinessDomain(suggestion.link);
+      
+      console.log("Product click - Business domain:", businessDomain, "URL:", suggestion.link);
 
-      // Track the product click
+      // Track the product click with enhanced data
       await trackCustomEvent(
         "product_click",
         {
@@ -453,6 +447,8 @@ const NewSearchResults = () => {
           productPrice: suggestion.standardPrice || suggestion.discountPrice,
           retailer: suggestion.merchant || suggestion.site,
           url: suggestion.link,
+          source: "n8n_suggestion", // Mark as coming from n8n
+          businessDomain: businessDomain,
         },
         businessDomain,
       );
@@ -478,12 +474,15 @@ const NewSearchResults = () => {
         }
       }
 
-      // Fallback to regular redirect
-      window.open(getRedirectUrl(suggestion.link), "_blank");
+      // Enhanced redirect with n8n source tracking
+      const redirectUrl = getRedirectUrl(suggestion.link, "n8n_suggestion");
+      console.log("Redirecting to:", redirectUrl);
+      window.open(redirectUrl, "_blank");
     } catch (error) {
       console.error("Error handling product click:", error);
       // Fallback to regular redirect
-      window.open(getRedirectUrl(suggestion.link), "_blank");
+      const redirectUrl = getRedirectUrl(suggestion.link, "n8n_suggestion");
+      window.open(redirectUrl, "_blank");
     }
   };
 
@@ -1049,9 +1048,9 @@ const NewSearchResults = () => {
                               }
                             }
 
-                            // Fallback to regular redirect
+                            // Enhanced redirect with n8n source tracking
                             window.open(
-                              getRedirectUrl(mainProduct.url),
+                              getRedirectUrl(mainProduct.url, "n8n_suggestion"),
                               "_blank",
                             );
                           } catch (error) {
@@ -1060,7 +1059,7 @@ const NewSearchResults = () => {
                               error,
                             );
                             window.open(
-                              getRedirectUrl(mainProduct.url),
+                              getRedirectUrl(mainProduct.url, "n8n_suggestion"),
                               "_blank",
                             );
                           }

@@ -102,7 +102,7 @@ export function ProfileDropdown({
 
         <DropdownMenuItem
           onClick={() => {
-            onNavigate("/business/dashboard/checkout/settings");
+            onNavigate("/business/dashboard/settings");
             setIsOpen(false);
           }}
           className="text-white hover:bg-white/10 cursor-pointer"
@@ -113,7 +113,7 @@ export function ProfileDropdown({
 
         <DropdownMenuItem
           onClick={() => {
-            onNavigate("/business/dashboard/checkout/settings");
+            onNavigate("/business/dashboard/settings");
             setIsOpen(false);
           }}
           className="text-white hover:bg-white/10 cursor-pointer"

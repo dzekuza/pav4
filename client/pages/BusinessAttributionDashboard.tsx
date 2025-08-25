@@ -129,7 +129,7 @@ export default function BusinessAttributionDashboard() {
                 Set up the Shopify script integration to start tracking session attribution data.
               </p>
               <Button
-                onClick={() => window.location.href = "/business/dashboard/checkout/integrate"}
+                onClick={() => window.location.href = "/business/dashboard/integrate"}
                 className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
               >
                 Go to Integration Setup

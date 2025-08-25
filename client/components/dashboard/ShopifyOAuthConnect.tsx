@@ -38,9 +38,29 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
   const [popupWindow, setPopupWindow] = useState<Window | null>(null);
   const [popupCheckInterval, setPopupCheckInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Check OAuth status on component mount
+  // Check OAuth status on component mount and when component becomes visible
   useEffect(() => {
     checkOAuthStatus();
+    
+    // Also check status when the component becomes visible (for better UX)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkOAuthStatus();
+      }
+    };
+    
+    // Set up periodic status check (every 30 seconds) to keep status fresh
+    const statusInterval = setInterval(() => {
+      if (!document.hidden) {
+        checkOAuthStatus();
+      }
+    }, 30000);
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(statusInterval);
+    };
   }, []);
 
   // Check for URL parameters (success/error from OAuth callback)
@@ -120,12 +140,27 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
   const checkOAuthStatus = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/shopify/oauth/status');
+      setError(null); // Clear any previous errors
+      
+      const response = await fetch('/api/shopify/oauth/status', {
+        credentials: 'include', // Ensure cookies are sent
+        headers: {
+          'Cache-Control': 'no-cache', // Prevent caching
+        },
+      });
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('OAuth status response:', data);
         setStatus(data);
+        
+        // Clear any success messages if status is disconnected
+        if (!data.isConnected) {
+          setSuccess(null);
+        }
       } else {
         const errorData = await response.json();
+        console.error('OAuth status error response:', errorData);
         setError(errorData.error || 'Failed to check OAuth status');
       }
     } catch (error) {
