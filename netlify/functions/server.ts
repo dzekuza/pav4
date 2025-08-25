@@ -1,5 +1,10 @@
+// Ensure DATABASE_URL is set for Netlify deployment
+if (process.env.NETLIFY_DATABASE_URL && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.NETLIFY_DATABASE_URL;
+}
+
 import serverless from 'serverless-http';
-import { createServer } from '../../server/netlify-server';
+import { createServer } from '../../server/index';
 
 // Create a handler that initializes the server on first request
 let app: any = null;

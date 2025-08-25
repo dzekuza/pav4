@@ -28,6 +28,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/minimal-test"
+  to = "/.netlify/functions/minimal-test"
+  status = 200
+
+[[redirects]]
   from = "/ref/*"
   to = "/.netlify/functions/server"
   status = 200
