@@ -1,23 +1,35 @@
-# Learn more about working with Shopify TOML files with Gadget at https://docs.gadget.dev/guides/plugins/shopify/advanced-topics/shopify-app-toml
+# Shopify App Configuration for iPick Price Tracking
+# Self-contained OAuth implementation
 
-client_id = "58b025fff34dbe266ed5be6cccf85487"
-name = "itrcks"
-application_url = "https://itrcks.gadget.app/api/shopify/install-or-render"
+client_id = "d749d6d47d2fb7ecb66c3630b1a95d2e"
+name = "ipickdemo"
+application_url = "https://ipick.io"
 embedded = true
 
 [build]
-# Gadget manages all your scopes, webhooks and api versioning for your app
-# As such, this line should not be changed unless you are working with
-# Shopify managed installations. Read more at https://docs.gadget.dev/guides/plugins/shopify/advanced-topics/shopify-app-toml
+# Include configuration on deploy for self-contained app
 include_config_on_deploy = true
 
 [auth]
-redirect_urls = ["https://itrcks.gadget.app/api/connections/auth/shopify/callback"]
+redirect_urls = [
+  "https://ipick.io/api/auth",
+  "https://ipick.io/api/shopify/oauth/callback",
+  "https://ipick.io/business/dashboard",
+  "https://ipick.io/business/integrate",
+  "https://ipick.io/api/shopify/oauth/connect"
+]
 
 [webhooks]
-api_version = "2025-07"
+api_version = "2024-10"
 
+# Webhook endpoints for our self-contained implementation
+[[webhooks.handlers]]
+api_version = "2024-10"
+topics = ["orders/create", "orders/updated", "products/update", "customers/update"]
+address = "https://ipick.io/api/shopify/webhooks"
+
+# App proxy configuration (if needed for embedded functionality)
 [app_proxy]
-url = "https://itrcks.gadget.app/api/graphql"
-subpath = "itrcks-development-api"
+url = "https://ipick.io"
+subpath = "api"
 prefix = "apps"

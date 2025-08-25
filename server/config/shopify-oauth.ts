@@ -1,13 +1,11 @@
-// Shopify OAuth Configuration for external app using Gadget
+// Shopify OAuth Configuration - Self-contained implementation
 export const SHOPIFY_OAUTH_CONFIG = {
-  // Gadget API configuration for external app
-  GADGET_API_URL: process.env.GADGET_API_URL || 'https://itrcks--development.gadget.app',
-  // Use the external API key for external access
-  GADGET_API_KEY: process.env.GADGET_API_KEY || process.env.GADGET_EXTERNAL_API_KEY || '',
-  // Use production URL for ipick.io, fallback to localhost for development
+  // Shopify App configuration
   SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL || 
                    (process.env.NODE_ENV === 'production' ? 'https://ipick.io' : 'http://localhost:8083'),
-  IPICK_WEBHOOK_SECRET: process.env.IPICK_WEBHOOK_SECRET || '',
+  SHOPIFY_CLIENT_ID: process.env.SHOPIFY_CLIENT_ID || '',
+  SHOPIFY_CLIENT_SECRET: process.env.SHOPIFY_CLIENT_SECRET || '',
+  IPICK_WEBHOOK_SECRET: process.env.IPICK_WEBHOOK_SECRET || '54e7fd9b170add3cf80dcc482f8b894a5',
   SHOPIFY_SCOPES: [
     'read_products',
     'read_orders', 
@@ -20,50 +18,61 @@ export const SHOPIFY_OAUTH_CONFIG = {
     'write_script_tags',
     'write_themes'
   ].join(','),
-  SHOPIFY_VERSION: '2024-01'
+  SHOPIFY_VERSION: '2024-10'
 };
 
 // Validate OAuth configuration
 export function validateOAuthConfig(): boolean {
-  return !!(SHOPIFY_OAUTH_CONFIG.GADGET_API_URL && 
-           SHOPIFY_OAUTH_CONFIG.GADGET_API_KEY && 
+  return !!(SHOPIFY_OAUTH_CONFIG.SHOPIFY_CLIENT_ID && 
+           SHOPIFY_OAUTH_CONFIG.SHOPIFY_CLIENT_SECRET && 
            SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL);
 }
 
-// OAuth URLs for Gadget integration
+// OAuth URLs for direct Shopify integration
 export const SHOPIFY_OAUTH_URLS = {
-  // Gadget OAuth authorization URL for external app
-  gadgetAuth: (shop: string, businessId: string) => {
-    // For production, we should use our own callback URL
-    // For development, we can use Gadget's callback URL
-    const isProduction = process.env.NODE_ENV === 'production' || 
-                        process.env.SHOPIFY_APP_URL?.includes('ipick.io') ||
-                        process.env.FRONTEND_URL?.includes('ipick.io');
+  // Direct Shopify OAuth authorization URL
+  auth: (shop: string, state: string) => {
+    const scopes = SHOPIFY_OAUTH_CONFIG.SHOPIFY_SCOPES;
+    const clientId = SHOPIFY_OAUTH_CONFIG.SHOPIFY_CLIENT_ID;
+    const redirectUri = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`;
     
-    let callbackUrl;
-    if (isProduction) {
-      // Use our production callback URL
-      callbackUrl = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`;
-      console.log('Using production callback URL:', callbackUrl);
-    } else {
-      // Use Gadget's callback URL for development
-      callbackUrl = `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections/auth/shopify/callback`;
-      console.log('Using Gadget callback URL:', callbackUrl);
-    }
-    
-    return `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/auth/shopify/install?shop=${encodeURIComponent(shop)}&businessId=${businessId}&redirectUri=${encodeURIComponent(callbackUrl)}`;
+    return `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
   },
   
-  // Gadget's callback URL
-  gadgetCallback: `${SHOPIFY_OAUTH_CONFIG.GADGET_API_URL}/api/connections/auth/shopify/callback`,
+  // Our app's callback URL
+  callback: `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`,
   
-  // Our app's callback URL (for webhook handling)
-  callback: `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`
+  // Additional redirect URLs for Shopify app configuration
+  redirectUrls: [
+    `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/auth`,
+    `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/callback`,
+    `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/business/dashboard`,
+    `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/business/integrate`,
+    `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/oauth/connect`
+  ]
 };
 
 // Helper functions
 export function generateShopifyAuthUrl(shop: string, businessId: string): string {
-  return SHOPIFY_OAUTH_URLS.gadgetAuth(shop, businessId);
+  const state = generateOAuthState(businessId);
+  return SHOPIFY_OAUTH_URLS.auth(shop, state);
+}
+
+export function generateOAuthState(businessId: string): string {
+  // Create a secure state parameter that includes businessId and timestamp
+  const timestamp = Date.now();
+  const stateData = { businessId, timestamp };
+  return Buffer.from(JSON.stringify(stateData)).toString('base64');
+}
+
+export function parseOAuthState(state: string): { businessId: string; timestamp: number } | null {
+  try {
+    const decoded = Buffer.from(state, 'base64').toString();
+    return JSON.parse(decoded);
+  } catch (error) {
+    console.error('Failed to parse OAuth state:', error);
+    return null;
+  }
 }
 
 export function validateShopifyShop(shop: string): boolean {
@@ -87,10 +96,10 @@ export function extractShopFromUrl(url: string): string | null {
   return null;
 }
 
-// Webhook configuration for Gadget integration
+// Webhook configuration for direct Shopify integration
 export const SHOPIFY_WEBHOOK_CONFIG = {
-  SECRET: process.env.IPICK_WEBHOOK_SECRET || '',
-  ENDPOINT: '/api/shopify/oauth/webhook',
+  SECRET: process.env.IPICK_WEBHOOK_SECRET || '54e7fd9b170add3cf80dcc482f8b894a5',
+  ENDPOINT: '/api/shopify/webhooks',
   EVENTS: {
     SHOPIFY_CONNECTION_CREATED: 'shopify_connection_created',
     SHOPIFY_CONNECTION_UPDATED: 'shopify_connection_updated',
@@ -99,3 +108,34 @@ export const SHOPIFY_WEBHOOK_CONFIG = {
     ORDER_UPDATED: 'order_updated'
   }
 };
+
+// Token exchange function
+export async function exchangeCodeForToken(shop: string, code: string): Promise<{ accessToken: string; scopes: string }> {
+  const clientId = SHOPIFY_OAUTH_CONFIG.SHOPIFY_CLIENT_ID;
+  const clientSecret = SHOPIFY_OAUTH_CONFIG.SHOPIFY_CLIENT_SECRET;
+  const redirectUri = SHOPIFY_OAUTH_URLS.callback;
+  
+  const response = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code: code,
+      redirect_uri: redirectUri
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Token exchange failed: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return {
+    accessToken: data.access_token,
+    scopes: data.scope
+  };
+}
