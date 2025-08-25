@@ -79,15 +79,35 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type) {
         switch (event.data.type) {
-          case 'shopify-oauth-success':
+          case 'SHOPIFY_OAUTH_SUCCESS':
             console.log('OAuth success message received:', event.data);
             setSuccess(`Successfully connected to ${event.data.shop}!`);
             checkOAuthStatus();
+            // Close popup if it's still open
+            if (popupWindow && !popupWindow.closed) {
+              popupWindow.close();
+            }
+            // Clear popup check interval
+            if (popupCheckInterval) {
+              clearInterval(popupCheckInterval);
+              setPopupCheckInterval(null);
+            }
+            setPopupWindow(null);
             break;
           
-          case 'shopify-oauth-error':
+          case 'SHOPIFY_OAUTH_ERROR':
             console.log('OAuth error message received:', event.data);
-            setError('Failed to connect Shopify store. Please try again.');
+            setError(`Failed to connect Shopify store: ${event.data.error || 'Unknown error'}`);
+            // Close popup if it's still open
+            if (popupWindow && !popupWindow.closed) {
+              popupWindow.close();
+            }
+            // Clear popup check interval
+            if (popupCheckInterval) {
+              clearInterval(popupCheckInterval);
+              setPopupCheckInterval(null);
+            }
+            setPopupWindow(null);
             break;
         }
       }
@@ -95,7 +115,7 @@ export function ShopifyOAuthConnect({ onConnect, onDisconnect }: ShopifyOAuthCon
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [popupWindow, popupCheckInterval]);
 
   const checkOAuthStatus = async () => {
     try {

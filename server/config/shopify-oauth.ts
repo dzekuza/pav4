@@ -13,7 +13,6 @@ export const SHOPIFY_OAUTH_CONFIG = {
     'read_inventory',
     'read_analytics',
     'read_marketing_events',
-    'read_sales',
     'read_reports',
     'write_script_tags',
     'write_themes'

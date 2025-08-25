@@ -165,8 +165,96 @@ router.get('/callback', async (req, res) => {
     // Handle OAuth errors
     if (error) {
       console.error('OAuth error from Shopify:', { error, error_description });
-      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=true&error=${encodeURIComponent(error as string)}`;
-      return res.redirect(errorUrl);
+      const errorHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shopify Connection Error - iPick</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .error-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        p {
+            margin: 0 0 20px 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-icon">❌</div>
+        <h1>Shopify Connection Failed</h1>
+        <p>Error: <strong>${error}</strong></p>
+        <p>${error_description || 'An error occurred during the connection process.'}</p>
+        <p>Closing this window...</p>
+        <div class="spinner"></div>
+    </div>
+    
+    <script>
+        // Send error message to parent window
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'SHOPIFY_OAUTH_ERROR',
+                error: '${error}',
+                error_description: '${error_description || ''}',
+                timestamp: Date.now()
+            }, '*');
+            
+            // Close the popup after a short delay
+            setTimeout(() => {
+                window.close();
+            }, 3000);
+        } else {
+            // If no opener, redirect to dashboard
+            setTimeout(() => {
+                window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_error=true&error=${encodeURIComponent(error as string)}';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>`;
+      
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(errorHtml);
     }
 
     // Validate required parameters
@@ -220,10 +308,96 @@ router.get('/callback', async (req, res) => {
         scopes: tokenData.scopes
       });
 
-      // Redirect to dashboard with success message
-      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_connected=true&shop=${shop}&businessId=${businessId}`;
+      // Return HTML page that closes the popup and sends message to parent
+      const successHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shopify Connected - iPick</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        p {
+            margin: 0 0 20px 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Shopify Connected Successfully!</h1>
+        <p>Your store <strong>${shop}</strong> has been connected to iPick.</p>
+        <p>Closing this window and refreshing your dashboard...</p>
+        <div class="spinner"></div>
+    </div>
+    
+    <script>
+        // Send message to parent window
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'SHOPIFY_OAUTH_SUCCESS',
+                shop: '${shop}',
+                businessId: '${businessId}',
+                timestamp: Date.now()
+            }, '*');
+            
+            // Close the popup after a short delay
+            setTimeout(() => {
+                window.close();
+            }, 2000);
+        } else {
+            // If no opener, redirect to dashboard
+            setTimeout(() => {
+                window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:8083'}/business/dashboard?shopify_connected=true&shop=${shop}&businessId=${businessId}';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>`;
       
-      res.redirect(redirectUrl);
+      res.setHeader('Content-Type', 'text/html');
+      res.send(successHtml);
 
     } catch (tokenError) {
       console.error('Token exchange failed:', tokenError);

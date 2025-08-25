@@ -142,24 +142,6 @@ export default function BusinessIntegrationWizard({
       },
     },
     {
-      id: "shopify",
-      name: "Shopify",
-      description: "Complete Shopify integration with OAuth and webhooks",
-      icon: "🛍️",
-      features: [
-        "OAuth authentication",
-        "Webhook integration",
-        "Real-time order tracking",
-        "Enhanced checkout tracking",
-        "Complete event coverage",
-        "Automatic script installation",
-      ],
-      get scriptTemplate() {
-        return `// Shopify integration is handled through OAuth and webhooks
-// No manual script installation required`;
-      },
-    },
-    {
       id: "woocommerce",
       name: "WooCommerce",
       description: "WordPress e-commerce plugin",
