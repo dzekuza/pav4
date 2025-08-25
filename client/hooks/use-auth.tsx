@@ -36,15 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await fetch("/api/business/auth/me", {
         credentials: "include",
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Handle both old and new response formats
-        if (data.user) {
-          setUser(data.user);
+        // Handle business auth response format
+        if (data.business) {
+          setUser(data.business);
         } else {
           setUser(null);
         }
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/business/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data: AuthResponse = await response.json();
 
-      if (data.success && data.user) {
-        setUser(data.user);
+      if (data.success && data.business) {
+        setUser(data.business);
         return { success: true };
       } else {
         return { success: false, error: data.error || "Login failed" };
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (email: string, password: string) => {
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch("/api/business/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,8 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data: AuthResponse = await response.json();
 
-      if (data.success && data.user) {
-        setUser(data.user);
+      if (data.success && data.business) {
+        setUser(data.business);
         return { success: true };
       } else {
         return { success: false, error: data.error || "Registration failed" };
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", {
+      await fetch("/api/business/auth/logout", {
         method: "POST",
         credentials: "include",
       });

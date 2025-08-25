@@ -112,13 +112,13 @@ export default function Admin() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await fetch("/api/business/auth/me", {
         credentials: "include",
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.user && data.user.isAdmin) {
-          setAdmin(data.user);
+        if (data.business && data.business.isAdmin) {
+          setAdmin(data.business);
           fetchUsers();
           fetchBusinesses();
         } else {
@@ -136,7 +136,7 @@ export default function Admin() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", {
+      await fetch("/api/business/auth/logout", {
         method: "POST",
         credentials: "include",
       });

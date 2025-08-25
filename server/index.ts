@@ -16,9 +16,8 @@ import shopifyWebhookRouter from "./routes/shopify-webhooks";
 import eventsRouter from "./routes/events";
 
 import { saveSearchHistory, getSearchHistory } from "./routes/search-history";
-import authRouter from "./routes/auth";
+
 import {
-  requireAuth,
   requireAdmin,
   optionalAuth,
   clearRLSContext,
@@ -284,21 +283,16 @@ export async function createServer() {
     res.json({ countries });
   });
 
-  // Authentication routes with Neon Auth integration
-  app.use("/api/auth", authRouter);
+  // Authentication routes removed - using business auth only
 
-  // TestSprite compatibility routes (redirects)
-  app.post("/api/register", (req, res) => authRouter(req, res, () => {}));
-  app.post("/api/login", (req, res) => authRouter(req, res, () => {}));
-  app.post("/api/logout", (req, res) => authRouter(req, res, () => {}));
-  app.get("/api/user/me", (req, res) => authRouter(req, res, () => {}));
+  // Legacy auth routes removed - using business auth only
 
   // Protected routes - require authentication (placeholder)
-  app.post("/api/search-history", requireAuth, (req, res) => res.json({ success: true }));
-  app.get("/api/search-history", requireAuth, (req, res) => res.json({ history: [] }));
+  app.post("/api/search-history", requireBusinessAuth, (req, res) => res.json({ success: true }));
+  app.get("/api/search-history", requireBusinessAuth, (req, res) => res.json({ history: [] }));
 
   // Admin routes (placeholder)
-  app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => res.json({ users: [] }));
+  app.get("/api/admin/users", requireBusinessAuth, requireAdmin, (req, res) => res.json({ users: [] }));
   app.post("/api/admin/promote", promoteUserToAdmin);
 
   // Affiliate routes
@@ -476,50 +470,50 @@ export async function createServer() {
   );
 
   // Admin business routes
-  app.get("/api/admin/business", requireAuth, requireAdmin, getAllBusinesses);
+  app.get("/api/admin/business", requireBusinessAuth, requireAdmin, getAllBusinesses);
   app.get(
     "/api/admin/business/stats",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     getBusinessStats,
   );
   app.get(
     "/api/admin/business/:id/stats",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     getBusinessDetailedStats,
   );
-  app.put("/api/admin/business/:id", requireAuth, requireAdmin, updateBusiness);
+  app.put("/api/admin/business/:id", requireBusinessAuth, requireAdmin, updateBusiness);
   app.put(
     "/api/admin/business/:id/commission",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     updateBusinessCommission,
   );
   app.put(
     "/api/admin/business/:id/password",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     updateBusinessPassword,
   );
   app.delete(
     "/api/admin/business/:id",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     deleteBusiness,
   );
   app.post(
     "/api/admin/business/:id/verify",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     verifyBusiness,
   );
 
   // Admin business routes (plural form for frontend compatibility)
-  app.get("/api/admin/businesses", requireAuth, requireAdmin, getAllBusinesses);
+  app.get("/api/admin/businesses", requireBusinessAuth, requireAdmin, getAllBusinesses);
   app.put(
     "/api/admin/businesses/:id/commission",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     updateBusinessCommission,
   );
@@ -528,8 +522,8 @@ export async function createServer() {
   app.use("/api/favorites", favoritesRouter);
 
   // TestSprite compatibility routes
-  app.post("/api/user/search-history", requireAuth, (req, res) => res.json({ success: true }));
-  app.get("/api/user/search-history", requireAuth, (req, res) => res.json({ history: [] }));
+  app.post("/api/user/search-history", requireBusinessAuth, (req, res) => res.json({ success: true }));
+  app.get("/api/user/search-history", requireBusinessAuth, (req, res) => res.json({ history: [] }));
 
   // Legacy search history (for backward compatibility)
   app.post("/api/legacy/search-history", saveSearchHistory);
@@ -605,7 +599,7 @@ export async function createServer() {
   // Admin: Get suggestion filter state
   app.get(
     "/api/admin/settings/suggestion-filter",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     async (req, res) => {
       try {
@@ -622,7 +616,7 @@ export async function createServer() {
   // Admin: Set suggestion filter state
   app.post(
     "/api/admin/settings/suggestion-filter",
-    requireAuth,
+    requireBusinessAuth,
     requireAdmin,
     express.json(),
     async (req, res) => {
@@ -670,7 +664,12 @@ export async function createServer() {
     async (req, res) => {
       try {
         const businessId = (req as any).business?.id;
+        console.log('=== Business Activity Events API called ===');
+        console.log('Authenticated business ID:', businessId);
+        console.log('Business object:', (req as any).business);
+        
         if (!businessId) {
+          console.log('❌ No business ID found in request');
           return res
             .status(401)
             .json({ error: "Not authenticated as business" });
@@ -679,6 +678,8 @@ export async function createServer() {
         const { limit = 100, offset = 0 } = req.query;
         const { prisma } = await import("./services/database");
 
+        console.log(`🔍 Searching for tracking events with businessId: ${businessId}`);
+        
         const events = await prisma.trackingEvent.findMany({
           where: {
             businessId: businessId,
@@ -689,6 +690,8 @@ export async function createServer() {
           take: parseInt(limit as string),
           skip: parseInt(offset as string),
         });
+
+        console.log(`✅ Found ${events.length} tracking events for business ${businessId}`);
 
         res.json({
           success: true,

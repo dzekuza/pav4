@@ -2,7 +2,7 @@ import { RequestHandler, Request, Response } from "express";
 import { businessService, prisma } from "../services/database";
 import { requireAdminAuth } from "../middleware/admin-auth";
 import { verifyBusinessToken } from "../middleware/business-auth";
-import { isAnalyticsAllowed, DOMAIN_VERIFICATION_CONFIG } from "../config/domain-verification";
+
 import bcrypt from "bcryptjs";
 
 // Utility functions
@@ -527,25 +527,7 @@ export const getCheckoutAnalytics: RequestHandler = async (req, res) => {
 
     const { startDate, endDate } = req.query;
 
-    // Check domain verification status
-    const domainVerification = await prisma.domainVerification.findFirst({
-      where: {
-        businessId: authResult.business.id,
-        status: "verified",
-      },
-      orderBy: {
-        verifiedAt: "desc",
-      },
-    });
-    const domainVerified = !!domainVerification;
-
-    if (!isAnalyticsAllowed(domainVerified)) {
-      return res.status(403).json({
-        success: false,
-        error: "Domain verification required for analytics access",
-        message: DOMAIN_VERIFICATION_CONFIG.WARNING_MESSAGE,
-      });
-    }
+    // REMOVED: Domain verification check - no longer required
 
     const { gadgetAnalytics } = await import('../services/gadget-analytics');
     
@@ -643,27 +625,8 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
 
     console.log('Business authenticated:', authResult.business.domain);
 
-    // Check domain verification status
-    const domainVerification = await prisma.domainVerification.findFirst({
-      where: {
-        businessId: authResult.business.id,
-        status: "verified",
-      },
-      orderBy: {
-        verifiedAt: "desc",
-      },
-    });
-    const domainVerified = !!domainVerification;
-
-    console.log('Domain verified:', domainVerified);
-
-    if (!isAnalyticsAllowed(domainVerified)) {
-      return res.status(403).json({
-        success: false,
-        error: "Domain verification required for analytics access",
-        message: DOMAIN_VERIFICATION_CONFIG.WARNING_MESSAGE,
-      });
-    }
+    // REMOVED: Domain verification check - no longer required
+    console.log('Domain verification: SKIPPED (removed requirement)');
 
     const { startDate, endDate, testMode } = req.query;
     console.log('Query params:', { startDate, endDate, testMode });
@@ -841,14 +804,17 @@ export const getBusinessDashboardData: RequestHandler = async (req, res) => {
         }],
         recentCheckouts: checkouts,
         recentOrders: orders,
-        referralStatistics: {
-          totalReferrals: trackingEvents.length,
-          ipickReferrals: trackingEvents.filter(e => e.eventData?.utmSource === 'ipick.io').length,
-          ipickConversionRate: 0,
-          totalConversions: totalOrders,
-          referralRevenue: totalRevenue,
-          topSources: {}
-        },
+                  referralStatistics: {
+            totalReferrals: trackingEvents.length,
+            ipickReferrals: trackingEvents.filter(e => {
+              const eventData = e.eventData as any;
+              return eventData?.utmSource === 'ipick.io';
+            }).length,
+            ipickConversionRate: 0,
+            totalConversions: totalOrders,
+            referralRevenue: totalRevenue,
+            topSources: {}
+          },
         trends: {
           last30Days: {
             checkouts: totalCheckouts,

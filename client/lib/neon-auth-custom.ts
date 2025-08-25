@@ -57,7 +57,7 @@ export class NeonAuthClient {
 
   async signInWithCredentials(email: string, password: string): Promise<{ user: NeonAuthUser }> {
     try {
-      const response = await fetch('/api/auth/signin', {
+      const response = await fetch('/api/business/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ export class NeonAuthClient {
 
   async signUpWithCredentials(email: string, password: string, name: string): Promise<{ user: NeonAuthUser }> {
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/business/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ export class NeonAuthClient {
     }
 
     try {
-      const response = await fetch('/api/auth/callback', {
+      const response = await fetch('/api/business/auth/callback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ export class NeonAuthClient {
     }
 
     try {
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch('/api/business/auth/me', {
         headers: {
           'Authorization': `Bearer ${this.token}`,
         },
@@ -179,7 +179,7 @@ export class NeonAuthClient {
   async signOut(): Promise<void> {
     try {
       if (this.token) {
-        await fetch('/api/auth/signout', {
+        await fetch('/api/business/auth/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.token}`,

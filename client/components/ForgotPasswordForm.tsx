@@ -41,7 +41,7 @@ export function ForgotPasswordForm({
       const endpoint =
         userType === "business"
           ? "/api/business/auth/forgot-password"
-          : "/api/auth/forgot-password";
+          : "/api/business/auth/forgot-password";
 
       const response = await fetch(endpoint, {
         method: "POST",

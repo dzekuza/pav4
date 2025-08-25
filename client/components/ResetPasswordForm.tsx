@@ -98,7 +98,7 @@ export function ResetPasswordForm({
       const endpoint =
         userType === "business"
           ? "/api/business/auth/reset-password"
-          : "/api/auth/reset-password";
+          : "/api/business/auth/reset-password";
 
       const response = await fetch(endpoint, {
         method: "POST",

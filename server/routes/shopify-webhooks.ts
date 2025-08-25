@@ -244,6 +244,9 @@ async function processOrderEvent(webhookData: any) {
       webhookData.topic === "orders/create" ||
       webhookData.topic === "orders/paid"
     ) {
+      // Find business by shop domain
+      const business = await businessService.findBusinessByDomain(webhookData.shop_domain);
+      
       await prisma.trackingEvent.create({
         data: {
           eventType: "shopify_order",
@@ -256,7 +259,7 @@ async function processOrderEvent(webhookData: any) {
             customer_email: orderData.customer?.email,
             topic: webhookData.topic,
           },
-          businessId: 1, // Default business ID for webhook events
+          businessId: business?.id || 1, // Use actual business ID if found
           affiliateId: "webhook",
           platform: "shopify",
         },
@@ -375,6 +378,9 @@ async function processCartEvent(webhookData: any) {
     });
 
     // Track cart events for analytics
+    // Find business by shop domain
+    const business = await businessService.findBusinessByDomain(webhookData.shop_domain);
+    
     await prisma.trackingEvent.create({
       data: {
         eventType: "shopify_cart",
@@ -386,7 +392,7 @@ async function processCartEvent(webhookData: any) {
           customer_email: cartData.customer?.email,
           topic: webhookData.topic,
         },
-        businessId: 1, // Default business ID for webhook events
+        businessId: business?.id || 1, // Use actual business ID if found
         affiliateId: "webhook",
         platform: "shopify",
       },

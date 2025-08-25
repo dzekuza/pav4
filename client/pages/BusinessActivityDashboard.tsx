@@ -32,7 +32,20 @@ interface ActivityItem {
     | "checkout_complete"
     | "page_view"
     | "product_view"
-    | "conversion";
+    | "conversion"
+    | "orders_create"
+    | "orders_paid"
+    | "orders_update"
+    | "checkouts_create"
+    | "checkouts_update"
+    | "carts_create"
+    | "carts_update"
+    | "products_create"
+    | "products_update"
+    | "customers_create"
+    | "customers_update"
+    | "shopify_order"
+    | "shopify_cart";
   productName: string;
   productUrl: string;
   status:
@@ -42,7 +55,9 @@ interface ActivityItem {
     | "added_to_cart"
     | "checkout_started"
     | "checkout_completed"
-    | "viewed";
+    | "viewed"
+    | "created"
+    | "updated";
   amount?: number | string;
   timestamp: string;
   userAgent?: string;
@@ -61,7 +76,7 @@ export default function BusinessActivityDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<
-    "all" | "clicks" | "purchases" | "add_to_cart" | "checkout" | "page_views"
+    "all" | "clicks" | "purchases" | "add_to_cart" | "checkout" | "page_views" | "shopify_events" | "tracking_events"
   >("all");
   const [stats, setStats] = useState({
     totalClicks: 0,
@@ -113,20 +128,32 @@ export default function BusinessActivityDashboard() {
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - 30);
 
-      // Fetch consolidated data from the dashboard API (same as other pages)
-      const dashboardResponse = await fetch(
-        `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100&testMode=true`,
-        {
-          credentials: "include",
-        },
-      );
+      // Fetch comprehensive activity data including all Shopify events
+      const [dashboardResponse, eventsResponse, shopifyEventsResponse] = await Promise.all([
+        // Dashboard data for orders and checkouts
+        fetch(
+          `/api/business/dashboard?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+          { credentials: "include" }
+        ),
+        // Tracking events
+        fetch(
+          `/api/events/tracking?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+          { credentials: "include" }
+        ),
+        // Shopify webhook events
+        fetch(
+          `/api/events/shopify?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&limit=100`,
+          { credentials: "include" }
+        )
+      ]);
 
+      // Handle dashboard response
       if (!dashboardResponse.ok) {
         if (dashboardResponse.status === 401) {
           navigate("/business-login");
           return;
         }
-        throw new Error("Failed to fetch activity data. Please try again.");
+        throw new Error("Failed to fetch dashboard data. Please try again.");
       }
 
       const dashboardData = await dashboardResponse.json();
@@ -138,80 +165,99 @@ export default function BusinessActivityDashboard() {
         );
       }
 
+      // Handle events response
+      let trackingEvents = [];
+      if (eventsResponse.ok) {
+        const eventsData = await eventsResponse.json();
+        trackingEvents = eventsData.events || [];
+      }
+
+      // Handle Shopify events response
+      let shopifyEvents = [];
+      if (shopifyEventsResponse.ok) {
+        const shopifyData = await shopifyEventsResponse.json();
+        shopifyEvents = shopifyData.events || [];
+      }
+
       // Extract data from the consolidated dashboard response
-      const { recentCheckouts, recentOrders } = dashboardData.data; // Fix: access data.data
+      const { recentCheckouts, recentOrders } = dashboardData.data;
 
       console.log("Extracted data in Activity:", {
         checkoutsCount: recentCheckouts?.length,
         ordersCount: recentOrders?.length,
+        trackingEventsCount: trackingEvents.length,
+        shopifyEventsCount: shopifyEvents.length,
       });
 
-      // Use consolidated data for all activity
-      const clicks = recentCheckouts || [];
-      const conversions = recentOrders || [];
-      const events = recentCheckouts || []; // Use checkouts as events
-
-      // Create consolidated stats from the data
-      const totalCheckouts = recentCheckouts?.length || 0;
-      const totalOrders = recentOrders?.length || 0;
-      const totalRevenue =
-        recentOrders?.reduce((sum: number, order: any) => {
-          const price = parseFloat(order.totalPrice || "0");
-          return sum + (isNaN(price) ? 0 : price);
-        }, 0) || 0;
-      const conversionRate =
-        totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
-      const averageOrderValue =
-        totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-      const realTimeStats = {
-        totalVisits: totalCheckouts,
-        totalPurchases: totalOrders,
-        totalRevenue: totalRevenue,
-        conversionRate: conversionRate,
-        averageOrderValue: averageOrderValue,
-        projectedFee: totalRevenue * 0.05,
-        totalClicks: totalCheckouts,
-        totalConversions: totalOrders,
-        totalAddToCart: 0,
-        totalPageViews: 1,
-        totalProductViews: 0,
-        totalSessions: 1,
-        cartToPurchaseRate: 0,
-        totalCheckouts: totalCheckouts, // Add this property
-      };
-
-      // Combine and format the data using consolidated structure
+      // Create comprehensive activity list
       const combinedActivities: ActivityItem[] = [
-        // Checkouts (from consolidated data)
-        ...clicks.map((checkout: any) => ({
-          id: `checkout-${checkout.id}`,
-          type: "checkout_start" as const,
-          productName: checkout.name || checkout.email || "Checkout",
-          productUrl: checkout.sourceUrl || "Shopify Checkout",
-          status: "checkout_started" as const,
-          amount: parseFloat(checkout.totalPrice) || 0,
-          timestamp: checkout.createdAt,
-          userAgent: checkout.userAgent,
-          referrer: checkout.sourceUrl,
-          ip: checkout.ipAddress,
-          sourceUrl: checkout.sourceUrl,
-          sourceName: checkout.sourceName,
-        })),
-        // Orders (from consolidated data)
-        ...conversions.map((order: any) => ({
+        // Shopify Orders
+        ...recentOrders?.map((order: any) => ({
           id: `order-${order.id}`,
           type: "purchase" as const,
-          productName: order.name || `Order ${order.id}`,
-          productUrl: order.shop?.domain || "Shopify Order",
+          productName: order.orderNumber || `Order ${order.id}`,
+          productUrl: order.shopDomain || "Shopify Order",
           status: "purchased" as const,
           amount: parseFloat(order.totalPrice) || 0,
           timestamp: order.createdAt,
-          userAgent: order.userAgent,
-          referrer: order.referrer,
-          ip: order.ipAddress,
-          sourceUrl: order.sourceUrl,
-          sourceName: order.sourceName,
+          userAgent: "Shopify Webhook",
+          referrer: "Shopify",
+          ip: "Shopify",
+          sourceUrl: order.shopDomain,
+          sourceName: "Shopify Order",
+          platform: "shopify",
+        })) || [],
+        
+        // Shopify Checkouts
+        ...recentCheckouts?.map((checkout: any) => ({
+          id: `checkout-${checkout.id}`,
+          type: "checkout_start" as const,
+          productName: checkout.customerEmail || "Checkout",
+          productUrl: checkout.shopDomain || "Shopify Checkout",
+          status: "checkout_started" as const,
+          amount: parseFloat(checkout.totalPrice) || 0,
+          timestamp: checkout.createdAt,
+          userAgent: "Shopify Webhook",
+          referrer: "Shopify",
+          ip: "Shopify",
+          sourceUrl: checkout.shopDomain,
+          sourceName: "Shopify Checkout",
+          platform: "shopify",
+        })) || [],
+
+        // Tracking Events (from our tracking system)
+        ...trackingEvents.map((event: any) => ({
+          id: `tracking-${event.id}`,
+          type: event.eventType as any,
+          productName: event.eventData?.productName || event.eventType,
+          productUrl: event.eventData?.productUrl || "Tracking Event",
+          status: event.eventType === "purchase" ? "purchased" : "viewed",
+          amount: event.eventData?.total || event.eventData?.amount || 0,
+          timestamp: event.timestamp,
+          userAgent: event.eventData?.userAgent || "Tracking",
+          referrer: event.eventData?.referrer || "Direct",
+          ip: event.eventData?.ip || "Unknown",
+          sourceUrl: event.eventData?.sourceUrl,
+          sourceName: event.eventData?.sourceName || "Tracking",
+          platform: event.platform || "tracking",
+        })),
+
+        // Shopify Webhook Events
+        ...shopifyEvents.map((event: any) => ({
+          id: `shopify-${event.id}`,
+          type: event.topic?.replace('/', '_') as any,
+          productName: event.metadata?.title || event.topic || "Shopify Event",
+          productUrl: event.shop_domain || "Shopify",
+          status: event.topic?.includes('create') ? "created" : "updated",
+          amount: event.metadata?.total_price || 0,
+          timestamp: event.processed_at,
+          userAgent: "Shopify Webhook",
+          referrer: "Shopify",
+          ip: "Shopify",
+          sourceUrl: event.shop_domain,
+          sourceName: event.topic || "Shopify Event",
+          platform: "shopify",
+          eventData: event.payload,
         })),
       ];
 
@@ -223,107 +269,43 @@ export default function BusinessActivityDashboard() {
 
       setActivities(combinedActivities);
 
-      // Use real-time stats if available, otherwise calculate from activity data
-      if (realTimeStats) {
-        setStats({
-          totalClicks: realTimeStats.totalClicks || 0,
-          totalPurchases: realTimeStats.totalPurchases || 0,
-          totalRevenue: realTimeStats.totalRevenue || 0,
-          conversionRate: realTimeStats.conversionRate || 0,
-          totalAddToCart: realTimeStats.totalAddToCart || 0,
-          totalPageViews: realTimeStats.totalPageViews || 0,
-          totalProductViews: realTimeStats.totalProductViews || 0,
-          totalCheckouts: realTimeStats.totalCheckouts || 0,
-          cartToPurchaseRate: realTimeStats.cartToPurchaseRate || 0,
-          averageOrderValue: realTimeStats.averageOrderValue || 0,
-          totalSessions: realTimeStats.totalSessions || 0,
-        });
-      } else {
-        // Fallback calculation from activity data
-        const totalClicks = clicks.length;
-        const totalPurchases =
-          conversions.length +
-          events.filter((e: any) => e.eventType === "purchase").length;
-        const totalAddToCart = events.filter(
-          (e: any) => e.eventType === "add_to_cart",
-        ).length;
-        const totalPageViews = events.filter(
-          (e: any) => e.eventType === "page_view",
-        ).length;
-        const totalProductViews = events.filter(
-          (e: any) => e.eventType === "product_view",
-        ).length;
-        const totalCheckouts = events.filter(
-          (e: any) =>
-            e.eventType === "checkout_start" ||
-            e.eventType === "checkout_complete",
-        ).length;
+      // Calculate comprehensive stats from all activity data
+      const totalOrders = recentOrders?.length || 0;
+      const totalCheckouts = recentCheckouts?.length || 0;
+      const totalShopifyEvents = shopifyEvents.length;
+      const totalTrackingEvents = trackingEvents.length;
+      
+      // Calculate revenue from orders
+      const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
+        const price = parseFloat(order.totalPrice || "0");
+        return sum + (isNaN(price) ? 0 : price);
+      }, 0) || 0;
 
-        const totalRevenue =
-          conversions.reduce(
-            (sum: number, conv: any) => sum + (conv.amount || 0),
-            0,
-          ) +
-          events
-            .filter((e: any) => e.eventType === "purchase")
-            .reduce((sum: number, e: any) => {
-              const eventData =
-                typeof e.eventData === "string"
-                  ? JSON.parse(e.eventData)
-                  : e.eventData;
-              return (
-                sum +
-                (eventData.total ||
-                  eventData.total_amount ||
-                  eventData.amount ||
-                  0)
-              );
-            }, 0) +
-          events
-            .filter((e: any) => e.eventType === "checkout_complete")
-            .reduce((sum: number, e: any) => {
-              const eventData =
-                typeof e.eventData === "string"
-                  ? JSON.parse(e.eventData)
-                  : e.eventData;
-              return (
-                sum +
-                (eventData.total ||
-                  eventData.total_amount ||
-                  eventData.amount ||
-                  0)
-              );
-            }, 0);
+      // Calculate event type breakdowns
+      const totalPurchases = combinedActivities.filter(a => a.type === "purchase" || a.type === "orders_create" || a.type === "orders_paid").length;
+      const totalAddToCart = combinedActivities.filter(a => a.type === "add_to_cart" || a.type === "carts_create" || a.type === "carts_update").length;
+      const totalPageViews = combinedActivities.filter(a => a.type === "page_view").length;
+      const totalProductViews = combinedActivities.filter(a => a.type === "product_view" || a.type === "products_create" || a.type === "products_update").length;
+      const totalCustomerEvents = combinedActivities.filter(a => a.type === "customers_create" || a.type === "customers_update").length;
+      const totalCartEvents = combinedActivities.filter(a => a.type === "checkout_start" || a.type === "checkouts_create" || a.type === "checkouts_update").length;
 
-        const conversionRate =
-          totalClicks > 0 ? (totalPurchases / totalClicks) * 100 : 0;
-        const cartToPurchaseRate =
-          totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
-        const averageOrderValue =
-          totalPurchases > 0 ? totalRevenue / totalPurchases : 0;
+      const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+      const cartToPurchaseRate = totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
+      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-        // Count unique sessions from all data sources
-        const allSessionIds = new Set([
-          ...clicks.map((c: any) => c.sessionId).filter(Boolean),
-          ...conversions.map((c: any) => c.sessionId).filter(Boolean),
-          ...events.map((e: any) => e.sessionId).filter(Boolean),
-        ]);
-        const totalSessions = allSessionIds.size;
-
-        setStats({
-          totalClicks,
-          totalPurchases,
-          totalRevenue,
-          conversionRate,
-          totalAddToCart,
-          totalPageViews,
-          totalProductViews,
-          totalCheckouts,
-          cartToPurchaseRate,
-          averageOrderValue,
-          totalSessions,
-        });
-      }
+      setStats({
+        totalClicks: totalTrackingEvents,
+        totalPurchases: totalPurchases,
+        totalRevenue: totalRevenue,
+        conversionRate: conversionRate,
+        totalAddToCart: totalAddToCart,
+        totalPageViews: totalPageViews,
+        totalProductViews: totalProductViews,
+        totalCheckouts: totalCartEvents,
+        cartToPurchaseRate: cartToPurchaseRate,
+        averageOrderValue: averageOrderValue,
+        totalSessions: totalTrackingEvents,
+      });
     } catch (error) {
       console.error("Error fetching activity:", error);
       setError("Failed to load activity data. Please try again.");
@@ -489,17 +471,30 @@ export default function BusinessActivityDashboard() {
         return <Eye className="h-4 w-4 text-blue-600" />;
       case "purchase":
       case "conversion":
+      case "orders_create":
+      case "orders_paid":
+      case "shopify_order":
         return <ShoppingCart className="h-4 w-4 text-green-600" />;
       case "add_to_cart":
+      case "carts_create":
+      case "carts_update":
+      case "shopify_cart":
         return <ShoppingCart className="h-4 w-4 text-orange-600" />;
       case "checkout_start":
+      case "checkouts_create":
+      case "checkouts_update":
         return <DollarSign className="h-4 w-4 text-blue-600" />;
       case "checkout_complete":
         return <DollarSign className="h-4 w-4 text-green-600" />;
       case "page_view":
         return <Eye className="h-4 w-4 text-purple-600" />;
       case "product_view":
+      case "products_create":
+      case "products_update":
         return <Eye className="h-4 w-4 text-indigo-600" />;
+      case "customers_create":
+      case "customers_update":
+        return <Eye className="h-4 w-4 text-cyan-600" />;
       default:
         return <Eye className="h-4 w-4" />;
     }
@@ -549,17 +544,30 @@ export default function BusinessActivityDashboard() {
         return "Clicked";
       case "purchase":
       case "conversion":
-        return "Purchased";
+      case "orders_create":
+      case "orders_paid":
+      case "shopify_order":
+        return "Order Created";
       case "add_to_cart":
-        return "Added to Cart";
+      case "carts_create":
+      case "carts_update":
+      case "shopify_cart":
+        return "Cart Updated";
       case "checkout_start":
+      case "checkouts_create":
+      case "checkouts_update":
         return "Checkout Started";
       case "checkout_complete":
         return "Checkout Completed";
       case "page_view":
         return "Viewed Page";
       case "product_view":
-        return "Viewed Product";
+      case "products_create":
+      case "products_update":
+        return "Product Updated";
+      case "customers_create":
+      case "customers_update":
+        return "Customer Updated";
       default:
         return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " ");
     }
@@ -668,14 +676,40 @@ export default function BusinessActivityDashboard() {
 
   const filteredActivities = activities.filter((activity) => {
     if (filter === "clicks") return activity.type === "click";
-    if (filter === "purchases") return activity.type === "purchase";
-    if (filter === "add_to_cart") return activity.type === "add_to_cart";
+    if (filter === "purchases") 
+      return activity.type === "purchase" || 
+             activity.type === "orders_create" || 
+             activity.type === "orders_paid" || 
+             activity.type === "shopify_order";
+    if (filter === "add_to_cart") 
+      return activity.type === "add_to_cart" || 
+             activity.type === "carts_create" || 
+             activity.type === "carts_update" || 
+             activity.type === "shopify_cart";
     if (filter === "checkout")
-      return (
-        activity.type === "checkout_start" ||
-        activity.type === "checkout_complete"
-      );
-    if (filter === "page_views") return activity.type === "page_view";
+      return activity.type === "checkout_start" ||
+             activity.type === "checkout_complete" ||
+             activity.type === "checkouts_create" ||
+             activity.type === "checkouts_update";
+    if (filter === "page_views") 
+      return activity.type === "page_view" || 
+             activity.type === "product_view";
+    if (filter === "shopify_events") 
+      return activity.platform === "shopify" || 
+             activity.type.includes("orders_") || 
+             activity.type.includes("checkouts_") || 
+             activity.type.includes("carts_") || 
+             activity.type.includes("products_") || 
+             activity.type.includes("customers_") ||
+             activity.type === "shopify_order" ||
+             activity.type === "shopify_cart";
+    if (filter === "tracking_events") 
+      return activity.platform === "tracking" || 
+             activity.type === "click" || 
+             activity.type === "page_view" || 
+             activity.type === "product_view" || 
+             activity.type === "add_to_cart" || 
+             activity.type === "purchase";
     return true;
   });
 
@@ -973,6 +1007,18 @@ export default function BusinessActivityDashboard() {
           className={`${filter === "page_views" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
         >
           Page Views
+        </Button>
+        <Button
+          onClick={() => setFilter("shopify_events")}
+          className={`${filter === "shopify_events" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
+        >
+          Shopify Events
+        </Button>
+        <Button
+          onClick={() => setFilter("tracking_events")}
+          className={`${filter === "tracking_events" ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20"} rounded-full`}
+        >
+          Tracking Events
         </Button>
         <Button
           onClick={handleRefresh}

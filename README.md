@@ -149,9 +149,9 @@ Make sure to set these in your Netlify dashboard:
 
 ### Authentication
 
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
+- `POST /api/business/auth/register` - Business registration
+- `POST /api/business/auth/login` - Business login
+- `POST /api/business/auth/logout` - Business logout
 
 ### Search
 

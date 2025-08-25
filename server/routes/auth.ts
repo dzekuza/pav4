@@ -7,7 +7,6 @@ const router = express.Router();
 // Enhanced auth routes with Neon Auth integration
 router.post('/signup', enhancedAuthRoutes.signUp);
 router.post('/signin', enhancedAuthRoutes.signIn);
-router.get('/me', requireNeonAuth, enhancedAuthRoutes.getCurrentUser);
 router.post('/signout', enhancedAuthRoutes.signOut);
 
 // Admin route to list all users (for debugging)

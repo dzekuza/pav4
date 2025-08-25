@@ -1,20 +1,22 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { requireBusinessAuth } from '../middleware/business-auth';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// GET /api/events/tracking - Get tracking events
-router.get('/tracking', async (req, res) => {
+// GET /api/events/tracking - Get tracking events for authenticated business
+router.get('/tracking', requireBusinessAuth, async (req, res) => {
   try {
-    const { businessId, startDate, endDate } = req.query;
+    const { startDate, endDate, limit = 100 } = req.query;
+    const business = (req as any).business;
     
-    if (!businessId) {
-      return res.status(400).json({ error: 'businessId is required' });
+    if (!business) {
+      return res.status(401).json({ error: 'Business authentication required' });
     }
 
     const where: any = {
-      businessId: businessId as string
+      businessId: business.id
     };
 
     if (startDate && endDate) {
@@ -27,27 +29,35 @@ router.get('/tracking', async (req, res) => {
     const events = await prisma.trackingEvent.findMany({
       where,
       orderBy: { timestamp: 'desc' },
-      take: 100
+      take: parseInt(limit as string)
     });
 
-    res.json({ events });
+    res.json({ 
+      success: true,
+      events,
+      business: {
+        id: business.id,
+        domain: business.domain
+      }
+    });
   } catch (error) {
     console.error('Error fetching tracking events:', error);
     res.status(500).json({ error: 'Failed to fetch tracking events' });
   }
 });
 
-// GET /api/events/shopify - Get Shopify webhook events
-router.get('/shopify', async (req, res) => {
+// GET /api/events/shopify - Get Shopify webhook events for authenticated business
+router.get('/shopify', requireBusinessAuth, async (req, res) => {
   try {
-    const { shopDomain, startDate, endDate } = req.query;
+    const { startDate, endDate, limit = 100 } = req.query;
+    const business = (req as any).business;
     
-    if (!shopDomain) {
-      return res.status(400).json({ error: 'shopDomain is required' });
+    if (!business) {
+      return res.status(401).json({ error: 'Business authentication required' });
     }
 
     const where: any = {
-      shop_domain: shopDomain as string
+      shop_domain: business.shopifyShop || business.domain
     };
 
     if (startDate && endDate) {
@@ -60,10 +70,18 @@ router.get('/shopify', async (req, res) => {
     const events = await prisma.shopifyEvent.findMany({
       where,
       orderBy: { processed_at: 'desc' },
-      take: 100
+      take: parseInt(limit as string)
     });
 
-    res.json({ events });
+    res.json({ 
+      success: true,
+      events,
+      business: {
+        id: business.id,
+        domain: business.domain,
+        shopifyShop: business.shopifyShop
+      }
+    });
   } catch (error) {
     console.error('Error fetching Shopify events:', error);
     res.status(500).json({ error: 'Failed to fetch Shopify events' });
@@ -82,7 +100,7 @@ router.get('/all', async (req, res) => {
     const [trackingEvents, shopifyEvents] = await Promise.all([
       businessId ? prisma.trackingEvent.findMany({
         where: {
-          businessId: businessId as string,
+          businessId: parseInt(businessId as string),
           ...(startDate && endDate ? {
             timestamp: {
               gte: new Date(startDate as string),

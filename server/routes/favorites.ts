@@ -1,16 +1,16 @@
 import express from "express";
 import { prisma } from "../services/database";
-import { requireAuth } from "../middleware/auth";
+import { requireBusinessAuth } from "../middleware/business-auth";
 
 const router = express.Router();
 
 // Get user's favorites
-router.get("/", requireAuth, async (req: any, res) => {
+router.get("/", requireBusinessAuth, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const businessId = req.business.id;
 
     const favorites = await prisma.favorites.findMany({
-      where: { userId },
+      where: { businessId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -25,9 +25,9 @@ router.get("/", requireAuth, async (req: any, res) => {
 });
 
 // Add a favorite
-router.post("/", requireAuth, async (req: any, res) => {
+router.post("/", requireBusinessAuth, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const businessId = req.business.id;
     const {
       title,
       price,
@@ -52,7 +52,7 @@ router.post("/", requireAuth, async (req: any, res) => {
     // Check if already favorited
     const existingFavorite = await prisma.favorites.findFirst({
       where: {
-        userId,
+        businessId,
         url,
       },
     });
@@ -63,7 +63,7 @@ router.post("/", requireAuth, async (req: any, res) => {
 
     const favorite = await prisma.favorites.create({
       data: {
-        userId: userId as number,
+        businessId: businessId as number,
         title,
         price: price?.toString(),
         currency,
@@ -89,15 +89,15 @@ router.post("/", requireAuth, async (req: any, res) => {
 });
 
 // Remove a favorite
-router.delete("/:id", requireAuth, async (req: any, res) => {
+router.delete("/:id", requireBusinessAuth, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const businessId = req.business.id;
     const favoriteId = parseInt(req.params.id);
 
     const favorite = await prisma.favorites.findFirst({
       where: {
         id: favoriteId,
-        userId,
+        businessId,
       },
     });
 
@@ -117,9 +117,9 @@ router.delete("/:id", requireAuth, async (req: any, res) => {
 });
 
 // Check if a product is favorited
-router.get("/check", requireAuth, async (req: any, res) => {
+router.get("/check", requireBusinessAuth, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const businessId = req.business.id;
     const { url } = req.query;
 
     if (!url) {
@@ -128,7 +128,7 @@ router.get("/check", requireAuth, async (req: any, res) => {
 
     const favorite = await prisma.favorites.findFirst({
       where: {
-        userId,
+        businessId,
         url: url as string,
       },
     });

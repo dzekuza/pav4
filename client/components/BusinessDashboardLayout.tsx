@@ -23,7 +23,6 @@ import {
   Settings,
   BarChart3,
   Code,
-  Home,
   Building2,
   User,
   Package,
@@ -210,19 +209,6 @@ export default function BusinessDashboardLayout() {
         <div className="hidden md:flex space-x-2 mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate("/business/dashboard")}
-            className={cn(
-              "flex items-center rounded-full",
-              isActiveRoute("/business/dashboard")
-                ? "bg-white text-black border border-black/10 hover:bg-white/90 hover:text-black"
-                : "text-white hover:bg-white/10 hover:text-white",
-            )}
-          >
-            <Home className="mr-2 h-4 w-4" />
-            Dashboard
-          </Button>
-          <Button
-            variant="ghost"
             onClick={() => navigate("/business/dashboard/activity")}
             className={cn(
               "flex items-center rounded-full",
@@ -310,18 +296,6 @@ export default function BusinessDashboardLayout() {
       {/* Mobile Navigation - Updated to black background */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-t border-white/20 shadow-lg">
         <div className="flex justify-around items-center py-3 px-4">
-          <button
-            onClick={() => navigate("/business/dashboard")}
-            className={cn(
-              "flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200",
-              isActiveRoute("/business/dashboard")
-                ? "text-white bg-white/20 shadow-sm"
-                : "text-white/70 hover:text-white hover:bg-white/10",
-            )}
-          >
-            <Home className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">Dashboard</span>
-          </button>
 
           <button
             onClick={() => navigate("/business/dashboard/activity")}
