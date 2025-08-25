@@ -2149,30 +2149,86 @@ document.addEventListener('DOMContentLoaded', function() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() =>
-                              window.open("https://apps.shopify.com", "_blank")
-                            }
-                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Go to Shopify App Store
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              const websiteUrl = domain.startsWith("http")
-                                ? domain
-                                : `https://${domain}`;
-                              window.open(websiteUrl, "_blank");
-                            }}
-                            disabled={!domain}
-                            className="rounded-full bg-white text-black border border-black/10 hover:bg-white/90"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open Your Store
-                          </Button>
+                        {/* New Webhook Integration Section */}
+                        <div className="border border-green-500/20 bg-green-500/10 rounded-lg p-4">
+                          <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                            🔗 Webhook Integration (Advanced)
+                          </h4>
+                          <p className="text-sm text-white/80 mb-4">
+                            For advanced users who want to set up webhook-based tracking directly. 
+                            This provides real-time order data through Shopify webhooks.
+                          </p>
+
+                          <div className="space-y-4">
+                            <div>
+                              <h5 className="font-medium text-white mb-2">
+                                Webhook Configuration
+                              </h5>
+                              <div className="bg-black/40 border border-white/10 rounded-lg p-4 text-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <span className="font-medium text-white">Webhook URL:</span>
+                                    <div className="text-white/80 font-mono text-xs break-all mt-1">
+                                      https://ipick.io/api/shopify/webhooks
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-white">App Secret:</span>
+                                    <div className="text-white/80 font-mono text-xs break-all mt-1">
+                                      54e7fd9b170add3cf80dcc482f8b894a5
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <h5 className="font-medium text-white mb-2">
+                                Setup Instructions
+                              </h5>
+                              <ol className="text-sm text-white/80 space-y-2 ml-4">
+                                <li>
+                                  1. In your Shopify admin, go to <strong>Settings → Notifications</strong>
+                                </li>
+                                <li>
+                                  2. Scroll down to <strong>Webhooks</strong> section
+                                </li>
+                                <li>
+                                  3. Click <strong>"Create webhook"</strong>
+                                </li>
+                                <li>
+                                  4. Select <strong>"Order creation"</strong> as the event
+                                </li>
+                                <li>
+                                  5. Set the webhook URL to: <code className="bg-black/40 px-1 rounded">https://ipick.io/api/shopify/webhooks</code>
+                                </li>
+                                <li>
+                                  6. Set the format to <strong>JSON</strong>
+                                </li>
+                                <li>
+                                  7. Click <strong>"Save webhook"</strong>
+                                </li>
+                              </ol>
+                            </div>
+
+                            <div className="border border-blue-500/20 bg-blue-500/10 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="h-4 w-4 text-blue-400 mt-0.5" />
+                                <div className="text-sm text-white/80">
+                                  <p className="font-medium text-white mb-1">
+                                    Webhook Benefits:
+                                  </p>
+                                  <ul className="space-y-1">
+                                    <li>• Real-time order data delivery</li>
+                                    <li>• No polling required - instant notifications</li>
+                                    <li>• Secure HMAC verification</li>
+                                    <li>• Automatic retry on failures</li>
+                                    <li>• Complete order information</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ) : (
