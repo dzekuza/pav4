@@ -255,6 +255,10 @@ export async function createServer() {
   app.use(cors(corsOptions));
 
   // Additional middleware
+  // Shopify direct webhook raw body parser must run BEFORE JSON parser
+  app.use("/api/shopify/webhooks", express.raw({ type: "application/json" }));
+
+  // Additional middleware
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -300,8 +304,11 @@ export async function createServer() {
 
   // Gadget analytics routes
   app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
-app.use("/api/shopify", requireBusinessAuth, shopifyRouter);
-app.use("/api/shopify/oauth", shopifyOAuthRouter);
+  // Public Shopify webhooks (no auth)
+  app.use("/api/shopify", shopifyWebhookRouter);
+  // Protected Shopify routes
+  app.use("/api/shopify", requireBusinessAuth, shopifyRouter);
+  app.use("/api/shopify/oauth", shopifyOAuthRouter);
 
   // Business authentication routes without rate limiting
   app.post(

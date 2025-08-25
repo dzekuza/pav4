@@ -11,6 +11,42 @@ import {
 } from '../config/shopify-oauth';
 import { requireBusinessAuth } from '../middleware/business-auth';
 
+async function registerShopifyWebhook(params: { shop: string; accessToken: string; topic: string; address: string }) {
+  const { shop, accessToken, topic, address } = params;
+  try {
+    const apiVersion = process.env.SHOPIFY_API_VERSION || '2024-10';
+    const url = `https://${shop}/admin/api/${apiVersion}/webhooks.json`;
+    const body = {
+      webhook: {
+        topic,
+        address,
+        format: 'json'
+      }
+    };
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.error('Failed to register webhook:', resp.status, text);
+      return false;
+    }
+
+    console.log(`Registered Shopify webhook ${topic} -> ${address} for ${shop}`);
+    return true;
+  } catch (err) {
+    console.error('Error registering Shopify webhook:', err);
+    return false;
+  }
+}
+
 const router = express.Router();
 
 // Store OAuth states in memory (in production, use Redis or database)
@@ -574,6 +610,15 @@ router.get('/fetch-token', requireBusinessAuth, async (req, res) => {
             shopifyStatus: 'connected'
           });
 
+          // Attempt to register orders/create webhook to our public endpoint
+          const address = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/webhooks`;
+          await registerShopifyWebhook({
+            shop,
+            accessToken: shopRecord.accessToken,
+            topic: 'orders/create',
+            address
+          });
+
           res.json({
             success: true,
             message: 'Access token fetched and stored successfully',
@@ -667,6 +712,15 @@ router.get('/update-with-token', requireBusinessAuth, async (req, res) => {
     });
 
     console.log(`Successfully updated Shopify connection with access token for business ${businessId}`);
+
+    // Attempt to register orders/create webhook to our public endpoint
+    const address = `${SHOPIFY_OAUTH_CONFIG.SHOPIFY_APP_URL}/api/shopify/webhooks`;
+    await registerShopifyWebhook({
+      shop,
+      accessToken,
+      topic: 'orders/create',
+      address
+    });
 
     res.json({
       success: true,
