@@ -305,8 +305,8 @@ export async function createServer() {
 
   // Gadget analytics routes
   app.use("/api/gadget", requireBusinessAuth, gadgetRouter);
-  // Public Shopify webhooks (no auth)
-  app.use("/api/shopify", shopifyWebhookRouter);
+  // Public Shopify webhooks (no auth) - mount at specific webhook path
+  app.use("/api/shopify/webhooks", shopifyWebhookRouter);
   // Protected Shopify routes
   app.use("/api/shopify", requireBusinessAuth, shopifyRouter);
   app.use("/api/shopify/oauth", shopifyOAuthRouter);
