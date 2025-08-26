@@ -25,11 +25,9 @@ import {
 interface ActivityItem {
   id: string;
   type:
-    | "click"
     | "purchase"
     | "add_to_cart"
     | "checkout_start"
-    | "checkout_complete"
     | "page_view"
     | "product_view"
     | "conversion"
@@ -43,18 +41,13 @@ interface ActivityItem {
     | "products_create"
     | "products_update"
     | "customers_create"
-    | "customers_update"
-    | "shopify_order"
-    | "shopify_cart";
+    | "customers_update";
   productName: string;
   productUrl: string;
   status:
-    | "browsed"
     | "purchased"
-    | "abandoned"
     | "added_to_cart"
     | "checkout_started"
-    | "checkout_completed"
     | "viewed"
     | "created"
     | "updated";
@@ -269,42 +262,115 @@ export default function BusinessActivityDashboard() {
 
       setActivities(combinedActivities);
 
+      // Debug: Log what events we have
+      console.log('🔍 Activity Dashboard Debug:', {
+        totalActivities: combinedActivities.length,
+        trackingEvents: trackingEvents.length,
+        shopifyEvents: shopifyEvents.length,
+        recentOrders: recentOrders?.length || 0,
+        recentCheckouts: recentCheckouts?.length || 0,
+        eventTypes: combinedActivities.map(a => a.type)
+      });
+
       // Calculate comprehensive stats from all activity data
       const totalOrders = recentOrders?.length || 0;
       const totalCheckouts = recentCheckouts?.length || 0;
       const totalShopifyEvents = shopifyEvents.length;
       const totalTrackingEvents = trackingEvents.length;
       
-      // Calculate revenue from orders
-      const totalRevenue = recentOrders?.reduce((sum: number, order: any) => {
+      // Calculate revenue from orders and cart events
+      const orderRevenue = recentOrders?.reduce((sum: number, order: any) => {
         const price = parseFloat(order.totalPrice || "0");
         return sum + (isNaN(price) ? 0 : price);
       }, 0) || 0;
+      
+      // Calculate revenue from cart events
+      const cartRevenue = shopifyEvents
+        .filter((event: any) => event.topic === 'carts/create' || event.topic === 'carts/update')
+        .reduce((sum: number, event: any) => {
+          const lineItems = event.payload?.line_items || [];
+          const cartTotal = lineItems.reduce((itemSum: number, item: any) => {
+            const itemPrice = parseFloat(item.line_price || "0");
+            return itemSum + (isNaN(itemPrice) ? 0 : itemPrice);
+          }, 0);
+          return sum + cartTotal;
+        }, 0);
+      
+      const totalRevenue = orderRevenue + cartRevenue;
 
-      // Calculate event type breakdowns
-      const totalPurchases = combinedActivities.filter(a => a.type === "purchase" || a.type === "orders_create" || a.type === "orders_paid").length;
-      const totalAddToCart = combinedActivities.filter(a => a.type === "add_to_cart" || a.type === "carts_create" || a.type === "carts_update").length;
+      // Calculate event type breakdowns from combined activities
+      // Since Shopify events are mapped with replace('/', '_'), we use underscore format
+      const totalPurchases = combinedActivities.filter(a => 
+        a.type === "purchase" || 
+        a.type === "orders_create" || 
+        a.type === "orders_paid"
+      ).length;
+      
+      const totalAddToCart = combinedActivities.filter(a => 
+        a.type === "add_to_cart" || 
+        a.type === "carts_create" || 
+        a.type === "carts_update"
+      ).length;
+      
       const totalPageViews = combinedActivities.filter(a => a.type === "page_view").length;
-      const totalProductViews = combinedActivities.filter(a => a.type === "product_view" || a.type === "products_create" || a.type === "products_update").length;
-      const totalCustomerEvents = combinedActivities.filter(a => a.type === "customers_create" || a.type === "customers_update").length;
-      const totalCartEvents = combinedActivities.filter(a => a.type === "checkout_start" || a.type === "checkouts_create" || a.type === "checkouts_update").length;
+      
+      const totalProductViews = combinedActivities.filter(a => 
+        a.type === "product_view" || 
+        a.type === "products_create" || 
+        a.type === "products_update"
+      ).length;
+      
+      // If no page views from tracking, estimate from cart events (each cart creation implies a page view)
+      const estimatedPageViews = totalPageViews === 0 && totalAddToCart > 0 ? totalAddToCart : totalPageViews;
+      
+      const totalCustomerEvents = combinedActivities.filter(a => 
+        a.type === "customers_create" || 
+        a.type === "customers_update"
+      ).length;
+      
+      // Cart events should include both add to cart and checkout events
+      const totalCartEvents = combinedActivities.filter(a => 
+        a.type === "checkout_start" || 
+        a.type === "checkouts_create" || 
+        a.type === "checkouts_update" || 
+        a.type === "carts_create" ||  // This is the key - carts_create from Shopify
+        a.type === "carts_update"
+      ).length;
 
-      const conversionRate = totalCheckouts > 0 ? (totalOrders / totalCheckouts) * 100 : 0;
+      // Calculate conversion rates using the correct metrics
+      // For now, since we have cart events but no purchases, show 0% conversion
+      const conversionRate = totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
       const cartToPurchaseRate = totalAddToCart > 0 ? (totalPurchases / totalAddToCart) * 100 : 0;
-      const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+      // For average order value, use cart events if no purchases yet
+      const averageOrderValue = totalPurchases > 0 ? totalRevenue / totalPurchases : 
+                               (totalAddToCart > 0 ? totalRevenue / totalAddToCart : 0);
+
+      // Debug: Log calculated stats
+      console.log('📊 Calculated Stats:', {
+        totalPurchases,
+        totalAddToCart,
+        totalPageViews,
+        estimatedPageViews,
+        totalProductViews,
+        totalCartEvents,
+        totalRevenue,
+        conversionRate,
+        cartToPurchaseRate,
+        averageOrderValue
+      });
 
       setStats({
-        totalClicks: totalTrackingEvents,
+        totalClicks: totalTrackingEvents + totalShopifyEvents + estimatedPageViews,
         totalPurchases: totalPurchases,
         totalRevenue: totalRevenue,
         conversionRate: conversionRate,
         totalAddToCart: totalAddToCart,
-        totalPageViews: totalPageViews,
+        totalPageViews: estimatedPageViews,
         totalProductViews: totalProductViews,
         totalCheckouts: totalCartEvents,
         cartToPurchaseRate: cartToPurchaseRate,
         averageOrderValue: averageOrderValue,
-        totalSessions: totalTrackingEvents,
+        totalSessions: totalTrackingEvents + totalShopifyEvents,
       });
     } catch (error) {
       console.error("Error fetching activity:", error);
@@ -688,9 +754,10 @@ export default function BusinessActivityDashboard() {
              activity.type === "shopify_cart";
     if (filter === "checkout")
       return activity.type === "checkout_start" ||
-             activity.type === "checkout_complete" ||
              activity.type === "checkouts_create" ||
-             activity.type === "checkouts_update";
+             activity.type === "checkouts_update" ||
+             activity.type === "carts_create" ||
+             activity.type === "carts_update";
     if (filter === "page_views") 
       return activity.type === "page_view" || 
              activity.type === "product_view";
@@ -700,12 +767,9 @@ export default function BusinessActivityDashboard() {
              activity.type.includes("checkouts_") || 
              activity.type.includes("carts_") || 
              activity.type.includes("products_") || 
-             activity.type.includes("customers_") ||
-             activity.type === "shopify_order" ||
-             activity.type === "shopify_cart";
+             activity.type.includes("customers_");
     if (filter === "tracking_events") 
       return activity.platform === "tracking" || 
-             activity.type === "click" || 
              activity.type === "page_view" || 
              activity.type === "product_view" || 
              activity.type === "add_to_cart" || 
@@ -750,7 +814,7 @@ export default function BusinessActivityDashboard() {
   return (
     <div className="space-y-6 text-white">
       {/* Activity Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">
@@ -828,7 +892,7 @@ export default function BusinessActivityDashboard() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-white">

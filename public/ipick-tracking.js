@@ -55,46 +55,151 @@
   
   // Helper function to get order information from thank you page
   function getOrderInfo() {
-    // Try to extract order details from page elements
-    const orderIdElement = document.querySelector('[data-order-id], .order-id, .order-number');
-    const orderTotalElement = document.querySelector('.order-total, .total-amount, [data-order-total]');
-    const orderItems = document.querySelectorAll('.order-item, .line-item, [data-line-item]');
+    console.log('🔍 iPick: Looking for order information...');
     
-    const orderId = orderIdElement ? orderIdElement.textContent.trim() : 
-                   getUrlParameter('order_id') || getUrlParameter('id') || 'unknown';
+    // Try multiple selectors for order ID
+    const orderIdSelectors = [
+      '[data-order-id]',
+      '.order-id', 
+      '.order-number',
+      '[data-order-number]',
+      '.order__number',
+      '.order__id',
+      'h1',
+      '.page-title'
+    ];
     
-    const orderTotal = orderTotalElement ? orderTotalElement.textContent.trim() : '0';
+    let orderId = null;
+    for (const selector of orderIdSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = element.textContent.trim();
+        // Look for order number pattern
+        const orderMatch = text.match(/order[:\s#]*([A-Z0-9-]+)/i);
+        if (orderMatch) {
+          orderId = orderMatch[1];
+          console.log('✅ iPick: Found order ID:', orderId, 'using selector:', selector);
+          break;
+        }
+      }
+    }
     
-    const items = Array.from(orderItems).map(item => {
-      const titleElement = item.querySelector('.item-title, .product-title');
-      const priceElement = item.querySelector('.item-price, .price');
-      const quantityElement = item.querySelector('.item-quantity, .quantity');
-      
-      return {
-        title: titleElement ? titleElement.textContent.trim() : 'Unknown Item',
-        price: priceElement ? priceElement.textContent.trim() : '0',
-        quantity: quantityElement ? parseInt(quantityElement.textContent.trim()) : 1
-      };
-    });
+    // Try URL parameters
+    if (!orderId) {
+      orderId = getUrlParameter('order_id') || getUrlParameter('id') || getUrlParameter('order');
+      if (orderId) {
+        console.log('✅ iPick: Found order ID from URL:', orderId);
+      }
+    }
     
-    return {
-      orderId: orderId,
+    // Try to extract from page text
+    if (!orderId) {
+      const pageText = document.body.textContent;
+      const orderMatch = pageText.match(/order[:\s#]*([A-Z0-9-]+)/i);
+      if (orderMatch) {
+        orderId = orderMatch[1];
+        console.log('✅ iPick: Found order ID from page text:', orderId);
+      }
+    }
+    
+    // Try to get order total
+    const totalSelectors = [
+      '.order-total',
+      '.total-amount', 
+      '[data-order-total]',
+      '.order__total',
+      '.total',
+      '.amount'
+    ];
+    
+    let orderTotal = '0';
+    for (const selector of totalSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = element.textContent.trim();
+        const amountMatch = text.match(/[\d,]+\.?\d*/);
+        if (amountMatch) {
+          orderTotal = amountMatch[0].replace(',', '');
+          console.log('✅ iPick: Found order total:', orderTotal, 'using selector:', selector);
+          break;
+        }
+      }
+    }
+    
+    // Try to get order items
+    const itemSelectors = [
+      '.order-item',
+      '.line-item', 
+      '[data-line-item]',
+      '.order__item',
+      '.item'
+    ];
+    
+    const items = [];
+    for (const selector of itemSelectors) {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length > 0) {
+        elements.forEach(item => {
+          const titleElement = item.querySelector('.item-title, .product-title, .title');
+          const priceElement = item.querySelector('.item-price, .price, .amount');
+          const quantityElement = item.querySelector('.item-quantity, .quantity, .qty');
+          
+          if (titleElement) {
+            items.push({
+              title: titleElement.textContent.trim(),
+              price: priceElement ? priceElement.textContent.trim() : '0',
+              quantity: quantityElement ? parseInt(quantityElement.textContent.trim()) : 1
+            });
+          }
+        });
+        break;
+      }
+    }
+    
+    const result = {
+      orderId: orderId || 'unknown',
       total: orderTotal,
       items: items.length > 0 ? items : null
     };
+    
+    console.log('📋 iPick: Order info extracted:', result);
+    return result;
   }
   
   // Helper function to get checkout step information
   function getCheckoutStep() {
     const path = window.location.pathname;
+    const url = window.location.href;
+    
+    console.log('🔍 iPick: Analyzing checkout step for path:', path);
+    
     if (path.includes('/cart')) return 'cart';
     if (path.includes('/checkout')) return 'checkout';
-    if (path.includes('/thank_you') || path.includes('/orders/')) return 'thank_you';
+    if (path.includes('/thank_you') || path.includes('/orders/') || path.includes('/thank-you')) return 'thank_you';
+    if (path.includes('/order/') && (path.includes('/thank') || url.includes('thank'))) return 'thank_you';
+    
+    // Check for thank you indicators in page content
+    const thankYouIndicators = [
+      '.thank-you',
+      '.order-success', 
+      '.order-confirmation',
+      '.success-message'
+    ];
+    
+    for (const selector of thankYouIndicators) {
+      if (document.querySelector(selector)) {
+        console.log('✅ iPick: Found thank you indicator:', selector);
+        return 'thank_you';
+      }
+    }
+    
     return 'unknown';
   }
   
   // Send event to iPick
   function sendEvent(eventType, eventData = {}) {
+    console.log(`📤 iPick: Sending ${eventType} event:`, eventData);
+    
     const payload = {
       event_type: eventType,
       business_id: BUSINESS_ID,
@@ -108,6 +213,8 @@
       data: eventData
     };
     
+    console.log('📦 iPick: Full payload:', payload);
+    
     // Send to iPick endpoint
     fetch(IPICK_ENDPOINT, {
       method: 'POST',
@@ -119,9 +226,17 @@
     .then(response => {
       if (response.ok) {
         console.log(`✅ iPick: ${eventType} event sent successfully`);
+        return response.json();
       } else {
-        console.warn(`⚠️ iPick: Failed to send ${eventType} event`);
+        console.warn(`⚠️ iPick: Failed to send ${eventType} event, status:`, response.status);
+        return response.text().then(text => {
+          console.warn('Response text:', text);
+          throw new Error(`HTTP ${response.status}: ${text}`);
+        });
       }
+    })
+    .then(data => {
+      console.log(`✅ iPick: ${eventType} event response:`, data);
     })
     .catch(error => {
       console.error(`❌ iPick: Error sending ${eventType} event:`, error);
@@ -151,6 +266,22 @@
       productPrice: productInfo.price,
       currency: productInfo.currency,
       checkoutStep: checkoutStep
+    });
+  }
+  
+  // Track product view
+  function trackProductView() {
+    const productInfo = getProductInfo();
+    
+    console.log('👁️ iPick: Tracking product view');
+    
+    sendEvent('product_view', {
+      productTitle: productInfo.title,
+      productPrice: productInfo.price,
+      currency: productInfo.currency,
+      productId: productInfo.id || null,
+      productUrl: window.location.href,
+      productCategory: productInfo.category || null
     });
   }
   
@@ -195,14 +326,29 @@
   
   // Track purchase complete
   function trackPurchaseComplete() {
+    console.log('💰 iPick: Tracking purchase completion');
+    
     const orderInfo = getOrderInfo();
     
-    sendEvent('purchase_complete', {
+    // Send both purchase_complete and purchase events for compatibility
+    const purchaseData = {
       orderId: orderInfo.orderId,
       totalAmount: orderInfo.total,
       currency: 'EUR',
       items: orderInfo.items,
       checkoutStep: 'completed'
+    };
+    
+    // Send purchase_complete event
+    sendEvent('purchase_complete', purchaseData);
+    
+    // Also send purchase event as fallback
+    sendEvent('purchase', purchaseData);
+    
+    // Send conversion event as well
+    sendEvent('conversion', {
+      ...purchaseData,
+      conversionType: 'purchase'
     });
   }
   
@@ -212,6 +358,11 @@
     
     // Track page view on load
     trackPageView();
+    
+    // Track product view if on product page
+    if (window.location.pathname.includes('/products/')) {
+      trackProductView();
+    }
     
     // Track add to cart button clicks
     document.addEventListener('click', function(e) {
@@ -249,6 +400,29 @@
     // Track purchase completion (on thank you page)
     if (checkoutStep === 'thank_you' || 
         document.querySelector('.order-success, .thank-you, .order-confirmation')) {
+      console.log('💰 iPick: Detected thank you page, tracking purchase');
+      trackPurchaseComplete();
+    }
+    
+    // Additional purchase detection for Shopify
+    if (window.Shopify && window.Shopify.theme && window.Shopify.theme.order) {
+      console.log('💰 iPick: Shopify order object detected, tracking purchase');
+      trackPurchaseComplete();
+    }
+    
+    // Check for order confirmation in page title
+    if (document.title.toLowerCase().includes('thank') || 
+        document.title.toLowerCase().includes('order') ||
+        document.title.toLowerCase().includes('confirmation')) {
+      console.log('💰 iPick: Order confirmation detected in page title, tracking purchase');
+      trackPurchaseComplete();
+    }
+    
+    // Check for order confirmation in URL
+    if (window.location.href.toLowerCase().includes('thank') || 
+        window.location.href.toLowerCase().includes('order') ||
+        window.location.href.toLowerCase().includes('confirmation')) {
+      console.log('💰 iPick: Order confirmation detected in URL, tracking purchase');
       trackPurchaseComplete();
     }
   }
